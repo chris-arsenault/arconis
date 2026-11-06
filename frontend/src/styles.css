@@ -362,26 +362,6 @@ h1 em {
   display: flex;
   flex-direction: column;
 }
-.mode-switch {
-  display: flex;
-  border-radius: 8px;
-  padding: 4px;
-  background: #f4f4f8;
-  margin-bottom: 28px;
-}
-.mode-switch button {
-  border: none;
-  background: none;
-  flex: 1;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: #9298a8;
-}
-.mode-switch button[aria-pressed="true"] {
-  color: #7663b8;
-  background: white;
-  box-shadow: 0 2px 5px #3431500b;
-}
 .outline-heading,
 .panel-heading {
   display: flex;
@@ -803,6 +783,9 @@ kbd {
 }
 .local-status {
   margin-left: auto;
+}
+.statusbar a {
+  color: inherit;
 }
 .inline-editor {
   position: absolute;

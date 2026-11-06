@@ -23,14 +23,13 @@ export function Workspace(props: Readonly<Props>) {
   useSyncExternalStore(session.subscribe, session.snapshot);
   const [editor, setEditor] = useState<EditorController | null>(null);
   useSyncExternalStore(editor?.subscribe || subscribeEmpty, editor?.snapshot || snapshotEmpty);
-  const [mode, setMode] = useState("diagram");
   const [message, setMessage] = useState("");
   return (
     <div className="workspace">
       <WorkspaceHeader {...props} editor={editor} onMessage={setMessage} />
       <div className="workspace-body">
-        {editor && <Outline editor={editor} mode={mode} onMode={setMode} />}
-        <CanvasArea session={session} editor={editor} mode={mode} onEditor={setEditor} />
+        {editor && <Outline editor={editor} />}
+        <CanvasArea session={session} editor={editor} onEditor={setEditor} />
         {editor && <Inspector editor={editor} />}
       </div>
       <ConnectionStatus session={session} />
@@ -47,12 +46,10 @@ export function Workspace(props: Readonly<Props>) {
 function CanvasArea({
   session,
   editor,
-  mode,
   onEditor,
 }: Readonly<{
   session: RoomSession;
   editor: EditorController | null;
-  mode: string;
   onEditor: (editor: EditorController | null) => void;
 }>) {
   return (
@@ -60,7 +57,7 @@ function CanvasArea({
       <Canvas session={session} onEditor={onEditor} />
       {editor && (
         <>
-          <Toolbar editor={editor} mode={mode} />
+          <Toolbar editor={editor} />
           <InlineEditor editor={editor} />
           <Cursors editor={editor} session={session} />
           <CanvasHUD editor={editor} />
@@ -98,6 +95,9 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
         {session.stored ? "Local copy enabled" : "Opening local copy"} ·{" "}
         {session.document.list().length} objects
       </span>
+      <a href="/licenses.txt" target="_blank" rel="noreferrer">
+        Licenses
+      </a>
     </footer>
   );
 }

@@ -9,10 +9,17 @@ import {
   Point,
 } from "@maxgraph/core";
 import { CanvasDocument } from "../document/canvasDocument";
-import { KIND_LABELS, LOCAL, type ObjectKind, type Bookmark } from "../document/types";
+import {
+  KIND_LABELS,
+  LOCAL,
+  type ObjectKind,
+  type Bookmark,
+  type CanvasObject,
+} from "../document/types";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
+import { isVertexKind, offsetPoints } from "../document/geometry";
 
 export type Tool = ObjectKind | "select" | "pan";
 
@@ -20,6 +27,7 @@ export class EditorController {
   readonly graph: Graph;
   tool: Tool = "select";
   editId: string | null = null;
+  connectionSource = "";
   version = 0;
   private projecting = false;
   private listeners = new Set<() => void>();
@@ -91,6 +99,7 @@ export class EditorController {
   }
 
   setTool(tool: Tool) {
+    this.connectionSource = "";
     this.tool = tool;
     const pan = this.graph.getPlugin<PanningHandler>("PanningHandler");
     if (pan) {
@@ -142,6 +151,18 @@ export class EditorController {
     this.editId = null;
     this.emit();
   }
+  updateGeometry(id: string, values: Partial<Pick<CanvasObject, "x" | "y" | "width" | "height">>) {
+    const model = this.graph.getDataModel();
+    const cell = model.getCell(id);
+    if (!cell?.geometry) return;
+    const origin = this.document.get(cell.parent?.id || "") || { x: 0, y: 0 };
+    const geometry = cell.geometry.clone();
+    if (values.x !== undefined) geometry.x = values.x - origin.x;
+    if (values.y !== undefined) geometry.y = values.y - origin.y;
+    if (values.width !== undefined) geometry.width = values.width;
+    if (values.height !== undefined) geometry.height = values.height;
+    model.setGeometry(cell, geometry);
+  }
   group() {
     if (this.graph.getSelectionCount() > 1) {
       const group = new Cell("Group");
@@ -150,7 +171,27 @@ export class EditorController {
     }
   }
   ungroup() {
-    this.graph.ungroupCells();
+    const model = this.graph.getDataModel();
+    const labels = new Map(
+      Object.values(model.cells || {})
+        .filter((cell) => cell.isEdge() && cell.geometry)
+        .map((cell) => [cell, cell.geometry!.clone()])
+    );
+    model.beginUpdate();
+    try {
+      this.graph.ungroupCells().forEach((cell) => {
+        const label = labels.get(cell);
+        if (!label || !cell.geometry) return;
+        // maxGraph treats relative edge labels as relative child vertices on ungroup.
+        const geometry = cell.geometry.clone();
+        geometry.x = label.x;
+        geometry.y = label.y;
+        geometry.relative = true;
+        model.setGeometry(cell, geometry);
+      });
+    } finally {
+      model.endUpdate();
+    }
   }
   connect() {
     const cells = this.graph.getSelectionCells().filter((cell) => cell.isVertex());
@@ -165,21 +206,13 @@ export class EditorController {
       () =>
         ids.forEach((id) => {
           const item = this.document.get(id)!;
-          const offset = mapping.has(item.parent) ? 0 : 28;
+          const offset = 28;
           this.document.insert({
             ...item,
             id: mapping.get(id)!,
-            x: item.x + offset,
-            y: item.y + offset,
-            points:
-              item.kind === "stroke"
-                ? JSON.stringify(
-                    (JSON.parse(item.points) as [number, number][]).map(([x, y]) => [
-                      x + offset,
-                      y + offset,
-                    ])
-                  )
-                : item.points,
+            x: isVertexKind(item.kind) ? item.x + offset : item.x,
+            y: isVertexKind(item.kind) ? item.y + offset : item.y,
+            points: offsetPoints(item.points, offset, offset),
             parent: mapping.get(item.parent) || item.parent,
             source: mapping.get(item.source) || item.source,
             target: mapping.get(item.target) || item.target,

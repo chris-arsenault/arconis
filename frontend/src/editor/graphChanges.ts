@@ -1,32 +1,28 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { LOCAL, type CanvasObject } from "../document/types";
+import { offsetPoints } from "../document/geometry";
 
 export function commitGraph(graph: Graph, document: CanvasDocument) {
   const cells = Object.values(graph.getDataModel().cells || {}).filter(
     (cell) => cell.isVertex() || cell.isEdge()
   );
   const present = new Set(cells.map((cell) => cell.id!));
+  const changes = cells.map((cell) => ({ cell, values: cellValues(cell, document) }));
   document.doc.transact(() => {
+    document.freezeLegacyGeometry();
     document
       .list()
       .filter((item) => !present.has(item.id))
       .forEach((item) => document.objects.delete(item.id));
-    cells.forEach((cell) => commitCell(cell, document));
+    changes.forEach(({ cell, values }) => commitCell(cell, values, document));
   }, LOCAL);
 }
 
-function commitCell(cell: Cell, document: CanvasDocument) {
+function commitCell(cell: Cell, values: Partial<CanvasObject>, document: CanvasDocument) {
   if (!cell.id || !cell.geometry) return;
   const existing = document.get(cell.id);
-  const { x, y, width, height, points } = cell.geometry;
-  const values = cellValues(cell);
-  const path = [...(points || [])];
-  if (existing?.kind === "stroke") {
-    if (cell.geometry.sourcePoint) path.unshift(cell.geometry.sourcePoint);
-    if (cell.geometry.targetPoint) path.push(cell.geometry.targetPoint);
-  }
-  values.points = JSON.stringify(path.map((point) => [point.x, point.y]));
+  const { x, y, width, height } = cell.geometry;
   if (existing) document.patch(cell.id, values);
   else {
     const kind = cell.isEdge() ? "connector" : "group";
@@ -48,16 +44,39 @@ function commitCell(cell: Cell, document: CanvasDocument) {
   }
 }
 
-function cellValues(cell: Cell): Partial<CanvasObject> {
+function cellValues(cell: Cell, document: CanvasDocument): Partial<CanvasObject> {
   const { x, y, width, height } = cell.geometry!;
+  const origin = parentOrigin(cell);
   return {
     label: String(cell.value || ""),
-    x,
-    y,
+    x: cell.isVertex() ? x + origin.x : x,
+    y: cell.isVertex() ? y + origin.y : y,
     width,
     height,
     parent: cell.parent?.isVertex() ? cell.parent.id! : "",
     source: cell.source?.id || "",
     target: cell.target?.id || "",
+    points: worldPoints(cell, document, origin),
   };
+}
+
+function parentOrigin(cell: Cell) {
+  const origin = { x: 0, y: 0 };
+  let parent = cell.parent;
+  while (parent?.isVertex()) {
+    origin.x += parent.geometry?.x || 0;
+    origin.y += parent.geometry?.y || 0;
+    parent = parent.parent;
+  }
+  return origin;
+}
+
+function worldPoints(cell: Cell, document: CanvasDocument, origin: { x: number; y: number }) {
+  const geometry = cell.geometry!;
+  const path = [...(geometry.points || [])];
+  if (document.get(cell.id!)?.kind === "stroke") {
+    if (geometry.sourcePoint) path.unshift(geometry.sourcePoint);
+    if (geometry.targetPoint) path.push(geometry.targetPoint);
+  }
+  return offsetPoints(JSON.stringify(path.map((point) => [point.x, point.y])), origin.x, origin.y);
 }

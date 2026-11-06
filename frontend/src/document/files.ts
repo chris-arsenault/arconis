@@ -1,11 +1,12 @@
 import { CanvasDocument } from "./canvasDocument";
 import { KIND_LABELS, LOCAL, type CanvasObject, type Bookmark } from "./types";
+import { normalizeLegacyObjects } from "./geometry";
 
 export function downloadDocument(document: CanvasDocument) {
   const data = JSON.stringify(
     {
       format: "arconis",
-      version: 1,
+      version: 2,
       title: document.title(),
       objects: document.list(),
       bookmarks: [...document.bookmarks.values()].map((value) => JSON.parse(value) as unknown),
@@ -23,9 +24,9 @@ export function downloadDocument(document: CanvasDocument) {
 
 export function importDocument(document: CanvasDocument, content: string) {
   const parsed = parseFile(content);
-  const objects = parsed.objects;
-  if (!objects.every(validObject))
+  if (!parsed.objects.every(validObject))
     throw new Error("This document contains invalid canvas objects.");
+  const objects = parsed.version === 1 ? normalizeLegacyObjects(parsed.objects) : parsed.objects;
   const bookmarks = parsed.bookmarks;
   if (!Array.isArray(bookmarks) || !bookmarks.every(validBookmark))
     throw new Error("This document contains invalid saved views.");
@@ -55,6 +56,7 @@ function parseFile(content: string): {
   objects: CanvasObject[];
   bookmarks: unknown;
   title: unknown;
+  version: number;
 } {
   const parsed: unknown = JSON.parse(content);
   if (
@@ -70,7 +72,15 @@ function parseFile(content: string): {
     objects: parsed.objects as CanvasObject[],
     bookmarks: "bookmarks" in parsed ? parsed.bookmarks : [],
     title: "title" in parsed ? parsed.title : null,
+    version: fileVersion(parsed),
   };
+}
+
+function fileVersion(parsed: object) {
+  const version = "version" in parsed ? parsed.version : 1;
+  if (version !== 1 && version !== 2)
+    throw new Error("This Arconis file version is not supported.");
+  return version;
 }
 
 function validBookmark(value: unknown): value is Bookmark {

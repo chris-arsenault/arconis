@@ -1,6 +1,7 @@
 import { Copy, Group, Ungroup, Trash2, Link2, Bold, Italic } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { COLORS, KIND_LABELS, type CanvasObject, type StyleValue } from "../document/types";
+import { useCollaborativeText } from "../document/useCollaborativeText";
 
 type ItemProps = Readonly<{ editor: EditorController; item: CanvasObject }>;
 type StyleProps = Readonly<{
@@ -11,6 +12,7 @@ type StyleProps = Readonly<{
 export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   const selected = editor.selected();
   const item = selected[0];
+  const textRef = useCollaborativeText(editor.document, item?.id || null);
   if (!item) return <EmptyInspector />;
   return (
     <aside className="inspector" aria-label="Object properties">
@@ -29,12 +31,7 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       </div>
       <label>
         Text
-        <textarea
-          aria-label="Object text"
-          value={item.label}
-          onChange={(event) => editor.document.editText(item.id, event.target.value)}
-          rows={4}
-        />
+        <textarea ref={textRef} aria-label="Object text" rows={4} />
       </label>
       <StyleControls editor={editor} item={item} />
       <PositionControls editor={editor} item={item} />
@@ -90,7 +87,7 @@ function GeometryControls({ editor, item }: ItemProps) {
               value={Math.round(item[key] * 100) / 100}
               min={key === "width" || key === "height" ? 1 : undefined}
               onChange={(event) =>
-                editor.document.patch(item.id, { [key]: Number(event.target.value) })
+                editor.updateGeometry(item.id, { [key]: Number(event.target.value) })
               }
             />
           </label>

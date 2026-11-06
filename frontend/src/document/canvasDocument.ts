@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 import { LOCAL, type CanvasObject, type ObjectKind, type StyleValue } from "./types";
+import { isVertexKind, readWorldObject, type StoredObject } from "./geometry";
 
 export class CanvasDocument {
   readonly doc = new Y.Doc();
@@ -41,6 +42,11 @@ export class CanvasDocument {
     this.objects.set(item.id, record);
     const { label, style, ...properties } = item;
     Object.entries(properties).forEach(([key, value]) => record.set(key, value));
+    if (isVertexKind(item.kind)) {
+      record.set("worldX", item.x);
+      record.set("worldY", item.y);
+    }
+    record.set("worldPoints", item.points);
     const text = new Y.Text();
     record.set("label", text);
     text.insert(0, label);
@@ -50,8 +56,24 @@ export class CanvasDocument {
   }
 
   get(id: string): CanvasObject | null {
-    const record = this.objects.get(id);
-    return record ? (record.toJSON() as CanvasObject) : null;
+    return readWorldObject(id, (key) => {
+      const record = this.objects.get(key);
+      return record ? (record.toJSON() as StoredObject) : null;
+    });
+  }
+
+  freezeLegacyGeometry() {
+    const snapshots = [...this.objects.keys()].map((id) => this.get(id)!);
+    snapshots.forEach((item) => {
+      const record = this.objects.get(item.id)!;
+      if (record.has("legacyWorld")) return;
+      if (
+        record.has("worldPoints") &&
+        (!isVertexKind(item.kind) || (record.has("worldX") && record.has("worldY")))
+      )
+        return;
+      record.set("legacyWorld", { x: item.x, y: item.y, points: item.points });
+    });
   }
 
   list() {
@@ -67,11 +89,16 @@ export class CanvasDocument {
   patch(id: string, values: Partial<CanvasObject>) {
     const record = this.objects.get(id);
     if (!record) return;
+    const current = this.get(id)!;
     this.doc.transact(() => {
+      if ("parent" in values && values.parent !== current.parent) this.freezeLegacyGeometry();
       Object.entries(values).forEach(([key, value]) => {
         if (key === "label") this.editText(id, String(value));
         else if (key === "style") this.patchStyle(id, value as CanvasObject["style"]);
-        else if (record.get(key) !== value) record.set(key, value);
+        else if (current[key as keyof CanvasObject] !== value) {
+          const field = geometryField(key, current.kind);
+          record.set(field, value);
+        }
       });
     }, LOCAL);
   }
@@ -118,6 +145,7 @@ export class CanvasDocument {
       objects.filter((item) => removed.has(item.parent)).forEach((item) => removed.add(item.id));
     }
     this.doc.transact(() => {
+      this.freezeLegacyGeometry();
       this.list().forEach((item) => {
         if (
           removed.has(item.id) ||
@@ -141,4 +169,11 @@ export class CanvasDocument {
     this.undo.destroy();
     this.doc.destroy();
   }
+}
+
+function geometryField(key: string, kind: ObjectKind) {
+  if (key === "points") return "worldPoints";
+  if (isVertexKind(kind) && key === "x") return "worldX";
+  if (isVertexKind(kind) && key === "y") return "worldY";
+  return key;
 }

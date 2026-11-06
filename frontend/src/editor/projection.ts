@@ -2,6 +2,7 @@ import { Cell, Geometry, Graph, Point, type CellStyle } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import type { CanvasObject } from "../document/types";
 import { objectStyle } from "./styles";
+import { offsetPoints } from "../document/geometry";
 
 function safeParent(item: CanvasObject, all: Map<string, CanvasObject>) {
   const visited = new Set([item.id]);
@@ -40,39 +41,60 @@ export function projectDocument(graph: Graph, document: CanvasDocument) {
         model.add(parent, cell);
       }
     });
-    visible.forEach((item) =>
-      updateCell(
-        graph,
-        item,
-        model.getCell(item.id)!,
-        model.getCell(safeParent(item, all)) || parent
-      )
+    const vertices = [...visible.values()].filter(
+      (item) => !["connector", "stroke"].includes(item.kind)
     );
+    const edges = [...visible.values()].filter((item) =>
+      ["connector", "stroke"].includes(item.kind)
+    );
+    for (const item of [...vertices, ...edges]) {
+      const parentId = safeParent(item, all);
+      updateCell(graph, item, model.getCell(item.id)!, model.getCell(parentId) || parent, all);
+    }
   } finally {
     model.endUpdate();
   }
 }
 
-function updateCell(graph: Graph, item: CanvasObject, cell: Cell, parent: Cell) {
+function updateCell(
+  graph: Graph,
+  item: CanvasObject,
+  cell: Cell,
+  parent: Cell,
+  all: Map<string, CanvasObject>
+) {
   const model = graph.getDataModel();
   if (cell.parent !== parent) model.add(parent, cell);
   if (cell.value !== item.label) model.setValue(cell, item.label);
   const style = objectStyle(item);
   const currentStyle = cell.getStyle();
   if (!stylesEqual(style, currentStyle)) model.setStyle(cell, style);
-  const geometry = new Geometry(item.x, item.y, item.width, item.height);
-  if (cell.isEdge()) {
-    geometry.relative = true;
-    const points = JSON.parse(item.points) as [number, number][];
-    if (item.kind === "stroke" && points.length) {
-      geometry.sourcePoint = new Point(...points[0]);
-      geometry.targetPoint = new Point(...points[points.length - 1]);
-      geometry.points = points.slice(1, -1).map((p) => new Point(...p));
-    } else geometry.points = points.map((p) => new Point(...p));
-    model.setTerminal(cell, model.getCell(item.source), true);
-    model.setTerminal(cell, model.getCell(item.target), false);
-  }
+  if (cell.isEdge()) attachTerminals(graph, item, cell);
+  const origin = all.get(cell.parent!.id!) || { x: 0, y: 0 };
+  const geometry = cell.isEdge()
+    ? edgeGeometry(item, origin)
+    : new Geometry(item.x - origin.x, item.y - origin.y, item.width, item.height);
   if (!cell.geometry?.equals(geometry)) model.setGeometry(cell, geometry);
+}
+
+function edgeGeometry(item: CanvasObject, origin: { x: number; y: number }) {
+  const geometry = new Geometry(item.x, item.y, item.width, item.height);
+  geometry.relative = true;
+  const points = JSON.parse(offsetPoints(item.points, -origin.x, -origin.y)) as [number, number][];
+  if (item.kind === "stroke" && points.length) {
+    geometry.sourcePoint = new Point(...points[0]);
+    geometry.targetPoint = new Point(...points[points.length - 1]);
+    geometry.points = points.slice(1, -1).map((p) => new Point(...p));
+  } else geometry.points = points.map((p) => new Point(...p));
+  return geometry;
+}
+
+function attachTerminals(graph: Graph, item: CanvasObject, cell: Cell) {
+  const model = graph.getDataModel();
+  const source = model.getCell(item.source);
+  const target = model.getCell(item.target);
+  if (cell.source !== source) model.setTerminal(cell, source, true);
+  if (cell.target !== target) model.setTerminal(cell, target, false);
 }
 
 function stylesEqual(style: CellStyle, current: CellStyle) {

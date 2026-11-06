@@ -30,8 +30,8 @@ temporary Vite and WebSocket servers. They do not require a development server.
 
 ## Editing
 
-Create a room, then choose a tool and click the canvas. Diagram and Ideas modes change
-the tool palette; every object remains available in the same document. Connect notes
+Create a room, then choose a tool and click the canvas. One toolbar provides shapes,
+notes, text, connectors and freehand drawing in the same document. Connect notes
 and shapes by choosing the connector tool and clicking its two endpoints, dragging
 connection handles, or selecting two objects and choosing Connect.
 
@@ -63,6 +63,9 @@ IndexedDB keeps the document on each participating device. A returning browser r
 its local copy. New devices need an online participant holding the document; AppSync
 is a messaging bus and retains no document history. Export a file for a portable copy.
 No document database, custom application server or server-side persistence exists.
+Object positions and paths use world coordinates, so concurrent grouping and movement
+retain a common coordinate frame. Existing rooms and version-1 files remain readable;
+new exports use version 2. Reload previously opened tabs after updating the application.
 
 Rooms are anonymous. The browser API key is public configuration and the room code
 does not provide independently enforced authorization. Use this deployment for
@@ -105,5 +108,7 @@ data transfer; messages are metered per 5 KiB. See [AWS pricing](https://aws.ama
 ## License
 
 MIT; see [LICENSE](LICENSE). maxGraph is Apache-2.0; React, Yjs and y-indexeddb are MIT.
+The production build includes [bundled dependency notices](https://arconis.ahara.io/licenses.txt),
+generated from the installed packages by Vite.
 Canvas interactions inspired by InfiniPaint are independently implemented; its GPL
 source and assets are not incorporated.

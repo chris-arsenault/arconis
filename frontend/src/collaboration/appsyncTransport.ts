@@ -29,12 +29,8 @@ export class AppSyncTransport implements Transport {
     if (!this.stopped) this.connect();
   };
   private offline = () => {
-    this.ready = false;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.clearTimers();
-    const socket = this.socket;
-    this.socket = null;
-    socket?.close();
+    this.retire();
     this.onStatus("offline", "Offline; edits are saved on this device.");
   };
 
@@ -59,7 +55,7 @@ export class AppSyncTransport implements Transport {
       this.onStatus("offline", "Offline; edits are saved on this device.");
       return;
     }
-    if (this.socket?.readyState === WebSocket.OPEN) return;
+    if (this.socket) return;
     this.onStatus("connecting");
     const header = btoa(JSON.stringify(this.auth()))
       .replaceAll("+", "-")
@@ -70,6 +66,7 @@ export class AppSyncTransport implements Transport {
       `header-${header}`,
     ]);
     this.socket = socket;
+    this.resetWatchdog();
     socket.onopen = () => {
       if (this.socket !== socket) return;
       this.write({ type: "connection_init" });
@@ -84,8 +81,7 @@ export class AppSyncTransport implements Transport {
       }
     };
     socket.onerror = () => {
-      if (this.socket === socket)
-        this.onStatus("offline", "Connection interrupted; edits are saved on this device.");
+      if (this.socket === socket) this.disconnected();
     };
     socket.onclose = () => {
       if (this.socket === socket) this.disconnected();
@@ -136,7 +132,7 @@ export class AppSyncTransport implements Transport {
   }
   private resetWatchdog() {
     if (this.watchdog) clearTimeout(this.watchdog);
-    this.watchdog = setTimeout(() => this.socket?.close(), this.timeout);
+    this.watchdog = setTimeout(() => this.disconnected(), this.timeout);
   }
   private failMessage(message: ServerMessage) {
     this.fail(
@@ -146,8 +142,7 @@ export class AppSyncTransport implements Transport {
   }
   private fail(detail: string) {
     this.error = detail;
-    this.onStatus("error", detail);
-    this.socket?.close();
+    this.disconnected();
   }
 
   send(message: string) {
@@ -169,7 +164,7 @@ export class AppSyncTransport implements Transport {
     });
     this.pending.set(
       id,
-      setTimeout(() => this.socket?.close(), 15000)
+      setTimeout(() => this.disconnected(), 15000)
     );
     if (this.queue.length) this.publishTimer = setTimeout(() => this.publishBatch(), 100);
   }
@@ -181,9 +176,15 @@ export class AppSyncTransport implements Transport {
     this.publishTimer = null;
     this.queue = [];
   }
-  private disconnected() {
+  private retire() {
+    const socket = this.socket;
+    this.socket = null;
     this.ready = false;
     this.clearTimers();
+    socket?.close();
+  }
+  private disconnected() {
+    this.retire();
     if (this.stopped) return;
     this.onStatus(
       this.error ? "error" : "offline",
@@ -196,10 +197,8 @@ export class AppSyncTransport implements Transport {
   close() {
     this.stopped = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.clearTimers();
+    this.retire();
     window.removeEventListener("online", this.online);
     window.removeEventListener("offline", this.offline);
-    this.socket?.close();
-    this.socket = null;
   }
 }

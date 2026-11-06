@@ -12,6 +12,11 @@ permissions:
   contents: read
   actions: read
 
+# Keep each deployed revision available until its live browser verification finishes.
+concurrency:
+  group: arconis-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   ci:
     uses: chris-arsenault/ahara/.github/workflows/ci.yml@main

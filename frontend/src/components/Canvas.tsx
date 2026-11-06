@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { RoomSession } from "../collaboration/room";
 import { EditorController } from "../editor/controller";
+import { useCollaborativeText } from "../document/useCollaborativeText";
 
 export function Canvas({
   session,
@@ -44,7 +45,7 @@ export function Canvas({
 }
 
 export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useCollaborativeText(editor.document, editor.editId);
   const item = editor.editId ? editor.document.get(editor.editId) : null;
   const editingId = editor.editId;
   useLayoutEffect(() => {
@@ -60,8 +61,10 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
       height: `${Math.max(60, state.height)}px`,
       backgroundColor: String(item.style.fillColor || "#ffffff"),
     });
-    ref.current.focus();
-  }, [editor, editingId]);
+  });
+  useLayoutEffect(() => {
+    if (editingId) ref.current?.focus();
+  }, [editor, editingId, ref]);
   if (!item) return null;
   const close = () => {
     editor.closeEditor();
@@ -71,8 +74,6 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
       ref={ref}
       className="inline-editor"
       aria-label="Edit canvas text"
-      value={item.label}
-      onChange={(event) => editor.document.editText(item.id, event.target.value)}
       onBlur={close}
       onKeyDown={(event) => {
         if (event.key === "Escape" || ((event.ctrlKey || event.metaKey) && event.key === "Enter"))

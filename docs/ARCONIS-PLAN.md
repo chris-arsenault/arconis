@@ -9,6 +9,8 @@ AppSync Events must be supported, use permissively licensed original code rather
 InfiniPaint's GPL code, and complete the full feature set rather than stopping at an MVP.
 Execution, cross-repository Ahara admission, CI publication and deployment are authorized.
 The user's later manual validation is not a completion prerequisite.
+The user subsequently approved removing the redundant Diagram/Ideas switch: one
+toolbar exposes every editing tool, with all objects remaining in the same document.
 
 Required behavior:
 
@@ -18,7 +20,7 @@ Required behavior:
   grouping, ungrouping and editable geometry/style properties.
 - Object-attached shape/shape, sticky/sticky and mixed connectors, including
   orthogonal routing, editable connector properties and retained attachments on moves.
-- Direct text editing; small sticky color palette; coherent diagram/sticky tool modes.
+- Direct text editing; small sticky color palette; one toolbar for all canvas tools.
 - Anonymous create/join/share rooms with browser-generated high-entropy identifiers.
 - Concurrent creation, geometry, text, styles, relationships, grouping and deletion
   converge; no dangling edges corrupt the visible graph.
@@ -122,12 +124,14 @@ No user validation gate. Diagnose failures from logs; branch prerequisite repair
 
 ## Execution and current state
 
-The full editor and shared-room behavior are implemented and deployed. Local checks
-pass: ten unit/protocol tests, five browser journeys, lint, types, formatting and build.
-All five journeys also pass against real AppSync at <https://arconis.ahara.io>, with
-exact deployed revision `ed903f8aadffc00e3374a87a57e967d962ec60cc` confirmed.
-All milestones are complete. Shared CI run `42297363179` passed every job, including
-build, deployment, reporting and all five independent live browser journeys.
+Initial delivery completed all six milestones and deployed revision `225629b`.
+Shared CI run `42299005576` passed build, deployment, reporting and five live browser
+journeys. Subsequent independent editor, collaboration and platform reviews found
+interaction and concurrency gaps beyond those tests. The corrections below retain
+the original scope and include the user's approved unified toolbar.
+Follow-up local checks pass: nineteen unit/protocol tests, ten browser journeys,
+lint, types, formatting and production build. Publication and exact-revision live
+verification are tracked in Sulion plan `dffcdfaa-b19b-42d1-b0fd-c8b99bc76adf`.
 Local AWS broker access is unavailable; deployment uses the normal shared CI/OIDC route.
 Milestone expansions and material evidence are maintained here, not in separate reports.
 
@@ -262,3 +266,44 @@ The earlier platform run's engineering reporting returned HTTP 502 from
 `/api/ci/report`; its server-side cause remains unverified. Product run
 `42295581087` subsequently passed reporting. The broker credential cannot rerun
 workflows; no substitute credential or reporting bypass is introduced.
+
+## Concurrent geometry correction
+
+Independent review reproduced a requirement gap after the initial deployment:
+concurrent grouping and movement can merge parent-relative coordinates with a
+different parent, making an object jump. The original requirement is correct
+concurrent geometry and membership; the coordinate representation is an agent
+implementation choice that must change to satisfy it.
+
+Follow-up root: `dffcdfaa-b19b-42d1-b0fd-c8b99bc76adf`; geometry execution branch:
+`59fc8131-c4d9-4348-85d7-1f64aee898ba`. It expands the independent-review phase.
+Keep per-axis world positions and world route/stroke
+points canonical, converting to parent coordinates only at the maxGraph boundary.
+Connector x/y remain relative label coordinates. Capture all graph positions before
+patching records, and route property edits through native graph geometry so moving
+a group also moves its descendants. Duplicate every selected descendant once.
+
+Existing rooms retain their legacy x/y/points fields. Before a legacy frame changes,
+freeze its world fallback separately from actual movement fields; explicit movement
+always takes precedence, so compatibility initialization cannot overwrite a peer's
+move. This needs no migration service or backend. Version-1 files normalize from
+parent-relative coordinates during import; version-2 exports declare world geometry.
+Already-open clients running the old code need to reload for the new fields.
+
+Execution: (1) reproduce both peer-priority orders and record the compatibility
+contract; (2) update document geometry, graph capture/projection, property controls,
+duplication and files; (3) verify concurrent grouping/movement, native group moves,
+route/stroke transforms, legacy files, undo and reload. Current state: regressions
+and integration work are complete locally. Nineteen unit/protocol cases and ten
+browser journeys pass, including legacy files, paths, labels, undo and reload.
+An independent reviewer verified both peer priorities for new and legacy records,
+plus nested grouping/ungrouping and native IME composition. The follow-up Sulion plan
+tracks publication and exact-revision live verification separately from local checks.
+
+Release corrections use Vite's native license output and a project workflow lock
+covering deployment through exact-revision live verification. The close-push race
+was inferred from workflow control flow, not an observed deployment failure.
+AppSync bootstrap tagging remains a documented platform ownership limitation:
+the grant can adopt existing untagged resources. No documented creation discriminator
+or authorized live creation test establishes a safe stricter condition; IAM behavior
+is unchanged. This remaining finding is reported rather than hidden by green tests.

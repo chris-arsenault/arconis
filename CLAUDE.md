@@ -37,6 +37,11 @@ Yjs undo tracks local origins; remote edits remain independent. Connectors ident
 their endpoint objects; dangling references are omitted from the graph and object list
 while retained in Yjs so out-of-order endpoint updates can complete them. Parent cycles
 are broken deterministically during projection.
+Vertex positions and route/stroke points are canonical world coordinates; maxGraph
+alone uses parent-relative geometry. Keep legacy compatibility baselines separate
+from actual per-axis movement fields so reparenting cannot overwrite a concurrent move.
+Connector x/y remain relative label coordinates and must survive native ungrouping.
+Version-1 files normalize during import; new exports use version 2.
 
 Transport adapters do not depend on graph or UI types. Joining and reconnecting exchange
 state vectors/differences in both directions. The test-only AppSync fixture is never

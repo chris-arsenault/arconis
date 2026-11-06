@@ -1,102 +1,9 @@
-import { beforeAll, afterAll, afterEach, it, expect } from "vitest";
-import {
-  chromium,
-  firefox,
-  webkit,
-  type Browser,
-  type BrowserContext,
-  type Page,
-} from "playwright";
-import { createServer, type ViteDevServer } from "vite";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import type { CanvasObject, Bookmark } from "../document/types";
+import { it, expect } from "vitest";
+import type { Page } from "playwright";
+import { writeFile } from "node:fs/promises";
 import { CanvasDocument } from "../document/canvasDocument";
 import { createRoomId } from "../collaboration/room";
-import { startAppSyncFixture } from "../collaboration/appsyncFixture";
-
-let browser: Browser;
-let server: ViteDevServer | null = null;
-let baseUrl = process.env.ARCONIS_URL || "";
-const errors: string[] = [];
-const engines = { chromium, firefox, webkit };
-let fixture: Awaited<ReturnType<typeof startAppSyncFixture>> | null = null;
-
-beforeAll(async () => {
-  if (!baseUrl) {
-    server = await createServer({ server: { port: 0, host: "127.0.0.1" } });
-    await server.listen();
-    baseUrl = server.resolvedUrls!.local[0];
-  }
-  if (!process.env.ARCONIS_URL) fixture = await startAppSyncFixture();
-  browser = await engines[(process.env.BROWSER || "chromium") as keyof typeof engines].launch({
-    headless: true,
-  });
-  await mkdir("test-results", { recursive: true });
-});
-afterAll(async () => {
-  await browser?.close();
-  await server?.close();
-  await fixture?.close();
-});
-afterEach(async ({ task }) => {
-  if (task.result?.state !== "fail") return;
-  for (const context of browser.contexts())
-    for (const page of context.pages()) await page.screenshot({ path: "test-results/failure.png" });
-});
-
-async function open(context: BrowserContext, room = "", join = false) {
-  if (fixture)
-    await context.route("**/config.js", (route) =>
-      route.fulfill({
-        contentType: "application/javascript",
-        body: `window.__APP_CONFIG__ = ${JSON.stringify(fixture!.config)};`,
-      })
-    );
-  const page = await context.newPage();
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(join ? baseUrl : `${baseUrl}#room=${room}`);
-  if (join) {
-    await page.getByLabel("Room link or code", { exact: true }).fill(`${baseUrl}#room=${room}`);
-    await page.getByRole("button", { name: "Join room", exact: true }).click();
-  } else if (!room) {
-    await page.getByLabel("Your display name", { exact: true }).fill("Designer");
-    await page.getByRole("button", { name: "Create a room", exact: true }).click();
-    expect(new URL(page.url()).hash).toMatch(/^#room=[a-f0-9]{48}$/);
-  }
-  if (process.env.EXPECTED_REVISION)
-    expect(await page.locator("html").getAttribute("data-revision")).toBe(
-      process.env.EXPECTED_REVISION
-    );
-  await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
-  await page.getByTestId("connection-status").filter({ hasText: "Connected" }).waitFor();
-  return page;
-}
-async function add(page: Page, tool: string, label: string, x: number, y: number) {
-  await page.getByRole("button", { name: tool, exact: true }).click();
-  await page.getByTestId("canvas").click({ position: { x, y } });
-  await page.getByLabel("Object text", { exact: true }).fill(label);
-}
-function row(page: Page, label: string) {
-  return page.locator(".object-row").filter({ hasText: label });
-}
-
-async function exported(page: Page): Promise<{ objects: CanvasObject[]; bookmarks: Bookmark[] }> {
-  const pending = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export document", exact: true }).click();
-  const download = await pending;
-  return JSON.parse(await readFile((await download.path())!, "utf8")) as {
-    objects: CanvasObject[];
-    bookmarks: Bookmark[];
-  };
-}
-
-async function drag(page: Page, x: number, y: number, dx: number, dy: number) {
-  const bounds = (await page.getByTestId("canvas").boundingBox())!;
-  await page.mouse.move(bounds.x + x, bounds.y + y);
-  await page.mouse.down();
-  await page.mouse.move(bounds.x + x + dx, bounds.y + y + dy, { steps: 10 });
-  await page.mouse.up();
-}
+import { browser, errors, open, add, row, exported, drag } from "./browserHarness";
 
 it("edits a complete mixed canvas, routes and groups connected objects", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -229,7 +136,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   await page.getByLabel("Import file").setInputFiles({
     name: "copy.arconis",
     mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify({ format: "arconis", version: 1, ...saved })),
+    buffer: Buffer.from(JSON.stringify({ format: "arconis", ...saved })),
   });
   await expect.poll(() => page.locator(".object-row").count()).toBe(6);
   expect((await exported(page)).bookmarks).toHaveLength(2);
@@ -239,7 +146,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   await context.close();
 });
 
-it("uses every diagram tool, draws a stroke and keeps objects when changing modes", async () => {
+it("uses shapes, notes, connectors and drawing tools together on one canvas", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
   const tools = ["Ellipse", "Decision (D)", "Service", "Database", "Cloud", "Person", "Text"];
@@ -260,7 +167,6 @@ it("uses every diagram tool, draws a stroke and keeps objects when changing mode
     afterMove.objects.find((item) => item.kind === "stroke")!.points
   ) as [number, number][];
   expect(afterPoints[0]).toEqual([beforePoints[0][0] + 50, beforePoints[0][1] + 20]);
-  await page.getByRole("button", { name: "Ideas", exact: true }).click();
   expect(await page.locator(".object-row").count()).toBe(8);
   await add(page, "Sticky note (N)", "Still one document", 650, 700);
   await page.getByRole("button", { name: "Connector: click two objects", exact: true }).click();

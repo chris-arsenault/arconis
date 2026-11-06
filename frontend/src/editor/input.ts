@@ -63,7 +63,6 @@ export function bindCanvasInput(editor: EditorController) {
   const abort = new AbortController();
   const options = { signal: abort.signal };
   let points: [number, number][] = [];
-  let connectionSource = "";
   const position = (event: MouseEvent) => editor.graph.getPointForEvent(event);
   const cellAt = (event: MouseEvent) => {
     const bounds = editor.element.getBoundingClientRect();
@@ -82,7 +81,8 @@ export function bindCanvasInput(editor: EditorController) {
         event.stopPropagation();
       } else if (editor.tool === "connector") {
         const cell = cellAt(event);
-        if (cell?.isVertex()) connectionSource = connectClick(editor, connectionSource, cell.id!);
+        if (cell?.isVertex())
+          editor.connectionSource = connectClick(editor, editor.connectionSource, cell.id!);
       } else editor.add(editor.tool as ObjectKind, point.x, point.y);
     },
     { ...options, capture: true }
@@ -133,7 +133,7 @@ export function bindCanvasInput(editor: EditorController) {
 }
 
 function connectClick(editor: EditorController, source: string, target: string) {
-  if (!source) {
+  if (!source || !editor.document.get(source)) {
     editor.select(target);
     return target;
   }

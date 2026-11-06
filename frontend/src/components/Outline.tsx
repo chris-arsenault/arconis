@@ -3,21 +3,9 @@ import { BookmarkPlus, Bookmark, X, Shapes } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { KIND_LABELS, LOCAL, type Bookmark as CanvasBookmark } from "../document/types";
 
-export function Outline({
-  editor,
-  mode,
-  onMode,
-}: Readonly<{ editor: EditorController; mode: string; onMode: (mode: string) => void }>) {
+export function Outline({ editor }: Readonly<{ editor: EditorController }>) {
   return (
     <aside className="outline">
-      <div className="mode-switch" aria-label="Editing mode">
-        <button aria-pressed={mode === "diagram"} onClick={() => onMode("diagram")}>
-          Diagram
-        </button>
-        <button aria-pressed={mode === "ideas"} onClick={() => onMode("ideas")}>
-          Ideas
-        </button>
-      </div>
       <ObjectList editor={editor} />
       <Bookmarks editor={editor} />
       <p className="outline-footnote">One canvas. Many perspectives.</p>
