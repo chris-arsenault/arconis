@@ -1,0 +1,50 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  ci:
+    uses: chris-arsenault/ahara/.github/workflows/ci.yml@main
+    secrets: inherit
+  verify-deployment:
+    name: Test deployed collaborative canvas
+    needs: [ci]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.node-version
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Test live editing and collaboration
+        run: pnpm test:deployed
+        working-directory: frontend
+        env:
+          ARCONIS_URL: https://arconis.ahara.io/
+          BROWSER: chromium
+          EXPECTED_REVISION: ${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployed-browser-artifacts
+          path: frontend/test-results/
+          retention-days: 7

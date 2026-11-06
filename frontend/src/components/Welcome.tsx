@@ -1,0 +1,114 @@
+import { ArrowRight, Shapes, StickyNote, GitBranch, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { parseRoom } from "../collaboration/room";
+
+interface Props {
+  name: string;
+  onName: (name: string) => void;
+  onCreate: () => void;
+  onJoin: (id: string) => void;
+  error: string;
+}
+
+export function Welcome(props: Readonly<Props>) {
+  return (
+    <main className="welcome">
+      <div className="brand">
+        <span className="brand-mark">
+          <Shapes size={24} />
+        </span>{" "}
+        arconis
+      </div>
+      <section className="welcome-content">
+        <span className="eyebrow">
+          <Sparkles size={15} /> A LITTLE SPACE FOR BIG IDEAS
+        </span>
+        <h1>
+          Give your thinking
+          <br />
+          <em>room to grow.</em>
+        </h1>
+        <p>
+          From the first sticky note to the whole system.
+          <br />
+          Draw, connect, and work it out together on one shared canvas.
+        </p>
+        <div className="welcome-tools">
+          <span>
+            <Shapes /> Diagrams
+          </span>
+          <span>
+            <StickyNote /> Ideas
+          </span>
+          <span>
+            <GitBranch /> Connections
+          </span>
+        </div>
+        <WelcomeForm {...props} />
+        <p className="welcome-footnote">
+          No accounts. Share a link and start thinking together.
+          <br />
+          Your browser keeps a local copy. Use rooms for non-sensitive work.
+        </p>
+      </section>
+      <div className="welcome-art" aria-hidden="true">
+        <div className="art-note">
+          What if we
+          <br />
+          connected
+          <br />
+          <strong>the dots?</strong>
+          <span>↗</span>
+        </div>
+        <div className="art-shape">a starting point</div>
+        <div className="art-dot" />
+      </div>
+    </main>
+  );
+}
+
+function WelcomeForm({ name, onName, onCreate, onJoin, error }: Readonly<Props>) {
+  const [code, setCode] = useState("");
+  const [joinError, setJoinError] = useState("");
+  const join = () => {
+    const id = parseRoom(code);
+    if (id) onJoin(id);
+    else setJoinError("Paste the full room link or its 48-character code.");
+  };
+  return (
+    <div className="welcome-card">
+      <label>
+        Your display name
+        <input
+          aria-label="Your display name"
+          value={name}
+          maxLength={40}
+          onChange={(event) => onName(event.target.value)}
+        />
+      </label>
+      <button className="primary" onClick={onCreate}>
+        Create a room <ArrowRight size={18} />
+      </button>
+      <div className="divider">or join a shared canvas</div>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          join();
+        }}
+      >
+        <input
+          aria-label="Room link or code"
+          placeholder="Paste a room link or code"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+        />
+        <button type="submit">Join room</button>
+      </form>
+      {(error || joinError) && (
+        <p role="alert" className="error">
+          {error || joinError}
+        </p>
+      )}
+    </div>
+  );
+}

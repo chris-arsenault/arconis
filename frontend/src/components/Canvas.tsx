@@ -1,0 +1,119 @@
+import { useEffect, useLayoutEffect, useRef } from "react";
+import type { RoomSession } from "../collaboration/room";
+import { EditorController } from "../editor/controller";
+
+export function Canvas({
+  session,
+  onEditor,
+}: Readonly<{
+  session: RoomSession;
+  onEditor: (editor: EditorController | null) => void;
+}>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const editor = new EditorController(ref.current!, session.document);
+    onEditor(editor);
+    let lastCursor = 0;
+    const updateCursor = (event: MouseEvent) => {
+      if (performance.now() - lastCursor < 80) return;
+      lastCursor = performance.now();
+      const point = editor.graph.getPointForEvent(event);
+      session.provider.awareness.setLocalStateField("cursor", { x: point.x, y: point.y });
+    };
+    const element = ref.current!;
+    element.addEventListener("mousemove", updateCursor);
+    const leave = () => session.provider.awareness.setLocalStateField("cursor", null);
+    element.addEventListener("mouseleave", leave);
+    return () => {
+      element.removeEventListener("mousemove", updateCursor);
+      element.removeEventListener("mouseleave", leave);
+      editor.destroy();
+      onEditor(null);
+    };
+  }, [session, onEditor]);
+  return (
+    <div
+      ref={ref}
+      className="canvas-surface"
+      data-testid="canvas"
+      role="application"
+      tabIndex={0}
+      aria-label="Shared canvas"
+    />
+  );
+}
+
+export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const item = editor.editId ? editor.document.get(editor.editId) : null;
+  const editingId = editor.editId;
+  useLayoutEffect(() => {
+    const item = editingId ? editor.document.get(editingId) : null;
+    if (!item || !ref.current) return;
+    const cell = editor.graph.getDataModel().getCell(item.id);
+    const state = cell ? editor.graph.view.getState(cell) : null;
+    if (!state) return;
+    Object.assign(ref.current.style, {
+      left: `${state.x}px`,
+      top: `${state.y}px`,
+      width: `${Math.max(120, state.width)}px`,
+      height: `${Math.max(60, state.height)}px`,
+      backgroundColor: String(item.style.fillColor || "#ffffff"),
+    });
+    ref.current.focus();
+  }, [editor, editingId]);
+  if (!item) return null;
+  const close = () => {
+    editor.closeEditor();
+  };
+  return (
+    <textarea
+      ref={ref}
+      className="inline-editor"
+      aria-label="Edit canvas text"
+      value={item.label}
+      onChange={(event) => editor.document.editText(item.id, event.target.value)}
+      onBlur={close}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" || ((event.ctrlKey || event.metaKey) && event.key === "Enter"))
+          close();
+        event.stopPropagation();
+      }}
+    />
+  );
+}
+
+type Peer = Partial<{ user: { name: string; color: string }; cursor: { x: number; y: number } }>;
+export function Cursors({
+  editor,
+  session,
+}: Readonly<{ editor: EditorController; session: RoomSession }>) {
+  return (
+    <div className="cursors" aria-hidden="true">
+      {[...session.provider.awareness.getStates()]
+        .filter(([id]) => id !== session.document.doc.clientID)
+        .map(([id, state]) => (
+          <PeerCursor key={id} peer={state as Peer} editor={editor} />
+        ))}
+    </div>
+  );
+}
+function PeerCursor({ peer, editor }: Readonly<{ peer: Peer; editor: EditorController }>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (ref.current && peer.cursor) {
+      const view = editor.graph.view;
+      ref.current.style.transform = `translate(${(peer.cursor.x + view.translate.x) * view.scale}px, ${(peer.cursor.y + view.translate.y) * view.scale}px)`;
+      ref.current.style.color = peer.user?.color || "#7863d4";
+    }
+  });
+  if (!peer.cursor) return null;
+  return (
+    <div ref={ref} className="peer-cursor">
+      <svg width="18" height="22" viewBox="0 0 18 22">
+        <path d="M1 1 L16 12 L8 13 L5 21 Z" fill="currentColor" stroke="white" />
+      </svg>
+      <span>{peer.user?.name || "Guest"}</span>
+    </div>
+  );
+}

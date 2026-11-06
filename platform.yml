@@ -1,0 +1,6 @@
+project: arconis
+prefix: arconis
+stack: [typescript, terraform]
+typescript_dir: frontend
+browser_tests:
+  engines: [chromium]
