@@ -17,6 +17,7 @@ let server: ViteDevServer | null = null;
 let baseUrl = process.env.ARCONIS_URL || "";
 export const errors: string[] = [];
 const engines = { chromium, firefox, webkit };
+const traced = new WeakSet<BrowserContext>();
 let fixture: Awaited<ReturnType<typeof startAppSyncFixture>> | null = null;
 
 beforeAll(async () => {
@@ -38,11 +39,20 @@ afterAll(async () => {
 });
 afterEach(async ({ task }) => {
   if (task.result?.state !== "fail") return;
-  for (const context of browser.contexts())
-    for (const page of context.pages()) await page.screenshot({ path: "test-results/failure.png" });
+  for (const [index, context] of browser.contexts().entries()) {
+    for (const [pageIndex, page] of context.pages().entries())
+      await page.screenshot({ path: `test-results/failure-${task.id}-${index}-${pageIndex}.png` });
+    if (traced.has(context))
+      await context.tracing.stop({ path: `test-results/failure-${task.id}-${index}.zip` });
+    traced.delete(context);
+  }
 });
 
 export async function open(context: BrowserContext, room = "", join = false) {
+  if (!traced.has(context)) {
+    await context.tracing.start({ screenshots: true, snapshots: true });
+    traced.add(context);
+  }
   if (fixture)
     await context.route("**/config.js", (route) =>
       route.fulfill({
@@ -51,7 +61,10 @@ export async function open(context: BrowserContext, room = "", join = false) {
       })
     );
   const page = await context.newPage();
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) => {
+    errors.push(error.message);
+    console.error("Browser error:", error.message);
+  });
   await page.goto(join ? baseUrl : `${baseUrl}#room=${room}`);
   if (join) {
     await page.getByLabel("Room link or code", { exact: true }).fill(`${baseUrl}#room=${room}`);

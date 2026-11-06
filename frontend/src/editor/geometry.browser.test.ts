@@ -5,20 +5,14 @@ import { browser, errors, open, add, row, exported } from "./browserHarness";
 import { CanvasDocument } from "../document/canvasDocument";
 
 async function shapePosition(page: Page) {
-  const saved = await exported(page);
-  const shape = saved.objects.find((item) => item.label === "Grouped shape")!;
-  let x = shape.x;
-  let y = shape.y;
-  let parent = shape.parent;
-  if (saved.version === 1) {
-    while (parent) {
-      const group = saved.objects.find((item) => item.id === parent)!;
-      x += group.x;
-      y += group.y;
-      parent = group.parent;
-    }
-  }
-  return [x, y];
+  // Poll rendered geometry, keeping file downloads for the actual export checks.
+  const rectangle = page
+    .getByTestId("canvas")
+    .locator('svg rect[fill="#ffffff"][pointer-events="all"]');
+  return rectangle.evaluate((element) => [
+    Number(element.getAttribute("x")) - 60,
+    Number(element.getAttribute("y")) - 60,
+  ]);
 }
 
 it("keeps world geometry when a peer groups while another moves offline", async () => {

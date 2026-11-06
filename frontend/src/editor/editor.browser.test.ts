@@ -97,7 +97,9 @@ async function sharedGroupDeletion(a: Page, b: Page) {
   await b.locator('.object-row[title="Group"]').waitFor();
   await b.locator('.object-row[title="Group"]').click();
   await b.getByRole("button", { name: "Delete selection", exact: true }).click();
-  await expect.poll(() => a.locator(".object-row").count()).toBe(0);
+  expect(await b.locator(".object-row").count()).toBe(0);
+  await a.locator(".object-row").last().waitFor({ state: "hidden" });
+  expect(await a.locator(".object-row").count()).toBe(0);
 }
 
 it("drags and resizes attached objects, changes routing and preserves portable views", async () => {

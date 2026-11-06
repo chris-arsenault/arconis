@@ -112,6 +112,7 @@ it("keeps composition text and concurrent peer edits in the same label", async (
   await a.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => a.getByLabel("Object text", { exact: true }).inputValue()).toBe("ab!");
   await row(a, "ab!").dblclick();
+  await expect.poll(() => b.getByLabel("Object text", { exact: true }).inputValue()).toBe("ab!");
   await b.getByRole("button", { name: "Delete selection", exact: true }).click();
   await expect.poll(() => inline.count()).toBe(0);
   await b.getByRole("button", { name: "Undo", exact: true }).click();
