@@ -130,6 +130,10 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await page.getByRole("button", { name: "Overview", exact: true }).click();
   await page.screenshot({ path: "test-results/mixed-canvas.png" });
+  await page.reload();
+  await row(page, "Edited on canvas").waitFor();
+  await page.getByRole("button", { name: "Overview", exact: true }).waitFor();
+  expect(await page.locator(".object-row").count()).toBe(3);
   expect(errors).toEqual([]);
   await context.close();
 });

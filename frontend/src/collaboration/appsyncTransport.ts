@@ -28,7 +28,15 @@ export class AppSyncTransport implements Transport {
   private online = () => {
     if (!this.stopped) this.connect();
   };
-  private offline = () => this.socket?.close();
+  private offline = () => {
+    this.ready = false;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.clearTimers();
+    const socket = this.socket;
+    this.socket = null;
+    socket?.close();
+    this.onStatus("offline", "Offline; edits are saved on this device.");
+  };
 
   constructor(
     private config: AppSyncConfig,
@@ -63,18 +71,22 @@ export class AppSyncTransport implements Transport {
     ]);
     this.socket = socket;
     socket.onopen = () => {
+      if (this.socket !== socket) return;
       this.write({ type: "connection_init" });
       this.resetWatchdog();
     };
     socket.onmessage = (event: MessageEvent<string>) => {
+      if (this.socket !== socket) return;
       try {
         this.receive(JSON.parse(event.data) as ServerMessage);
       } catch {
         this.fail("The collaboration service sent an unreadable message.");
       }
     };
-    socket.onerror = () =>
-      this.onStatus("offline", "Connection interrupted; edits are saved on this device.");
+    socket.onerror = () => {
+      if (this.socket === socket)
+        this.onStatus("offline", "Connection interrupted; edits are saved on this device.");
+    };
     socket.onclose = () => {
       if (this.socket === socket) this.disconnected();
     };

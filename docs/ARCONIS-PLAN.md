@@ -123,8 +123,10 @@ No user validation gate. Diagnose failures from logs; branch prerequisite repair
 ## Execution and current state
 
 M0–M4 are complete. The full editor and shared-room behavior pass local automated checks.
-GitHub API access succeeds. Local AWS broker access is unavailable; deployment uses the
-normal shared CI/OIDC route already required by this plan. Platform admission CI is running.
+GitHub workflow access succeeds. Local AWS broker access is unavailable; deployment uses
+the normal shared CI/OIDC route already required by this plan. Platform Terraform apply
+succeeded; product run `42295581087` deployed commit `f78c9f5` and identified the
+offline lifecycle defect described below in its live browser gate.
 Milestone expansions and material evidence are maintained here, not in separate reports.
 
 ### M1 execution expansion
@@ -213,9 +215,38 @@ disabled by default and is not enabled here.
 ### M5 execution expansion
 
 1. Publish owned changes on current main branches and await actual platform admission.
-   Confirm GitHub Actions role/state secrets exist before the first product deployment.
+   Verify registration through actual CI role assumption and deployment. An optional
+   secret-metadata listing returned HTTP 403 with the broker's GitHub credential; no
+   alternate credential is used and secret listing is not a product completion gate.
 2. Run the product shared workflow, inspect failures from logs if any, and deploy.
    The dependent browser job verifies the exact commit via its embedded revision.
 3. Verify HTTPS and independent-browser journeys against real AppSync at the required
    domain, review resulting CI status, reconcile the working trees, and close this plan.
    The user's subsequent manual validation is outside these completion gates.
+
+M5 branch: `e227d0b2-b204-4c42-87d9-2aa5ac558385`. Platform run `42292540216`
+reports successful AWS credential configuration and Terraform deployment. Product
+commit `f78c9f5` is published on the original main branch. Shared CI lint, types,
+unit tests, browser fixture tests, build, deployment and reporting passed. The
+exact-revision deployed-browser job caught the offline defect below.
+
+### Live offline repair
+
+Live HTTPS returns 200 and revision `f78c9f5` is confirmed. Four of five browser
+journeys pass against real AppSync, including the large chunked synchronization.
+The offline journey fails because status waits for the socket close event; a real
+network may leave that handshake pending. The repair updates ready/status state on
+the browser offline event, retires the old socket immediately, and ignores late
+callbacks from it. A focused delayed-close regression protects this behavior.
+Re-run local checks, publish, and repeat the same exact-revision deployed suite.
+Do not relax the offline assertion or substitute fixture success for deployed proof.
+
+Repair branch: `ee9befd4-ac7c-43ba-8020-6bafad2f09da`.
+Local repair checks pass: ten unit/protocol tests, all five browser journeys,
+zero lint warnings, types, formatting and production build. The browser suite now
+also reloads a room with no other participant online to prove IndexedDB recovery.
+
+The earlier platform run's engineering reporting returned HTTP 502 from
+`/api/ci/report`; its server-side cause remains unverified. Product run
+`42295581087` subsequently passed reporting. The broker credential cannot rerun
+workflows; no substitute credential or reporting bypass is introduced.
