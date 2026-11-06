@@ -122,18 +122,20 @@ No user validation gate. Diagnose failures from logs; branch prerequisite repair
 
 ## Execution and current state
 
-M0–M4 are complete. The full editor and shared-room behavior pass local automated checks.
-GitHub workflow access succeeds. Local AWS broker access is unavailable; deployment uses
-the normal shared CI/OIDC route already required by this plan. Platform Terraform apply
-succeeded; product run `42295581087` deployed commit `f78c9f5` and identified the
-offline lifecycle defect described below in its live browser gate.
+The full editor and shared-room behavior are implemented and deployed. Local checks
+pass: ten unit/protocol tests, five browser journeys, lint, types, formatting and build.
+All five journeys also pass against real AppSync at <https://arconis.ahara.io>, with
+exact deployed revision `ed903f8aadffc00e3374a87a57e967d962ec60cc` confirmed.
+All milestones are complete. Shared CI run `42297363179` passed every job, including
+build, deployment, reporting and all five independent live browser journeys.
+Local AWS broker access is unavailable; deployment uses the normal shared CI/OIDC route.
 Milestone expansions and material evidence are maintained here, not in separate reports.
 
 ### M1 execution expansion
 
 Sulion branch: `13662095-fb49-4455-b1aa-ae42d0fc1d7f`.
 
-1. Canvas and canonical document (in progress). Files: `frontend/src/document/`,
+1. Canvas and canonical document. Files: `frontend/src/document/`,
    `frontend/src/editor/`, package/build configuration. Implement stable-ID Yjs object maps,
    text deltas and maxGraph projection with origin guards. Verify real cell mutation,
    attachment and serialization rather than a standalone library demonstration.
@@ -183,9 +185,9 @@ including an asserted offline connection state before edits and reconnect conver
 
 M3 code complete: product and platform Terraform validate; platform `make ci` passes.
 Registration/Events primitive published in `ahara-infra` commit `859dd78`; guidance
-published in `ahara` commit `4616fa5`. Platform run `42292540216` is applying through
-the normal shared CI/OIDC path. Cloud completion and actual admission are M5 checks;
-no alternate credential source is used. An existing cached S3 backend caused platform
+published in `ahara` commit `4616fa5`. Platform run `42292540216` applied through
+the normal shared CI/OIDC path. Actual product role assumption and deployment confirm
+admission; no alternate credential source is used. An existing cached S3 backend caused platform
 `terraform init -backend=false` to attempt credential discovery and fail; platform
 `terraform validate` subsequently passed without cloud access.
 
@@ -245,6 +247,16 @@ Repair branch: `ee9befd4-ac7c-43ba-8020-6bafad2f09da`.
 Local repair checks pass: ten unit/protocol tests, all five browser journeys,
 zero lint warnings, types, formatting and production build. The browser suite now
 also reloads a room with no other participant online to prove IndexedDB recovery.
+Repair commit `ed903f8` is deployed. All five live journeys pass with its full revision
+asserted in every browser. Offline concurrent text and geometry edits converge;
+reload, isolated rooms, remote deletion, all tools and portable documents pass.
+The 450-object live canvas imported in 469 ms and synchronized to a fresh browser
+in 30.4 seconds in this run. These are observations, not enforced performance budgets.
+GitHub's independent deployed suite also passed all five journeys in run
+[`42297363179`](https://github.com/chris-arsenault/arconis/actions/runs/42297363179).
+HTTPS returns 200 through CloudFront. The repair and M5 execution branches are complete;
+the user's later manual validation is not a completion gate. This final plan update
+changes no runtime code; its normal publication CI still verifies the exact revision.
 
 The earlier platform run's engineering reporting returned HTTP 502 from
 `/api/ci/report`; its server-side cause remains unverified. Product run
