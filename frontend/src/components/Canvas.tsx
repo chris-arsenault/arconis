@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 import type { RoomSession } from "../collaboration/room";
 import { EditorController } from "../editor/controller";
+import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "../document/useCollaborativeText";
 
 export function Canvas({
@@ -18,13 +19,13 @@ export function Canvas({
     const updateCursor = (event: MouseEvent) => {
       if (performance.now() - lastCursor < 80) return;
       lastCursor = performance.now();
-      const point = editor.graph.getPointForEvent(event);
-      session.provider.awareness.setLocalStateField("cursor", { x: point.x, y: point.y });
+      session.provider.awareness.setLocalStateField("cursor", editor.worldPoint(event));
     };
     const element = ref.current!;
     element.addEventListener("mousemove", updateCursor);
     const leave = () => session.provider.awareness.setLocalStateField("cursor", null);
     element.addEventListener("mouseleave", leave);
+    editor.onPreview = (boxes) => session.provider.awareness.setLocalStateField("preview", boxes);
     return () => {
       element.removeEventListener("mousemove", updateCursor);
       element.removeEventListener("mouseleave", leave);
@@ -63,7 +64,9 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
     });
   });
   useLayoutEffect(() => {
-    if (editingId) ref.current?.focus();
+    if (!editingId) return;
+    ref.current?.focus();
+    if (editor.selectOnEdit) ref.current?.select();
   }, [editor, editingId, ref]);
   if (!item) return null;
   const close = () => {
@@ -84,7 +87,11 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
   );
 }
 
-type Peer = Partial<{ user: { name: string; color: string }; cursor: { x: number; y: number } }>;
+type Peer = Partial<{
+  user: { name: string; color: string };
+  cursor: { x: number; y: number };
+  preview: PreviewBox[] | null;
+}>;
 export function Cursors({
   editor,
   session,
@@ -94,10 +101,37 @@ export function Cursors({
       {[...session.provider.awareness.getStates()]
         .filter(([id]) => id !== session.document.doc.clientID)
         .map(([id, state]) => (
-          <PeerCursor key={id} peer={state as Peer} editor={editor} />
+          <Fragment key={id}>
+            <PeerPreview peer={state as Peer} editor={editor} />
+            <PeerCursor peer={state as Peer} editor={editor} />
+          </Fragment>
         ))}
     </div>
   );
+}
+function PeerPreview({ peer, editor }: Readonly<{ peer: Peer; editor: EditorController }>) {
+  return (peer.preview || []).map((box, index) => (
+    <PreviewOutline key={index} box={box} color={peer.user?.color || "#7863d4"} editor={editor} />
+  ));
+}
+function PreviewOutline({
+  box,
+  color,
+  editor,
+}: Readonly<{ box: PreviewBox; color: string; editor: EditorController }>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const { scale, translate } = editor.graph.view;
+    Object.assign(ref.current.style, {
+      left: `${(box.x + translate.x) * scale}px`,
+      top: `${(box.y + translate.y) * scale}px`,
+      width: `${box.width * scale}px`,
+      height: `${box.height * scale}px`,
+      borderColor: color,
+    });
+  });
+  return <div ref={ref} className="peer-preview" data-testid="peer-preview" />;
 }
 function PeerCursor({ peer, editor }: Readonly<{ peer: Peer; editor: EditorController }>) {
   const ref = useRef<HTMLDivElement>(null);

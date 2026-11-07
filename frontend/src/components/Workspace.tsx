@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Undo2, Redo2, Minus, Plus, Scan, CheckCircle2, WifiOff, Keyboard } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -6,6 +6,7 @@ import { Canvas, InlineEditor, Cursors } from "./Canvas";
 import { Toolbar } from "./Toolbar";
 import { Inspector } from "./Inspector";
 import { Outline } from "./Outline";
+import { SelectionFrame } from "./SelectionFrame";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 
 const subscribeEmpty = () => () => {};
@@ -13,23 +14,37 @@ const snapshotEmpty = () => 0;
 interface Props {
   session: RoomSession;
   name: string;
+  askName: boolean;
+  newRoom: boolean;
   onName: (name: string) => void;
   onCreate: () => void;
   onJoin: (id: string) => void;
 }
 
 export function Workspace(props: Readonly<Props>) {
-  const { session } = props;
+  const { session, name, onName, newRoom } = props;
   useSyncExternalStore(session.subscribe, session.snapshot);
   const [editor, setEditor] = useState<EditorController | null>(null);
   useSyncExternalStore(editor?.subscribe || subscribeEmpty, editor?.snapshot || snapshotEmpty);
   const [message, setMessage] = useState("");
+  const [namePrompt, setNamePrompt] = useState(props.askName);
+  const closeNamePrompt = () => {
+    onName(name.trim() || "Guest");
+    setNamePrompt(false);
+  };
   return (
     <div className="workspace">
-      <WorkspaceHeader {...props} editor={editor} onMessage={setMessage} />
+      <WorkspaceHeader
+        {...props}
+        editor={editor}
+        onMessage={setMessage}
+        onEditName={() => setNamePrompt(true)}
+      />
       <div className="workspace-body">
         {editor && <Outline editor={editor} />}
-        <CanvasArea session={session} editor={editor} onEditor={setEditor} />
+        <CanvasArea session={session} editor={editor} newRoom={newRoom} onEditor={setEditor}>
+          {namePrompt && <NamePrompt name={name} onName={onName} onClose={closeNamePrompt} />}
+        </CanvasArea>
         {editor && <Inspector editor={editor} />}
       </div>
       <ConnectionStatus session={session} />
@@ -43,14 +58,47 @@ export function Workspace(props: Readonly<Props>) {
   );
 }
 
+function NamePrompt({
+  name,
+  onName,
+  onClose,
+}: Readonly<{ name: string; onName: (name: string) => void; onClose: () => void }>) {
+  return (
+    <form
+      className="name-prompt"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <label>
+        Your name
+        <input
+          aria-label="Your name in this room"
+          value={name}
+          maxLength={40}
+          onChange={(event) => onName(event.target.value)}
+        />
+      </label>
+      <button type="submit" className="primary">
+        Done
+      </button>
+    </form>
+  );
+}
+
 function CanvasArea({
   session,
   editor,
+  newRoom,
   onEditor,
+  children,
 }: Readonly<{
   session: RoomSession;
   editor: EditorController | null;
+  newRoom: boolean;
   onEditor: (editor: EditorController | null) => void;
+  children: ReactNode;
 }>) {
   return (
     <main className="canvas-area">
@@ -59,22 +107,71 @@ function CanvasArea({
         <>
           <Toolbar editor={editor} />
           <InlineEditor editor={editor} />
+          <SelectionFrame editor={editor} />
           <Cursors editor={editor} session={session} />
           <CanvasHUD editor={editor} />
         </>
       )}
       {editor && session.document.list().length === 0 && (
-        <div className="canvas-hint">
-          <span className="eyebrow">A FRESH PERSPECTIVE</span>
-          <h2>Start anywhere.</h2>
-          <p>Pick a tool, click the canvas, and let your ideas take shape.</p>
-          <button onClick={() => editor.add("sticky")}>
-            Add your first sticky note <Plus size={16} />
-          </button>
-        </div>
+        <EmptyCanvasHint editor={editor} session={session} newRoom={newRoom} />
       )}
+      {children}
     </main>
   );
+}
+
+function EmptyCanvasHint({
+  editor,
+  session,
+  newRoom,
+}: Readonly<{ editor: EditorController; session: RoomSession; newRoom: boolean }>) {
+  const { sync } = session.provider;
+  if (!newRoom && (sync === "searching" || sync === "receiving"))
+    return (
+      <div className="canvas-hint" data-testid="canvas-hint">
+        <h2>{sync === "receiving" ? "Receiving this canvas…" : "Looking for this canvas…"}</h2>
+        <p>Asking anyone in this room for their copy.</p>
+      </div>
+    );
+  return (
+    <div className="canvas-hint" data-testid="canvas-hint">
+      <span className="eyebrow">A FRESH PERSPECTIVE</span>
+      <h2>Start anywhere.</h2>
+      <p>Pick a tool, click the canvas, and let your ideas take shape.</p>
+      {!newRoom && sync === "alone" && (
+        <p>
+          Nobody else is online. If this room already has content, it appears when someone holding a
+          copy returns.
+        </p>
+      )}
+      <button
+        onClick={() => {
+          editor.edit(editor.add("sticky"), true);
+        }}
+      >
+        Add your first sticky note <Plus size={16} />
+      </button>
+    </div>
+  );
+}
+
+function syncDescription(session: RoomSession) {
+  if (session.detail && session.state !== "online") return session.detail;
+  const others = session.provider.awareness.getStates().size - 1;
+  switch (session.provider.sync) {
+    case "searching":
+      return "Looking for participants…";
+    case "receiving":
+      return "Receiving the canvas…";
+    case "synced":
+      if (others > 0)
+        return `In sync with ${others} ${others === 1 ? "participant" : "participants"}`;
+      return "Nobody else is online; edits are saved on this device";
+    case "alone":
+      return "Nobody else is online; edits are saved on this device";
+    default:
+      return "";
+  }
 }
 
 function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
@@ -90,7 +187,7 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
         {session.state === "online" ? <CheckCircle2 size={14} /> : <WifiOff size={14} />}
         <span data-testid="connection-status">{labels[session.state]}</span>
       </span>
-      <span>{session.detail || "Changes sync with connected participants"}</span>
+      <span data-testid="sync-status">{syncDescription(session)}</span>
       <span className="local-status">
         {session.stored ? "Local copy enabled" : "Opening local copy"} ·{" "}
         {session.document.list().length} objects
@@ -149,7 +246,7 @@ function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
           <strong>A few useful shortcuts</strong>
           <p>V select · N note · R rectangle · D decision · P draw</p>
           <p>Space pan · scroll zoom · Shift-click multi-select</p>
-          <p>Ctrl/⌘ Z undo · Ctrl/⌘ D duplicate · Ctrl/⌘ G group</p>
+          <p>Ctrl/⌘ Z undo · Ctrl/⌘ D duplicate · Ctrl/⌘ G group · ] front · [ back</p>
           <p>Delete remove · Double-click edit · Escape finish</p>
         </div>
       )}

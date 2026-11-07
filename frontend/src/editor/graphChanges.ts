@@ -23,8 +23,13 @@ function commitCell(cell: Cell, values: Partial<CanvasObject>, document: CanvasD
   if (!cell.id || !cell.geometry) return;
   const existing = document.get(cell.id);
   const { x, y, width, height } = cell.geometry;
-  if (existing) document.patch(cell.id, values);
-  else {
+  if (existing) {
+    document.patch(cell.id, values);
+    // Native rotation handles write the angle to the cell style, not its geometry.
+    const rotation = cell.getStyle().rotation;
+    if (rotation !== undefined && rotation !== existing.style.rotation)
+      document.patchStyle(cell.id, { rotation });
+  } else {
     const kind = cell.isEdge() ? "connector" : "group";
     document.insert({
       id: cell.id,
@@ -38,10 +43,20 @@ function commitCell(cell: Cell, values: Partial<CanvasObject>, document: CanvasD
       source: "",
       target: "",
       points: "[]",
+      order: newCellOrder(cell, document),
       style: {},
       ...values,
     });
   }
+}
+
+/** A new group stays at its highest member's level so grouping hides none of its members. */
+function newCellOrder(cell: Cell, document: CanvasDocument) {
+  const orders = cell
+    .getChildren()
+    .map((child) => document.get(child.id!)?.order)
+    .filter((order) => order !== undefined);
+  return orders.length ? Math.max(...orders) : document.nextOrder();
 }
 
 function cellValues(cell: Cell, document: CanvasDocument): Partial<CanvasObject> {

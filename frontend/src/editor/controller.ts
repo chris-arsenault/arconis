@@ -7,6 +7,7 @@ import {
   ConnectionHandler,
   ImageBox,
   Point,
+  VertexHandlerConfig,
 } from "@maxgraph/core";
 import { CanvasDocument } from "../document/canvasDocument";
 import {
@@ -19,7 +20,10 @@ import {
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
-import { isVertexKind, offsetPoints } from "../document/geometry";
+import { previewBoxes, type PreviewBox } from "./preview";
+import { configureRendering } from "./rendering";
+import { compareStacking, isVertexKind, offsetPoints } from "../document/geometry";
+import { transformObjects, type SelectionTransform } from "../document/transform";
 
 export type Tool = ObjectKind | "select" | "pan";
 
@@ -27,9 +31,17 @@ export class EditorController {
   readonly graph: Graph;
   tool: Tool = "select";
   editId: string | null = null;
+  selectOnEdit = false;
   connectionSource = "";
   version = 0;
+  /** Receives in-progress move and resize boxes so peers can see a drag before it lands. */
+  onPreview: (boxes: PreviewBox[] | null) => void = () => {};
   private projecting = false;
+  private committing = false;
+  private committed = false;
+  private destroyed = false;
+  private previewing = false;
+  private lastPreview = 0;
   private listeners = new Set<() => void>();
   private cleanupInput: () => void;
   private band: RubberBandHandler;
@@ -39,22 +51,35 @@ export class EditorController {
     readonly document: CanvasDocument
   ) {
     InternalEvent.disableContextMenu(element);
+    VertexHandlerConfig.rotationEnabled = true;
     this.graph = new Graph(element);
     this.graph.getDataModel().createId = () => crypto.randomUUID();
     this.graph.setPanning(true);
     this.graph.setConnectable(true);
     this.graph.setAllowDanglingEdges(false);
     this.graph.setCellsEditable(false);
-    this.graph.setHtmlLabels(false);
+    configureRendering(this.graph);
+    this.graph.isToggleEvent = (event) => event.shiftKey || event.ctrlKey || event.metaKey;
     this.graph.setDisconnectOnMove(false);
     this.graph.setDropEnabled(true);
     this.graph.setSplitEnabled(false);
     const connection = this.graph.getPlugin<ConnectionHandler>("ConnectionHandler");
     if (connection) {
       connection.connectImage = new ImageBox("/connection.svg", 18, 18);
+      // The handle must overlap its shape: leaving the shape dismisses the handle.
       connection.getIconPosition = (_icon, state) =>
-        new Point(state.x + state.width + 12, state.y + state.height / 2);
+        new Point(state.x + state.width - 24, state.y + state.height / 2 - 9);
+      // maxGraph's default gives the new edge an empty id, which cannot reach the document.
+      connection.connect = (source, target) => {
+        if (source?.id && target?.id && source !== target)
+          this.document.create("connector", 0, 0, { source: source.id, target: target.id });
+      };
     }
+    this.graph.addMouseListener({
+      mouseDown: () => {},
+      mouseMove: () => this.publishPreview(),
+      mouseUp: () => this.clearPreview(),
+    });
     this.graph.getStylesheet().getDefaultEdgeStyle().edgeStyle = "orthogonalEdgeStyle";
     this.band = new RubberBandHandler(this.graph);
     this.graph.getDataModel().addListener(InternalEvent.CHANGE, this.onGraphChange);
@@ -80,15 +105,54 @@ export class EditorController {
     this.listeners.forEach((listener) => listener());
   };
   private onDocumentChange = () => {
+    if (this.committing) {
+      this.committed = true;
+      return;
+    }
     this.project();
     this.emit();
   };
   private onGraphChange = () => {
-    if (!this.projecting) {
+    if (this.projecting) return;
+    this.committing = true;
+    try {
       commitGraph(this.graph, this.document);
-      this.emit();
+    } finally {
+      this.committing = false;
     }
+    if (this.committed) {
+      this.committed = false;
+      // maxGraph queues edits made while it notifies listeners and never redraws them,
+      // so the resulting projection runs once this model update has fully ended.
+      queueMicrotask(() => {
+        if (!this.destroyed) this.project();
+        if (!this.destroyed) this.emit();
+      });
+    }
+    this.emit();
   };
+  /** World coordinates of a pointer event, free of the grid snap used for placing objects. */
+  worldPoint(event: { clientX: number; clientY: number }) {
+    const bounds = this.element.getBoundingClientRect();
+    const { scale, translate } = this.graph.view;
+    return {
+      x: (event.clientX - bounds.left) / scale - translate.x,
+      y: (event.clientY - bounds.top) / scale - translate.y,
+    };
+  }
+  private publishPreview() {
+    if (performance.now() - this.lastPreview < 80) return;
+    const boxes = previewBoxes(this.graph);
+    if (!boxes.length) return;
+    this.lastPreview = performance.now();
+    this.previewing = true;
+    this.onPreview(boxes);
+  }
+  private clearPreview() {
+    if (!this.previewing) return;
+    this.previewing = false;
+    this.onPreview(null);
+  }
   private project() {
     this.projecting = true;
     try {
@@ -143,13 +207,51 @@ export class EditorController {
     this.editId = null;
     this.emit();
   }
-  edit(id: string) {
+  edit(id: string, selectText = false) {
     this.editId = id;
+    this.selectOnEdit = selectText;
     this.emit();
   }
   closeEditor() {
     this.editId = null;
     this.emit();
+  }
+  /** Moves the selection above or below everything else in the room. */
+  stack(direction: "front" | "back") {
+    const selected = [...this.selected()].sort(compareStacking);
+    if (!selected.length) return;
+    const orders = this.document.list().map((item) => item.order);
+    const base =
+      direction === "front" ? Math.max(...orders) + 1 : Math.min(...orders) - selected.length;
+    this.document.undo.stopCapturing();
+    this.document.doc.transact(() => {
+      selected.forEach((item, index) => this.document.patch(item.id, { order: base + index }));
+    }, LOCAL);
+    this.document.undo.stopCapturing();
+  }
+  /** Objects a collective transform changes: the selection, descendants and inner routes. */
+  transformSnapshot() {
+    return this.selectionClosure().map((id) => this.document.get(id)!);
+  }
+  beginTransform() {
+    this.document.undo.stopCapturing();
+    this.document.undo.captureTimeout = Number.MAX_SAFE_INTEGER;
+  }
+  applyTransform(items: CanvasObject[], transform: SelectionTransform) {
+    const values = transformObjects(items, transform);
+    this.document.doc.transact(() => {
+      this.document.freezeLegacyGeometry();
+      items.forEach((item) => {
+        const { rotation, ...geometry } = values.get(item.id)!;
+        this.document.patch(item.id, geometry);
+        if (isVertexKind(item.kind) && item.kind !== "group" && transform.angle)
+          this.document.patchStyle(item.id, { rotation });
+      });
+    }, LOCAL);
+  }
+  endTransform() {
+    this.document.undo.captureTimeout = 400;
+    this.document.undo.stopCapturing();
   }
   updateGeometry(id: string, values: Partial<Pick<CanvasObject, "x" | "y" | "width" | "height">>) {
     const model = this.graph.getDataModel();
@@ -168,6 +270,7 @@ export class EditorController {
       const group = new Cell("Group");
       group.setVertex(true);
       this.graph.groupCells(group, 28);
+      this.graph.setSelectionCell(group);
     }
   }
   ungroup() {
@@ -199,16 +302,18 @@ export class EditorController {
       this.document.create("connector", 0, 0, { source: cells[0].id!, target: cells[1].id! });
   }
   duplicate() {
-    const ids = this.duplicateClosure();
+    const ids = this.selectionClosure();
     const mapping = new Map(ids.map((id) => [id, crypto.randomUUID()]));
+    const base = this.document.nextOrder();
     this.document.undo.stopCapturing();
     this.document.doc.transact(
       () =>
-        ids.forEach((id) => {
+        ids.forEach((id, index) => {
           const item = this.document.get(id)!;
           const offset = 28;
           this.document.insert({
             ...item,
+            order: base + index,
             id: mapping.get(id)!,
             x: isVertexKind(item.kind) ? item.x + offset : item.x,
             y: isVertexKind(item.kind) ? item.y + offset : item.y,
@@ -227,7 +332,7 @@ export class EditorController {
         .filter((cell) => cell !== null)
     );
   }
-  private duplicateClosure() {
+  private selectionClosure() {
     const ids = new Set(this.selected().map((item) => item.id));
     const objects = this.document.list();
     let previousSize = -1;
@@ -271,6 +376,7 @@ export class EditorController {
     this.graph.view.scaleAndTranslate(bookmark.scale, bookmark.x, bookmark.y);
   }
   destroy() {
+    this.destroyed = true;
     this.cleanupInput();
     this.band.onDestroy();
     this.document.doc.off("update", this.onDocumentChange);

@@ -11,6 +11,8 @@ Execution, cross-repository Ahara admission, CI publication and deployment are a
 The user's later manual validation is not a completion prerequisite.
 The user subsequently approved removing the redundant Diagram/Ideas switch: one
 toolbar exposes every editing tool, with all objects remaining in the same document.
+The user later ruled that automated tests and CI never touch real AWS services, especially
+pay-per-use ones. This supersedes every deployed-browser and live-verification step below.
 
 Required behavior:
 
@@ -307,3 +309,28 @@ AppSync bootstrap tagging remains a documented platform ownership limitation:
 the grant can adopt existing untagged resources. No documented creation discriminator
 or authorized live creation test establishes a safe stricter condition; IAM behavior
 is unchanged. This remaining finding is reported rather than hidden by green tests.
+
+## Spec review defect corrections
+
+A review against the source brief found canvas interactions that the side-panel journeys
+never exercised. Sulion plan: `ccda6267-61b5-468a-ba71-40762dc5cb0e`. These corrections
+retain the original scope; `gestures.browser.test.ts` drives them with real pointer and
+keyboard input. Labels now wrap through escaped HTML labels, canvas Shift-click and
+connection handles work, shortcuts survive clicking controls, new groups render styled,
+drawings keep their shape, new notes open for typing, link visitors are asked for a name,
+and the multi-select panel shows only shared properties. Records gained `order`, so
+stacking agrees across peers. Sync status distinguishes searching, receiving, in sync
+and alone. Drag previews travel on awareness. A selection frame adds collective scale and
+rotation; single shapes gain native rotation.
+
+The recorded 30.4 second late join did not reproduce. Local builds against real AppSync
+delivered 450 objects in 2.0 to 2.3 seconds across five runs, with no lost messages. Its
+cause remains unverified. Unanswered join requests now repeat after 2 and 4.5 seconds, which
+is a safeguard against message loss, not a demonstrated fix for that figure.
+Wheel zoom on 450 objects fell from about 170 ms to about 63 ms per step in headless
+software rendering, after removing per-shape layout measurement and coalescing to one
+view change per frame. Those are observations, not enforced budgets.
+
+Mind mapping appears in the brief's objective line and nowhere in its requirements. The
+user placed it in `docs/backlog.md`, and the README no longer claims it.
+Records written by older clients have no `order`, so they stack by id until reordered.

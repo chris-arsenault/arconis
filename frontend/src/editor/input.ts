@@ -1,19 +1,28 @@
 import type { EditorController } from "./controller";
 import { PanningHandler } from "@maxgraph/core";
 import type { ObjectKind } from "../document/types";
+import { simplifyPath } from "../document/geometry";
 
 function isTyping(target: EventTarget | null) {
   return (
     target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      Boolean(target.closest("input, textarea, select, button, a, [role=dialog]")))
+    (target.isContentEditable || Boolean(target.closest("input, textarea, select, [role=dialog]")))
+  );
+}
+
+/** Enter and Space belong to a keyboard-focused control; other shortcuts still apply. */
+function activatesControl(target: EventTarget | null, key: string) {
+  return (
+    (key === "enter" || key === " ") &&
+    target instanceof HTMLElement &&
+    Boolean(target.closest("button, a"))
   );
 }
 
 function keyboard(editor: EditorController, event: KeyboardEvent) {
-  if (isTyping(event.target)) return;
   const modifier = event.ctrlKey || event.metaKey;
   const key = event.key.toLowerCase();
+  if (isTyping(event.target) || activatesControl(event.target, key)) return;
   const actions: Record<string, () => void> = {
     delete: () => editor.remove(),
     backspace: () => editor.remove(),
@@ -28,6 +37,8 @@ function keyboard(editor: EditorController, event: KeyboardEvent) {
     r: () => editor.setTool("rectangle"),
     d: () => editor.setTool("diamond"),
     p: () => editor.setTool("stroke"),
+    "]": () => editor.stack("front"),
+    "[": () => editor.stack("back"),
     enter: () => {
       const item = editor.selected()[0];
       if (item) editor.edit(item.id);
@@ -59,14 +70,18 @@ function modifiedKey(editor: EditorController, event: KeyboardEvent) {
   }
 }
 
-export function bindCanvasInput(editor: EditorController) {
-  const abort = new AbortController();
-  const options = { signal: abort.signal };
+function cellAt(editor: EditorController, event: MouseEvent) {
+  const bounds = editor.element.getBoundingClientRect();
+  return editor.graph.getCellAt(event.clientX - bounds.left, event.clientY - bounds.top);
+}
+
+function bindPointerTools(editor: EditorController, options: { signal: AbortSignal }) {
   let points: [number, number][] = [];
-  const position = (event: MouseEvent) => editor.graph.getPointForEvent(event);
-  const cellAt = (event: MouseEvent) => {
-    const bounds = editor.element.getBoundingClientRect();
-    return editor.graph.getCellAt(event.clientX - bounds.left, event.clientY - bounds.top);
+  let pendingEdit = "";
+  const addSample = (event: { clientX: number; clientY: number }) => {
+    const { x, y } = editor.worldPoint(event);
+    const [lastX, lastY] = points[points.length - 1];
+    if (x !== lastX || y !== lastY) points.push([x, y]);
   };
   editor.element.addEventListener(
     "pointerdown",
@@ -75,15 +90,20 @@ export function bindCanvasInput(editor: EditorController) {
       if (event.button !== 0 || ["select", "pan"].includes(editor.tool)) return;
       event.preventDefault();
       event.stopPropagation();
-      const point = position(event);
       if (editor.tool === "stroke") {
-        points = [[point.x, point.y]];
-        event.stopPropagation();
+        const { x, y } = editor.worldPoint(event);
+        points = [[x, y]];
+        editor.element.setPointerCapture(event.pointerId);
       } else if (editor.tool === "connector") {
-        const cell = cellAt(event);
+        const cell = cellAt(editor, event);
         if (cell?.isVertex())
           editor.connectionSource = connectClick(editor, editor.connectionSource, cell.id!);
-      } else editor.add(editor.tool as ObjectKind, point.x, point.y);
+      } else {
+        const kind = editor.tool as ObjectKind;
+        const point = editor.graph.getPointForEvent(event);
+        const id = editor.add(kind, point.x, point.y);
+        if (kind === "sticky" || kind === "text") pendingEdit = id;
+      }
     },
     { ...options, capture: true }
   );
@@ -91,8 +111,8 @@ export function bindCanvasInput(editor: EditorController) {
     "pointermove",
     (event) => {
       if (!points.length) return;
-      const point = position(event);
-      points.push([point.x, point.y]);
+      const samples = event.getCoalescedEvents();
+      (samples.length ? samples : [event]).forEach(addSample);
       drawPreview(editor, points);
     },
     options
@@ -100,22 +120,52 @@ export function bindCanvasInput(editor: EditorController) {
   window.addEventListener(
     "pointerup",
     () => {
-      if (points.length > 1)
-        editor.document.create("stroke", 0, 0, { points: JSON.stringify(points) });
+      if (points.length > 1) {
+        const tolerance = 0.5 / editor.graph.view.scale;
+        const path = simplifyPath(points, tolerance).map(([x, y]) => [
+          Math.round(x * 100) / 100,
+          Math.round(y * 100) / 100,
+        ]);
+        editor.document.create("stroke", 0, 0, { points: JSON.stringify(path) });
+      }
       points = [];
       editor.element.querySelector(".stroke-preview")?.remove();
+      // Opening on pointerup keeps the browser's mousedown focus from closing the editor.
+      if (pendingEdit) editor.edit(pendingEdit, true);
+      pendingEdit = "";
+    },
+    options
+  );
+}
+
+export function bindCanvasInput(editor: EditorController) {
+  const abort = new AbortController();
+  const options = { signal: abort.signal };
+  bindPointerTools(editor, options);
+  window.addEventListener(
+    "click",
+    (event) => {
+      // A pointer click on a canvas control returns focus so shortcuts keep working.
+      if (event.detail === 0 || editor.editId) return;
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("button") &&
+        target.closest(".canvas-area, .outline, .inspector")
+      )
+        editor.element.focus({ preventScroll: true });
     },
     options
   );
   editor.element.addEventListener(
     "dblclick",
     (event) => {
-      const cell = cellAt(event);
+      const cell = cellAt(editor, event);
       if (cell) editor.edit(cell.id!);
     },
     options
   );
-  editor.element.addEventListener("wheel", (event) => wheel(editor, event), {
+  editor.element.addEventListener("wheel", wheelHandler(editor, abort.signal), {
     ...options,
     passive: false,
   });
@@ -142,29 +192,50 @@ function connectClick(editor: EditorController, source: string, target: string) 
   return "";
 }
 
-function wheel(editor: EditorController, event: WheelEvent) {
-  event.preventDefault();
-  const view = editor.graph.view;
-  if (
-    !event.ctrlKey &&
-    !event.metaKey &&
-    (Math.abs(event.deltaX) > 0 || !Number.isInteger(event.deltaY))
-  ) {
-    view.setTranslate(
-      view.translate.x - event.deltaX / view.scale,
-      view.translate.y - event.deltaY / view.scale
-    );
-  } else {
-    const point = editor.graph.getPointForEvent(event);
-    const scale = Math.min(64, Math.max(0.02, view.scale * Math.exp(-event.deltaY * 0.002)));
-    const ratio = view.scale / scale;
-    view.scaleAndTranslate(
-      scale,
-      (point.x + view.translate.x) * ratio - point.x,
-      (point.y + view.translate.y) * ratio - point.y
-    );
-  }
-  editor.emit();
+/** Applies at most one view change per frame; a full view revalidation can outlast a frame. */
+function wheelHandler(editor: EditorController, signal: AbortSignal) {
+  let panX = 0;
+  let panY = 0;
+  let zoomDelta = 0;
+  let pointer = { clientX: 0, clientY: 0 };
+  let scheduled = false;
+  const apply = () => {
+    scheduled = false;
+    if (signal.aborted) return;
+    const view = editor.graph.view;
+    if (zoomDelta) {
+      const point = editor.worldPoint(pointer);
+      const scale = Math.min(64, Math.max(0.02, view.scale * Math.exp(-zoomDelta * 0.002)));
+      const ratio = view.scale / scale;
+      view.scaleAndTranslate(
+        scale,
+        (point.x + view.translate.x) * ratio - point.x - panX / scale,
+        (point.y + view.translate.y) * ratio - point.y - panY / scale
+      );
+    } else {
+      view.setTranslate(view.translate.x - panX / view.scale, view.translate.y - panY / view.scale);
+    }
+    panX = panY = zoomDelta = 0;
+    editor.emit();
+  };
+  return (event: WheelEvent) => {
+    event.preventDefault();
+    if (
+      !event.ctrlKey &&
+      !event.metaKey &&
+      (Math.abs(event.deltaX) > 0 || !Number.isInteger(event.deltaY))
+    ) {
+      panX += event.deltaX;
+      panY += event.deltaY;
+    } else {
+      zoomDelta += event.deltaY;
+      pointer = event;
+    }
+    if (!scheduled) {
+      scheduled = true;
+      requestAnimationFrame(apply);
+    }
+  };
 }
 
 function drawPreview(editor: EditorController, points: [number, number][]) {

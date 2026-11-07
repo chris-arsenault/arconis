@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BookmarkPlus, Bookmark, X, Shapes } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { KIND_LABELS, LOCAL, type Bookmark as CanvasBookmark } from "../document/types";
@@ -15,7 +15,26 @@ export function Outline({ editor }: Readonly<{ editor: EditorController }>) {
 
 function ObjectList({ editor }: Readonly<{ editor: EditorController }>) {
   const objects = editor.document.list();
-  const selected = new Set(editor.selected().map((item) => item.id));
+  const selectionKey = editor
+    .selected()
+    .map((item) => item.id)
+    .join(" ");
+  // Views change on every zoom step; rows only change with the document or selection.
+  const rows = useMemo(() => {
+    const selected = new Set(selectionKey.split(" "));
+    return objects.map((item) => (
+      <button
+        key={item.id}
+        className={selected.has(item.id) ? "object-row selected" : "object-row"}
+        title={KIND_LABELS[item.kind]}
+        onClick={(event) => editor.select(item.id, event.shiftKey)}
+        onDoubleClick={() => editor.edit(item.id)}
+      >
+        <span className={`object-symbol ${item.kind}`} />{" "}
+        <span>{item.label || KIND_LABELS[item.kind]}</span>
+      </button>
+    ));
+  }, [editor, objects, selectionKey]);
   return (
     <>
       <div className="outline-heading">
@@ -33,18 +52,7 @@ function ObjectList({ editor }: Readonly<{ editor: EditorController }>) {
             </p>
           </div>
         )}
-        {objects.map((item) => (
-          <button
-            key={item.id}
-            className={selected.has(item.id) ? "object-row selected" : "object-row"}
-            title={KIND_LABELS[item.kind]}
-            onClick={(event) => editor.select(item.id, event.shiftKey)}
-            onDoubleClick={() => editor.edit(item.id)}
-          >
-            <span className={`object-symbol ${item.kind}`} />{" "}
-            <span>{item.label || KIND_LABELS[item.kind]}</span>
-          </button>
-        ))}
+        {rows}
       </div>
     </>
   );

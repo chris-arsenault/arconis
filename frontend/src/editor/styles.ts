@@ -44,6 +44,8 @@ export function objectStyle(item: CanvasObject): CellStyle {
       dashed: true,
       verticalAlign: "top",
       fontSize: 12,
+      // A rotated frame would no longer contain its children; children rotate instead.
+      rotatable: false,
     });
   if (item.kind === "connector")
     Object.assign(base, {
@@ -54,6 +56,8 @@ export function objectStyle(item: CanvasObject): CellStyle {
       strokeColor: "#7f8aa3",
       strokeWidth: 2,
       labelBackgroundColor: "#f7f8fc",
+      whiteSpace: "nowrap",
+      overflow: "visible",
     });
   if (item.kind === "stroke")
     Object.assign(base, {
@@ -64,6 +68,8 @@ export function objectStyle(item: CanvasObject): CellStyle {
       strokeColor: "#6554c0",
       strokeWidth: 3,
       curved: true,
+      // A drawing moves and transforms as one object, not as hundreds of waypoints.
+      bendable: false,
     });
   return { ...base, ...item.style } as CellStyle;
 }

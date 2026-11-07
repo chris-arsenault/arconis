@@ -25,6 +25,8 @@ export interface CanvasObject {
   source: string;
   target: string;
   points: string;
+  /** Stacking position; ties break by id so every peer draws the same order. */
+  order: number;
   style: Record<string, StyleValue>;
 }
 export interface Bookmark {

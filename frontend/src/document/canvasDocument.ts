@@ -1,8 +1,10 @@
 import * as Y from "yjs";
 import { LOCAL, type CanvasObject, type ObjectKind, type StyleValue } from "./types";
-import { isVertexKind, readWorldObject, type StoredObject } from "./geometry";
+import { compareStacking, isVertexKind, readWorldObject, type StoredObject } from "./geometry";
 
 export class CanvasDocument {
+  private listed: CanvasObject[] | null = null;
+  private transacting = false;
   readonly doc = new Y.Doc();
   readonly objects = this.doc.getMap<Y.Map<unknown>>("objects");
   readonly meta = this.doc.getMap<string>("meta");
@@ -11,6 +13,26 @@ export class CanvasDocument {
     trackedOrigins: new Set([LOCAL]),
     captureTimeout: 400,
   });
+
+  constructor() {
+    this.doc.on("beforeTransaction", () => {
+      this.transacting = true;
+      this.listed = null;
+    });
+    this.doc.on("afterTransaction", () => {
+      this.transacting = false;
+      this.listed = null;
+    });
+  }
+
+  nextOrder() {
+    let highest = -1;
+    this.objects.forEach((record) => {
+      const order = record.get("order");
+      if (typeof order === "number" && order > highest) highest = order;
+    });
+    return highest + 1;
+  }
 
   create(kind: ObjectKind, x: number, y: number, extras: Partial<CanvasObject> = {}) {
     this.undo.stopCapturing();
@@ -27,6 +49,7 @@ export class CanvasDocument {
       source: "",
       target: "",
       points: "[]",
+      order: this.nextOrder(),
       style: {},
       ...extras,
     };
@@ -76,14 +99,19 @@ export class CanvasDocument {
     });
   }
 
+  /** Visible objects in stacking order. Callers must not mutate the shared result. */
   list() {
-    return [...this.objects.keys()]
+    if (this.listed) return this.listed;
+    const items = [...this.objects.keys()]
       .map((id) => this.get(id)!)
       .filter(
         (item) =>
           item.kind !== "connector" ||
           (this.objects.has(item.source) && this.objects.has(item.target))
-      );
+      )
+      .sort(compareStacking);
+    if (!this.transacting) this.listed = items;
+    return items;
   }
 
   patch(id: string, values: Partial<CanvasObject>) {

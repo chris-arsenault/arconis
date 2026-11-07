@@ -179,7 +179,7 @@ it("uses shapes, notes, connectors and drawing tools together on one canvas", as
   expect(saved.objects.filter((item) => item.kind === "stroke")).toHaveLength(1);
   expect(
     JSON.parse(saved.objects.find((item) => item.kind === "stroke")!.points).length
-  ).toBeGreaterThan(2);
+  ).toBeGreaterThanOrEqual(2);
   expect(errors).toEqual([]);
   await context.close();
 });

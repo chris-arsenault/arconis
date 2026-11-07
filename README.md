@@ -1,6 +1,6 @@
 # Arconis
 
-A shared visual workspace for diagrams, mind maps, sticky notes and freehand ideas.
+A shared visual workspace for diagrams, sticky notes and freehand ideas.
 
 Application: <https://arconis.ahara.io>
 
@@ -35,21 +35,28 @@ notes, text, connectors and freehand drawing in the same document. Connect notes
 and shapes by choosing the connector tool and clicking its two endpoints, dragging
 connection handles, or selecting two objects and choosing Connect.
 
-Double-click to edit text directly. The right panel edits text, colors, line widths,
-font settings, geometry and connector routing/endpoints. Shift-click selects multiple
-objects; drag a selection rectangle to select an area. Drag handles to resize. Group
-and ungroup through the panel or Ctrl/Command G and Ctrl/Command Shift G.
+New notes and text open for typing; double-click edits any object directly. The right
+panel edits text, colors, line widths, font settings, geometry, rotation and connector
+routing/endpoints; with several objects selected it applies styles to all of them.
+Shift-click, Ctrl-click or Command-click toggles objects in the selection; drag a selection
+rectangle to select an area. Drag handles to resize and the top handle to rotate one shape.
+Several objects or a drawing get a frame whose corners scale and whose top handle rotates
+the whole selection; hold Shift to keep proportions or snap to 15 degrees. Group and ungroup
+through the panel or Ctrl/Command G and Ctrl/Command Shift G.
 
 - V selects; H or held Space pans; scroll zooms around the pointer.
 - N creates a note; R a rectangle; D a decision; P draws freehand.
 - Delete removes the selection; Ctrl/Command Z and Shift Z undo and redo local work.
-- Ctrl/Command D duplicates; Ctrl/Command A selects all.
+- Ctrl/Command D duplicates; Ctrl/Command A selects all; ] and [ bring to front and send to back.
 - Saved Views store named viewport positions. They do not move other participants.
 - Export downloads a portable `.arconis` document; Import adds its contents to the room.
 
-Share Room provides the link and an ephemeral display name. Room codes contain 192
-random bits. Each browser controls its own viewport and selection; object changes,
-labels, groups, connections, views and participant cursors synchronize.
+Visitors arriving by link are asked for a display name once; the participant badge changes
+it. Room codes contain 192 random bits. Each browser controls its own viewport and
+selection; object changes, labels, stacking, groups, connections, views and participant
+cursors synchronize. Peers see a dashed outline of an object while it is being dragged or
+resized. The status bar reports whether the room is looking for participants, receiving
+the canvas, in sync, or alone on this device.
 
 ## Architecture and data
 
@@ -81,8 +88,8 @@ The website uses private S3 with S3-managed encryption behind CloudFront and ACM
 There is no HTTP application API or login client to register.
 
 The shared Ahara CI workflow gates deployment on browser tests, lint, types and unit
-tests. A dependent job exercises the deployed domain and real AppSync through independent
-browser contexts, including offline recovery. No manual validation is a release gate.
+tests. Automated tests run only against a local server and AppSync protocol fixture, using
+independent browser contexts; they never reach real AWS services.
 
 Local deployment is parameterless:
 
@@ -94,13 +101,6 @@ with-cred -- scripts/deploy.sh
 can use normal AWS environment variables or the standard credential provider chain.
 State uses the shared bucket at `projects/arconis.tfstate`. The public API key expiration
 extends 360 days from each Terraform deployment; redeploy before it expires.
-
-To verify an existing deployment:
-
-```sh
-cd frontend
-ARCONIS_URL=https://arconis.ahara.io/ pnpm test:deployed
-```
 
 AppSync Events costs $1/million operations and $0.08/million connection minutes, plus
 data transfer; messages are metered per 5 KiB. See [AWS pricing](https://aws.amazon.com/appsync/pricing/).

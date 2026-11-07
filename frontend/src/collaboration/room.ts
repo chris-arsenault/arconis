@@ -43,6 +43,7 @@ export class RoomSession {
     transport.onStatus = (state, detail = "") => {
       this.state = state;
       this.detail = detail;
+      if (state !== "online") this.provider.disconnected();
       this.emit();
     };
     this.provider.awareness.setLocalStateField("user", {

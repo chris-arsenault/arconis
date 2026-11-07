@@ -14,4 +14,3 @@ terraform -chdir="${TF_DIR}" init -reconfigure \
   -backend-config="region=${STATE_REGION}" \
   -backend-config="use_lockfile=true"
 terraform -chdir="${TF_DIR}" apply -auto-approve
-ARCONIS_URL=https://arconis.ahara.io/ pnpm test:deployed

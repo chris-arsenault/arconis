@@ -1,4 +1,4 @@
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 import { CollaborationProvider } from "./provider";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { ConnectionState, Transport } from "./transport";
@@ -48,6 +48,64 @@ it("late joins and resynchronizes offline edits in both directions", () => {
   second.destroy();
   a.destroy();
   b.destroy();
+});
+
+it("reports searching, then alone, then synced once a peer answers", () => {
+  vi.useFakeTimers();
+  try {
+    const peers: Bus[] = [];
+    const a = new CanvasDocument();
+    const b = new CanvasDocument();
+    const id = a.create("sticky", 0, 0, { label: "held by first" });
+    const first = new CollaborationProvider(a.doc, new Bus(peers), () => {});
+    first.connect();
+    expect(first.sync).toBe("searching");
+    vi.advanceTimersByTime(7000);
+    expect(first.sync).toBe("alone");
+    const second = new CollaborationProvider(b.doc, new Bus(peers), () => {});
+    second.connect();
+    expect(second.sync).toBe("synced");
+    expect(first.sync).toBe("synced");
+    expect(b.get(id)?.label).toBe("held by first");
+    second.disconnected();
+    expect(second.sync).toBe("idle");
+    first.destroy();
+    second.destroy();
+    a.destroy();
+    b.destroy();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("repeats an unanswered join request so a lost message cannot strand a late joiner", () => {
+  vi.useFakeTimers();
+  try {
+    const peers: Bus[] = [];
+    const a = new CanvasDocument();
+    const b = new CanvasDocument();
+    const id = a.create("sticky", 0, 0, { label: "survives a lost hello" });
+    const first = new CollaborationProvider(a.doc, new Bus(peers), () => {});
+    first.connect();
+    const dropping = new Bus(peers);
+    const send = dropping.send.bind(dropping);
+    let drops = 2;
+    dropping.send = (message) => {
+      if (drops-- <= 0) send(message);
+    };
+    const second = new CollaborationProvider(b.doc, dropping, () => {});
+    second.connect();
+    expect(b.get(id)).toBeNull();
+    vi.advanceTimersByTime(2500);
+    expect(b.get(id)?.label).toBe("survives a lost hello");
+    expect(second.sync).toBe("synced");
+    first.destroy();
+    second.destroy();
+    a.destroy();
+    b.destroy();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("bounds chunks and reconstructs a large state out of order", () => {

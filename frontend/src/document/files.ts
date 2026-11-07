@@ -31,11 +31,17 @@ export function importDocument(document: CanvasDocument, content: string) {
   if (!Array.isArray(bookmarks) || !bookmarks.every(validBookmark))
     throw new Error("This document contains invalid saved views.");
   const ids = new Map(objects.map((item) => [item.id, crypto.randomUUID()]));
+  const base = document.nextOrder();
+  const stacked = objects
+    .map((item, index) => ({ item, index }))
+    .sort((left, right) => fileOrder(left.item) - fileOrder(right.item) || left.index - right.index)
+    .map(({ item }) => item);
   document.undo.stopCapturing();
   document.doc.transact(() => {
-    objects.forEach((item) =>
+    stacked.forEach((item, index) =>
       document.insert({
         ...item,
+        order: base + index,
         id: ids.get(item.id)!,
         parent: ids.get(item.parent) || "",
         source: ids.get(item.source) || "",
@@ -50,6 +56,10 @@ export function importDocument(document: CanvasDocument, content: string) {
   }, LOCAL);
   document.undo.stopCapturing();
   return objects.length;
+}
+
+function fileOrder(item: CanvasObject) {
+  return Number.isFinite(item.order) ? item.order : 0;
 }
 
 function parseFile(content: string): {

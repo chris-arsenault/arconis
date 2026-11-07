@@ -51,8 +51,22 @@ export function projectDocument(graph: Graph, document: CanvasDocument) {
       const parentId = safeParent(item, all);
       updateCell(graph, item, model.getCell(item.id)!, model.getCell(parentId) || parent, all);
     }
+    applyStacking(graph, visible);
   } finally {
     model.endUpdate();
+  }
+}
+
+function applyStacking(graph: Graph, visible: Map<string, CanvasObject>) {
+  const model = graph.getDataModel();
+  const nextIndex = new Map<Cell, number>();
+  // `visible` follows document stacking order, so each parent's children arrive in order.
+  for (const id of visible.keys()) {
+    const cell = model.getCell(id)!;
+    const parent = cell.parent!;
+    const index = nextIndex.get(parent) ?? 0;
+    nextIndex.set(parent, index + 1);
+    if (parent.getChildAt(index) !== cell) model.add(parent, cell, index);
   }
 }
 

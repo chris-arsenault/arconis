@@ -13,11 +13,16 @@ interface Props {
   onJoin: (id: string) => void;
   editor: EditorController | null;
   onMessage: (message: string) => void;
+  onEditName: () => void;
 }
 
 export function WorkspaceHeader(props: Readonly<Props>) {
   const { session, name, onName, onCreate, onJoin } = props;
-  const people = session.provider.awareness.getStates().size;
+  const states = [...session.provider.awareness.getStates().values()] as Partial<{
+    user: { name: string };
+  }>[];
+  const people = states.length;
+  const names = states.map((state) => state.user?.name || "Guest").join(", ");
   return (
     <header className="topbar">
       <a className="brand compact" href="/" aria-label="Arconis home">
@@ -37,10 +42,15 @@ export function WorkspaceHeader(props: Readonly<Props>) {
       </div>
       <div className="topbar-actions">
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
-        <span className="participant-badge" title={`${people} participants`}>
+        <button
+          className="participant-badge"
+          title={`In this room: ${names}. Click to change your name.`}
+          aria-label="Change your name"
+          onClick={props.onEditName}
+        >
           <span>{name.slice(0, 1).toUpperCase()}</span>
           {people > 1 && <small>+{people - 1}</small>}
-        </span>
+        </button>
         <RoomControls onCreate={onCreate} onJoin={onJoin} name={name} onName={onName} />
       </div>
     </header>

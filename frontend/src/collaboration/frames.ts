@@ -67,6 +67,10 @@ export class FrameAssembler {
     this.pending.delete(key);
     return { frame, data };
   }
+  /** True while a multi-frame transfer is partly received. */
+  get receiving() {
+    return this.pending.size > 0;
+  }
   private expire() {
     this.pending.forEach((transfer, id) => {
       if (Date.now() - transfer.time > 60000) this.pending.delete(id);

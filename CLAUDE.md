@@ -10,6 +10,8 @@
 - Use native agent file editing, current Git branches and broker-backed credentials.
 - Preserve unrelated edits in Ahara repositories. Deployment failures require real logs.
 - No manual user validation gate. Verify product behavior through independent browsers.
+- Automated tests and CI never touch real AWS services, especially pay-per-use ones such
+  as AppSync. Tests use the local server and AppSync protocol fixture. Deploying is not testing.
 
 ## Project overview
 
@@ -26,8 +28,9 @@ Yjs updates and peer synchronization; IndexedDB keeps a local copy.
 | `frontend/src/collaboration/` | Peer protocol, frames, persistence, presence and transports |
 | `frontend/src/components/` | Interface and object/room controls |
 | `infrastructure/terraform/` | Events API and Ahara website deployment |
-| `.github/workflows/ci.yml` | Shared CI plus deployed browser verification |
+| `.github/workflows/ci.yml` | Shared CI and deployment |
 | `docs/ARCONIS-PLAN.md` | Full product contract and implementation plan |
+| `docs/backlog.md` | Planned work |
 
 ## Architecture patterns
 
@@ -42,10 +45,15 @@ alone uses parent-relative geometry. Keep legacy compatibility baselines separat
 from actual per-axis movement fields so reparenting cannot overwrite a concurrent move.
 Connector x/y remain relative label coordinates and must survive native ungrouping.
 Version-1 files normalize during import; new exports use version 2.
+Labels render as maxGraph HTML because only that mode wraps text; labels come from peers,
+so `getLabel` in `editor/rendering.ts` must keep escaping them. Stacking uses each record's
+`order` with an id tiebreak, never Yjs map iteration, which differs between peers. Graph-origin commits project
+after maxGraph's update ends, because edits made during its notification never redraw.
+Drag previews travel on awareness, so they create no document history.
 
 Transport adapters do not depend on graph or UI types. Joining and reconnecting exchange
 state vectors/differences in both directions. The test-only AppSync fixture is never
-imported by production entry points; deployed tests use the real service without mocks.
+imported by production entry points.
 
 There is no backend package, database, migration directory or authentication system.
 The accepted durability limit is that new devices need an active peer with a local copy.
@@ -58,7 +66,7 @@ The accepted durability limit is that new devices need an active peer with a loc
 | `make build` | Build production assets |
 | `make test-browser` | Independent-context browser journeys |
 | `make format` | Apply Prettier formatting |
-| `with-cred -- scripts/deploy.sh` | Local authorized build/deploy/live verification |
+| `with-cred -- scripts/deploy.sh` | Local authorized build and deploy |
 
 Frontend uses pnpm. Browser tests own temporary servers and shut them down.
 Generated logs, screenshots and coverage stay in ignored output directories.

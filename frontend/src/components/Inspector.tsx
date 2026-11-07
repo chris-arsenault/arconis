@@ -1,4 +1,14 @@
-import { Copy, Group, Ungroup, Trash2, Link2, Bold, Italic } from "lucide-react";
+import {
+  BringToFront,
+  SendToBack,
+  Copy,
+  Group,
+  Ungroup,
+  Trash2,
+  Link2,
+  Bold,
+  Italic,
+} from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { COLORS, KIND_LABELS, type CanvasObject, type StyleValue } from "../document/types";
 import { useCollaborativeText } from "../document/useCollaborativeText";
@@ -12,13 +22,14 @@ type StyleProps = Readonly<{
 export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   const selected = editor.selected();
   const item = selected[0];
-  const textRef = useCollaborativeText(editor.document, item?.id || null);
+  const several = selected.length > 1;
+  const textRef = useCollaborativeText(editor.document, several ? null : item?.id || null);
   if (!item) return <EmptyInspector />;
   return (
     <aside className="inspector" aria-label="Object properties">
       <div className="panel-heading">
         <span className="eyebrow">
-          {selected.length > 1 ? `${selected.length} OBJECTS` : KIND_LABELS[item.kind]}
+          {several ? `${selected.length} OBJECTS` : KIND_LABELS[item.kind]}
         </span>
         <button
           className="icon-button danger"
@@ -29,13 +40,25 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
           <Trash2 size={16} />
         </button>
       </div>
-      <label>
-        Text
-        <textarea ref={textRef} aria-label="Object text" rows={4} />
-      </label>
+      {!several && (
+        <label>
+          Text
+          <textarea ref={textRef} aria-label="Object text" rows={4} />
+        </label>
+      )}
       <StyleControls editor={editor} item={item} />
-      <PositionControls editor={editor} item={item} />
+      {several ? (
+        <p className="muted">Style changes apply to every selected object.</p>
+      ) : (
+        <PositionControls editor={editor} item={item} />
+      )}
       <div className="selection-actions">
+        <button onClick={() => editor.stack("front")} title="Bring to front (])">
+          <BringToFront size={15} /> To front
+        </button>
+        <button onClick={() => editor.stack("back")} title="Send to back ([)">
+          <SendToBack size={15} /> To back
+        </button>
         <button onClick={() => editor.duplicate()}>
           <Copy size={15} /> Duplicate
         </button>
@@ -92,6 +115,19 @@ function GeometryControls({ editor, item }: ItemProps) {
             />
           </label>
         ))}
+        {item.kind !== "group" && (
+          <label>
+            rotation
+            <input
+              type="number"
+              aria-label="Object rotation"
+              value={Math.round(Number(item.style.rotation || 0) * 10) / 10}
+              onChange={(event) =>
+                editor.document.patchStyle(item.id, { rotation: Number(event.target.value) })
+              }
+            />
+          </label>
+        )}
       </div>
     </>
   );

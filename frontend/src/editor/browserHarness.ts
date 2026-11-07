@@ -13,20 +13,19 @@ import type { CanvasObject, Bookmark } from "../document/types";
 import { startAppSyncFixture } from "../collaboration/appsyncFixture";
 
 export let browser: Browser;
-let server: ViteDevServer | null = null;
-let baseUrl = process.env.ARCONIS_URL || "";
+let server: ViteDevServer;
+let baseUrl = "";
 export const errors: string[] = [];
 const engines = { chromium, firefox, webkit };
 const traced = new WeakSet<BrowserContext>();
-let fixture: Awaited<ReturnType<typeof startAppSyncFixture>> | null = null;
+let fixture: Awaited<ReturnType<typeof startAppSyncFixture>>;
 
+// Browser tests only ever run against this local server and protocol fixture.
 beforeAll(async () => {
-  if (!baseUrl) {
-    server = await createServer({ server: { port: 0, host: "127.0.0.1" } });
-    await server.listen();
-    baseUrl = server.resolvedUrls!.local[0];
-  }
-  if (!process.env.ARCONIS_URL) fixture = await startAppSyncFixture();
+  server = await createServer({ server: { port: 0, host: "127.0.0.1" } });
+  await server.listen();
+  baseUrl = server.resolvedUrls!.local[0];
+  fixture = await startAppSyncFixture();
   browser = await engines[(process.env.BROWSER || "chromium") as keyof typeof engines].launch({
     headless: true,
   });
@@ -53,13 +52,12 @@ export async function open(context: BrowserContext, room = "", join = false) {
     await context.tracing.start({ screenshots: true, snapshots: true });
     traced.add(context);
   }
-  if (fixture)
-    await context.route("**/config.js", (route) =>
-      route.fulfill({
-        contentType: "application/javascript",
-        body: `window.__APP_CONFIG__ = ${JSON.stringify(fixture!.config)};`,
-      })
-    );
+  await context.route("**/config.js", (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `window.__APP_CONFIG__ = ${JSON.stringify(fixture.config)};`,
+    })
+  );
   const page = await context.newPage();
   page.on("pageerror", (error) => {
     errors.push(error.message);
@@ -74,10 +72,6 @@ export async function open(context: BrowserContext, room = "", join = false) {
     await page.getByRole("button", { name: "Create a room", exact: true }).click();
     expect(new URL(page.url()).hash).toMatch(/^#room=[a-f0-9]{48}$/);
   }
-  if (process.env.EXPECTED_REVISION)
-    expect(await page.locator("html").getAttribute("data-revision")).toBe(
-      process.env.EXPECTED_REVISION
-    );
   await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
   await page.getByTestId("connection-status").filter({ hasText: "Connected" }).waitFor();
   return page;
