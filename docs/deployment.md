@@ -12,6 +12,9 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 - The relay: an Auto Scaling group behind the shared ALB at `relay.arconis.ahara.io`, its
   S3 bucket of relay code, and its security group and role.
 - The control Lambda behind `/control/*` on the same host, and its SSM parameters.
+- Accounts: a Cognito user pool, a DynamoDB table, a private bucket of encrypted workspaces, the API
+  behind `/api/*` on the relay's host, and a daily maintenance Lambda publishing `Arconis/Accounts`
+  metrics.
 - The website, through Ahara's `website` module: private S3 with S3-managed encryption, behind
   CloudFront and ACM TLS, at `arconis.ahara.io`.
 - Runtime configuration, delivered to browsers as `config.js`.

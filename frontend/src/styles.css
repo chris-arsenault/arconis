@@ -253,6 +253,53 @@ h1 em {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.account-form {
+  display: grid;
+  gap: 10px;
+}
+.account-form label {
+  display: grid;
+  gap: 4px;
+}
+.account-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.account-close {
+  float: right;
+}
+.workspace-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.workspace-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.workspace-open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  text-align: left;
+}
 .password-gate {
   position: fixed;
   inset: 0;

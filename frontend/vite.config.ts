@@ -3,7 +3,11 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  define: { __BUILD_REVISION__: JSON.stringify(process.env.GITHUB_SHA || "local") },
+  define: {
+    __BUILD_REVISION__: JSON.stringify(process.env.GITHUB_SHA || "local"),
+    // The Cognito library expects Node's name for the global object.
+    global: "globalThis",
+  },
   // The largest lazy chunk is the Azure icon set, loaded only when someone opens or searches it.
   build: { chunkSizeWarningLimit: 1800, license: { fileName: "licenses.txt" } },
 });

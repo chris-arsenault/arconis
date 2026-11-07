@@ -40,6 +40,16 @@ Any object can be a topic, including a screen, a panel of notes or a line.
 A group ties a selection together with a frame that fits its members. Select several objects and
 choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a group.
 
+## Accounts and saved workspaces
+
+Rooms need no account. Signing up takes an email, which must be activated with a code within 7 days, and
+a name, which then replaces the name you would otherwise type into rooms. The cloud button in the header
+saves the room to your account and keeps it saved, merging with anything saved from another device.
+Saved workspaces open from the account menu on any device, with nobody else online.
+
+Workspaces are encrypted with your password in your browser. Resetting a forgotten password keeps them
+only if you still know the old one; otherwise they are lost.
+
 ## Password rooms
 
 "Create a password room" on the welcome screen asks for a password, and everyone joining by link needs

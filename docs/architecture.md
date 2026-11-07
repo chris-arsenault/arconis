@@ -122,6 +122,15 @@ to close its sockets with that reason. Counting by month re-enables it automatic
 month-scoped SSM parameter raises the limit by hand. Each level alerts once through Ahara's alarm
 topic.
 
+## Accounts
+
+`accounts/` is the server side, and `account/` the browser's ([ADR-0012](adr/0012-accounts-and-encrypted-workspaces.md)).
+The browser wraps a random account key with the sign-in password, through the same envelope as password
+rooms, stores the wrapped key on the server, and keeps the opened key in IndexedDB until sign-out. It
+encrypts each workspace and its name under that key. The API behind `/api/*` checks limits and signs
+S3 links, and `account/workspaceSaver.ts` merges any newer saved copy before storing, so two devices
+cannot overwrite each other's work. `accounts/maintenance.ts` runs daily.
+
 ## Limitations
 
 - A new device needs an active peer holding the document, because the relay retains nothing. Export a

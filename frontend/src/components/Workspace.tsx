@@ -20,6 +20,8 @@ import { PasswordGate } from "./PasswordGate";
 import { LeftRail } from "./LeftRail";
 import { SelectionFrame } from "./SelectionFrame";
 import { WorkspaceHeader } from "./WorkspaceHeader";
+import type { AccountStore } from "../account/accountStore";
+import type { WorkspaceContents } from "../account/workspaceFile";
 
 const subscribeEmpty = () => () => {};
 const snapshotEmpty = () => 0;
@@ -28,6 +30,9 @@ interface Props {
   name: string;
   askName: boolean;
   newRoom: boolean;
+  signedIn: boolean;
+  account: AccountStore | null;
+  onOpenSaved: (contents: WorkspaceContents) => void;
   onName: (name: string) => void;
   onCreate: () => void;
   onJoin: (id: string) => void;
@@ -56,7 +61,9 @@ export function Workspace(props: Readonly<Props>) {
       <div className="workspace-body">
         {editor && <LeftRail editor={editor} />}
         <CanvasArea session={session} editor={editor} newRoom={newRoom} onEditor={setEditor}>
-          {namePrompt && <NamePrompt name={name} onName={onName} onClose={closeNamePrompt} />}
+          {namePrompt && !props.signedIn && (
+            <NamePrompt name={name} onName={onName} onClose={closeNamePrompt} />
+          )}
         </CanvasArea>
         {editor && <Inspector editor={editor} author={props.name} />}
       </div>

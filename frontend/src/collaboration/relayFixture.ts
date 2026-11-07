@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { accountFixture } from "./accountFixture";
 import { attachRelay } from "../relay/attach";
 import { Relay, type StopReason } from "../relay/relay";
 import { STORAGE_LIMIT_BYTES, type StoredPictures } from "../relay/uploads";
@@ -61,6 +62,25 @@ function newRelay(stored: StoredPictures) {
   });
 }
 
+const ALLOWED_HEADERS =
+  "authorization,content-type,x-amz-checksum-sha256,x-amz-target,x-amz-user-agent,cache-control";
+
+function allowBrowsers(response: ServerResponse) {
+  response.setHeader("access-control-allow-origin", "*");
+  response.setHeader("access-control-allow-methods", "GET,PUT,POST,DELETE");
+  response.setHeader("access-control-allow-headers", ALLOWED_HEADERS);
+}
+
+function fixtureConfig(base: string) {
+  return {
+    transport: "relay" as const,
+    relayUrl: base,
+    cognitoUserPoolId: "us-east-1_fixture",
+    cognitoClientId: "fixture",
+    cognitoEndpoint: `${base}/cognito`,
+  };
+}
+
 function fullEntry(): [string, number][] {
   return [["full", STORAGE_LIMIT_BYTES]];
 }
@@ -75,6 +95,7 @@ export async function startRelayFixture() {
   let starts = 0;
   let base = "";
   const storage = pictureStorage(() => base);
+  const accounts = accountFixture(() => base);
   const makeRelay = () => newRelay(storage.stored);
   let relay = makeRelay();
   const control = (request: IncomingMessage, response: ServerResponse) => {
@@ -92,10 +113,9 @@ export async function startRelayFixture() {
     response.end(JSON.stringify({ status }));
   };
   const server = createServer((request, response) => {
-    response.setHeader("access-control-allow-origin", "*");
-    response.setHeader("access-control-allow-methods", "PUT");
-    response.setHeader("access-control-allow-headers", "content-type,x-amz-checksum-sha256");
+    allowBrowsers(response);
     if (request.method === "OPTIONS") response.end();
+    else if (accounts.handle(request, response)) return;
     else if (request.method === "PUT") void storage.accept(request, response);
     else control(request, response);
   });
@@ -106,7 +126,8 @@ export async function startRelayFixture() {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return {
-    config: { transport: "relay" as const, relayUrl: base },
+    config: fixtureConfig(base),
+    savedObjects: () => [...accounts.objects.values()],
     get starts() {
       return starts;
     },

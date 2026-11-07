@@ -22,7 +22,8 @@ sticky notes and freehand drawing in one shared document.
   with a relay that forwards frames and stores nothing
   ([ADR-0001](docs/adr/0001-yjs-canonical-maxgraph-projection.md),
   [ADR-0009](docs/adr/0009-relay-on-ec2.md)).
-- Keep rooms anonymous and dependencies permissively licensed. InfiniPaint inspires
+- Keep rooms usable without an account, and dependencies permissively licensed. Saved workspaces
+  reach the server only as ciphertext ([ADR-0012](docs/adr/0012-accounts-and-encrypted-workspaces.md)). InfiniPaint inspires
   interactions only; write original code ([ADR-0007](docs/adr/0007-permissive-licensing.md)).
   Vendor architecture icons are the one exception, and stay unrotated and evenly scaled
   ([ADR-0008](docs/adr/0008-vendor-architecture-icons.md)).

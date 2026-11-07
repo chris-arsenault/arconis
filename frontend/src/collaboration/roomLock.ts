@@ -43,6 +43,11 @@ export class RoomLock {
   private key: CryptoKey | null = null;
   private envelope: Envelope | null = null;
   private saving = Promise.resolve();
+  private opened: () => void = () => {};
+  /** Resolves once the room's password has opened it. */
+  readonly whenOpen = new Promise<void>((resolve) => {
+    this.opened = resolve;
+  });
 
   constructor(
     private storage: LockedStorage,
@@ -132,7 +137,19 @@ export class RoomLock {
     this.doc.on("update", this.onUpdate);
     this.state = "unlocked";
     this.transport.unlock(key);
+    this.opened();
     this.changed();
+  }
+
+  /** The envelope, for keeping with a saved copy of the room. */
+  get currentEnvelope() {
+    return this.envelope;
+  }
+
+  /** Takes an envelope from a saved copy, so the room can open where nobody else is online. */
+  adoptEnvelope(envelope: Envelope) {
+    this.transport.envelopeKnown();
+    void this.receiveEnvelope(envelope);
   }
 
   private onUpdate = (update: Uint8Array, origin: unknown) => {

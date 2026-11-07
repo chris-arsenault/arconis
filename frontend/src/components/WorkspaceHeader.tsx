@@ -13,6 +13,10 @@ import { embedCopy } from "../document/pngCopy";
 import { renderPng } from "../editor/pngExport";
 import { RoomControls } from "./RoomControls";
 import { ChangePassword } from "./PasswordGate";
+import { AccountButton } from "./AccountControls";
+import { SaveWorkspace } from "./SaveWorkspace";
+import type { AccountStore } from "../account/accountStore";
+import type { WorkspaceContents } from "../account/workspaceFile";
 
 interface Props {
   session: RoomSession;
@@ -23,6 +27,8 @@ interface Props {
   editor: EditorController | null;
   onMessage: (message: string) => void;
   onEditName: () => void;
+  account: AccountStore | null;
+  onOpenSaved: (contents: WorkspaceContents) => void;
 }
 
 export function WorkspaceHeader(props: Readonly<Props>) {
@@ -49,6 +55,10 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         />
       </div>
       <div className="topbar-actions">
+        {props.account && <AccountButton account={props.account} onOpen={props.onOpenSaved} />}
+        {props.account && (
+          <SaveWorkspace account={props.account} session={session} onMessage={props.onMessage} />
+        )}
         <ChangePassword session={session} />
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
         <button

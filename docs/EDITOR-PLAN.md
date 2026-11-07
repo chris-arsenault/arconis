@@ -393,6 +393,6 @@ execution from M6 until a design decision is needed.
 M6 to M10 are pushed. Infrastructure reaches AWS only through CI/CD, never by hand. The `ahara-infra` admission change must land
 through its pipeline before Arconis's. The admission change and the listener-priority row in `ahara/INTEGRATION.md` are committed in those repositories. Unverified until
 deployed: the instance's boot and shutdown units, WebSockets through the shared ALB and its WAF, the Lambda's IAM and metric reads, and the
-instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9 to M13, M15 and M19 are built. M14, M16 and M18 wait for design sessions with the owner, and M20 follows them. An independent security review of M15 is
+instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9 to M13, M15, M16 and M19 are built. M14 and M18 wait for design sessions with the owner, and M20 follows them. A priority server and similar account features are possible later. An independent security review of M15 is
 recommended. The picture upload's signing and CORS, and M15's envelope exchange through the real relay, have only run against local stand-ins. PNG exports
 use system fonts where the page's web fonts are not available to an image, and have only been checked in Chromium.

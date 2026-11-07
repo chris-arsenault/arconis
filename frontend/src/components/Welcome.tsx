@@ -1,6 +1,9 @@
 import { ArrowRight, Shapes, StickyNote, GitBranch, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { parseRoom } from "../collaboration/room";
+import type { AccountStore } from "../account/accountStore";
+import type { WorkspaceContents } from "../account/workspaceFile";
+import { AccountButton } from "./AccountControls";
 
 interface Props {
   name: string;
@@ -10,6 +13,9 @@ interface Props {
   onCreateLocked: () => void;
   onJoin: (id: string) => void;
   error: string;
+  signedIn: boolean;
+  account: AccountStore | null;
+  onOpenSaved: (contents: WorkspaceContents) => void;
 }
 
 export function Welcome(props: Readonly<Props>) {
@@ -80,15 +86,18 @@ function WelcomeForm(props: Readonly<Props>) {
   };
   return (
     <div className="welcome-card">
-      <label>
-        Your display name
-        <input
-          aria-label="Your display name"
-          value={name}
-          maxLength={40}
-          onChange={(event) => onName(event.target.value)}
-        />
-      </label>
+      {props.account && <AccountButton account={props.account} onOpen={props.onOpenSaved} />}
+      {!props.signedIn && (
+        <label>
+          Your display name
+          <input
+            aria-label="Your display name"
+            value={name}
+            maxLength={40}
+            onChange={(event) => onName(event.target.value)}
+          />
+        </label>
+      )}
       <button className="primary" onClick={onCreate}>
         Create a room <ArrowRight size={18} />
       </button>

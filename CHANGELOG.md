@@ -6,6 +6,8 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added accounts with email activation, whose name replaces the one typed into rooms.
+- Added saved workspaces, encrypted in the browser and available on any device.
 - Added pasted and dropped pictures in every room, uploaded once and carried in exported files.
 - Added threaded comments on any object or line, visible to everyone in the room.
 - Added nesting in any object, with children moving along with their parent.

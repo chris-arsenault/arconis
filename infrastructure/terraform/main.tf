@@ -34,6 +34,9 @@ module "frontend" {
   runtime_config = {
     transport = "relay"
     relayUrl  = "https://${local.relay_hostname}"
+
+    cognitoUserPoolId = aws_cognito_user_pool.accounts.id
+    cognitoClientId   = aws_cognito_user_pool_client.accounts.id
   }
 }
 

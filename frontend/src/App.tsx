@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { createAccount } from "./account";
+import type { WorkspaceContents } from "./account/workspaceFile";
 import {
   RoomSession,
   createLocalRoomId,
@@ -11,6 +13,16 @@ import { Welcome } from "./components/Welcome";
 import { Workspace } from "./components/Workspace";
 
 const NAME_KEY = "arconis:name";
+
+const account = createAccount();
+
+/** A workspace opened from the account, waiting for its room to start. */
+let pendingSavedCopy: WorkspaceContents | null = null;
+function takeSavedCopy(room: string) {
+  const saved = pendingSavedCopy;
+  pendingSavedCopy = null;
+  return saved?.roomId === room ? saved : null;
+}
 
 /** Opens the room's session; `createdRoom` names a room this tab has just created. */
 function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
@@ -28,7 +40,10 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
       );
       next = instance;
       await instance.start();
-      if (active) setSession(instance);
+      if (!active) return;
+      setSession(instance);
+      const saved = takeSavedCopy(room);
+      if (saved) void instance.applySaved(saved);
     };
     void start().catch((reason: unknown) => {
       if (active) setError(String(reason));
@@ -41,6 +56,19 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
   return { session, error, setError };
 }
 
+/** The account's name replaces whatever a person typed, for as long as they are signed in. */
+function useAccountName(session: RoomSession | null) {
+  useSyncExternalStore(account?.subscribe ?? noSubscribe, account?.snapshot ?? noSnapshot);
+  useEffect(() => void account?.restore().catch(() => {}), []);
+  const accountName = account?.status === "in" ? account.name : "";
+  useEffect(() => {
+    if (accountName) session?.rename(accountName);
+  }, [accountName, session]);
+  return accountName;
+}
+const noSubscribe = () => () => {};
+const noSnapshot = () => 0;
+
 export function App() {
   const [room, setRoom] = useState(() => parseRoom(location.hash.slice(1)));
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "Guest");
@@ -48,6 +76,7 @@ export function App() {
   const [created, setCreated] = useState("");
   const createdRoom = useRef("");
   const { session, error, setError } = useRoomSession(room, createdRoom);
+  const accountName = useAccountName(session);
   useEffect(() => {
     const onHash = () => setRoom(parseRoom(location.hash.slice(1)));
     window.addEventListener("hashchange", onHash);
@@ -67,40 +96,42 @@ export function App() {
     setCreated(id);
     open(id);
   };
+  const openSaved = (contents: WorkspaceContents) => {
+    if (session?.id === contents.roomId) {
+      void session.applySaved(contents);
+      return;
+    }
+    pendingSavedCopy = contents;
+    open(contents.roomId);
+  };
+  const shared = { account, onOpenSaved: openSaved };
+  // The welcome form has already offered the name field.
+  const leaveWelcome = (go: () => void) => {
+    setAskName(false);
+    changeName(name);
+    go();
+  };
   if (!session || session.id !== room)
     return (
       <Welcome
+        {...shared}
+        signedIn={Boolean(accountName)}
         name={name}
         onName={changeName}
-        onCreate={() => {
-          // The welcome form has already offered the name field.
-          setAskName(false);
-          changeName(name);
-          create();
-        }}
-        onCreateLocal={() => {
-          setAskName(false);
-          changeName(name);
-          create(createLocalRoomId());
-        }}
-        onCreateLocked={() => {
-          setAskName(false);
-          changeName(name);
-          create(createLockedRoomId());
-        }}
-        onJoin={(id) => {
-          setAskName(false);
-          changeName(name);
-          open(id);
-        }}
+        onCreate={() => leaveWelcome(() => create())}
+        onCreateLocal={() => leaveWelcome(() => create(createLocalRoomId()))}
+        onCreateLocked={() => leaveWelcome(() => create(createLockedRoomId()))}
+        onJoin={(id) => leaveWelcome(() => open(id))}
         error={error}
       />
     );
   return (
     <Workspace
+      {...shared}
       session={session}
-      name={name}
-      askName={askName}
+      name={accountName || name}
+      askName={askName && !accountName}
+      signedIn={Boolean(accountName)}
       newRoom={created === room}
       onName={changeName}
       onCreate={() => create()}

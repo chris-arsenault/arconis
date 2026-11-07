@@ -14,7 +14,11 @@ import {
   indexedDbShelf,
 } from "./pictureStore";
 import { putToStorage, uploadWaitingPictures } from "./pictureUploads";
+import * as Y from "yjs";
+import type { WorkspaceContents } from "../account/workspaceFile";
+import type { SaveableRoom } from "../account/workspaceSaver";
 import {
+  PICTURE_STORED,
   decodePicture,
   encodePicture,
   pictureHashes,
@@ -67,6 +71,8 @@ export function roomHash(id: string) {
   return `room=${id}`;
 }
 
+const SAVED_COPY = Symbol("saved copy");
+
 /** What carries this room's frames. The relay never sees the prefix naming a password room. */
 function createCarrier(id: string): Transport {
   const config = readConfig();
@@ -104,6 +110,7 @@ export class RoomSession {
     const locked = isLockedRoom(id) ? new LockedTransport(carrier, peerId) : null;
     const transport = locked ?? carrier;
     this.transport = transport;
+    this.saveable.id = id;
     this.lock = locked
       ? new RoomLock(indexedDbLockedStorage(id), locked, this.document.doc, this.emit, created)
       : null;
@@ -151,6 +158,46 @@ export class RoomSession {
     this.notice = notice;
     this.emit();
   }
+  /** Pictures only this browser may hold, in stored form, since a saved copy must carry them. */
+  private async unsharedPictures() {
+    const items = this.document.list().filter((item) => item.style[PICTURE_STORED] !== true);
+    const found = await Promise.all(
+      pictureHashes(items).map(async (hash) => {
+        const picture = await this.pictures.read(hash);
+        return picture && encodePicture(hash, picture.type, picture.bytes);
+      })
+    );
+    return found.flatMap((picture) => picture ?? []);
+  }
+  /** Merges a saved copy in, once a password room has been opened. */
+  applySaved = async (contents: WorkspaceContents) => {
+    if (contents.envelope) this.lock?.adoptEnvelope(contents.envelope);
+    const decoded = await Promise.all(contents.pictures.map(decodePicture));
+    await Promise.all(
+      decoded.map((picture) => picture && this.pictures.keep(picture.hash, picture))
+    );
+    await this.lock?.whenOpen;
+    if (!this.disposed) Y.applyUpdate(this.document.doc, contents.update, SAVED_COPY);
+  };
+  /** This room, as the saved copy in an account sees it. */
+  readonly saveable: SaveableRoom = {
+    id: "",
+    title: () => this.document.title(),
+    contents: async () => ({
+      roomId: this.id,
+      update: Y.encodeStateAsUpdate(this.document.doc),
+      pictures: await this.unsharedPictures(),
+      envelope: this.lock?.currentEnvelope ?? null,
+    }),
+    apply: this.applySaved,
+    onChange: (listener) => {
+      const onUpdate = (_update: Uint8Array, origin: unknown) => {
+        if (origin !== SAVED_COPY && origin !== this.persistence) listener();
+      };
+      this.document.doc.on("update", onUpdate);
+      return () => this.document.doc.off("update", onUpdate);
+    },
+  };
   /** Uploads what this browser holds and storage lacks. Failures retry on reconnecting. */
   uploadPictures = async () => {
     const request = this.transport.requestUpload?.bind(this.transport);
