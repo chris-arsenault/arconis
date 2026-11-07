@@ -1,6 +1,6 @@
 # 0002 — Peers sync through AppSync Events with no server storage
 
-- Status: Proposed
+- Status: Superseded by ADR-0009
 - Date: 2026-11-06
 
 ## Context

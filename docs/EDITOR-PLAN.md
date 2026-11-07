@@ -4,16 +4,18 @@ Working plan. Delete this file after its durable content moves into `docs/` at c
 
 ## Outcome and scope
 
-Arconis feels like a professional editor when used directly on the canvas, and gains the stencil, panel, layout,
-mind-map and picture capabilities the owner listed. Clear bug fixes land first.
+Arconis feels like a professional editor when used directly on the canvas, runs safely as a public pay-per-use service, and
+gains everything in the owner's list and `docs/backlog.md`. Remaining milestones follow the agent's suggested order, which the
+owner asked for.
 
 Authorized so far: this plan. Implementation, commits and pushes need the owner's go-ahead; a push to `main`
 deploys.
 
 Boundaries:
 
-- **Owner, this request:** all 13 items below, clear bug fixes first, as amended by the decisions below.
-- **Owner, standing:** automated tests and CI use local fixtures only, never real AWS (ADR-0006).
+- **Owner, this plan:** every item below, as amended by the decisions below.
+- **Owner, standing:** automated tests and CI use local fixtures only, never real AWS (ADR-0006). Limited, deliberate one-off checks against AWS
+  are allowed.
 - **Owner, standing:** ADR alternatives come only from recorded sources. Proposed ADRs describe the code and do
   not block changing it.
 - **Project:** no custom application backend, and permissive licensing (ADR-0007). Adding shared storage needs an
@@ -33,9 +35,33 @@ Boundaries:
 | 13 | Place a bookmark, show it in left nav, click to zoom to it | Merged into saved views | M3 |
 | 10 | Icon palette is lacking | Feature | M4 |
 | 5 | No group/panel construct | Feature | M5 |
-| 8 | Add mind mapping | Feature | M6 |
-| 9 | Layout/quick UX work: compose screens with rectangles, sizes and text boxes, a different layout mode than diagramming | Feature | M6 |
-| 11 | No paste picture | Deferred to the end | M7 |
+| B9 | Prod operations: rate limits, budgeting, alerting, hard limits; replace AppSync with an EC2 relay | Operations | M6 |
+| B4 | The drop down for connections "from" and "to" is unusable after 10 objects; remove it | Bug | M7 |
+| B2 | Drawings are transmitted per-stroke; they're going to clog things up | Investigate | M8 |
+| B10 | Look at WebRTC for images and the app in general, degrading seamlessly, with a non-collaborative room | Architecture | M8b |
+| B5 | No grid view | Feature | M9 |
+| B6 | Add export PNG and copy of graph, like draw.io | Feature | M10 |
+| 8 | Add mind mapping | Feature | M11 |
+| 9 | Layout/quick UX work: compose screens with rectangles, sizes and text boxes, a different layout mode than diagramming | Feature | M11 |
+| B1 | Comments on objects | Feature | M12 |
+| 11 | No paste picture; part of image handling will be an authenticated mode | Feature | M13, M17 |
+| B7 | Design the serialization format to be agent friendly | Feature | M14 |
+| B3 | Password protected rooms using client-side envelope encryption | Feature | M15 |
+| B8 | Signed-in users get document storage and an MCP server that interacts directly with the document using domain-native tooling | Architecture change | M16, M18 |
+| Backlog | Scope Ahara's AppSync bootstrap grant; settled for Arconis by removing its AppSync permissions | Platform | M19 |
+
+## Suggested order and why
+
+1. **Replace AppSync first (M6).** The live site is pay-per-use with a public key and no spending controls that we know of, and AppSync's fan-out
+   pricing would exceed the budget at real usage. Every later feature adds traffic, so this limits the risk already live.
+2. **Small and traffic fixes next (M7, M8, M8b).** The menus are a known annoyance, and traffic affects the cap and the feel of the app. The data layer
+   settles what happens when the relay is off or unreachable. Pictures depend on it.
+3. **Editing features that need no new architecture (M9 to M12).** These deliver the most editor value, with no storage decisions.
+4. **Pictures, then the file format (M13, M14).** The format is designed after layout objects, comments and pictures exist, so its
+   schema covers them without a second version.
+5. **Password rooms before accounts (M15, M16).** Accounts and storage must account for encrypted rooms, so that design needs them settled.
+6. **Authenticated pictures and MCP after accounts (M17, M18).** Both need stored documents and identity. MCP also builds on the M14 format.
+7. **Platform cleanup last (M19).** Removing Arconis's AppSync permissions is independent of product work.
 
 ## Evidence gathered
 
@@ -58,6 +84,12 @@ Boundaries:
   `graphChanges.ts`, `SelectionFrame.tsx` and `Inspector.tsx`.
 - **Transfer cost (#11).** Targeted frames still fan out to every subscriber of a room channel, and AppSync bills per
   5 KiB, so document size multiplies across participants and late joins.
+- **AppSync usage (B9).** CloudWatch reports this API's `InboundMessages` and `OutboundMessages`. On 2026-11-07, month-to-date totals were about
+  6,500 and 7,900, including all testing and past live CI runs, or roughly $0.01 against a $10 cap. AWS also bills connections, subscriptions and
+  pings as operations, which these two metrics exclude, so the shutoff needs headroom or a fuller count.
+- **Image cost on paper (#11).** At $1 per million operations and one operation per 5 KB, a 200 KB image with 10 people costs about 440 operations
+  (40 in, 400 out), or 0.044 cents, and 1 MB costs about 0.23 cents. Each AppSync transfer to a late joiner fans out to the room and costs the same
+  again. This passes the fractional-cent test on paper; M13 measures it.
 - **Available parts.** maxGraph has connection constraints (`getAllConnectionConstraints`) and alignment guides
   (`SelectionHandler.guidesEnabled`). `lucide-react`, already a dependency, ships about 3,400 module files under its ISC license.
 
@@ -68,7 +100,23 @@ Boundaries:
 - **Object browser (#12):** stencils. The left rail replaces the small tool list hovering on the canvas, and "On this
   canvas" goes away.
 - **Zoom range (#6):** 1000x. Read as 1000x in each direction from 100%, so 0.1% to 100,000%.
-- **Pictures (#11):** deferred to the end of the plan. The storage question stays open until then.
+- **Pictures (#11):** part of image handling is an authenticated mode (M17). Unauthenticated collaborative rooms get no images unless they are
+  shown to cost fractional cents per image with 10 people collaborating. Regardless, an image is transmitted once, and its metadata (size,
+  position, scale) travels separately.
+- **Orchestration (B9):** replace AppSync with a relay on EC2, because AppSync's fan-out pricing is too expensive, and EC2 is the platform's existing
+  pattern and the more stable technology in the owner's view. Lightsail is rejected as too esoteric. This reverses the brief's exclusion of custom
+  WebSocket servers and ADR-0002.
+- **Sizing:** rooms support 5, 10 or 15 people, budgeted for 10, at 20 two-hour sessions a month and hundreds to thousands of objects. TrueNAS is out.
+- **Start and stop:** a start/stop Lambda with idle detection. No connections for 10 minutes is idle, and connections with no contentful update for 30
+  minutes is idle. Adding, moving or updating an object counts, and so do creating a room and a full fresh page load from a local copy, such as a new tab.
+  Cursor movement and acknowledgements do not. Edits start the relay with per-user hysteresis, such as 3 edits in an hour. Anyone can use a Start
+  collaboration button.
+- **Spend (B9):** a hard stop at $10 a month, re-enabled automatically each month. Arconis is not a production tool with paying customers, so stopping
+  beats staying up. The AWS account holds much other spend, so the cap measures this tool rather than account cost.
+- **Measurement:** rough estimates are enough for these decisions. Skip measuring costs and timings for their own sake.
+- **Transport (B10):** look at WebRTC for images and the app in general. The data layer degrades seamlessly, for example when a corporate VPN blocks
+  WebRTC. A non-collaborative room uses no relay and allows unauthenticated images.
+- **Password rooms (B3):** client-side envelope encryption only, with no backend.
 - **Vendor icons (#10):** ship AWS, Azure and Google Cloud icons, self-hosted in lazy chunks. The owner accepted the licensing gray
   area, with rotation and proportions locked and even scaling allowed (ADR-0008).
 - **Bookmarks (#13):** no separate bookmark concept. Saved views and bookmarks are the same thing, so saved views deliver
@@ -77,9 +125,21 @@ Boundaries:
 
 ### Open
 
-- **[DECISION] Picture storage, blocks M7.** Recommended: browser-compressed pictures inside the Yjs document with a size
-  cap, which keeps the no-backend boundary. Sharp full-size images would need shared storage and a backend, the owner's call.
-- **[DECISION] Mind-map behavior, at M6 start.** The brief gives no requirements, so the owner reacts to the proposal in M6.
+- **[DECISION] WebRTC, at M8b.** With the relay in place, WebRTC no longer drives cost. Assumed: evaluate it only for large transfers and blocked-relay
+  cases, and only build it if the measurements justify it. It needs a STUN server, and public ones conflict with the brief's AWS-only constraint. Peers
+  would also see each other's IP addresses.
+- **[DECISION] What "grid view" means, at M9 start.** Assumed: a toggle for a visible grid, with snapping following it.
+- **[DECISION] What "copy of graph" means, at M10 start.** Assumed: copying the selection or canvas as an image to paste elsewhere, plus
+  copying objects to paste into another room, as draw.io does.
+- **[DECISION] Mind-map behavior, at M11 start.** The brief gives no requirements, so the owner reacts to the proposal in M11.
+- **[DECISION] Comment visibility, at M12 start.** Assumed: threaded comments pinned to objects, visible to everyone in the room, signed
+  with the ephemeral display name. Rooms have no accounts, so authorship cannot be verified before M16.
+- **[DECISION] Password recovery, at M15 start.** A forgotten password means the room is unreadable, because nothing can recover the key.
+- **[DECISION] Storage architecture, blocks M16.** Accounts, server storage and an MCP server reverse the standing no-accounts,
+  no-backend boundary (ADR-0002, ADR-0003), so M16 begins with a design and costs for the owner to approve. It needs answers on
+  identity, who pays for storage, what happens to anonymous rooms, and how an agent reads an encrypted room from M15. A server can only
+  act on a password-protected document if a member's client grants it the key.
+- **[DECISION] Who sees a signed-in user's pictures, at M17 start.** Assumed: everyone in the room sees the picture.
 
 ### Agent proposals, revisable
 
@@ -102,9 +162,27 @@ Boundaries:
 - **Icons store a name, not markup.** Projection resolves names through a local allowlist, so peers can never supply a raw URL or SVG.
 - **Mind map layout is derived, not stored.** Positions compute deterministically from the tree and root position at projection,
   so concurrent edits converge with no layout conflicts.
-- **Pictures, if stored in the document, live in a separate `assets` Y.Map keyed by content hash,** outside undo tracking, with
-  objects referencing an asset id. The browser re-encodes pastes through a canvas, which removes active content, and projection
-  builds images from validated bytes.
+- **Password rooms encrypt below Yjs.** Every frame and awareness update is encrypted with a room key before it reaches the relay, so the
+  server sees only ciphertext and merging stays in the browser. The password unwraps the room key through a slow key derivation, so a
+  password change rewraps the key rather than the document. The local copy is encrypted too.
+- **Picture bytes live outside Yjs, keyed by content hash.** The object record holds only the hash and its size, position and scale, so moving or
+  resizing a picture never resends it, and each peer fetches a given hash once and keeps it in IndexedDB. Yjs state exchange would otherwise
+  resend the bytes on late joins. The browser re-encodes pastes through a canvas, which removes active content, and projection builds images from
+  validated bytes.
+- **The relay forwards and stores nothing.** One process keeps sockets per room and passes messages along, with no echo to the sender, and targeted
+  messages go to one person. It enforces per-connection and per-room limits, and disconnects clients that fall behind. Documents stay in browsers, so
+  the existing `Transport` interface and Yjs exchange carry over. It sits on one 1 vCPU EC2 instance, c7g.medium as the starting point, behind the shared
+  ALB, which terminates TLS. A local measurement on one 3 GHz core handled a 15-person room at about 4% CPU and 65 MB, with about 1 ms in the relay.
+- **The relay stops itself.** It already knows its connections and message types, so it shuts its instance down when idle, leaving only the disk to
+  pay for. A small Lambda behind the ALB starts it, and a scheduled check stops an instance past a maximum runtime in case the relay hangs. This is
+  simpler than a Lambda polling for idleness, and still delivers the owner's rules.
+- **Contentful activity is a message type.** Clients mark broadcast object updates as contentful. Presence, cursor, sync exchange and targeted join replies
+  are not. Password rooms keep that type outside the encrypted payload, which reveals only the kind of traffic.
+- **The hard stop meters this tool's own usage.** The relay counts running hours and bytes sent, and the Lambda and relay refuse to run past the monthly
+  limit. Client limits only give people a clear message.
+- **Tabs do not wake the relay.** A tab left open cannot wake it overnight, because only a page load, room creation, edits or the button start it. A page load with a
+  local copy is detectable once IndexedDB has synced into a document that has content. When the relay is off, editing continues locally and merges once it is back.
+  The Lambda enforces the monthly cap regardless, because a browser's own counting can be bypassed.
 
 ## Milestones
 
@@ -164,7 +242,60 @@ leaves child sizes alone. Panels accept connectors and nest. Grouping stays, wit
 Acceptance: all of the above, converging under concurrent moves between peers and surviving undo, reload and files.
 Evidence: browser journeys and concurrent document tests.
 
-### M6 — Layout mode with mind maps and screens (#8, #9) [depends on M1, M3, M5; DECISION at start]
+### M6 — EC2 relay with start/stop and a hard stop, retiring AppSync (B9) [DECISION at start]
+
+Scope: the relay and its client transport, a 1 vCPU EC2 instance behind the shared ALB through Ahara's `ec2-vpc-compute` admission, a start Lambda, idle
+shutdown under the owner's rules, a hard stop at $10 a month, alerts through Ahara's alarm topic as usage approaches it, and then removal of the AppSync
+API. A record replaces ADR-0002, and docs change with it.
+Acceptance:
+- Creating a room, a full page load with a local copy, three contentful edits by one person in an hour, or the Start button bring collaboration up. Editing works
+  locally throughout, and people see that it is starting. Local work merges once the relay is up.
+- The relay stops after 10 minutes with no connections, and after 30 minutes with connections but no contentful update. Cursor movement and open tabs do not
+  keep it awake or wake it.
+- At the monthly limit it stops and will not start, including for a hostile client calling the Lambda directly. People see collaboration is off, and local
+  editing and saving keep working. Other AWS services are untouched.
+- A 15-person room stays responsive.
+- Real AWS costs for the tool stay within $10 at the agreed usage.
+Evidence: tests of idle, start and limit logic with an injected clock, and journeys against a local relay replacing the AppSync fixture. Cold start is estimated at
+40 to 75 seconds.
+
+### M7 — Remove connector from and to menus (B4)
+
+Scope: remove both menus from the property panel. Connector ends change by dragging them to another object.
+Acceptance: a selected connector shows no endpoint menus, and dragging either end re-attaches it, for peers and after reload.
+Evidence: a browser journey on a canvas with many objects.
+
+### M8 — Bound traffic (B2) [depends on M6]
+
+Scope: fix the known traffic waste: drawings, because a selection frame rewrites every point on each pointer step; cursor rates; sync exchange that replies even when
+nothing is missing; every peer sending a full copy to a joiner rather than one; hidden tabs sending presence. Check browser performance at thousands of objects,
+unexamined past 450, because that affects real use rather than cost.
+Acceptance: heavy drawing and transforming stay within agreed limits, one peer answers a join, a late join at thousands of objects stays usable, and the canvas stays
+responsive at that size. Peers may see strokes while they are being drawn if the measurements leave room for it.
+Evidence: tests that count messages for those cases through the local relay.
+
+### M8b — Data layer: seamless degradation and local rooms (B10) [depends on M6, M8; DECISION on WebRTC]
+
+Scope: every state between full collaboration and none behaves as one experience: relay starting, relay stopped, relay unreachable and hard stop. Add the
+non-collaborative room: no relay connection, nothing leaves the browser, and unauthenticated images are allowed. Give the owner a rough assessment of WebRTC, for large
+transfers and for networks that block the relay, and build it only if the owner chooses to.
+Acceptance: losing or regaining the relay changes only the status text, and work merges when it returns. A non-collaborative room opens no network connection at all.
+Evidence: browser journeys through the local relay with it blocked, stopped and restarted, including a check that a local room opens no sockets.
+
+### M9 — Grid view (B5) [DECISION at start]
+
+Scope: a toggle for a visible grid that follows zoom, with snapping following it.
+Acceptance: the grid stays readable at every zoom, and turning it off also frees placement from it. Each person's setting is their own.
+Evidence: browser journeys at both zoom extremes, with screenshots reviewed.
+
+### M10 — Export and copy (B6) [DECISION at start]
+
+Scope: export the canvas or selection as PNG, and copy to the clipboard, as draw.io does.
+Acceptance: an export matches the canvas, including labels, icons and connectors, for a selection and for the whole canvas. Copied content
+pastes into another application as an image, and into another Arconis room as objects.
+Evidence: browser journeys comparing exported images and pasted documents.
+
+### M11 — Layout mode with mind maps and screens (#8, #9) [DECISION at start]
 
 Scope: one layout mode with specialized objects, in the one room document.
 
@@ -178,25 +309,85 @@ from the keyboard alone, and peers editing concurrently converge to the same lay
 document. The backlog entry for mind mapping goes away when this lands.
 Evidence: browser journeys, layout determinism tests, and screenshots shown to the owner.
 
-### M7 — Pasted pictures (#11) [depends on M3; DECISION]
+### M12 — Comments on objects (B1) [DECISION at start]
 
-Scope: paste, and file drop on the same path, placing a picture at the pointer. Pictures sync to peers, resize with their proportions kept,
-and travel in exported files through a new file version.
-Acceptance: a pasted screenshot reaches peers, late joiners and reloads. An oversized picture is reduced or refused with a clear message, and
-hostile peer data never reaches the DOM as a URL or markup.
-Evidence: browser journeys through the AppSync fixture, chunking and validation tests, and measured transfer size.
+Scope: threaded comments attached to objects, with a visible marker, resolve and delete, stored in the room document. This reverses the
+product brief's exclusion of comments, on the owner's request.
+Acceptance: comments sync to peers and survive reload and files, follow their object when it moves, and leave no orphans when it is deleted.
+Evidence: browser journeys across peers, and concurrent document tests.
 
-### M8 — Closeout [depends on all]
+### M13 — Pictures with once-only transfer (#11) [depends on M6, M8b]
+
+Scope: paste, and file drop on the same path, placing a picture at the pointer. Bytes transfer once per peer, and size, position and scale sync
+separately. Allowed in non-collaborative rooms. The relay's cost per image with 10 people is estimated at under half a cent for 5 MB, which meets the owner's
+fractional-cent test, so unauthenticated collaborative rooms get images within size limits. Image transfers must not delay edits. Pictures resize with their proportions kept and travel
+in exported files through a new file version. Hash references let M17 add stored originals without changing objects or files.
+Acceptance: moving or resizing a picture sends no image bytes, and a peer fetches each image once. A picture reaches peers, late joiners and reloads
+wherever the room allows it. Where it does not, people get a clear message. Hostile peer data never reaches the DOM as a URL or markup.
+Evidence: browser journeys through the local relay, and chunking and validation tests.
+
+### M14 — Agent-friendly document format (B7) [depends on M11, M12, M13]
+
+Scope: a documented, versioned format an agent can read and write directly: stable identifiers, meaningful names rather than rendering
+style keys, relationships expressed plainly, and a published schema covering layout objects, comments and pictures. Existing files keep importing.
+Acceptance: an agent given only the schema can describe a document and produce a valid edited one that opens with its layout, connections
+and labels intact.
+Evidence: schema validation and round-trip tests, plus a trial with an agent working only from the published schema.
+
+### M15 — Password protected rooms (B3) [DECISION at start]
+
+Scope: optional room passwords with client-side envelope encryption of document updates, presence, pictures and the local copy. This is client side
+only, with no key on any server. The relay sees only ciphertext and message types.
+Acceptance: a room's contents are unreadable without the password, on the wire and on disk. The right password joins and syncs normally, a
+wrong one gets a clear message and no content, and changing the password keeps the document.
+Evidence: browser journeys through the local relay, inspecting frames and stored data for plaintext. An independent security review is
+recommended, because this is the feature people would rely on for sensitive work.
+
+### M16 — Accounts and document storage (B8) [depends on M14, M15; DECISION blocks]
+
+Scope: begins as a design for the owner to approve, because it reverses the no-accounts, no-backend boundary. Proposed shape: optional sign-in
+through Ahara's existing identity, and stored documents for signed-in users alongside anonymous rooms. The design covers operating costs and
+extends M6's limits to the new service.
+Acceptance, once the design is approved: a signed-in user's document survives every device going offline, and anonymous rooms keep working as
+they do today.
+Evidence: to be set with the approved design. Automated tests stay on local fixtures, under ADR-0006.
+
+### M17 — Authenticated pictures (#11) [depends on M13, M16; DECISION at start]
+
+Scope: the authenticated part of image handling. Signed-in users store full-resolution pictures in S3 under their content hash, served through CloudFront, so they no
+longer depend on another peer being online or on the limits of unauthenticated rooms. A small Lambda issues size-limited upload links. Storage limits and costs follow
+the M16 design, and metadata keeps travelling separately. Estimated at about 0.012 cents per 5 MB image at 10 people within CloudFront's free allowance.
+Acceptance: a signed-in user's picture survives every device going offline and appears on another device, and is only reachable by the people
+allowed to see it.
+Evidence: to be set with the approved design, on local fixtures.
+
+### M18 — MCP server (B8) [depends on M14, M16]
+
+Scope: an MCP server whose tools are domain operations such as adding an object, connecting two objects and moving a group, built on the M14
+format, for signed-in users.
+Acceptance: an agent changes a live document through MCP using domain tools, and people in the room see those changes merge like any peer's.
+An encrypted room stays unreadable unless a member grants access.
+Evidence: tests against local fixtures, and a trial with an agent working only from the tool descriptions.
+
+### M19 — Remove Arconis's AppSync permissions (Backlog)
+
+Scope: once M6 retires the Events API, remove the `appsync-events` module from Arconis's Ahara registration. That settles the backlog item about scoping its bootstrap
+grant for Arconis. Whether other projects need the primitive is Ahara's concern.
+Acceptance: Arconis's deployer no longer holds AppSync permissions, and its deployment still succeeds.
+Evidence: platform checks in `ahara-infra`, and the next Arconis deployment. Changes there follow that repository's rules.
+
+### M20 — Closeout [depends on all]
 
 Move durable content to `docs/` and ADRs, update the changelog and backlog, and delete this file.
 
 ## Sulion mapping
 
-Root and milestone phase IDs are in the Sulion plan titled "Editor improvement plan" that lists M0 to M8. An earlier plan with the same title
-and 11 milestones was canceled before any work, when owner decisions changed its milestones.
+Root and milestone phase IDs are in the Sulion plan titled "Editor improvement plan". M0 to M5 and "M4b — Vendor icons" are complete. Remaining
+milestones were renumbered when the plan was reorganized, so the earlier pending phases are skipped with a note, and the new ones are M6 to M20. An
+earlier plan with the same title and 11 milestones was canceled before any work, when owner decisions changed its milestones.
 
 ## Current state
 
-M0 to M5 are implemented and committed locally, unpushed. The owner authorized execution up to M6 and asked to see M3's interface before it
-goes out. M2 also laid labels out in screen pixels, because browsers cannot lay out text at deep-zoom world sizes. M3 kept the saved view
-storage name so existing rooms keep their views. Limits: no real-device, Firefox or WebKit check. Wheel zoom on 450 objects measured about 80 ms per step in headless software rendering. Next action: the owner reviews the interface and decides on pushing, then M6.
+M0 to M5 and the vendor icons are deployed. M2 also laid labels out in screen pixels, because browsers cannot lay out text at deep-zoom world
+sizes. M3 kept the saved view storage name so existing rooms keep their views. Limits: no real-device, Firefox or WebKit check. Wheel zoom on 450
+objects measured about 80 ms per step in headless software rendering. The owner authorized execution from M6 until a design decision is needed.

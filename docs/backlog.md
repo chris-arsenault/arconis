@@ -7,7 +7,17 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Add mind mapping to the shared canvas. The product brief names it in its objective without
   defining requirements, so the first step is deciding what it adds beyond notes and connectors.
 
+## Production operations
+
+- Replace AppSync with a relay on EC2 that starts on contentful edits and stops when idle.
+- Stop the relay at a monthly spending cap, enforced outside the browser, and alert as usage approaches it.
+
+## Collaboration
+
+- Degrade seamlessly when the relay is off or unreachable, with a non-collaborative room that uses no
+  network and allows unauthenticated images.
+- Evaluate WebRTC for large transfers and for networks that block the relay.
+
 ## Platform
 
-- Scope Ahara's AppSync bootstrap grant to resources Arconis created, once a creation condition is
-  established. `../ahara/INTEGRATION.md` describes the current tagging permissions.
+- Remove Arconis's AppSync permissions from its Ahara registration once the relay replaces AppSync.
