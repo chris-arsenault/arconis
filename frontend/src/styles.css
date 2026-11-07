@@ -838,6 +838,10 @@ h1 em {
 .connection-status.online {
   color: #7da895;
 }
+.start-collaboration {
+  padding: 2px 8px;
+  font-size: 9px;
+}
 .local-status {
   margin-left: auto;
 }

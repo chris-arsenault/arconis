@@ -1,7 +1,8 @@
 # Architecture
 
-Everything runs in the browser. Static assets come from S3 and CloudFront, AWS AppSync Events
-carries messages between peers, and IndexedDB keeps a copy on each device.
+The editor and its document run in the browser. Static assets come from S3 and CloudFront, a small
+relay on EC2 carries messages between peers and stores nothing, and IndexedDB keeps a copy on each
+device.
 
 ## Document model
 
@@ -48,27 +49,55 @@ maxGraph is an editing and rendering projection of the document.
 
 ## Collaboration
 
-Transport adapters know Yjs updates and state vectors, never graph or UI types. `AppSyncTransport`
+Transport adapters know Yjs updates and state vectors, never graph or UI types. `RelayTransport`
 serves deployed rooms and `LocalTransport` serves same-browser development.
 
-- **Rooms.** Each room maps to one AppSync channel ([ADR-0002](adr/0002-appsync-events-peer-sync.md)).
+- **Rooms.** Each room is a set of sockets on the relay ([ADR-0009](adr/0009-relay-on-ec2.md)).
 - **Joining.** A peer publishes its state vector, and peers answer with the difference and their own
   vector, so both sides converge. Unanswered requests repeat for a short period, after which the
   room reports that nobody else is online. A periodic exchange repairs anything lost later.
 - **Reconnecting.** Reconnecting repeats the same exchange in both directions.
-- **Messages.** Updates are coalesced and split into bounded chunks that reassemble out of order,
-  and publishing is batched within AppSync's limits. `collaboration/frames.ts` and
-  `collaboration/provider.ts` declare the sizes and timings.
+- **Messages.** Updates are coalesced and split into bounded chunks that reassemble out of order.
+  `collaboration/frames.ts` and `collaboration/provider.ts` declare the sizes and timings.
 - **Presence.** Names, cursors and native move and resize previews travel on Yjs awareness, adding no
   document history; the document changes on drop. Selection-frame transforms write to the document
   during the gesture, with undo merged into one step.
 - **Persistence.** y-indexeddb stores each room's document on the device and restores it before
   connecting.
 
+## Relay
+
+`relay/relay.ts` forwards frames between a room's sockets, with no echo to the sender, and sends a
+targeted frame to one person. It reads only each frame's sender, kind and target, so documents stay
+opaque to it. It keeps a socket to the identity it first claimed, and bounds connections, message
+rates, room traffic and how far a client may fall behind. A dropped frame heals at the next state
+exchange.
+
+**Starting.** The relay runs only when needed, and local editing never depends on it. Creating a
+room, loading a room with a local copy, three separate edits by one person within an hour, and the
+Start collaboration button each ask the control Lambda to start the instance. Clients decide those
+triggers and the Lambda holds the limit, so a client ignoring them can only reach the same limit.
+An open tab retries its socket without waking anything, and joins when someone else starts the relay.
+
+**Stopping.** The relay stops after a period with no connections, or with connections but no
+contentful update. A broadcast Yjs update is contentful, and so is a connection arriving with the
+`fresh` flag, which clients set for a created room or a loaded local copy. Presence, sync exchange
+and targeted replies are not. Stopping tells clients why, then exits cleanly, which shuts the
+instance down. A crash restarts the process instead, and a maximum runtime catches a hung one.
+
+**Limit.** `relay/control.ts` computes the month's spend from the instance's CloudWatch metrics, so
+no client or relay report can change it. `relay/budget.ts` declares the rates and limit. At the limit
+the Lambda refuses to start the instance and stops a running one, and the relay checks periodically
+to close its sockets with that reason. Counting by month re-enables it automatically, and a
+month-scoped SSM parameter raises the limit by hand. Each level alerts once through Ahara's alarm
+topic.
+
 ## Limitations
 
-- A new device needs an active peer holding the document, because AppSync Events retains nothing.
-  Export a file for a portable copy.
-- The browser API key is public and room codes are not enforced access control, so rooms suit
-  non-sensitive work ([ADR-0003](adr/0003-anonymous-rooms-public-api-key.md)).
+- A new device needs an active peer holding the document, because the relay retains nothing. Export a
+  file for a portable copy.
+- Room codes are not enforced access control, so rooms suit non-sensitive work
+  ([ADR-0003](adr/0003-anonymous-rooms-public-api-key.md)).
+- The relay is one process with no redundancy, so its failure stops collaboration until it returns.
+  Local editing continues and merges afterward.
 - Clients already open during a release need to reload to read new document fields.

@@ -19,13 +19,14 @@ sticky notes and freehand drawing in one shared document.
 
 - Read `../ahara/INTEGRATION.md` and applicable Ahara standards before platform changes.
 - Keep Yjs canonical: maxGraph projects the document, and collaboration runs in the browser
-  with AppSync Events as a message bus ([ADR-0001](docs/adr/0001-yjs-canonical-maxgraph-projection.md),
-  [ADR-0002](docs/adr/0002-appsync-events-peer-sync.md)).
+  with a relay that forwards frames and stores nothing
+  ([ADR-0001](docs/adr/0001-yjs-canonical-maxgraph-projection.md),
+  [ADR-0009](docs/adr/0009-relay-on-ec2.md)).
 - Keep rooms anonymous and dependencies permissively licensed. InfiniPaint inspires
   interactions only; write original code ([ADR-0007](docs/adr/0007-permissive-licensing.md)).
   Vendor architecture icons are the one exception, and stay unrotated and evenly scaled
   ([ADR-0008](docs/adr/0008-vendor-architecture-icons.md)).
-- Run automated tests and CI against the local server and AppSync protocol fixture only. Real
+- Run automated tests and CI against the local server and local relay only. Real
   AWS services stay out of testing, especially pay-per-use ones; deploying is separate
   ([ADR-0006](docs/adr/0006-automated-tests-use-local-fixtures.md)).
 - Keep escaping labels in `editor/rendering.ts`, because labels come from peers and render as
@@ -43,7 +44,8 @@ sticky notes and freehand drawing in one shared document.
 | `frontend/src/editor/` | maxGraph projection, mutation capture, input, rendering and drag previews |
 | `frontend/src/collaboration/` | Peer protocol, frames, persistence, presence and transports |
 | `frontend/src/components/` | Interface, selection frame and object and room controls |
-| `infrastructure/terraform/` | Events API and Ahara website deployment |
+| `frontend/src/relay/` | The relay process and its control Lambda, bundled separately from the site |
+| `infrastructure/terraform/` | Relay, control Lambda and Ahara website deployment |
 | `.github/workflows/ci.yml` | Shared CI and deployment |
 | `docs/` | Current-state documentation, ADRs and backlog |
 
@@ -51,8 +53,8 @@ sticky notes and freehand drawing in one shared document.
 
 Graph-origin edits become Yjs transactions with a local origin, and remote changes project
 back into the graph behind a guard. Transport adapters know Yjs updates and state vectors,
-never graph or UI types. The AppSync fixture is test-only and production entry points never
-import it. [docs/architecture.md](docs/architecture.md) covers the full model.
+never graph or UI types. The relay fixture is test-only and the site's entry points never
+import it or `relay/`. [docs/architecture.md](docs/architecture.md) covers the full model.
 
 ## Commands
 

@@ -10,8 +10,8 @@ pnpm dev
 ```
 
 The development configuration in `frontend/public/config.js` uses same-browser BroadcastChannel
-collaboration, so opening a room in a second tab joins it. Deployed builds receive AppSync
-configuration through Ahara's `config.js`, with no build-time secrets.
+collaboration, so opening a room in a second tab joins it. Deployed builds receive the relay's
+address through Ahara's `config.js`, with no build-time secrets.
 
 ## Checks
 
@@ -31,8 +31,8 @@ cd frontend
 pnpm exec playwright install chromium
 ```
 
-Each run starts its own Vite server and an AppSync protocol fixture, then shuts them down, so no
-development server is needed. Journeys use independent browser contexts with no shared local
+Each run starts its own Vite server and the real relay on a local port, with a stand-in for the
+control Lambda, then shuts them down, so no development server is needed. Journeys use independent browser contexts with no shared local
 storage, and drive the canvas with real pointer and keyboard input. Automated tests use these local
 fixtures only ([ADR-0006](adr/0006-automated-tests-use-local-fixtures.md)).
 

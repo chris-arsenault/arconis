@@ -22,9 +22,9 @@ Open the same room in a second tab to collaborate locally. Before committing, ru
 ## Architecture
 
 React and TypeScript render the interface, maxGraph edits and draws the canvas, and Yjs holds
-the shared document. Browsers exchange Yjs updates directly through AWS AppSync Events, and
-IndexedDB keeps a copy on each device. Static hosting and the Events API are the only
-infrastructure. [docs/architecture.md](docs/architecture.md) has the details.
+the shared document. Browsers exchange Yjs updates through a small relay on EC2 that stores
+nothing and runs only when needed, and IndexedDB keeps a copy on each device.
+[docs/architecture.md](docs/architecture.md) has the details.
 
 ## Deployment
 

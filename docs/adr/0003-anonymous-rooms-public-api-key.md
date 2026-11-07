@@ -26,3 +26,5 @@ From the product brief:
 The key is not a secret and room codes are not enforced access control. The brief calls this unsuitable for sensitive
 documents or unrestricted public deployment without additional abuse protection. The key has an expiry, so deployments
 must recur before it lapses.
+
+ADR-0009 removed the API key along with AppSync. Rooms stay anonymous, and the relay's limits provide the abuse protection.

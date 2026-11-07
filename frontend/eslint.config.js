@@ -17,7 +17,16 @@ const rules = Object.fromEntries(
   ])
 );
 export default ts.config(
-  { ignores: ["dist/**", "coverage/**", "node_modules/**", "public/**", "test-results/**"] },
+  {
+    ignores: [
+      "dist/**",
+      "dist-relay/**",
+      "coverage/**",
+      "node_modules/**",
+      "public/**",
+      "test-results/**",
+    ],
+  },
   js.configs.recommended,
   ...ts.configs.recommended,
   {

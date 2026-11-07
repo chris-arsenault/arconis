@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = ">= 2.0"
+    }
   }
   backend "s3" {
     region       = "us-east-1"
@@ -21,27 +25,6 @@ provider "aws" {
   }
 }
 
-resource "aws_appsync_api" "canvas" {
-  name = "arconis-canvas"
-  event_config {
-    auth_provider { auth_type = "API_KEY" }
-    connection_auth_mode { auth_type = "API_KEY" }
-    default_publish_auth_mode { auth_type = "API_KEY" }
-    default_subscribe_auth_mode { auth_type = "API_KEY" }
-  }
-}
-
-resource "aws_appsync_channel_namespace" "rooms" {
-  api_id = aws_appsync_api.canvas.api_id
-  name   = "rooms"
-}
-
-resource "aws_appsync_api_key" "browser" {
-  api_id      = aws_appsync_api.canvas.api_id
-  description = "Public anonymous canvas client key"
-  expires     = timeadd(plantimestamp(), "8640h")
-}
-
 module "frontend" {
   source         = "git::https://github.com/chris-arsenault/ahara-tf-patterns.git//modules/website?ref=34287b1925e1b5681281c1fb3ee9199211202ec9"
   prefix         = "arconis"
@@ -49,13 +32,10 @@ module "frontend" {
   site_directory = "${path.module}/../../frontend/dist"
   encrypt        = false
   runtime_config = {
-    transport       = "appsync"
-    appsyncHttp     = "https://${aws_appsync_api.canvas.dns["HTTP"]}/event"
-    appsyncRealtime = "wss://${aws_appsync_api.canvas.dns["REALTIME"]}/event/realtime"
-    appsyncApiKey   = aws_appsync_api_key.browser.key
+    transport = "relay"
+    relayUrl  = "https://${local.relay_hostname}"
   }
-  depends_on = [aws_appsync_channel_namespace.rooms]
 }
 
 output "url" { value = module.frontend.url }
-output "appsync_api_id" { value = aws_appsync_api.canvas.api_id }
+output "relay_instance_id" { value = aws_instance.relay.id }

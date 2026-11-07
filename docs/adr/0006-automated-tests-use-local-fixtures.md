@@ -21,3 +21,6 @@ that points it at a deployed site. Deploying remains CI's job.
 
 Tests have no AWS cost or credentials. The fixture implements the AppSync client protocol, so it cannot reveal a real service
 change, a permissions problem or a deployment fault.
+
+ADR-0009 replaced AppSync with a relay. Tests now run the real relay locally with a stand-in for its control Lambda, under the same
+rule.

@@ -2,6 +2,13 @@
 
 All notable user-visible changes are recorded here.
 
+## Unreleased
+
+### Collaboration
+
+- Replaced AWS AppSync Events with a relay on EC2 that runs only while a room needs it, with a hard monthly spending limit.
+- Added a Start collaboration button and status showing that collaboration is starting, off, or off until next month. Editing and saving continue locally throughout, and work merges when collaboration returns.
+
 ## v1.0.0 - 2026-11-07
 
 ### Canvas

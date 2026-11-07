@@ -10,7 +10,7 @@ import {
 import { createServer, type ViteDevServer } from "vite";
 import { mkdir, readFile } from "node:fs/promises";
 import type { CanvasObject, SavedView } from "../document/types";
-import { startAppSyncFixture } from "../collaboration/appsyncFixture";
+import { startRelayFixture } from "../collaboration/relayFixture";
 
 export let browser: Browser;
 let server: ViteDevServer;
@@ -18,14 +18,14 @@ let baseUrl = "";
 export const errors: string[] = [];
 const engines = { chromium, firefox, webkit };
 const traced = new WeakSet<BrowserContext>();
-let fixture: Awaited<ReturnType<typeof startAppSyncFixture>>;
+export let fixture: Awaited<ReturnType<typeof startRelayFixture>>;
 
-// Browser tests only ever run against this local server and protocol fixture.
+// Browser tests only ever run against this local server and local relay.
 beforeAll(async () => {
   server = await createServer({ server: { port: 0, host: "127.0.0.1" } });
   await server.listen();
   baseUrl = server.resolvedUrls!.local[0];
-  fixture = await startAppSyncFixture();
+  fixture = await startRelayFixture();
   browser = await engines[(process.env.BROWSER || "chromium") as keyof typeof engines].launch({
     headless: true,
   });
@@ -47,7 +47,7 @@ afterEach(async ({ task }) => {
   }
 });
 
-export async function open(context: BrowserContext, room = "", join = false) {
+export async function open(context: BrowserContext, room = "", join = false, status = "Connected") {
   if (!traced.has(context)) {
     await context.tracing.start({ screenshots: true, snapshots: true });
     traced.add(context);
@@ -73,7 +73,7 @@ export async function open(context: BrowserContext, room = "", join = false) {
     expect(new URL(page.url()).hash).toMatch(/^#room=[a-f0-9]{48}$/);
   }
   await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
-  await page.getByTestId("connection-status").filter({ hasText: "Connected" }).waitFor();
+  await page.getByTestId("connection-status").filter({ hasText: status }).waitFor();
   return page;
 }
 export async function add(page: Page, tool: string, label: string, x: number, y: number) {

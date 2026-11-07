@@ -1,28 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { RoomSession, createRoomId, parseRoom } from "./collaboration/room";
 import { Welcome } from "./components/Welcome";
 import { Workspace } from "./components/Workspace";
 
 const NAME_KEY = "arconis:name";
 
-export function App() {
-  const [room, setRoom] = useState(() => parseRoom(location.hash.slice(1)));
+/** Opens the room's session; `createdRoom` names a room this tab has just created. */
+function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
   const [session, setSession] = useState<RoomSession | null>(null);
   const [error, setError] = useState("");
-  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "Guest");
-  const [askName, setAskName] = useState(() => !localStorage.getItem(NAME_KEY));
-  const [created, setCreated] = useState("");
-  useEffect(() => {
-    const onHash = () => setRoom(parseRoom(location.hash.slice(1)));
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
   useEffect(() => {
     if (!room) return;
     let next: RoomSession | null = null;
     let active = true;
     const start = async () => {
-      const instance = new RoomSession(room, localStorage.getItem(NAME_KEY) || "Guest");
+      const instance = new RoomSession(
+        room,
+        localStorage.getItem(NAME_KEY) || "Guest",
+        createdRoom.current === room
+      );
       next = instance;
       await instance.start();
       if (active) setSession(instance);
@@ -34,7 +30,22 @@ export function App() {
       active = false;
       next?.destroy();
     };
-  }, [room]);
+  }, [room, createdRoom]);
+  return { session, error, setError };
+}
+
+export function App() {
+  const [room, setRoom] = useState(() => parseRoom(location.hash.slice(1)));
+  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "Guest");
+  const [askName, setAskName] = useState(() => !localStorage.getItem(NAME_KEY));
+  const [created, setCreated] = useState("");
+  const createdRoom = useRef("");
+  const { session, error, setError } = useRoomSession(room, createdRoom);
+  useEffect(() => {
+    const onHash = () => setRoom(parseRoom(location.hash.slice(1)));
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
   const open = (id: string) => {
     setError("");
     location.hash = `room=${id}`;
@@ -46,6 +57,7 @@ export function App() {
   };
   const create = () => {
     const id = createRoomId();
+    createdRoom.current = id;
     setCreated(id);
     open(id);
   };

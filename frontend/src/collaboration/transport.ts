@@ -1,4 +1,11 @@
-export type ConnectionState = "connecting" | "online" | "offline" | "error";
+/**
+ * starting: the relay was asked to start and is booting. stopped: the relay is off because nobody
+ * needs it. limit: the relay is off until next month's budget.
+ */
+export type ConnectionState =
+  "connecting" | "online" | "offline" | "error" | "starting" | "stopped" | "limit";
+/** What the relay's control service reports. */
+export type RelayStatus = "running" | "starting" | "stopped" | "stopping" | "limit";
 export interface Transport {
   onMessage: (message: string) => void;
   onReady: () => void;
@@ -6,6 +13,10 @@ export interface Transport {
   connect(): void;
   send(message: string): void;
   close(): void;
+  /** Present when the service behind this transport can be off and asked to start. */
+  start?(): void;
+  /** Counts this arrival as activity once connected. */
+  markFresh?(): void;
 }
 
 export class LocalTransport implements Transport {
@@ -29,13 +40,12 @@ export class LocalTransport implements Transport {
   }
 }
 
-export interface AppSyncConfig {
-  transport: "appsync";
-  appsyncHttp: string;
-  appsyncRealtime: string;
-  appsyncApiKey: string;
+export interface RelayConfig {
+  transport: "relay";
+  /** http or https base; sockets use the matching ws scheme, control requests use it directly. */
+  relayUrl: string;
 }
-export type AppConfig = { transport: "local" } | AppSyncConfig;
+export type AppConfig = { transport: "local" } | RelayConfig;
 type RuntimeConfiguration = AppConfig | undefined;
 declare global {
   interface Window {
@@ -46,12 +56,9 @@ declare global {
 export function readConfig(): AppConfig {
   const config = window.__APP_CONFIG__;
   if (!config) throw new Error("Application configuration could not be loaded. Reload this page.");
-  if (config.transport !== "local" && config.transport !== "appsync")
+  if (config.transport !== "local" && config.transport !== "relay")
     throw new Error("The configured collaboration service is not supported.");
-  if (
-    config.transport === "appsync" &&
-    (!config.appsyncHttp || !config.appsyncRealtime || !config.appsyncApiKey)
-  )
+  if (config.transport === "relay" && !config.relayUrl)
     throw new Error("The collaboration service configuration is incomplete.");
   return config;
 }

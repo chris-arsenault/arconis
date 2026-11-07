@@ -1,8 +1,9 @@
 import { IndexeddbPersistence } from "y-indexeddb";
 import { CanvasDocument } from "../document/canvasDocument";
 import { CollaborationProvider } from "./provider";
-import { LocalTransport, readConfig, type ConnectionState } from "./transport";
-import { AppSyncTransport } from "./appsyncTransport";
+import { LocalTransport, readConfig, type ConnectionState, type Transport } from "./transport";
+import { RelayTransport } from "./relayTransport";
+import { EditCounter } from "./relayStart";
 
 export function createRoomId() {
   return [...crypto.getRandomValues(new Uint8Array(24))]
@@ -30,14 +31,21 @@ export class RoomSession {
   version = 0;
   private listeners = new Set<() => void>();
   private disposed = false;
+  private edits = new EditCounter();
+  private transport: Transport;
 
   constructor(
     readonly id: string,
-    name: string
+    name: string,
+    /** Creating a room starts the relay, because a new room is about to be shared. */
+    private created = false
   ) {
     const config = readConfig();
     const transport =
-      config.transport === "local" ? new LocalTransport(id) : new AppSyncTransport(config, id);
+      config.transport === "local"
+        ? new LocalTransport(id)
+        : new RelayTransport(config.relayUrl, id);
+    this.transport = transport;
     this.persistence = new IndexeddbPersistence(`arconis:${id}`, this.document.doc);
     this.provider = new CollaborationProvider(this.document.doc, transport, this.emit);
     transport.onStatus = (state, detail = "") => {
@@ -52,15 +60,33 @@ export class RoomSession {
     });
     this.provider.awareness.on("change", this.emit);
     this.document.doc.on("update", this.emit);
+    this.document.doc.on("update", this.onEdit);
   }
   async start() {
     await this.persistence.whenSynced;
     if (!this.disposed) {
       this.stored = true;
+      // A person arriving at a room or at their own saved work is about to use the relay. Someone
+      // following a link with no local copy has nothing to send yet, and can use the button.
+      if (this.created || this.document.doc.store.clients.size > 0) {
+        this.transport.markFresh?.();
+        this.transport.start?.();
+      }
       this.provider.connect();
       this.emit();
     }
   }
+  /** Whether the relay is off and someone here can ask for it. */
+  get canStartCollaboration() {
+    return Boolean(this.transport.start) && (this.state === "stopped" || this.state === "error");
+  }
+  startCollaboration = () => {
+    this.transport.start?.();
+  };
+  private onEdit = (_update: Uint8Array, origin: unknown) => {
+    if (origin === this.persistence || this.state !== "stopped") return;
+    if (this.edits.record(Date.now())) this.startCollaboration();
+  };
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

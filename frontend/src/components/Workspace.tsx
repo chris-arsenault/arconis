@@ -178,13 +178,21 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
     connecting: "Connecting…",
     offline: "Offline",
     error: "Connection error",
+    starting: "Starting collaboration…",
+    stopped: "Collaboration off",
+    limit: "Collaboration off until next month",
   };
   return (
     <footer className="statusbar">
-      <span className={`connection-status ${session.state}`}>
+      <span className={`connection-status ${session.state}`} title={session.detail}>
         {session.state === "online" ? <CheckCircle2 size={14} /> : <WifiOff size={14} />}
         <span data-testid="connection-status">{labels[session.state]}</span>
       </span>
+      {session.canStartCollaboration && (
+        <button type="button" className="start-collaboration" onClick={session.startCollaboration}>
+          Start collaboration
+        </button>
+      )}
       <span data-testid="sync-status">{syncDescription(session)}</span>
       <span className="local-status">
         {session.stored ? "Local copy enabled" : "Opening local copy"} ·{" "}
