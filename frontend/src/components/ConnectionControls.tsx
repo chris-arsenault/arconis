@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import type { EditorController } from "../editor/controller";
-import { KIND_LABELS, type CanvasObject, type StyleValue } from "../document/types";
+import type { CanvasObject, StyleValue } from "../document/types";
 import { objectStyle } from "../editor/styles";
 
 const ROUTES = [
@@ -54,30 +54,12 @@ export function ConnectionControls({
   editor,
   item,
 }: Readonly<{ editor: EditorController; item: CanvasObject }>) {
-  const objects = editor.document
-    .list()
-    .filter((value) => !["connector", "stroke"].includes(value.kind))
-    .map((value) => ({ value: value.id, label: value.label || KIND_LABELS[value.kind] }));
   const style = objectStyle(item) as Record<string, StyleValue | undefined>;
   const patchStyle = (key: string) => (value: string) =>
     editor.document.patchStyle(item.id, { [key]: value });
   return (
     <Section title="Connection">
       <div className="select-grid">
-        <SelectRow
-          title="From"
-          label="Connector source"
-          value={item.source}
-          options={objects}
-          onChange={(value) => editor.document.patch(item.id, { source: value })}
-        />
-        <SelectRow
-          title="To"
-          label="Connector target"
-          value={item.target}
-          options={objects}
-          onChange={(value) => editor.document.patch(item.id, { target: value })}
-        />
         <SelectRow
           title="Route"
           label="Connector routing"

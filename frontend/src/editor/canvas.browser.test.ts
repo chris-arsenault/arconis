@@ -69,6 +69,54 @@ it("connects chosen points that hold through moves, peers and reload", async () 
   await second.close();
 });
 
+it("re-attaches either connector end by dragging, with no endpoint menus", async () => {
+  const first = await browser.newContext(VIEWPORT);
+  const second = await browser.newContext(VIEWPORT);
+  const room = createRoomId();
+  const page = await open(first, room);
+  const peer = await open(second, room);
+  await add(page, "Rectangle (R)", "Left", 220, 170);
+  await add(page, "Rectangle (R)", "Right", 560, 170);
+  await add(page, "Rectangle (R)", "Lower right", 560, 420);
+  await add(page, "Rectangle (R)", "Lower left", 220, 420);
+  await canvas(page).click({ position: emptySpot });
+  await connectBetween(page, { x: 380, y: 215 }, { x: 560, y: 215 });
+  await expect.poll(() => objectCount(page)).toBe(5);
+  const idOf = async (label: string) =>
+    (await exported(page)).objects.find((item) => item.label === label)!.id;
+
+  const dragEnd = async (handle: number, to: { x: number; y: number }) => {
+    await selectConnector(page);
+    expect(await page.getByLabel("Connector source", { exact: true }).count()).toBe(0);
+    expect(await page.getByLabel("Connector target", { exact: true }).count()).toBe(0);
+    const handles = canvas(page).locator('rect[fill="#0000ff"]');
+    const end = (await handles.nth(handle).boundingBox())!;
+    const origin = await canvasOrigin(page);
+    await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 3 });
+    await page.mouse.down();
+    await page.mouse.move(origin.x + to.x, origin.y + to.y - 10, { steps: 10 });
+    await page.mouse.move(origin.x + to.x, origin.y + to.y, { steps: 3 });
+    await page.mouse.up();
+  };
+
+  await dragEnd(-1, { x: 640, y: 420 });
+  const lowerRight = await idOf("Lower right");
+  await expect.poll(async () => (await connector(page)).target).toBe(lowerRight);
+  await canvas(page).click({ position: emptySpot });
+  await dragEnd(0, { x: 300, y: 420 });
+  const lowerLeft = await idOf("Lower left");
+  await expect.poll(async () => (await connector(page)).source).toBe(lowerLeft);
+
+  await expect.poll(async () => (await connector(peer)).source).toBe(lowerLeft);
+  expect((await connector(peer)).target).toBe(lowerRight);
+  await page.reload();
+  await expect.poll(() => objectCount(page)).toBe(5);
+  expect(await connector(page)).toMatchObject({ source: lowerLeft, target: lowerRight });
+  expect(errors).toEqual([]);
+  await first.close();
+  await second.close();
+});
+
 it("leaves a free end on a body drop, re-anchors an end, and drags from the body move", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
