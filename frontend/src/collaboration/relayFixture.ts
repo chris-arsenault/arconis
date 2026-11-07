@@ -77,6 +77,7 @@ function fixtureConfig(base: string) {
     relayUrl: base,
     authAuthority: `${base}/oidc`,
     authClientId: FIXTURE_CLIENT_ID,
+    authAudience: `${base}/api`,
     authSignOutUrl: `${base}/oidc/logout`,
   };
 }

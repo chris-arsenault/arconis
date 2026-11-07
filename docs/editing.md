@@ -43,7 +43,7 @@ choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a
 ## Accounts and saved workspaces
 
 Rooms need no account. "Sign in or create an account" in the account panel opens Ahara's sign-in page,
-which also creates accounts; a new one is activated from the email it is sent within 7 days. The account
+which also creates accounts; a new one is activated from the email it is sent. The account
 starts named after your email, and the name you choose in the panel replaces the one you would otherwise
 type into rooms. The cloud button in the header saves the room to your account and keeps it saved,
 merging with anything saved from another device. Saved workspaces open from the account menu on any

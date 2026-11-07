@@ -1,7 +1,6 @@
 # Arconis in the shared Ahara Auth0 tenant (ahara/INTEGRATION.md, Step 6b). Ahara-infra owns the
-# tenant, its branding and auth.ahara.io; this file owns Arconis's users, applications and API.
-# People sign in through Cognito, which federates this connection; MCP connectors sign in here
-# directly and register themselves.
+# tenant, its branding and auth.ahara.io; this file owns Arconis's users, applications and APIs.
+# The site signs people in here, and MCP connectors register themselves and sign in here too.
 
 data "aws_ssm_parameter" "auth0_domain" {
   name = "/ahara/auth0/domain"
@@ -53,34 +52,58 @@ resource "auth0_connection" "arconis" {
   }
 }
 
-# --- People: Cognito signs them in through this application ---
-
-resource "random_password" "cognito_federation" {
-  length  = 64
-  special = false
-}
+# --- People: the site signs in as a single-page application, with PKCE and rotating refresh tokens ---
 
 resource "auth0_client" "web" {
-  name            = "Arconis"
-  description     = "Arconis sign-in, federated into Arconis's Cognito user pool."
-  app_type        = "regular_web"
-  is_first_party  = true
-  oidc_conformant = true
-  grant_types     = ["authorization_code"]
-  callbacks       = ["${local.cognito_domain}/oauth2/idpresponse"]
-  # Where signing out of Auth0 returns.
+  name                = "Arconis"
+  description         = "The Arconis site."
+  app_type            = "spa"
+  is_first_party      = true
+  oidc_conformant     = true
+  grant_types         = ["authorization_code", "refresh_token"]
+  callbacks           = ["${local.site_origin}/"]
   allowed_logout_urls = ["${local.site_origin}/"]
+  web_origins         = [local.site_origin]
+  allowed_origins     = [local.site_origin]
 
   jwt_configuration {
     alg = "RS256"
   }
+
+  refresh_token {
+    expiration_type = "expiring"
+    rotation_type   = "rotating"
+  }
 }
 
-# Cognito sends its secret in the request body.
 resource "auth0_client_credentials" "web" {
   client_id             = auth0_client.web.client_id
-  authentication_method = "client_secret_post"
-  client_secret         = random_password.cognito_federation.result
+  authentication_method = "none"
+}
+
+# The accounts API behind the ALB. Only the site is granted it.
+resource "auth0_resource_server" "accounts" {
+  identifier           = local.accounts_audience
+  name                 = "Arconis accounts"
+  signing_alg          = "RS256"
+  allow_offline_access = true
+
+  skip_consent_for_verifiable_first_party_clients = true
+  subject_type_authorization {
+    user {
+      policy = "require_client_grant"
+    }
+    client {
+      policy = "deny_all"
+    }
+  }
+}
+
+resource "auth0_client_grant" "web_accounts" {
+  client_id    = auth0_client.web.client_id
+  audience     = auth0_resource_server.accounts.identifier
+  scopes       = []
+  subject_type = "user"
 }
 
 # --- Agents: MCP clients register themselves and ask for this API by its address ---
@@ -123,7 +146,7 @@ resource "auth0_client_grant" "mcp_third_party" {
   depends_on = [auth0_resource_server_scopes.mcp]
 }
 
-# --- Account lifecycle: the services that count, remove and delete Arconis's users ---
+# --- Account lifecycle: the sign-up limit counts Arconis's users, and deleting an account removes one ---
 
 resource "random_password" "lifecycle" {
   length  = 64
@@ -132,7 +155,7 @@ resource "random_password" "lifecycle" {
 
 resource "auth0_client" "lifecycle" {
   name        = "Arconis accounts service"
-  description = "Counts, removes and deletes Arconis's users."
+  description = "Counts Arconis's users and deletes one whose account is deleted."
   app_type    = "non_interactive"
   grant_types = ["client_credentials"]
 }

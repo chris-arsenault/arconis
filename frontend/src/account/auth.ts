@@ -1,10 +1,12 @@
 import { UserManager, WebStorageStateStore } from "oidc-client-ts";
 
 export interface AccountConfig {
-  /** The user pool's issuer. The pool federates the Ahara Auth0 tenant, where accounts live. */
+  /** The Ahara Auth0 tenant's issuer, where accounts live. */
   authAuthority: string;
   authClientId: string;
-  /** Where signing out goes: the pool's sign-out, which then signs out of Auth0. */
+  /** The accounts API, which access tokens are issued for. */
+  authAudience: string;
+  /** Auth0's sign-out, which returns to the site. */
   authSignOutUrl: string;
   /** Where the accounts API is reached. */
   relayUrl: string;
@@ -21,9 +23,6 @@ export interface Auth {
   email(): Promise<string | null>;
   signOut(): Promise<void>;
 }
-
-/** The pool sends sign-in straight on to this identity provider (accounts.tf). */
-const IDENTITY_PROVIDER = "Auth0";
 
 interface ReturnState {
   hash: string;
@@ -42,8 +41,9 @@ export function oidcAuth(config: AccountConfig): Auth {
     client_id: config.authClientId,
     redirect_uri: home,
     response_type: "code",
-    scope: "openid email profile",
-    extraQueryParams: { identity_provider: IDENTITY_PROVIDER },
+    // offline_access gives a rotating refresh token, so a session outlives one access token.
+    scope: "openid email profile offline_access",
+    extraQueryParams: { audience: config.authAudience },
     userStore: new WebStorageStateStore({ store: localStorage }),
     automaticSilentRenew: false,
     loadUserInfo: false,

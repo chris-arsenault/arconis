@@ -16,7 +16,7 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Keep lines routed around items from crossing or overlapping one another where they can run apart.
 - Let agents add pictures.
 - Let connectors register through client metadata documents as well as dynamic client registration,
-  once the Ahara tenant is entitled to them.
+  once a released Auth0 Terraform provider sets dynamic registration by metadata document.
 
 ## Platform
 

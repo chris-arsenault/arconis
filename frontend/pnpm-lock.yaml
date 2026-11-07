@@ -59,9 +59,6 @@ importers:
       "@aws-sdk/client-cloudwatch":
         specifier: ^3.1164.0
         version: 3.1164.0
-      "@aws-sdk/client-cognito-identity-provider":
-        specifier: ^3.1164.0
-        version: 3.1164.0
       "@aws-sdk/client-dynamodb":
         specifier: ^3.1164.0
         version: 3.1164.0
@@ -179,13 +176,6 @@ packages:
     resolution:
       {
         integrity: sha512-t/A5aVFXXRlfwuCVJZp/nYAL9vYLZgFzhg5/XySx1faxowwiIW9r67zSQ2kXaZU33+g5sfWNQmNJSSvUN4mAdA==,
-      }
-    engines: { node: ">=20.0.0" }
-
-  "@aws-sdk/client-cognito-identity-provider@3.1164.0":
-    resolution:
-      {
-        integrity: sha512-IDHVBph/a92Dfw8eOCoUyS5ieGy4n9cJABQviNWQshtJwTV2d4FE1DMrSGGfVRBp1PyJ4GTh2pPj56aN2jE3sg==,
       }
     engines: { node: ">=20.0.0" }
 
@@ -4061,17 +4051,6 @@ snapshots:
       "@smithy/core": 3.39.0
       "@smithy/fetch-http-handler": 5.8.1
       "@smithy/middleware-compression": 4.6.2
-      "@smithy/node-http-handler": 4.14.2
-      "@smithy/types": 4.20.0
-      tslib: 2.9.1
-
-  "@aws-sdk/client-cognito-identity-provider@3.1164.0":
-    dependencies:
-      "@aws-sdk/core": 3.980.1
-      "@aws-sdk/credential-provider-node": 3.972.94
-      "@aws-sdk/types": 3.975.0
-      "@smithy/core": 3.39.0
-      "@smithy/fetch-http-handler": 5.8.1
       "@smithy/node-http-handler": 4.14.2
       "@smithy/types": 4.20.0
       tslib: 2.9.1

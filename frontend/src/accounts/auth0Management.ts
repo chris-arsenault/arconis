@@ -8,32 +8,16 @@ export interface ManagementConfig {
   clientSecret: string;
 }
 
-export interface TenantUser {
-  id: string;
-  verified: boolean;
-  created: number;
-}
-
 type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
-interface UserPage {
-  users: { user_id: string; email_verified?: boolean; created_at: string }[];
-  total: number;
-}
-
-const PAGE_SIZE = 100;
-
-/** Lucene for Arconis's users, optionally only those created at or after a time. */
-export function arconisUsers(since?: number) {
-  const connection = `identities.connection:"${ARCONIS_CONNECTION}"`;
-  return since === undefined
-    ? connection
-    : `${connection} AND created_at:[${new Date(since).toISOString()} TO *]`;
+/** Lucene for Arconis's users created at or after a time. */
+export function arconisUsers(since: number) {
+  return `identities.connection:"${ARCONIS_CONNECTION}" AND created_at:[${new Date(since).toISOString()} TO *]`;
 }
 
 /**
- * The few Management API calls the account lifecycle makes. User search reads an index that trails
- * writes by moments, so counts are close rather than exact.
+ * The two Management API calls Arconis makes: counting sign-ups, and deleting a user whose account
+ * is deleted. User search reads an index that trails writes by moments, so counts are close.
  */
 export function auth0Management(config: ManagementConfig, request: Fetcher = fetch) {
   const base = `https://${config.domain}`;
@@ -70,34 +54,16 @@ export function auth0Management(config: ManagementConfig, request: Fetcher = fet
     return response;
   }
 
-  async function search(query: string, page: number, perPage: number) {
-    const params = new URLSearchParams({
-      q: query,
-      search_engine: "v3",
-      include_totals: "true",
-      fields: "user_id,email_verified,created_at",
-      page: String(page),
-      per_page: String(perPage),
-    });
-    return (await (await call(`users?${params}`)).json()) as UserPage;
-  }
-
   return {
     async count(query: string) {
-      return (await search(query, 0, 1)).total;
-    },
-    async *users(query: string): AsyncIterable<TenantUser> {
-      for (let page = 0, seen = 0; ; page++) {
-        const result = await search(query, page, PAGE_SIZE);
-        for (const user of result.users)
-          yield {
-            id: user.user_id,
-            verified: user.email_verified === true,
-            created: Date.parse(user.created_at),
-          };
-        seen += result.users.length;
-        if (!result.users.length || seen >= result.total) return;
-      }
+      const params = new URLSearchParams({
+        q: query,
+        search_engine: "v3",
+        include_totals: "true",
+        fields: "user_id",
+        per_page: "1",
+      });
+      return ((await (await call(`users?${params}`)).json()) as { total: number }).total;
     },
     async deleteUser(id: string) {
       await call(`users/${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -106,18 +72,6 @@ export function auth0Management(config: ManagementConfig, request: Fetcher = fet
 }
 
 export type Auth0Management = ReturnType<typeof auth0Management>;
-
-/** The Auth0 user a federated pool user came from, from the pool's `identities` attribute. */
-export function federatedUserId(attributes: { Name?: string; Value?: string }[]) {
-  const identities = attributes.find(({ Name }) => Name === "identities")?.Value;
-  try {
-    const parsed = JSON.parse(identities ?? "[]") as { userId?: unknown; providerName?: unknown }[];
-    const auth0 = parsed.find(({ providerName }) => providerName === "Auth0");
-    return typeof auth0?.userId === "string" ? auth0.userId : null;
-  } catch {
-    return null;
-  }
-}
 
 export function managementFromEnvironment(env: Record<string, string | undefined>) {
   return auth0Management({

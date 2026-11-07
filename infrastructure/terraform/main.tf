@@ -43,9 +43,10 @@ module "frontend" {
     transport = "relay"
     relayUrl  = "https://${local.relay_hostname}"
 
-    # Sign-in goes through the user pool, which hands it to Auth0.
-    authAuthority  = local.cognito_issuer
-    authClientId   = aws_cognito_user_pool_client.accounts.id
+    # Sign-in is the Ahara Auth0 tenant's, for the accounts API.
+    authAuthority  = local.auth0_issuer
+    authClientId   = auth0_client.web.client_id
+    authAudience   = local.accounts_audience
     authSignOutUrl = local.sign_out_url
 
     # Shown to signed-in people so they can connect an agent.

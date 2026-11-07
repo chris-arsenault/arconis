@@ -1,9 +1,4 @@
 import {
-  AdminDeleteUserCommand,
-  CognitoIdentityProviderClient,
-  ListUsersCommand,
-} from "@aws-sdk/client-cognito-identity-provider";
-import {
   ConditionalCheckFailedException,
   DynamoDBClient,
   TransactionCanceledException,
@@ -32,18 +27,16 @@ import {
   type AccountTable,
   type WorkspaceRecord,
 } from "./api";
-import { federatedUserId, managementFromEnvironment } from "./auth0Management";
+import { managementFromEnvironment } from "./auth0Management";
 
 const TableName = process.env.TABLE_NAME ?? "";
 const Bucket = process.env.BUCKET_NAME ?? "";
-const poolId = process.env.USER_POOL_ID ?? "";
 const siteOrigin = process.env.SITE_ORIGIN ?? "";
 const LINK_SECONDS = 300;
 const TOTAL_KEY = { pk: "SERVICE", sk: "STORAGE" };
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({ requestChecksumCalculation: "WHEN_REQUIRED" });
-const cognito = new CognitoIdentityProviderClient({});
 const management = managementFromEnvironment(process.env);
 const userKey = (user: string) => `USER#${user}`;
 const objectKey = (user: string, id: string) => `workspaces/${user}/${id}`;
@@ -162,17 +155,8 @@ const api = new AccountsApi(table, {
   deleteObject: async (user, id) => {
     await s3.send(new DeleteObjectCommand({ Bucket, Key: objectKey(user, id) }));
   },
-  // The token names the pool user by `sub`; that user records which Auth0 user it came from.
-  deleteLogin: async (sub) => {
-    const { Users } = await cognito.send(
-      new ListUsersCommand({ UserPoolId: poolId, Filter: `sub = "${sub}"`, Limit: 1 })
-    );
-    const user = Users?.[0];
-    if (!user?.Username) return;
-    const auth0User = federatedUserId(user.Attributes ?? []);
-    if (auth0User) await management.deleteUser(auth0User);
-    await cognito.send(new AdminDeleteUserCommand({ UserPoolId: poolId, Username: user.Username }));
-  },
+  // The token's subject is the Auth0 user.
+  deleteLogin: (sub) => management.deleteUser(sub),
   now: Date.now,
   newRevision: () => crypto.randomUUID(),
 });

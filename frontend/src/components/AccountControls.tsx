@@ -68,10 +68,7 @@ function SignedOut({ account }: Readonly<{ account: AccountStore }>) {
       <button className="primary" onClick={() => void account.signIn()}>
         Sign in or create an account
       </button>
-      <p className="password-note">
-        A new account is activated from the email it is sent, and one not activated within 7 days is
-        removed.
-      </p>
+      <p className="password-note">A new account is activated from the email it is sent.</p>
     </div>
   );
 }

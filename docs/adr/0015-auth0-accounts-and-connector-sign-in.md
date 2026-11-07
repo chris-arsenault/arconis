@@ -21,18 +21,17 @@ ordinary rooms' saved copies too.
 
 Arconis's accounts live in the shared Ahara Auth0 tenant, which signs people in at `auth.ahara.io` under
 the Ahara brand. Ahara-infra owns the tenant, its settings and its domain; Arconis owns its own database
-connection, so its users are its own, and its applications and API. Arconis's Cognito pool federates that
-connection over OIDC and is used only so AWS services keep validating AWS-issued tokens; nobody signs up
-in the pool.
+connection, so its users are its own, and its applications and APIs. The site signs in to Auth0 directly
+as a single-page application, and the ALB validates Auth0's tokens for the accounts API, so Arconis has no
+Cognito user pool.
 
 MCP connectors register with the tenant and sign in there directly. Registered clients are third-party:
 people see a consent screen, and the only API granted to them is Arconis's MCP endpoint, which validates
 the tenant's tokens for its own address.
 
 Saved workspaces have no account key. An ordinary room's saved copy is stored as it is; a password room's
-is sealed under its room key with the envelope its password opens. The sign-up limit and the removal of
-accounts never activated move to the tenant: an Action holds sign-ups to the day's limit, another refuses
-sign-in until the email is verified, and the daily job reads and removes users through the Management API.
+is sealed under its room key with the envelope its password opens. Two Actions in the tenant hold sign-ups
+to the day's limit and refuse sign-in until the email is verified; otherwise Auth0's defaults apply.
 
 ## Alternatives considered
 
@@ -48,6 +47,9 @@ sign-in until the email is verified, and the daily job reads and removes users t
   2026.
 - **WorkOS AuthKit or Descope.** Both support registration natively. Neither configures MCP registration
   through Terraform, which Ahara requires; Auth0's official provider does.
+- **Keeping a Cognito pool that federates Auth0.** It would let the ALB keep validating AWS-issued tokens,
+  but the ALB validates any issuer's tokens and can require their audience, so the pool added cost and a
+  second sign-in hop for nothing. The owner removed it.
 
 ## Consequences
 
@@ -57,6 +59,8 @@ sign-in until the email is verified, and the daily job reads and removes users t
   room's password, and a saved ordinary room is readable by the service, like the room itself.
 - Registration is on for the whole tenant. Another Ahara product's connection and APIs stay unreachable to
   registered clients unless that product opts in.
-- Cognito charges for federated monthly active users beyond its free allowance.
-- Tests run against a local stand-in for the sign-in service, as ADR-0006 requires; the federation itself,
-  the Actions in the tenant and consent are exercised only in the deployed service.
+- The ALB requires the accounts API's audience, so a connector's token for the MCP endpoint does not open
+  `/api/*`.
+- Accounts never activated stay in the tenant; they cannot sign in.
+- Tests run against a local stand-in for the sign-in service, as ADR-0006 requires; the Actions in the
+  tenant and consent are exercised only in the deployed service.
