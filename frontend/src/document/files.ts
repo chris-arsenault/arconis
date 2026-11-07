@@ -1,5 +1,5 @@
 import { CanvasDocument } from "./canvasDocument";
-import { KIND_LABELS, LOCAL, type CanvasObject, type Bookmark } from "./types";
+import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
 import { normalizeLegacyObjects } from "./geometry";
 
 export function downloadDocument(document: CanvasDocument) {
@@ -9,7 +9,7 @@ export function downloadDocument(document: CanvasDocument) {
       version: 2,
       title: document.title(),
       objects: document.list(),
-      bookmarks: [...document.bookmarks.values()].map((value) => JSON.parse(value) as unknown),
+      bookmarks: [...document.views.values()].map((value) => JSON.parse(value) as unknown),
     },
     null,
     2
@@ -28,7 +28,7 @@ export function importDocument(document: CanvasDocument, content: string) {
     throw new Error("This document contains invalid canvas objects.");
   const objects = parsed.version === 1 ? normalizeLegacyObjects(parsed.objects) : parsed.objects;
   const bookmarks = parsed.bookmarks;
-  if (!Array.isArray(bookmarks) || !bookmarks.every(validBookmark))
+  if (!Array.isArray(bookmarks) || !bookmarks.every(validView))
     throw new Error("This document contains invalid saved views.");
   const ids = new Map(objects.map((item) => [item.id, crypto.randomUUID()]));
   const base = document.nextOrder();
@@ -49,9 +49,9 @@ export function importDocument(document: CanvasDocument, content: string) {
       })
     );
     if (typeof parsed.title === "string") document.rename(parsed.title);
-    bookmarks.forEach((bookmark: Bookmark) => {
+    bookmarks.forEach((view: SavedView) => {
       const id = crypto.randomUUID();
-      document.bookmarks.set(id, JSON.stringify({ ...bookmark, id }));
+      document.views.set(id, JSON.stringify({ ...view, id }));
     });
   }, LOCAL);
   document.undo.stopCapturing();
@@ -93,15 +93,14 @@ function fileVersion(parsed: object) {
   return version;
 }
 
-function validBookmark(value: unknown): value is Bookmark {
+function validView(value: unknown): value is SavedView {
   if (!value || typeof value !== "object") return false;
-  const bookmark = value as Bookmark;
+  const view = value as SavedView;
   return (
-    typeof bookmark.name === "string" &&
-    [bookmark.x, bookmark.y, bookmark.scale].every(
-      (n) => typeof n === "number" && Number.isFinite(n)
-    ) &&
-    bookmark.scale > 0
+    typeof view.name === "string" &&
+    [view.x, view.y, view.scale].every((n) => typeof n === "number" && Number.isFinite(n)) &&
+    [view.centerX, view.centerY].every((n) => n === undefined || Number.isFinite(n)) &&
+    view.scale > 0
   );
 }
 

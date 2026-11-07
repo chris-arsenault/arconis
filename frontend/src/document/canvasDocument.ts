@@ -8,8 +8,9 @@ export class CanvasDocument {
   readonly doc = new Y.Doc();
   readonly objects = this.doc.getMap<Y.Map<unknown>>("objects");
   readonly meta = this.doc.getMap<string>("meta");
-  readonly bookmarks = this.doc.getMap<string>("bookmarks");
-  readonly undo = new Y.UndoManager([this.objects, this.meta, this.bookmarks], {
+  /** Saved views. The map keeps its original name so existing rooms keep theirs. */
+  readonly views = this.doc.getMap<string>("bookmarks");
+  readonly undo = new Y.UndoManager([this.objects, this.meta, this.views], {
     trackedOrigins: new Set([LOCAL]),
     captureTimeout: 400,
   });

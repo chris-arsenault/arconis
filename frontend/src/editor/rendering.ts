@@ -1,4 +1,6 @@
-import type { Graph } from "@maxgraph/core";
+import { EdgeHandlerConfig, HandleConfig, VertexHandlerConfig, type Graph } from "@maxgraph/core";
+
+const SELECTION_COLOR = "#5443b3";
 
 function escapeLabel(value: unknown) {
   return String(value ?? "")
@@ -8,6 +10,10 @@ function escapeLabel(value: unknown) {
 }
 
 export function configureRendering(graph: Graph) {
+  HandleConfig.fillColor = "#f4f2fd";
+  HandleConfig.strokeColor = SELECTION_COLOR;
+  VertexHandlerConfig.selectionColor = SELECTION_COLOR;
+  EdgeHandlerConfig.selectionColor = SELECTION_COLOR;
   // HTML labels are the only maxGraph mode that wraps text. Labels come from peers,
   // so every label is escaped before it reaches the DOM.
   graph.setHtmlLabels(true);

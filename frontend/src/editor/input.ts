@@ -155,7 +155,7 @@ export function bindCanvasInput(editor: EditorController) {
       if (
         target instanceof Element &&
         target.closest("button") &&
-        target.closest(".canvas-area, .outline, .inspector")
+        target.closest(".canvas-area, .left-rail, .inspector")
       )
         editor.element.focus({ preventScroll: true });
     },

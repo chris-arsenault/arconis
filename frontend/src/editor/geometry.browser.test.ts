@@ -1,7 +1,16 @@
 import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, row, exported } from "./browserHarness";
+import {
+  browser,
+  errors,
+  open,
+  add,
+  row,
+  exported,
+  objectCount,
+  groupLabel,
+} from "./browserHarness";
 import { CanvasDocument } from "../document/canvasDocument";
 
 async function shapePosition(page: Page) {
@@ -44,7 +53,7 @@ it("keeps world geometry when a peer groups while another moves offline", async 
 });
 
 async function moveDuplicateUngroup(page: Page) {
-  await page.locator('.object-row[title="Group"]').click();
+  await groupLabel(page).click();
   const x = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
   await page.getByLabel("Object x", { exact: true }).fill(String(x + 100));
   expect(await shapePosition(page)).toEqual([250, 180]);
@@ -57,10 +66,10 @@ async function moveDuplicateUngroup(page: Page) {
       .sort((left, right) => left - right)
   ).toEqual([250, 278]);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await page.locator('.object-row[title="Group"]').click();
+  await groupLabel(page).click();
   await page.getByRole("button", { name: "Ungroup", exact: true }).click();
   expect(await shapePosition(page)).toEqual([250, 180]);
-  expect(await page.locator(".object-row").count()).toBe(2);
+  expect(await objectCount(page)).toBe(2);
 }
 
 function legacyFile() {
@@ -97,7 +106,7 @@ it("moves legacy grouped routes and drawings once, then preserves them through u
     mimeType: "application/json",
     buffer: Buffer.from(legacyFile()),
   });
-  await expect.poll(() => page.locator(".object-row").count()).toBe(5);
+  await expect.poll(() => objectCount(page)).toBe(5);
   const before = await exported(page);
   expect(before.version).toBe(2);
   expect(before.objects.find((item) => item.label === "Legacy shape")).toMatchObject({
@@ -131,7 +140,7 @@ it("moves legacy grouped routes and drawings once, then preserves them through u
   await row(page, "Legacy group").click();
   await page.getByRole("button", { name: "Ungroup", exact: true }).click();
   await page.reload();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(4);
+  await expect.poll(() => objectCount(page)).toBe(4);
   const restored = await exported(page);
   expect(restored.objects.find((item) => item.label === "Legacy path")).toMatchObject({
     x: 0,

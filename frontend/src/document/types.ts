@@ -29,9 +29,13 @@ export interface CanvasObject {
   order: number;
   style: Record<string, StyleValue>;
 }
-export interface Bookmark {
+export interface SavedView {
   id: string;
   name: string;
+  /** World point at the center of the viewport. Older records store only x and y. */
+  centerX: Optional<number>;
+  centerY: Optional<number>;
+  /** The view's translate when saved. */
   x: number;
   y: number;
   scale: number;

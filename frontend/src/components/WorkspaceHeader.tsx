@@ -38,7 +38,6 @@ export function WorkspaceHeader(props: Readonly<Props>) {
           value={session.document.title()}
           onChange={(event) => session.document.rename(event.target.value)}
         />
-        <span>SHARED WORKSPACE</span>
       </div>
       <div className="topbar-actions">
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />

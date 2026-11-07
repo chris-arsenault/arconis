@@ -1,7 +1,7 @@
 # Using the canvas
 
-Create a room, choose a tool and click the canvas. New notes and text open ready for typing;
-double-click edits any object directly.
+Create a room, then click a stencil in the left rail and click the canvas, or drag a stencil onto the
+canvas. New notes and text open ready for typing; double-click edits any object directly.
 
 ## Selecting and transforming
 
@@ -11,8 +11,8 @@ double-click edits any object directly.
 - Several objects or a drawing get a frame: its corners scale and its top handle rotates the whole
   selection. Hold Shift to keep proportions or snap the angle.
 
-The right panel edits text, colors, line widths, font settings, geometry, rotation and connector
-routing and endpoints. With several objects selected, it applies styles to all of them.
+Selecting something opens the property panel on the right, showing only what applies to it. With
+several objects selected, it applies styles to all of them.
 
 ## Connecting
 
@@ -47,5 +47,7 @@ participants, receiving the canvas, in sync or alone on this device.
 
 ## Views and files
 
-Saved Views store named viewport positions and do not move other participants. Export downloads a
+Saved views at the bottom of the left rail store a place and zoom. Save the current place with the
+plus button, click a view to fly there, and hover it to rename or remove it. Views are shared with the
+room and do not move other participants. Export downloads a
 portable `.arconis` document, and Import adds its contents to the current room.

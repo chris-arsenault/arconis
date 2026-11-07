@@ -11,7 +11,7 @@ import {
   KIND_LABELS,
   LOCAL,
   type ObjectKind,
-  type Bookmark,
+  type SavedView,
   type CanvasObject,
 } from "../document/types";
 import { projectDocument } from "./projection";
@@ -21,6 +21,7 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { configureConnectionPoints } from "./connectionPoints";
 import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
+import { createView, flyToView } from "./views";
 import { compareStacking, isVertexKind, offsetPoints } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 
@@ -365,17 +366,23 @@ export class EditorController {
     view.scaleAndTranslate(scale, 60 / scale - x, 60 / scale - y);
     this.emit();
   }
-  bookmark(name: string) {
-    const { scale, translate } = this.graph.view;
-    const id = crypto.randomUUID();
-    const bookmark: Bookmark = { id, name, scale, x: translate.x, y: translate.y };
-    this.document.doc.transact(
-      () => this.document.bookmarks.set(id, JSON.stringify(bookmark)),
-      LOCAL
-    );
+  savedViews() {
+    return [...this.document.views.values()].map((value) => JSON.parse(value) as SavedView);
   }
-  jump(bookmark: Bookmark) {
-    this.graph.view.scaleAndTranslate(bookmark.scale, bookmark.x, bookmark.y);
+  private writeView(view: SavedView) {
+    this.document.doc.transact(() => this.document.views.set(view.id, JSON.stringify(view)), LOCAL);
+  }
+  saveView(name: string) {
+    this.writeView(createView(this.graph, this.element, name));
+  }
+  renameView(view: SavedView, name: string) {
+    this.writeView({ ...view, name });
+  }
+  removeView(id: string) {
+    this.document.doc.transact(() => this.document.views.delete(id), LOCAL);
+  }
+  goToView(view: SavedView) {
+    flyToView(this.graph, this.element, view);
   }
   destroy() {
     this.destroyed = true;

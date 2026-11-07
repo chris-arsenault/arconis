@@ -1,6 +1,6 @@
 import { it, expect } from "vitest";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, row, exported } from "./browserHarness";
+import { browser, errors, open, add, row, exported, objectCount } from "./browserHarness";
 
 it("cancels an unfinished connector before starting another relationship", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -15,9 +15,9 @@ it("cancels an unfinished connector before starting another relationship", async
   await canvas.press("Escape");
   await connector.click();
   await canvas.click({ position: { x: 230, y: 460 } });
-  expect(await page.locator(".object-row").count()).toBe(3);
+  expect(await objectCount(page)).toBe(3);
   await canvas.click({ position: { x: 510, y: 180 } });
-  await expect.poll(() => page.locator(".object-row").count()).toBe(4);
+  await expect.poll(() => objectCount(page)).toBe(4);
   const saved = await exported(page);
   const edge = saved.objects.find((item) => item.kind === "connector")!;
   expect(saved.objects.find((item) => item.id === edge.source)?.label).toBe("Source C");

@@ -4,9 +4,8 @@ import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { zoomLabel } from "../editor/zoom";
 import { Canvas, InlineEditor, Cursors } from "./Canvas";
-import { Toolbar } from "./Toolbar";
 import { Inspector } from "./Inspector";
-import { Outline } from "./Outline";
+import { LeftRail } from "./LeftRail";
 import { SelectionFrame } from "./SelectionFrame";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 
@@ -42,7 +41,7 @@ export function Workspace(props: Readonly<Props>) {
         onEditName={() => setNamePrompt(true)}
       />
       <div className="workspace-body">
-        {editor && <Outline editor={editor} />}
+        {editor && <LeftRail editor={editor} />}
         <CanvasArea session={session} editor={editor} newRoom={newRoom} onEditor={setEditor}>
           {namePrompt && <NamePrompt name={name} onName={onName} onClose={closeNamePrompt} />}
         </CanvasArea>
@@ -106,7 +105,6 @@ function CanvasArea({
       <Canvas session={session} onEditor={onEditor} />
       {editor && (
         <>
-          <Toolbar editor={editor} />
           <InlineEditor editor={editor} />
           <SelectionFrame editor={editor} />
           <Cursors editor={editor} session={session} />
@@ -136,9 +134,8 @@ function EmptyCanvasHint({
     );
   return (
     <div className="canvas-hint" data-testid="canvas-hint">
-      <span className="eyebrow">A FRESH PERSPECTIVE</span>
-      <h2>Start anywhere.</h2>
-      <p>Pick a tool, click the canvas, and let your ideas take shape.</p>
+      <h2>This canvas is empty</h2>
+      <p>Click a stencil on the left, then click the canvas. You can also drag a stencil here.</p>
       {!newRoom && sync === "alone" && (
         <p>
           Nobody else is online. If this room already has content, it appears when someone holding a
@@ -150,7 +147,7 @@ function EmptyCanvasHint({
           editor.edit(editor.add("sticky"), true);
         }}
       >
-        Add your first sticky note <Plus size={16} />
+        <Plus size={14} /> Add a sticky note
       </button>
     </div>
   );
@@ -191,7 +188,7 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
       <span data-testid="sync-status">{syncDescription(session)}</span>
       <span className="local-status">
         {session.stored ? "Local copy enabled" : "Opening local copy"} ·{" "}
-        {session.document.list().length} objects
+        <span data-testid="object-count">{session.document.list().length}</span> objects
       </span>
       <a href="/licenses.txt" target="_blank" rel="noreferrer">
         Licenses

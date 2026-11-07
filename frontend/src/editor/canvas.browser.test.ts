@@ -1,7 +1,17 @@
 import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, row, exported, drag } from "./browserHarness";
+import {
+  browser,
+  errors,
+  open,
+  add,
+  row,
+  exported,
+  drag,
+  objectCount,
+  selectConnector,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
@@ -42,17 +52,17 @@ it("connects chosen points that hold through moves, peers and reload", async () 
   await page.mouse.move(origin.x + 304, origin.y + 217);
   await expect.poll(() => canvas(page).locator("image").count()).toBe(12);
   await connectBetween(page, { x: 380, y: 215 }, { x: 560, y: 255 });
-  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  await expect.poll(() => objectCount(page)).toBe(3);
   const edge = await connector(page);
   expect(edge.style).toMatchObject({ exitX: 1, exitY: 0.5, entryX: 0, entryY: 0.5 });
   await drag(page, 300, 215, 40, 200);
   await expect.poll(async () => (await exported(page)).objects[0].y).toBeGreaterThan(150);
   expect((await connector(page)).style).toMatchObject({ exitX: 1, exitY: 0.5 });
   const peer = await open(second, room);
-  await expect.poll(() => peer.locator(".object-row").count(), { timeout: 15000 }).toBe(3);
+  await expect.poll(() => objectCount(peer), { timeout: 15000 }).toBe(3);
   expect((await connector(peer)).style).toMatchObject({ entryX: 0, entryY: 0.5 });
   await page.reload();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  await expect.poll(() => objectCount(page)).toBe(3);
   expect((await connector(page)).style).toMatchObject({ exitX: 1, entryX: 0 });
   expect(errors).toEqual([]);
   await first.close();
@@ -66,11 +76,11 @@ it("leaves a free end on a body drop, re-anchors an end, and drags from the body
   await add(page, "Sticky note (N)", "Free target", 560, 170);
   await canvas(page).click({ position: emptySpot });
   await connectBetween(page, { x: 380, y: 215 }, { x: 655, y: 255 });
-  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  await expect.poll(() => objectCount(page)).toBe(3);
   const edge = await connector(page);
   expect(edge.style.exitX).toBe(1);
   expect(edge.style.entryX).toBeUndefined();
-  await row(page, "Connector").click();
+  await selectConnector(page);
   const end = (await canvas(page).locator('rect[fill="#0000ff"]').last().boundingBox())!;
   await page.mouse.move(0, 0);
   const origin = await canvasOrigin(page);
@@ -86,7 +96,7 @@ it("leaves a free end on a body drop, re-anchors an end, and drags from the body
   await expect
     .poll(() => page.getByLabel("Object x", { exact: true }).inputValue())
     .toBe(String(before + 30));
-  expect(await page.locator(".object-row").count()).toBe(3);
+  expect(await objectCount(page)).toBe(3);
   expect(errors).toEqual([]);
   await context.close();
 });

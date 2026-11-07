@@ -3,7 +3,20 @@ import type { Page } from "playwright";
 import { writeFile } from "node:fs/promises";
 import { CanvasDocument } from "../document/canvasDocument";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, row, exported, drag } from "./browserHarness";
+import {
+  browser,
+  errors,
+  open,
+  add,
+  row,
+  exported,
+  drag,
+  objectCount,
+  selectionLabel,
+  groupLabel,
+  selectConnector,
+  selectDrawing,
+} from "./browserHarness";
 
 it("edits a complete mixed canvas, routes and groups connected objects", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -14,20 +27,20 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   await row(page, "API service").click();
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
   await page.getByRole("button", { name: "Connect", exact: true }).click();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  await expect.poll(() => objectCount(page)).toBe(3);
   await row(page, "API service").click();
   await page.getByLabel("Object x", { exact: true }).fill("350");
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
   await page.getByRole("button", { name: "Group", exact: true }).click();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(4);
-  await row(page, "Group").click();
+  await expect.poll(() => objectCount(page)).toBe(4);
+  await groupLabel(page).click();
   await page.getByRole("button", { name: "Duplicate", exact: true }).click();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(8);
+  await expect.poll(() => objectCount(page)).toBe(8);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(4);
-  await row(page, "Group").click();
+  await expect.poll(() => objectCount(page)).toBe(4);
+  await groupLabel(page).click();
   await page.getByRole("button", { name: "Ungroup", exact: true }).click();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  await expect.poll(() => objectCount(page)).toBe(3);
   await row(page, "A connected idea").dblclick();
   await page.getByLabel("Edit canvas text").fill("Edited on canvas");
   await page.getByLabel("Edit canvas text").press("Escape");
@@ -40,7 +53,7 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   await page.reload();
   await row(page, "Edited on canvas").waitFor();
   await page.getByRole("button", { name: "Overview", exact: true }).waitFor();
-  expect(await page.locator(".object-row").count()).toBe(3);
+  expect(await objectCount(page)).toBe(3);
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -77,7 +90,7 @@ it("synchronizes independent browsers, late join, offline edits, reload and room
   await row(a, "Peer idea").waitFor();
   await row(a, "Shared database").waitFor();
   const isolated = await open(second, createRoomId());
-  expect(await isolated.locator(".object-row").count()).toBe(0);
+  expect(await objectCount(isolated)).toBe(0);
   await row(b, "Peer idea").click();
   await b.getByRole("button", { name: "Delete selection", exact: true }).click();
   await expect.poll(() => row(a, "Peer idea").count()).toBe(0);
@@ -94,12 +107,14 @@ async function sharedGroupDeletion(a: Page, b: Page) {
   await row(a, "Grouped peer idea").click({ modifiers: ["Shift"] });
   await a.getByRole("button", { name: "Connect", exact: true }).click();
   await a.getByRole("button", { name: "Group", exact: true }).click();
-  await b.locator('.object-row[title="Group"]').waitFor();
-  await b.locator('.object-row[title="Group"]').click();
+  await groupLabel(b).waitFor();
+  // b still has its new note selected, and that note's rotation handle sits over the group label.
+  await b.getByTestId("canvas").click({ position: { x: 880, y: 800 } });
+  await groupLabel(b).click();
+  expect(await selectionLabel(b)).toBe("Group");
   await b.getByRole("button", { name: "Delete selection", exact: true }).click();
-  expect(await b.locator(".object-row").count()).toBe(0);
-  await a.locator(".object-row").last().waitFor({ state: "hidden" });
-  expect(await a.locator(".object-row").count()).toBe(0);
+  await expect.poll(() => objectCount(b)).toBe(0);
+  await expect.poll(() => objectCount(a), { timeout: 15000 }).toBe(0);
 }
 
 it("drags and resizes attached objects, changes routing and preserves portable views", async () => {
@@ -120,7 +135,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   await expect
     .poll(() => page.getByLabel("Object width", { exact: true }).inputValue())
     .toBe("240");
-  await row(page, "Connector").click();
+  await selectConnector(page);
   await page.getByLabel("Connector routing").selectOption("none");
   await page.getByLabel("Object text", { exact: true }).fill("Relationship");
   await page.getByLabel("View name", { exact: true }).fill("Portable view");
@@ -140,10 +155,10 @@ it("drags and resizes attached objects, changes routing and preserves portable v
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({ format: "arconis", ...saved })),
   });
-  await expect.poll(() => page.locator(".object-row").count()).toBe(6);
+  await expect.poll(() => objectCount(page)).toBe(6);
   expect((await exported(page)).bookmarks).toHaveLength(2);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  await expect.poll(() => objectCount(page)).toBe(3);
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -156,25 +171,25 @@ it("uses shapes, notes, connectors and drawing tools together on one canvas", as
     await add(page, tools[i], `Component ${i}`, 190 + (i % 3) * 220, 150 + Math.floor(i / 3) * 200);
   await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
   await drag(page, 200, 750, 200, -70);
-  await expect.poll(() => page.locator(".object-row").count()).toBe(8);
+  await expect.poll(() => objectCount(page)).toBe(8);
   const beforeMove = await exported(page);
   const beforePoints = JSON.parse(
     beforeMove.objects.find((item) => item.kind === "stroke")!.points
   ) as [number, number][];
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
-  await row(page, "Drawing").click();
+  await selectDrawing(page);
   await drag(page, 300, 715, 50, 20);
   const afterMove = await exported(page);
   const afterPoints = JSON.parse(
     afterMove.objects.find((item) => item.kind === "stroke")!.points
   ) as [number, number][];
   expect(afterPoints[0]).toEqual([beforePoints[0][0] + 50, beforePoints[0][1] + 20]);
-  expect(await page.locator(".object-row").count()).toBe(8);
+  expect(await objectCount(page)).toBe(8);
   await add(page, "Sticky note (N)", "Still one document", 650, 700);
   await page.getByRole("button", { name: "Connector: click two objects", exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x: 270, y: 195 } });
   await page.getByTestId("canvas").click({ position: { x: 490, y: 195 } });
-  await expect.poll(() => page.locator(".object-row").count()).toBe(10);
+  await expect.poll(() => objectCount(page)).toBe(10);
   const saved = await exported(page);
   expect(saved.objects.filter((item) => item.kind === "stroke")).toHaveLength(1);
   expect(
@@ -216,10 +231,10 @@ it("renders a representative diagram and synchronizes its chunked state to a new
     mimeType: "application/json",
     buffer: Buffer.from(representativeCanvas()),
   });
-  await expect.poll(() => a.locator(".object-row").count()).toBe(450);
+  await expect.poll(() => objectCount(a)).toBe(450);
   const imported = performance.now() - start;
   const b = await open(second, room);
-  await expect.poll(() => b.locator(".object-row").count(), { timeout: 45000 }).toBe(450);
+  await expect.poll(() => objectCount(b), { timeout: 45000 }).toBe(450);
   const aDocument = await exported(a);
   const bDocument = await exported(b);
   aDocument.objects.sort((left, right) => left.id.localeCompare(right.id));

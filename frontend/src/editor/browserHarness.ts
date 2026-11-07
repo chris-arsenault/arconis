@@ -9,7 +9,7 @@ import {
 } from "playwright";
 import { createServer, type ViteDevServer } from "vite";
 import { mkdir, readFile } from "node:fs/promises";
-import type { CanvasObject, Bookmark } from "../document/types";
+import type { CanvasObject, SavedView } from "../document/types";
 import { startAppSyncFixture } from "../collaboration/appsyncFixture";
 
 export let browser: Browser;
@@ -81,20 +81,51 @@ export async function add(page: Page, tool: string, label: string, x: number, y:
   await page.getByTestId("canvas").click({ position: { x, y } });
   await page.getByLabel("Object text", { exact: true }).fill(label);
 }
-export function row(page: Page, label: string) {
-  return page.locator(".object-row").filter({ hasText: label });
+/** An object's label on the canvas. Clicking it selects the object with a real gesture. */
+export function row(page: Page, label: string | RegExp) {
+  return page
+    .getByTestId("canvas")
+    .locator("foreignObject div:not(:has(div))")
+    .filter({ hasText: label });
+}
+export async function objectCount(page: Page) {
+  return Number(await page.getByTestId("object-count").textContent());
+}
+export async function selectionLabel(page: Page) {
+  const heading = page.getByTestId("selection-count");
+  return (await heading.count()) ? await heading.textContent() : "";
+}
+async function clickPath(page: Page, stroke: string, modifiers: "Shift"[]) {
+  const canvas = page.getByTestId("canvas");
+  const position = await canvas
+    .locator(`path[stroke="${stroke}"]`)
+    .first()
+    .evaluate((path: SVGPathElement) => {
+      const point = path.getPointAtLength(path.getTotalLength() / 2);
+      return { x: point.x, y: point.y };
+    });
+  await canvas.click({ position, modifiers });
+}
+export function groupLabel(page: Page) {
+  return row(page, /^Group$/);
+}
+export function selectConnector(page: Page, modifiers: "Shift"[] = []) {
+  return clickPath(page, "#7f8aa3", modifiers);
+}
+export function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
+  return clickPath(page, "#6554c0", modifiers);
 }
 
 export async function exported(
   page: Page
-): Promise<{ version: number; objects: CanvasObject[]; bookmarks: Bookmark[] }> {
+): Promise<{ version: number; objects: CanvasObject[]; bookmarks: SavedView[] }> {
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export document", exact: true }).click();
   const download = await pending;
   return JSON.parse(await readFile((await download.path())!, "utf8")) as {
     version: number;
     objects: CanvasObject[];
-    bookmarks: Bookmark[];
+    bookmarks: SavedView[];
   };
 }
 

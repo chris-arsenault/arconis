@@ -1,11 +1,26 @@
 import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, row, exported, drag } from "./browserHarness";
+import {
+  browser,
+  errors,
+  open,
+  add,
+  row,
+  exported,
+  drag,
+  objectCount,
+  selectionLabel,
+  selectDrawing,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
-const selectedCount = (page: Page) => page.locator(".object-row.selected").count();
+const selectedCount = async (page: Page) => {
+  const label = await selectionLabel(page);
+  if (!label) return 0;
+  return label.includes("objects") ? parseInt(label) : 1;
+};
 const emptySpot = { x: 880, y: 760 };
 
 async function canvasOrigin(page: Page) {
@@ -118,9 +133,9 @@ it("keeps keyboard shortcuts working after clicking interface controls", async (
   await add(page, "Rectangle (R)", "Kept", 520, 170);
   await row(page, "Removed by key").click();
   await page.keyboard.press("Delete");
-  await expect.poll(() => page.locator(".object-row").count()).toBe(1);
+  await expect.poll(() => objectCount(page)).toBe(1);
   await page.keyboard.press("ControlOrMeta+z");
-  await expect.poll(() => page.locator(".object-row").count()).toBe(2);
+  await expect.poll(() => objectCount(page)).toBe(2);
   const pressed = page.locator(".tool[aria-pressed=true]");
   await page.getByRole("button", { name: "Rectangle (R)", exact: true }).click();
   await page.keyboard.press("v");
@@ -145,7 +160,7 @@ it("styles a new group immediately for its creator and selects it", async () => 
   await expect.poll(() => canvas(page).locator("[stroke-dasharray]").count()).toBeGreaterThan(0);
   await expect.poll(() => canvas(page).locator('[fill="#f3f0fc"]').count()).toBe(1);
   expect(await canvas(page).locator('[fill="#C3D9FF"], [fill="#c3d9ff"]').count()).toBe(0);
-  expect(await page.locator('.object-row.selected[title="Group"]').count()).toBe(1);
+  expect(await selectionLabel(page)).toBe("Group");
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -164,7 +179,7 @@ it("keeps the drawn shape of a freehand stroke without per-point handles", async
     await page.mouse.move(middle.x + radius * Math.cos(angle), middle.y + radius * Math.sin(angle));
   }
   await page.mouse.up();
-  await expect.poll(() => page.locator(".object-row").count()).toBe(1);
+  await expect.poll(() => objectCount(page)).toBe(1);
   const stroke = (await exported(page)).objects.find((item) => item.kind === "stroke")!;
   const points = JSON.parse(stroke.points) as [number, number][];
   expect(points.length).toBeGreaterThan(12);
@@ -176,9 +191,9 @@ it("keeps the drawn shape of a freehand stroke without per-point handles", async
   for (const [x, y] of points)
     expect(Math.abs(Math.hypot(x - cx, y - cy) - radius)).toBeLessThan(2);
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
-  await row(page, "Drawing").click();
+  await selectDrawing(page);
   await page.getByTestId("selection-frame").waitFor();
-  expect(await canvas(page).locator('rect[fill="#00FF00"]').count()).toBeLessThanOrEqual(2);
+  expect(await canvas(page).locator('rect[stroke="#5443b3"]').count()).toBeLessThanOrEqual(2);
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -237,7 +252,7 @@ it("stacks objects identically across peers and reorders them", async () => {
   await first.setOffline(false);
   await row(a, "Over").waitFor({ timeout: 45000 });
   await row(b, "Under").waitFor({ timeout: 45000 });
-  const rows = (page: Page) => page.locator(".object-row").allTextContents();
+  const rows = async (page: Page) => (await exported(page)).objects.map((item) => item.label);
   expect(await rows(a)).toEqual(await rows(b));
   const topAtOverlap = async (page: Page) => {
     await canvas(page).click({ position: emptySpot });
@@ -249,7 +264,9 @@ it("stacks objects identically across peers and reorders them", async () => {
   await a.keyboard.press("[");
   await expect.poll(() => topAtOverlap(a)).not.toBe(top);
   await expect.poll(() => topAtOverlap(b)).not.toBe(top);
-  await row(a, top).click();
+  await canvas(a).click({
+    position: top === "Under" ? { x: 230, y: 180 } : { x: 410, y: 280 },
+  });
   await a.getByRole("button", { name: "To front", exact: true }).click();
   await expect.poll(() => topAtOverlap(b)).toBe(top);
   expect(errors).toEqual([]);
@@ -317,7 +334,7 @@ it("scales and rotates a mixed selection as one undoable step, and rotates one s
   await drag(page, 500, 180, 160, 80);
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
   await row(page, "Scaled shape").click();
-  await row(page, "Drawing").click({ modifiers: ["Shift"] });
+  await selectDrawing(page, ["Shift"]);
   const before = await exported(page);
   const shapeBefore = before.objects.find((item) => item.kind === "rectangle")!;
   const pointsBefore = JSON.parse(
@@ -340,7 +357,7 @@ it("scales and rotates a mixed selection as one undoable step, and rotates one s
     )
     .toBe(shapeBefore.width);
   await row(page, "Scaled shape").click();
-  await row(page, "Drawing").click({ modifiers: ["Shift"] });
+  await selectDrawing(page, ["Shift"]);
   await dragFrom(page, await center(page, "frame-rotate"), 160, 120);
   const rotated = await exported(page);
   const angle = Number(rotated.objects.find((item) => item.kind === "rectangle")!.style.rotation);

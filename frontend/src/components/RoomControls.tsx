@@ -74,10 +74,7 @@ function RoomDialog({
         <button className="close-dialog icon-button" aria-label="Close dialog" onClick={onClose}>
           <X size={18} />
         </button>
-        <span className="eyebrow">BETTER TOGETHER</span>
-        <h2 id="room-dialog-title">
-          {mode === "share" ? "Make room for someone." : "Join a shared canvas."}
-        </h2>
+        <h2 id="room-dialog-title">{mode === "share" ? "Share this room" : "Join a room"}</h2>
         <label>
           Your display name
           <input
