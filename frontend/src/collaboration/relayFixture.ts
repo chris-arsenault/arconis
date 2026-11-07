@@ -49,6 +49,11 @@ export async function startRelayFixture() {
       status = reason === "limit" ? "limit" : "stopped";
       relay.shutdown(reason);
     },
+    /** Simulates losing the relay with no notice, as a network failure does. */
+    drop() {
+      status = "stopped";
+      sockets.clients.forEach((socket) => socket.terminate());
+    },
     setStartDelay(delay: number) {
       startDelay = delay;
     },

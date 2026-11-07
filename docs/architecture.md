@@ -52,7 +52,8 @@ maxGraph is an editing and rendering projection of the document.
 Transport adapters know Yjs updates and state vectors, never graph or UI types. `RelayTransport`
 serves deployed rooms and `LocalTransport` serves same-browser development.
 
-- **Rooms.** Each room is a set of sockets on the relay ([ADR-0009](adr/0009-relay-on-ec2.md)).
+- **Rooms.** Each room is a set of sockets on the relay ([ADR-0009](adr/0009-relay-on-ec2.md)). A
+  device-only room uses `LocalTransport` whatever the configuration, so it never reaches the relay.
 - **Joining.** A join request reaches one person, who answers with the difference and their own
   holdings. The joiner then broadcasts its holdings, and anyone with more sends only that.
   Unanswered requests move to the next person for a short period, after which the room reports that

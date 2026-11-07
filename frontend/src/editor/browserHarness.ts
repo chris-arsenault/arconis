@@ -14,7 +14,8 @@ import { startRelayFixture } from "../collaboration/relayFixture";
 
 export let browser: Browser;
 let server: ViteDevServer;
-let baseUrl = "";
+let siteUrl = "";
+export const baseUrl = () => siteUrl;
 export const errors: string[] = [];
 const engines = { chromium, firefox, webkit };
 const traced = new WeakSet<BrowserContext>();
@@ -24,7 +25,7 @@ export let fixture: Awaited<ReturnType<typeof startRelayFixture>>;
 beforeAll(async () => {
   server = await createServer({ server: { port: 0, host: "127.0.0.1" } });
   await server.listen();
-  baseUrl = server.resolvedUrls!.local[0];
+  siteUrl = server.resolvedUrls!.local[0];
   fixture = await startRelayFixture();
   browser = await engines[(process.env.BROWSER || "chromium") as keyof typeof engines].launch({
     headless: true,
@@ -63,9 +64,9 @@ export async function open(context: BrowserContext, room = "", join = false, sta
     errors.push(error.message);
     console.error("Browser error:", error.message);
   });
-  await page.goto(join ? baseUrl : `${baseUrl}#room=${room}`);
+  await page.goto(join ? siteUrl : `${siteUrl}#room=${room}`);
   if (join) {
-    await page.getByLabel("Room link or code", { exact: true }).fill(`${baseUrl}#room=${room}`);
+    await page.getByLabel("Room link or code", { exact: true }).fill(`${siteUrl}#room=${room}`);
     await page.getByRole("button", { name: "Join room", exact: true }).click();
   } else if (!room) {
     await page.getByLabel("Your display name", { exact: true }).fill("Designer");

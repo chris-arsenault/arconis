@@ -3,7 +3,7 @@ import { CollaborationProvider, PRESENCE_INTERVAL_MS } from "./provider";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { ConnectionState, Transport } from "./transport";
 import { FrameAssembler, frames } from "./frames";
-import { parseRoom, createRoomId } from "./room";
+import { parseRoom, createRoomId, createLocalRoomId, isLocalRoom, roomHash } from "./room";
 
 class Bus implements Transport {
   onMessage: (message: string) => void = () => {};
@@ -254,4 +254,14 @@ it("uses high entropy room IDs and accepts shared URLs", () => {
   expect(createRoomId()).not.toBe(id);
   expect(parseRoom(`https://arconis.ahara.io/#room=${id}`)).toBe(id);
   expect(parseRoom("123456")).toBeNull();
+});
+
+it("keeps device-only rooms distinct through their links", () => {
+  const id = createLocalRoomId();
+  expect(isLocalRoom(id)).toBe(true);
+  expect(isLocalRoom(createRoomId())).toBe(false);
+  expect(parseRoom(roomHash(id))).toBe(id);
+  expect(parseRoom(`https://arconis.ahara.io/#${roomHash(id)}`)).toBe(id);
+  const shared = createRoomId();
+  expect(parseRoom(roomHash(shared))).toBe(shared);
 });

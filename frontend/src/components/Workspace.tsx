@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Undo2, Redo2, Minus, Plus, Scan, CheckCircle2, WifiOff, Keyboard } from "lucide-react";
-import type { RoomSession } from "../collaboration/room";
+import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { zoomLabel } from "../editor/zoom";
 import { Canvas, InlineEditor, Cursors } from "./Canvas";
@@ -154,6 +154,7 @@ function EmptyCanvasHint({
 }
 
 function syncDescription(session: RoomSession) {
+  if (isLocalRoom(session.id)) return "Nothing in this room leaves this browser";
   if (session.detail && session.state !== "online") return session.detail;
   const others = session.provider.awareness.getStates().size - 1;
   switch (session.provider.sync) {
@@ -186,7 +187,9 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
     <footer className="statusbar">
       <span className={`connection-status ${session.state}`} title={session.detail}>
         {session.state === "online" ? <CheckCircle2 size={14} /> : <WifiOff size={14} />}
-        <span data-testid="connection-status">{labels[session.state]}</span>
+        <span data-testid="connection-status">
+          {isLocalRoom(session.id) ? "On this device only" : labels[session.state]}
+        </span>
       </span>
       {session.canStartCollaboration && (
         <button type="button" className="start-collaboration" onClick={session.startCollaboration}>

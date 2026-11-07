@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { RoomSession, createRoomId, parseRoom } from "./collaboration/room";
+import {
+  RoomSession,
+  createLocalRoomId,
+  createRoomId,
+  parseRoom,
+  roomHash,
+} from "./collaboration/room";
 import { Welcome } from "./components/Welcome";
 import { Workspace } from "./components/Workspace";
 
@@ -48,15 +54,14 @@ export function App() {
   }, []);
   const open = (id: string) => {
     setError("");
-    location.hash = `room=${id}`;
+    location.hash = roomHash(id);
   };
   const changeName = (value: string) => {
     setName(value);
     localStorage.setItem(NAME_KEY, value);
     session?.rename(value);
   };
-  const create = () => {
-    const id = createRoomId();
+  const create = (id = createRoomId()) => {
     createdRoom.current = id;
     setCreated(id);
     open(id);
@@ -71,6 +76,11 @@ export function App() {
           setAskName(false);
           changeName(name);
           create();
+        }}
+        onCreateLocal={() => {
+          setAskName(false);
+          changeName(name);
+          create(createLocalRoomId());
         }}
         onJoin={(id) => {
           setAskName(false);
@@ -87,7 +97,7 @@ export function App() {
       askName={askName}
       newRoom={created === room}
       onName={changeName}
-      onCreate={create}
+      onCreate={() => create()}
       onJoin={open}
     />
   );

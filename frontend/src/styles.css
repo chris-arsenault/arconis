@@ -197,6 +197,10 @@ h1 em {
   padding: 13px;
   justify-content: space-between;
 }
+.welcome-local {
+  width: 100%;
+  margin-top: 8px;
+}
 .divider {
   text-align: center;
   font-size: 11px;

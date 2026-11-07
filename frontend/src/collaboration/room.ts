@@ -17,8 +17,21 @@ export function parseRoom(value: string) {
   } catch {
     /* Raw room codes need no URL parsing. */
   }
-  candidate = candidate.replace(/^room=/, "");
-  return /^[a-f0-9]{48}$/.test(candidate) ? candidate : null;
+  const local = candidate.startsWith("local=");
+  candidate = candidate.replace(/^(room|local)=/, "");
+  if (!/^[a-f0-9]{48}$/.test(candidate)) return null;
+  return local ? `${LOCAL_PREFIX}${candidate}` : candidate;
+}
+const LOCAL_PREFIX = "local-";
+/** A room on this device only. It never connects to the relay, and nothing leaves the browser. */
+export function createLocalRoomId() {
+  return `${LOCAL_PREFIX}${createRoomId()}`;
+}
+export function isLocalRoom(id: string) {
+  return id.startsWith(LOCAL_PREFIX);
+}
+export function roomHash(id: string) {
+  return isLocalRoom(id) ? `local=${id.slice(LOCAL_PREFIX.length)}` : `room=${id}`;
 }
 
 export class RoomSession {
@@ -42,7 +55,7 @@ export class RoomSession {
   ) {
     const config = readConfig();
     const transport =
-      config.transport === "local"
+      config.transport === "local" || isLocalRoom(id)
         ? new LocalTransport(id)
         : new RelayTransport(config.relayUrl, id);
     this.transport = transport;

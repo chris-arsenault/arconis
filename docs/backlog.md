@@ -9,8 +9,6 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 
 ## Collaboration
 
-- Degrade seamlessly when the relay is off or unreachable, with a non-collaborative room that uses no
-  network and allows unauthenticated images.
 - Evaluate WebRTC for large transfers and for networks that block the relay.
 
 ## Platform

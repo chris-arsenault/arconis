@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Download, Upload, Shapes } from "lucide-react";
-import type { RoomSession } from "../collaboration/room";
+import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { downloadDocument, importDocument } from "../document/files";
 import { RoomControls } from "./RoomControls";
@@ -50,7 +50,13 @@ export function WorkspaceHeader(props: Readonly<Props>) {
           <span>{name.slice(0, 1).toUpperCase()}</span>
           {people > 1 && <small>+{people - 1}</small>}
         </button>
-        <RoomControls onCreate={onCreate} onJoin={onJoin} name={name} onName={onName} />
+        <RoomControls
+          onCreate={onCreate}
+          onJoin={onJoin}
+          name={name}
+          onName={onName}
+          shareable={!isLocalRoom(session.id)}
+        />
       </div>
     </header>
   );

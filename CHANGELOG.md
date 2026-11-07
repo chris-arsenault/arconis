@@ -8,6 +8,9 @@ All notable user-visible changes are recorded here.
 
 - Replaced AWS AppSync Events with a relay on EC2 that runs only while a room needs it, with a hard monthly spending limit.
 - Added a Start collaboration button and status showing that collaboration is starting, off, or off until next month. Editing and saving continue locally throughout, and work merges when collaboration returns.
+- Added rooms that work on this device only, opening no connection at all.
+- Removed the connector From and To menus; drag either end of a connector to re-attach it.
+- Reduced collaboration traffic: one person answers a join, idle rooms exchange almost nothing, and hidden tabs send no presence.
 
 ## v1.0.0 - 2026-11-07
 

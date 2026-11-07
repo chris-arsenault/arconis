@@ -7,6 +7,8 @@ interface Props {
   onJoin: (id: string) => void;
   name: string;
   onName: (name: string) => void;
+  /** False for a room on this device only, which has no one to share with. */
+  shareable: boolean;
 }
 
 export function RoomControls(props: Readonly<Props>) {
@@ -30,9 +32,11 @@ export function RoomControls(props: Readonly<Props>) {
       >
         <LogIn size={18} />
       </button>
-      <button className="primary share-button" onClick={() => setDialog("share")}>
-        <Link2 size={16} /> Share room
-      </button>
+      {props.shareable && (
+        <button className="primary share-button" onClick={() => setDialog("share")}>
+          <Link2 size={16} /> Share room
+        </button>
+      )}
       {dialog && <RoomDialog {...props} mode={dialog} onClose={closeDialog} />}
     </>
   );

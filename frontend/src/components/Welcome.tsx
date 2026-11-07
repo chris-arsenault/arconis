@@ -6,6 +6,7 @@ interface Props {
   name: string;
   onName: (name: string) => void;
   onCreate: () => void;
+  onCreateLocal: () => void;
   onJoin: (id: string) => void;
   error: string;
 }
@@ -67,7 +68,7 @@ export function Welcome(props: Readonly<Props>) {
   );
 }
 
-function WelcomeForm({ name, onName, onCreate, onJoin, error }: Readonly<Props>) {
+function WelcomeForm({ name, onName, onCreate, onCreateLocal, onJoin, error }: Readonly<Props>) {
   const [code, setCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const join = () => {
@@ -88,6 +89,9 @@ function WelcomeForm({ name, onName, onCreate, onJoin, error }: Readonly<Props>)
       </label>
       <button className="primary" onClick={onCreate}>
         Create a room <ArrowRight size={18} />
+      </button>
+      <button type="button" className="welcome-local" onClick={onCreateLocal}>
+        Work on this device only
       </button>
       <div className="divider">or join a shared canvas</div>
       <form

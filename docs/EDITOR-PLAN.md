@@ -389,5 +389,10 @@ earlier plan with the same title and 11 milestones was canceled before any work,
 ## Current state
 
 M0 to M5 and the vendor icons are deployed. M2 also laid labels out in screen pixels, because browsers cannot lay out text at deep-zoom world
-sizes. M3 kept the saved view storage name so existing rooms keep their views. Limits: no real-device, Firefox or WebKit check. Wheel zoom on 450
-objects measured about 80 ms per step in headless software rendering. The owner authorized execution from M6 until a design decision is needed.
+sizes. M3 kept the saved view storage name so existing rooms keep their views. Limits: no real-device, Firefox or WebKit check. The owner authorized
+execution from M6 until a design decision is needed.
+
+M6, M7, M8 and the build part of M8b are committed locally and unpushed, with nothing deployed. M6 is blocked on the owner's approval to apply the `ahara-infra`
+admission and deploy, which must happen in that order. The admission change and the listener-priority row in `ahara/INTEGRATION.md` are uncommitted edits in those
+repositories. Unverified until deployed: the instance's boot and shutdown units, WebSockets through the shared ALB and its WAF, the Lambda's IAM and metric reads, and the
+instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M8b's WebRTC decision is with the owner.
