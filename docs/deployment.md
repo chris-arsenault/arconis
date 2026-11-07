@@ -22,17 +22,6 @@ The instance fetches relay code from S3 each time it boots, so a deployment reac
 next start. Changing the boot script replaces the instance, which restarts the month's usage count,
 because usage is read per instance.
 
-## Local deployment
-
-Local deployment takes no parameters:
-
-```sh
-with-cred -- scripts/deploy.sh
-```
-
-`with-cred --` supplies authorized credentials in the broker environment. Other installations use
-normal AWS environment variables or the standard credential provider chain.
-
 ## Operating the relay
 
 Raise the limit for the current month by setting the override, with the month and dollar amount:

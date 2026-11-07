@@ -32,6 +32,8 @@ sticky notes and freehand drawing in one shared document.
 - Keep escaping labels in `editor/rendering.ts`, because labels come from peers and render as
   HTML.
 - Use native agent file editing, current Git branches and broker-backed credentials.
+- Infrastructure reaches AWS only through the CI/CD pipeline. Never run `terraform apply` or deploy
+  by hand.
 - Preserve unrelated edits in Ahara repositories. Diagnose deployment failures from real logs.
 - Verify product behavior through independent browser contexts using real pointer and keyboard
   input; releases have no manual validation gate.
@@ -64,7 +66,6 @@ import it or `relay/`. [docs/architecture.md](docs/architecture.md) covers the f
 | `make build` | Build production assets |
 | `make test-browser` | Independent-context browser journeys |
 | `make format` | Apply Prettier formatting |
-| `with-cred -- scripts/deploy.sh` | Local authorized build and deploy |
 
 The frontend uses pnpm. Browser tests own their temporary servers and shut them down.
 Generated logs, screenshots and coverage stay in ignored output directories.

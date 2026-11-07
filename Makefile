@@ -1,4 +1,4 @@
-.PHONY: ci lint lint-fix format format-check typecheck test test-browser build deploy terraform-fmt-check
+.PHONY: ci lint lint-fix format format-check typecheck test test-browser build terraform-fmt-check
 
 ci: lint typecheck test format-check terraform-fmt-check
 
@@ -28,6 +28,3 @@ build:
 
 terraform-fmt-check:
 	terraform fmt -check -recursive infrastructure/terraform
-
-deploy:
-	scripts/deploy.sh

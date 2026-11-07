@@ -116,6 +116,8 @@ Boundaries:
 - **Measurement:** rough estimates are enough for these decisions. Skip measuring costs and timings for their own sake.
 - **Transport (B10):** look at WebRTC for images and the app in general. The data layer degrades seamlessly, for example when a corporate VPN blocks
   WebRTC. A non-collaborative room uses no relay and allows unauthenticated images.
+- **WebRTC (B10):** not built. The owner decided against it after the M8b assessment.
+- **Deployment:** infrastructure reaches AWS only through CI/CD. The local deploy path is removed.
 - **Password rooms (B3):** client-side envelope encryption only, with no backend.
 - **Vendor icons (#10):** ship AWS, Azure and Google Cloud icons, self-hosted in lazy chunks. The owner accepted the licensing gray
   area, with rotation and proportions locked and even scaling allowed (ADR-0008).
@@ -125,9 +127,6 @@ Boundaries:
 
 ### Open
 
-- **[DECISION] WebRTC, at M8b.** With the relay in place, WebRTC no longer drives cost. Assumed: evaluate it only for large transfers and blocked-relay
-  cases, and only build it if the measurements justify it. It needs a STUN server, and public ones conflict with the brief's AWS-only constraint. Peers
-  would also see each other's IP addresses.
 - **[DECISION] What "grid view" means, at M9 start.** Assumed: a toggle for a visible grid, with snapping following it.
 - **[DECISION] What "copy of graph" means, at M10 start.** Assumed: copying the selection or canvas as an image to paste elsewhere, plus
   copying objects to paste into another room, as draw.io does.
@@ -395,4 +394,4 @@ execution from M6 until a design decision is needed.
 M6, M7, M8 and the build part of M8b are committed locally and unpushed, with nothing deployed. Infrastructure reaches AWS only through CI/CD, never by hand. The `ahara-infra` admission change must land
 through its pipeline before Arconis's. The admission change and the listener-priority row in `ahara/INTEGRATION.md` are committed in those repositories. Unverified until
 deployed: the instance's boot and shutdown units, WebSockets through the shared ALB and its WAF, the Lambda's IAM and metric reads, and the
-instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M8b's WebRTC decision is with the owner.
+instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. Next is M9, which starts with the owner's decision on what grid view means.
