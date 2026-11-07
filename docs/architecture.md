@@ -15,12 +15,14 @@ edits stay independent of a participant's undo history.
   Connector `x` and `y` are relative label coordinates. Records written by older clients keep their
   legacy fields, and a frozen compatibility baseline stays separate from per-axis movement fields.
 - **Files.** Exports declare world geometry; older file versions normalize during import.
-- **Stacking.** Each record's `order` sets its stacking position, with its identifier breaking ties
-  ([ADR-0007](adr/0007-explicit-stacking-order.md)).
+- **Stacking.** Each record's `order` sets its stacking position, with its identifier breaking ties,
+  because `Y.Map` iteration differs between peers. Records from older clients stack by identifier
+  until reordered.
 - **Connectors.** A connector identifies its endpoint objects. A connector with a missing endpoint
   stays in Yjs, hidden from the graph and object list, so out-of-order updates can complete it.
 - **Groups.** Parent cycles break deterministically during projection.
-- **Drawings.** Strokes are graph edges with no terminals ([ADR-0009](adr/0009-strokes-as-graph-edges.md)).
+- **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
+  so the selection frame scales and rotates them.
 
 ## Editor
 
@@ -31,8 +33,9 @@ maxGraph is an editing and rendering projection of the document.
 - `editor/graphChanges.ts` turns graph edits into Yjs transactions with a local origin. The resulting
   projection runs after maxGraph's model update ends, because edits made during its change
   notification are queued and never redrawn.
-- `editor/rendering.ts` renders labels as escaped HTML ([ADR-0006](adr/0006-escaped-html-labels.md))
-  and computes shape bounds from geometry instead of measuring each shape.
+- `editor/rendering.ts` renders labels as escaped HTML, the maxGraph mode that wraps text, and computes
+  shape bounds from geometry instead of measuring each shape. Labels come from peers, so the escaping
+  is a security boundary.
 - `document/transform.ts` computes collective scale and rotation over a gesture's starting snapshot,
   and `components/SelectionFrame.tsx` drives it.
 
@@ -49,8 +52,9 @@ serves deployed rooms and `LocalTransport` serves same-browser development.
 - **Messages.** Updates are coalesced and split into bounded chunks that reassemble out of order,
   and publishing is batched within AppSync's limits. `collaboration/frames.ts` and
   `collaboration/provider.ts` declare the sizes and timings.
-- **Presence.** Names, cursors and drag previews travel on Yjs awareness
-  ([ADR-0008](adr/0008-drag-previews-on-awareness.md)).
+- **Presence.** Names, cursors and native move and resize previews travel on Yjs awareness, adding no
+  document history; the document changes on drop. Selection-frame transforms write to the document
+  during the gesture, with undo merged into one step.
 - **Persistence.** y-indexeddb stores each room's document on the device and restores it before
   connecting.
 

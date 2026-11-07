@@ -22,12 +22,12 @@ sticky notes and freehand drawing in one shared document.
   with AppSync Events as a message bus ([ADR-0001](docs/adr/0001-yjs-canonical-maxgraph-projection.md),
   [ADR-0002](docs/adr/0002-appsync-events-peer-sync.md)).
 - Keep rooms anonymous and dependencies permissively licensed. InfiniPaint inspires
-  interactions only; write original code ([ADR-0011](docs/adr/0011-permissive-licensing.md)).
+  interactions only; write original code ([ADR-0007](docs/adr/0007-permissive-licensing.md)).
 - Run automated tests and CI against the local server and AppSync protocol fixture only. Real
   AWS services stay out of testing, especially pay-per-use ones; deploying is separate
-  ([ADR-0010](docs/adr/0010-automated-tests-use-local-fixtures.md)).
+  ([ADR-0006](docs/adr/0006-automated-tests-use-local-fixtures.md)).
 - Keep escaping labels in `editor/rendering.ts`, because labels come from peers and render as
-  HTML ([ADR-0006](docs/adr/0006-escaped-html-labels.md)).
+  HTML.
 - Use native agent file editing, current Git branches and broker-backed credentials.
 - Preserve unrelated edits in Ahara repositories. Diagnose deployment failures from real logs.
 - Verify product behavior through independent browser contexts using real pointer and keyboard

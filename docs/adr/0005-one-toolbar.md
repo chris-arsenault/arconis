@@ -5,19 +5,17 @@
 
 ## Context
 
-The product brief described sticky-note and diagram modes that change the active toolbar without changing the
-document. Those modes only hid tools, and every object stayed available in both.
+The product brief described sticky-note and diagram modes that change the active toolbar without changing the document.
+The implementation had a Diagram and Ideas switch.
 
 ## Decision
 
-One toolbar exposes every tool. The owner approved removing the Diagram and Ideas switch.
+One toolbar exposes every tool. The owner approved removing the switch as redundant.
 
 ## Alternatives considered
 
-- **Diagram and Ideas modes** — keep a shorter palette per task, but add a control that changes nothing about the
-  document, and hide tools a person may want next.
+- **Diagram and Ideas modes** — the brief's original description, and the first implementation.
 
 ## Consequences
 
-The interface has one fewer concept, and every tool is one click away. The toolbar is longer, which matters most on
-small screens.
+The toolbar shows every tool at all times, and all objects remain in the same document.

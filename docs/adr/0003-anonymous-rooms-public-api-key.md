@@ -1,27 +1,28 @@
 # 0003 — Anonymous rooms with a public API key
 
-- Status: Accepted
+- Status: Proposed
 - Date: 2026-11-06
 
 ## Context
 
-People should create and join rooms with a link or code and no account. Identifiers should come from the
-browser, with no server-side registry.
+The product brief requires anonymous rooms joined by link or code, identifiers generated in the browser, and no
+server-side registry. It recommends AppSync API-key access for the initial prototype.
 
 ## Decision
 
-Browsers generate high-entropy room identifiers, and all clients use a public AppSync API key delivered in
-runtime configuration.
+Browsers generate high-entropy room identifiers, and all clients use a public AppSync API key delivered in runtime
+configuration.
 
 ## Alternatives considered
 
-- **Accounts or an authorizer** — enforce real access control, but add identity infrastructure the product
-  does not otherwise need.
-- **Short friendly room codes** — easier to share by voice, but guessable without additional security or a
-  lookup service.
+From the product brief:
+
+- **Authentication** — excluded initially, along with accounts and access control.
+- **Very short friendly room codes** — the brief notes these would need additional security or lookup infrastructure,
+  and are not a priority.
 
 ## Consequences
 
-Joining is immediate and needs no infrastructure beyond the Events API. The key is not a secret and room codes
-are not enforced access control, so rooms suit non-sensitive work and a public deployment has no dedicated abuse
-protection. The key has an expiry, so deployments must recur before it lapses.
+The key is not a secret and room codes are not enforced access control. The brief calls this unsuitable for sensitive
+documents or unrestricted public deployment without additional abuse protection. The key has an expiry, so deployments
+must recur before it lapses.

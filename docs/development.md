@@ -34,6 +34,6 @@ pnpm exec playwright install chromium
 Each run starts its own Vite server and an AppSync protocol fixture, then shuts them down, so no
 development server is needed. Journeys use independent browser contexts with no shared local
 storage, and drive the canvas with real pointer and keyboard input. Automated tests use these local
-fixtures only ([ADR-0010](adr/0010-automated-tests-use-local-fixtures.md)).
+fixtures only ([ADR-0006](adr/0006-automated-tests-use-local-fixtures.md)).
 
 Failure screenshots, traces and other generated output go to the ignored `frontend/test-results/`.
