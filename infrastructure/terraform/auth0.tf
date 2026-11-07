@@ -146,7 +146,7 @@ resource "auth0_client_grant" "mcp_third_party" {
   depends_on = [auth0_resource_server_scopes.mcp]
 }
 
-# --- Account lifecycle: the sign-up limit counts Arconis's users, and deleting an account removes one ---
+# --- Account deletion: the accounts API removes the person's Auth0 user ---
 
 resource "random_password" "lifecycle" {
   length  = 64
@@ -155,7 +155,7 @@ resource "random_password" "lifecycle" {
 
 resource "auth0_client" "lifecycle" {
   name        = "Arconis accounts service"
-  description = "Counts Arconis's users and deletes one whose account is deleted."
+  description = "Deletes the Auth0 user of a deleted Arconis account."
   app_type    = "non_interactive"
   grant_types = ["client_credentials"]
 }
@@ -169,7 +169,7 @@ resource "auth0_client_credentials" "lifecycle" {
 resource "auth0_client_grant" "lifecycle" {
   client_id = auth0_client.lifecycle.client_id
   audience  = "https://${local.auth0_tenant_domain}/api/v2/"
-  scopes    = ["read:users", "delete:users"]
+  scopes    = ["delete:users"]
 }
 
 resource "auth0_connection_clients" "arconis" {
@@ -185,35 +185,10 @@ locals {
   }
 }
 
-# Actions run for the whole tenant, and act only on Arconis's connection. One bundle holds both
-# entry points; each trigger calls its own.
+# Actions run for the whole tenant, and this one acts only on Arconis's connection: Auth0's standard
+# way to require a verified email before sign-in.
 locals {
   auth0_actions_bundle = "${path.module}/../../frontend/dist-relay/auth0-actions/index.js"
-}
-
-resource "auth0_action" "signup_limit" {
-  name    = "arconis-signup-limit"
-  runtime = "node22"
-  deploy  = true
-  code    = file(local.auth0_actions_bundle)
-
-  supported_triggers {
-    id      = "pre-user-registration"
-    version = "v2"
-  }
-
-  dynamic "secrets" {
-    for_each = local.lifecycle_secrets
-    content {
-      name  = secrets.key
-      value = secrets.value
-    }
-  }
-}
-
-resource "auth0_trigger_action" "signup_limit" {
-  trigger   = "pre-user-registration"
-  action_id = auth0_action.signup_limit.id
 }
 
 resource "auth0_action" "require_activation" {

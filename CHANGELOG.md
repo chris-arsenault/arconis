@@ -6,8 +6,8 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
-- Added Ahara accounts, signed in at auth.ahara.io, with email activation and a daily limit on new
-  ones, whose name replaces the one typed into rooms.
+- Added Ahara accounts, signed in at auth.ahara.io, with email activation, whose name replaces the
+  one typed into rooms.
 - Added saved workspaces available on any device; a password room's saved copy stays encrypted under
   its room password, and a forgotten account password loses nothing.
 - Added agents: signed-in people add Arconis to Claude or ChatGPT on the web as a custom connector

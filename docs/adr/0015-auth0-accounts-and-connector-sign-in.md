@@ -30,8 +30,8 @@ people see a consent screen, and the only API granted to them is Arconis's MCP e
 the tenant's tokens for its own address.
 
 Saved workspaces have no account key. An ordinary room's saved copy is stored as it is; a password room's
-is sealed under its room key with the envelope its password opens. Two Actions in the tenant hold sign-ups
-to the day's limit and refuse sign-in until the email is verified; otherwise Auth0's defaults apply.
+is sealed under its room key with the envelope its password opens. An Action in the tenant refuses sign-in
+until the email is verified; otherwise Auth0's defaults apply, including its attack protection.
 
 ## Alternatives considered
 

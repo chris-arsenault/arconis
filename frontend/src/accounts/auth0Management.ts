@@ -10,15 +10,7 @@ export interface ManagementConfig {
 
 type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** Lucene for Arconis's users created at or after a time. */
-export function arconisUsers(since: number) {
-  return `identities.connection:"${ARCONIS_CONNECTION}" AND created_at:[${new Date(since).toISOString()} TO *]`;
-}
-
-/**
- * The two Management API calls Arconis makes: counting sign-ups, and deleting a user whose account
- * is deleted. User search reads an index that trails writes by moments, so counts are close.
- */
+/** The one Management API call Arconis makes: deleting the Auth0 user of a deleted account. */
 export function auth0Management(config: ManagementConfig, request: Fetcher = fetch) {
   const base = `https://${config.domain}`;
   let token: { value: string; until: number } | null = null;
@@ -55,16 +47,6 @@ export function auth0Management(config: ManagementConfig, request: Fetcher = fet
   }
 
   return {
-    async count(query: string) {
-      const params = new URLSearchParams({
-        q: query,
-        search_engine: "v3",
-        include_totals: "true",
-        fields: "user_id",
-        per_page: "1",
-      });
-      return ((await (await call(`users?${params}`)).json()) as { total: number }).total;
-    },
     async deleteUser(id: string) {
       await call(`users/${encodeURIComponent(id)}`, { method: "DELETE" });
     },

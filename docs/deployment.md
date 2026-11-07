@@ -14,7 +14,7 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 - The control Lambda behind `/control/*` on the same host, and its SSM parameters.
 - Arconis in the shared Ahara Auth0 tenant (`auth0.tf`): its database connection, the site's
   application and the accounts API it is granted, the MCP API with its default grant for registered
-  connectors, the lifecycle client and the two Actions. The provider reads Ahara's credential from
+  connectors, the client that deletes users, and the post-login Action. The provider reads Ahara's credential from
   `/ahara/auth0/*`; the tenant, its branding and `auth.ahara.io` belong to ahara-infra.
 - Accounts: a DynamoDB table, a private bucket of saved workspaces, and the API behind `/api/*` on the
   relay's host, whose ALB rule validates Auth0 tokens for the accounts API.

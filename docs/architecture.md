@@ -181,9 +181,8 @@ opens once the room's password is entered. The API checks limits and signs S3 li
 `account/workspaceSaver.ts` merges any newer saved copy before storing, so two devices cannot overwrite
 each other's work.
 
-Two Auth0 Actions, bundled from `accounts/auth0ActionEntries.ts`, act only on Arconis's connection: one
-holds sign-ups to the day's limit, the other refuses sign-in until the email is verified. Deleting an
-account removes its Auth0 user through the Management API.
+A post-login Action, bundled from `accounts/auth0Actions.ts`, refuses sign-in to Arconis's connection
+until the email is verified. Deleting an account removes its Auth0 user through the Management API.
 
 ## Limitations
 
