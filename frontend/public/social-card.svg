@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f7f8fc" />
+  <g fill="#dce0eb">
+    <circle cx="60" cy="60" r="2" /><circle cx="120" cy="60" r="2" /><circle cx="60" cy="120" r="2" />
+    <circle cx="1140" cy="570" r="2" /><circle cx="1080" cy="570" r="2" /><circle cx="1140" cy="510" r="2" />
+  </g>
+  <g transform="translate(96 96) scale(1.5)">
+    <rect width="64" height="64" rx="14" fill="#7560cb" />
+    <path d="M32 12 43.5 30h-23Z" fill="#fff" />
+    <rect x="13" y="35" width="16" height="16" rx="2.5" fill="#fff" />
+    <circle cx="43" cy="43" r="8.5" fill="#fff" />
+  </g>
+  <text x="212" y="166" fill="#283249" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="700">Arconis</text>
+  <text x="96" y="300" fill="#283249" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="700">A shared canvas for diagrams,</text>
+  <text x="96" y="372" fill="#283249" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="700">sticky notes and ideas.</text>
+  <text x="96" y="444" fill="#68728a" font-family="Inter, Arial, sans-serif" font-size="30">No accounts. Share a link and work together.</text>
+  <g transform="translate(860 80)">
+    <path d="M100 90v70h120" fill="none" stroke="#7f8aa3" stroke-width="4" />
+    <rect x="20" y="20" width="160" height="70" rx="10" fill="#fff" stroke="#9ca5b8" stroke-width="2" />
+    <rect x="220" y="125" width="80" height="80" fill="#fff0ad" />
+  </g>
+</svg>

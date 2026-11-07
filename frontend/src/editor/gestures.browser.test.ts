@@ -25,6 +25,52 @@ async function dragFrom(page: Page, from: { x: number; y: number }, dx: number, 
   await page.mouse.up();
 }
 
+it("opens the text editor when double-clicking any object's body", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  const page = await open(context, createRoomId());
+  const inline = page.getByLabel("Edit canvas text", { exact: true });
+  const tools = [
+    "Rectangle (R)",
+    "Sticky note (N)",
+    "Ellipse",
+    "Decision (D)",
+    "Service",
+    "Database",
+    "Cloud",
+    "Person",
+    "Text",
+  ];
+  const offsets = [
+    [0.5, 0.5],
+    [0.32, 0.5],
+    [0.68, 0.5],
+    [0.5, 0.65],
+  ];
+  const origin = await canvasOrigin(page);
+  for (const [index, tool] of tools.entries()) {
+    const x = 100 + (index % 3) * 260;
+    const y = 110 + Math.floor(index / 3) * 220;
+    await add(page, tool, "Label", x, y);
+    await canvas(page).click({ position: emptySpot });
+    const box = tool.startsWith("Sticky")
+      ? { width: 190, height: 170 }
+      : { width: 160, height: 90 };
+    for (const selected of [false, true]) {
+      for (const [dx, dy] of offsets) {
+        const px = origin.x + x + box.width * dx;
+        const py = origin.y + y + box.height * dy;
+        await canvas(page).click({ position: emptySpot });
+        if (selected) await page.mouse.click(px, py);
+        await page.mouse.dblclick(px, py);
+        expect(await inline.count(), `${tool} at ${dx},${dy}, selected ${selected}`).toBe(1);
+        await inline.press("Escape");
+      }
+    }
+  }
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
 it("wraps long labels and renders peer label markup as plain text", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());

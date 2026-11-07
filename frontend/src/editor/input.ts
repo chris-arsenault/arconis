@@ -157,13 +157,14 @@ export function bindCanvasInput(editor: EditorController) {
     },
     options
   );
+  // Capture: maxGraph consumes double-clicks on shape nodes before they can bubble here.
   editor.element.addEventListener(
     "dblclick",
     (event) => {
       const cell = cellAt(editor, event);
       if (cell) editor.edit(cell.id!);
     },
-    options
+    { ...options, capture: true }
   );
   editor.element.addEventListener("wheel", wheelHandler(editor, abort.signal), {
     ...options,
