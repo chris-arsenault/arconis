@@ -44,7 +44,7 @@ Boundaries:
 | 8 | Add mind mapping | Feature | M11 |
 | 9 | Layout/quick UX work: compose screens with rectangles, sizes and text boxes, a different layout mode than diagramming | Feature | M11 |
 | B1 | Comments on objects | Feature | M12 |
-| 11 | No paste picture; part of image handling will be an authenticated mode | Feature | M13, M17 |
+| 11 | No paste picture; bytes in S3 with a 20 GB limit, replacing the earlier authenticated mode | Feature | M13 |
 | B7 | Design the serialization format to be agent friendly | Feature | M14 |
 | B3 | Password protected rooms using client-side envelope encryption | Feature | M15 |
 | B8 | Signed-in users get document storage and an MCP server that interacts directly with the document using domain-native tooling | Architecture change | M16, M18 |
@@ -60,7 +60,7 @@ Boundaries:
 4. **Pictures, then the file format (M13, M14).** The format is designed after layout objects, comments and pictures exist, so its
    schema covers them without a second version.
 5. **Password rooms before accounts (M15, M16).** Accounts and storage must account for encrypted rooms, so that design needs them settled.
-6. **Authenticated pictures and MCP after accounts (M17, M18).** Both need stored documents and identity. MCP also builds on the M14 format.
+6. **MCP after accounts (M18).** It needs stored documents and identity, and builds on the M14 format.
 7. **Platform cleanup last (M19).** Removing Arconis's AppSync permissions is independent of product work.
 
 ## Evidence gathered
@@ -100,9 +100,8 @@ Boundaries:
 - **Object browser (#12):** stencils. The left rail replaces the small tool list hovering on the canvas, and "On this
   canvas" goes away.
 - **Zoom range (#6):** 1000x. Read as 1000x in each direction from 100%, so 0.1% to 100,000%.
-- **Pictures (#11):** part of image handling is an authenticated mode (M17). Unauthenticated collaborative rooms get no images unless they are
-  shown to cost fractional cents per image with 10 people collaborating. Regardless, an image is transmitted once, and its metadata (size,
-  position, scale) travels separately.
+- **Pictures (#11):** no authenticated mode. Picture bytes go in S3 and are served through the website's CloudFront, with no Lambda, and the server controls a 20 GB storage limit. An image's bytes are uploaded once, and
+  its metadata (size, position, scale) travels separately.
 - **Orchestration (B9):** replace AppSync with a relay on EC2, because AppSync's fan-out pricing is too expensive, and EC2 is the platform's existing
   pattern and the more stable technology in the owner's view. Lightsail is rejected as too esoteric. This reverses the brief's exclusion of custom
   WebSocket servers and ADR-0002.
@@ -128,7 +127,6 @@ Boundaries:
 - **Copy (M10):** "graph" was a typo. An export carries a copy of the canvas so someone can load it, just like draw.io.
 - **Comments (M12):** everyone in the room sees them.
 - **Password recovery (M15):** none. People need to remember their password.
-- **Signed-in pictures (M17):** everyone in the room sees them.
 
 ### Open
 
@@ -167,7 +165,7 @@ Boundaries:
   server sees only ciphertext and merging stays in the browser. The password unwraps the room key through a slow key derivation, so a
   password change rewraps the key rather than the document. The local copy is encrypted too.
 - **Picture bytes live outside Yjs, keyed by content hash.** The object record holds only the hash and its size, position and scale, so moving or
-  resizing a picture never resends it, and each peer fetches a given hash once and keeps it in IndexedDB. Yjs state exchange would otherwise
+  resizing a picture never resends it, and each browser fetches a given hash once and keeps it in IndexedDB. Yjs state exchange would otherwise
   resend the bytes on late joins. The browser re-encodes pastes through a canvas, which removes active content, and projection builds images from
   validated bytes.
 - **The relay forwards and stores nothing.** One process keeps sockets per room and passes messages along, with no echo to the sender, and targeted
@@ -319,15 +317,20 @@ product brief's exclusion of comments, on the owner's request.
 Acceptance: comments sync to peers and survive reload and files, follow their object when it moves, and leave no orphans when it is deleted.
 Evidence: browser journeys across peers, and concurrent document tests.
 
-### M13 — Pictures with once-only transfer (#11) [depends on M6, M8b]
+### M13 — Pictures in S3 (#11) [depends on M6, M8b]
 
-Scope: paste, and file drop on the same path, placing a picture at the pointer. Bytes transfer once per peer, and size, position and scale sync
-separately. Allowed in non-collaborative rooms. The relay's cost per image with 10 people is estimated at under half a cent for 5 MB, which meets the owner's
-fractional-cent test, so unauthenticated collaborative rooms get images within size limits. Image transfers must not delay edits. Pictures resize with their proportions kept and travel
-in exported files through a new file version. Hash references let M17 add stored originals without changing objects or files.
-Acceptance: moving or resizing a picture sends no image bytes, and a peer fetches each image once. A picture reaches peers, late joiners and reloads
-wherever the room allows it. Where it does not, people get a clear message. Hostile peer data never reaches the DOM as a URL or markup.
-Evidence: browser journeys through the local relay, and chunking and validation tests.
+Scope: paste, and file drop on the same path, placing a picture at the pointer, in every room with no sign-in. The browser re-encodes the picture and hashes it, asks the relay over its
+existing socket, and uploads straight to the website's S3 bucket under `pictures/` with the link the relay returns. The link fixes the key, type, size and checksum, so a hash cannot be
+overwritten with other bytes. Peers load the picture from the website's existing CloudFront distribution, on the same origin as the site, and only size, position, scale and hash sync through
+Yjs. No new distribution or bucket, and no Lambda path. The bucket gains a CORS rule for uploads, and `pictures/*` joins the module's static asset paths for long caching. Pictures resize with their proportions kept and travel in exported files through a
+new file version. A device-only room keeps pictures in IndexedDB and uploads nothing. While the relay is off, a picture stays local and uploads when it returns, as edits merge.
+
+Limits: the relay refuses uploads once the bucket holds 20 GB, with a per-picture size cap. It totals the bucket when it starts and counts what it signs. Nothing is deleted automatically,
+because documents live only in browsers and nothing can tell which pictures are still used. The owner accepts people serving raw pictures, so downloads sit outside the $10 limit.
+
+Acceptance: moving or resizing a picture sends no image bytes, and a browser fetches each image once. A picture reaches peers, late joiners and reloads. At the limit people get a clear
+message and existing pictures keep working. Hostile peer data never reaches the DOM as a URL or markup: an object stores only a validated hash.
+Evidence: unit tests of the limit and validation logic, and a targeted journey against a local S3 stand-in.
 
 ### M14 — Agent-friendly document format (B7) [depends on M11, M12, M13]
 
@@ -354,15 +357,6 @@ extends M6's limits to the new service.
 Acceptance, once the design is approved: a signed-in user's document survives every device going offline, and anonymous rooms keep working as
 they do today.
 Evidence: to be set with the approved design. Automated tests stay on local fixtures, under ADR-0006.
-
-### M17 — Authenticated pictures (#11) [depends on M13, M16; DECISION at start]
-
-Scope: the authenticated part of image handling. Signed-in users store full-resolution pictures in S3 under their content hash, served through CloudFront, so they no
-longer depend on another peer being online or on the limits of unauthenticated rooms. A small Lambda issues size-limited upload links. Storage limits and costs follow
-the M16 design, and metadata keeps travelling separately. Estimated at about 0.012 cents per 5 MB image at 10 people within CloudFront's free allowance.
-Acceptance: a signed-in user's picture survives every device going offline and appears on another device, and is only reachable by the people
-allowed to see it.
-Evidence: to be set with the approved design, on local fixtures.
 
 ### M18 — MCP server (B8) [depends on M14, M16]
 
