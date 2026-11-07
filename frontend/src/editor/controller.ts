@@ -21,9 +21,10 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { configureConnectionPoints } from "./connectionPoints";
 import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
-import { createView, flyToView } from "./views";
+import { createView, fitContents, flyToView } from "./views";
 import { subscribeIcons } from "./icons";
-import { compareStacking, isVertexKind, offsetPoints } from "../document/geometry";
+import { configurePanels, panelAt } from "./panels";
+import { compareStacking, isContainerKind, isVertexKind, offsetPoints } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 
 export type Tool = ObjectKind | "select" | "pan";
@@ -67,6 +68,7 @@ export class EditorController {
     this.graph.setDropEnabled(true);
     this.graph.setSplitEnabled(false);
     configureConnectionPoints(this.graph, this.document);
+    configurePanels(this.graph, this.document);
     this.graph.addMouseListener({
       mouseDown: () => {},
       mouseMove: () => this.publishPreview(),
@@ -189,6 +191,7 @@ export class EditorController {
     const zoomed = creationValues(kind, view.scale);
     const id = this.document.create(kind, left, top, {
       label: icon?.title ?? (kind === "sticky" ? "Your idea here" : KIND_LABELS[kind]),
+      parent: panelAt(this.document, left, top),
       ...zoomed,
       style: { ...zoomed.style, ...(icon ? { icon: icon.key } : {}) },
     });
@@ -253,7 +256,7 @@ export class EditorController {
       items.forEach((item) => {
         const { rotation, ...geometry } = values.get(item.id)!;
         this.document.patch(item.id, geometry);
-        if (isVertexKind(item.kind) && item.kind !== "group" && transform.angle)
+        if (isVertexKind(item.kind) && !isContainerKind(item.kind) && transform.angle)
           this.document.patchStyle(item.id, { rotation });
       });
     }, LOCAL);
@@ -291,7 +294,11 @@ export class EditorController {
     );
     model.beginUpdate();
     try {
-      this.graph.ungroupCells().forEach((cell) => {
+      // Only groups dissolve; a panel keeps its contents.
+      const groups = this.graph
+        .getSelectionCells()
+        .filter((cell) => this.document.get(cell.id!)?.kind === "group");
+      this.graph.ungroupCells(groups).forEach((cell) => {
         const label = labels.get(cell);
         if (!label || !cell.geometry) return;
         // maxGraph treats relative edge labels as relative child vertices on ungroup.
@@ -363,19 +370,7 @@ export class EditorController {
     this.emit();
   }
   fit() {
-    const bounds = this.graph.getGraphBounds();
-    if (bounds.width <= 0 || bounds.height <= 0) return;
-    const view = this.graph.view;
-    const x = bounds.x / view.scale - view.translate.x;
-    const y = bounds.y / view.scale - view.translate.y;
-    const scale = clampScale(
-      Math.min(
-        2,
-        (this.element.clientWidth - 120) / (bounds.width / view.scale),
-        (this.element.clientHeight - 120) / (bounds.height / view.scale)
-      )
-    );
-    view.scaleAndTranslate(scale, 60 / scale - x, 60 / scale - y);
+    fitContents(this.graph, this.element);
     this.emit();
   }
   savedViews() {

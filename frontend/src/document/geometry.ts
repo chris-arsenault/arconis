@@ -12,6 +12,11 @@ export interface StoredObject extends CanvasObject {
   legacyWorld: Optional<WorldGeometry>;
 }
 
+/** Kinds that hold other objects as children. */
+export function isContainerKind(kind: ObjectKind | undefined) {
+  return kind === "group" || kind === "panel";
+}
+
 export function isVertexKind(kind: ObjectKind) {
   return kind !== "connector" && kind !== "stroke";
 }
@@ -34,7 +39,7 @@ export function readWorldObject(
   let origin = { x: 0, y: 0 };
   if (stored.parent && !visited.has(stored.parent)) {
     const parent = readWorldObject(stored.parent, lookup, visited);
-    if (parent?.kind === "group") origin = parent;
+    if (parent && isContainerKind(parent.kind)) origin = parent;
   }
   return normalize(stored, origin);
 }

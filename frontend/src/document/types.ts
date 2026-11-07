@@ -11,6 +11,7 @@ export type ObjectKind =
   | "sticky"
   | "text"
   | "group"
+  | "panel"
   | "connector"
   | "stroke";
 export type StyleValue = string | number | boolean;
@@ -55,6 +56,7 @@ export const KIND_LABELS: Record<ObjectKind, string> = {
   sticky: "Sticky note",
   text: "Text",
   group: "Group",
+  panel: "Panel",
   connector: "Connector",
   stroke: "Drawing",
 };

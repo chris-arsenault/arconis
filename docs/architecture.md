@@ -18,9 +18,14 @@ edits stay independent of a participant's undo history.
 - **Stacking.** Each record's `order` sets its stacking position, with its identifier breaking ties,
   because `Y.Map` iteration differs between peers. Records from older clients stack by identifier
   until reordered.
-- **Connectors.** A connector identifies its endpoint objects. A connector with a missing endpoint
-  stays in Yjs, hidden from the graph and object list, so out-of-order updates can complete it.
-- **Groups.** Parent cycles break deterministically during projection.
+- **Connectors.** A connector identifies its endpoint objects, and its style map holds any chosen
+  connection points. A connector with a missing endpoint stays in Yjs, hidden from the graph, so
+  out-of-order updates can complete it.
+- **Containers.** Groups and panels hold children through `parent`, and children keep world
+  coordinates. A group's frame follows its members; a panel keeps its size. Parent cycles break
+  deterministically during projection.
+- **Icons.** An icon stores a key from the local Lucide and Simple Icons sets, resolved to an image at
+  projection. Document styles can never supply an image, because peers write them.
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
   so the selection frame scales and rotates them.
 
@@ -33,9 +38,11 @@ maxGraph is an editing and rendering projection of the document.
 - `editor/graphChanges.ts` turns graph edits into Yjs transactions with a local origin. The resulting
   projection runs after maxGraph's model update ends, because edits made during its change
   notification are queued and never redrawn.
-- `editor/rendering.ts` renders labels as escaped HTML, the maxGraph mode that wraps text, and computes
-  shape bounds from geometry instead of measuring each shape. Labels come from peers, so the escaping
-  is a security boundary.
+- `editor/rendering.ts` renders labels as escaped HTML, the maxGraph mode that wraps text, laid out in
+  screen pixels so they render at any zoom, and computes shape bounds from geometry instead of measuring
+  each shape. Labels come from peers, so the escaping is a security boundary.
+- `editor/zoom.ts` holds the zoom range and everything that follows it: the snapping grid, background
+  dots, stroke precision and the size of new objects.
 - `document/transform.ts` computes collective scale and rotation over a gesture's starting snapshot,
   and `components/SelectionFrame.tsx` drives it.
 

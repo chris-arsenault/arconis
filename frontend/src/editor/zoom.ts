@@ -40,6 +40,7 @@ const STYLE_DEFAULTS: Partial<Record<ObjectKind, Record<string, number>>> = {
   text: { fontSize: 22, spacing: 14 },
   connector: { fontSize: 14, strokeWidth: 2, startSize: 6, endSize: 6 },
   stroke: { strokeWidth: 3 },
+  panel: { fontSize: 13, strokeWidth: 1, startSize: 28 },
 };
 const SHAPE_STYLE = { fontSize: 14, spacing: 14, strokeWidth: 1 };
 
@@ -55,6 +56,7 @@ export function creationValues(kind: ObjectKind, scale: number): Partial<CanvasO
   const sizes: Partial<Record<ObjectKind, [number, number]>> = {
     sticky: [190, 170],
     icon: [64, 64],
+    panel: [320, 220],
   };
   const [width, height] = sizes[kind] ?? [160, 90];
   return { width: width * factor, height: height * factor, style };

@@ -76,8 +76,9 @@ Boundaries:
 
 ### Open
 
-- **[DECISION] Vendor icon terms, check at M4.** The agent verifies each vendor's published terms before bundling, starting
-  with AWS. Any set whose terms conflict with ADR-0007 or redistribution in this repository returns to the owner.
+- **[DECISION] AWS service icons, returned to the owner from M4.** AWS's Architecture Icons page allows customers to create
+  diagrams with the icons and says nothing about redistributing them, so they are not bundled. Simple Icons, which M4 ships,
+  has no AWS or Azure logos. Options: the owner accepts AWS's terms for bundling, or people use pasted pictures after M7.
 - **[DECISION] Picture storage, blocks M7.** Recommended: browser-compressed pictures inside the Yjs document with a size
   cap, which keeps the no-backend boundary. Sharp full-size images would need shared storage and a backend, the owner's call.
 - **[DECISION] Mind-map behavior, at M6 start.** The brief gives no requirements, so the owner reacts to the proposal in M6.
@@ -198,5 +199,6 @@ and 11 milestones was canceled before any work, when owner decisions changed its
 
 ## Current state
 
-Planning complete and no implementation started. M0, M1, M2 and M3 have no open owner decisions. Next action: the owner authorizes execution,
-beginning with M0.
+M0 to M5 are implemented and committed locally, unpushed. The owner authorized execution up to M6 and asked to see M3's interface before it
+goes out. M2 also laid labels out in screen pixels, because browsers cannot lay out text at deep-zoom world sizes. M3 kept the saved view
+storage name so existing rooms keep their views. Limits: no real-device, Firefox or WebKit check. Wheel zoom on 450 objects measured about 80 ms per step in headless software rendering. Next action: the owner reviews the interface and decides on pushing, then M6.

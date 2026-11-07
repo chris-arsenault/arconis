@@ -43,6 +43,19 @@ const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown
     // A rotated frame would no longer contain its children; children rotate instead.
     rotatable: false,
   },
+  panel: {
+    shape: "swimlane",
+    startSize: 28,
+    fillColor: "#eef0f5",
+    swimlaneFillColor: "#ffffff",
+    strokeColor: "#b9bfcd",
+    fontSize: 13,
+    fontStyle: 1,
+    whiteSpace: "nowrap",
+    overflow: "visible",
+    rounded: false,
+    rotatable: false,
+  },
   connector: {
     shape: "connector",
     edgeStyle: "orthogonalEdgeStyle",

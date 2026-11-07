@@ -423,10 +423,11 @@ h1 em {
 }
 .stencil-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
 }
 .stencil {
+  min-width: 0;
   flex-direction: column;
   gap: 4px;
   padding: 8px 2px 6px;

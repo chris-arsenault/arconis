@@ -6,6 +6,7 @@ import {
   Hand,
   MousePointer2,
   MoveUpRight,
+  PanelTop,
   Pencil,
   Server,
   Square,
@@ -73,6 +74,7 @@ export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [
       { kind: "rectangle", name: "Rectangle", label: "Rectangle (R)", icon: Square },
       { kind: "ellipse", name: "Ellipse", label: "Ellipse", icon: Circle },
       { kind: "diamond", name: "Decision", label: "Decision (D)", icon: Diamond },
+      { kind: "panel", name: "Panel", label: "Panel", icon: PanelTop },
     ],
   },
   {

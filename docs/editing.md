@@ -14,6 +14,20 @@ canvas. New notes and text open ready for typing; double-click edits any object 
 Selecting something opens the property panel on the right, showing only what applies to it. With
 several objects selected, it applies styles to all of them.
 
+## Panels and groups
+
+A panel is a titled container from the stencil rail. Dragging an object onto a panel, or placing one
+inside it, adds it to the panel, and dragging it out releases it. Moving a panel moves its contents,
+and resizing a panel leaves them alone. Panels accept connectors and can nest.
+
+A group ties a selection together with a frame that fits its members. Select several objects and
+choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a group.
+
+## Icons
+
+Search the stencil rail for shapes and icons, or browse the Infrastructure and Technology sets. Icons
+place, connect, resize and label like other objects.
+
 ## Connecting
 
 Connect objects in any of three ways:

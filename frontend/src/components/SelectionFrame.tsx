@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from 
 import type { Rectangle } from "@maxgraph/core";
 import type { EditorController } from "../editor/controller";
 import type { SelectionTransform } from "../document/transform";
+import { isContainerKind } from "../document/geometry";
 
 type Corner = "nw" | "ne" | "se" | "sw";
 type WorldBox = { x: number; y: number; width: number; height: number };
@@ -69,7 +70,7 @@ export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }
     .getSelectionCells()
     .filter((cell) => editor.document.get(cell.id!)?.kind !== "connector");
   const kinds = cells.map((cell) => editor.document.get(cell.id!)?.kind);
-  const onlyGroup = kinds.length === 1 && kinds[0] === "group";
+  const onlyGroup = kinds.length === 1 && isContainerKind(kinds[0]);
   if (kinds.length < 2 && !onlyGroup && kinds[0] !== "stroke") return null;
   const box = editor.graph.getBoundingBox(cells);
   return box && <Frame editor={editor} box={box} rotateOnly={onlyGroup} />;

@@ -1,7 +1,24 @@
 import type { Graph } from "@maxgraph/core";
 import type { SavedView } from "../document/types";
+import { clampScale } from "./zoom";
 
 const FLY_MS = 350;
+
+export function fitContents(graph: Graph, element: HTMLElement) {
+  const bounds = graph.getGraphBounds();
+  if (bounds.width <= 0 || bounds.height <= 0) return;
+  const { view } = graph;
+  const x = bounds.x / view.scale - view.translate.x;
+  const y = bounds.y / view.scale - view.translate.y;
+  const scale = clampScale(
+    Math.min(
+      2,
+      (element.clientWidth - 120) / (bounds.width / view.scale),
+      (element.clientHeight - 120) / (bounds.height / view.scale)
+    )
+  );
+  view.scaleAndTranslate(scale, 60 / scale - x, 60 / scale - y);
+}
 
 function viewportCenter(graph: Graph, element: HTMLElement) {
   const { scale, translate } = graph.view;

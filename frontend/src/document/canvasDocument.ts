@@ -55,6 +55,7 @@ export class CanvasDocument {
       ...extras,
     };
     if (kind === "icon") Object.assign(item, { width: 64, height: 64, ...extras });
+    if (kind === "panel") Object.assign(item, { width: 320, height: 220, ...extras });
     if (kind === "sticky")
       Object.assign(item, {
         width: 190,

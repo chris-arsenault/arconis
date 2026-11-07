@@ -17,6 +17,7 @@ import {
 import type { EditorController } from "../editor/controller";
 import { COLORS, KIND_LABELS, type CanvasObject, type StyleValue } from "../document/types";
 import { useCollaborativeText } from "../document/useCollaborativeText";
+import { isContainerKind } from "../document/geometry";
 import { objectStyle } from "../editor/styles";
 
 type ItemProps = Readonly<{ editor: EditorController; item: CanvasObject }>;
@@ -314,7 +315,7 @@ function GeometryControls({ editor, item }: ItemProps) {
             onChange={(value) => editor.updateGeometry(item.id, { [key]: value })}
           />
         ))}
-        {item.kind !== "group" && (
+        {!isContainerKind(item.kind) && (
           <NumberField
             prefix="°"
             label="Object rotation"

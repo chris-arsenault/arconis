@@ -1,5 +1,5 @@
 import type { CanvasObject } from "./types";
-import { isVertexKind } from "./geometry";
+import { isContainerKind, isVertexKind } from "./geometry";
 
 export interface SelectionTransform {
   anchor: { x: number; y: number };
@@ -25,9 +25,9 @@ export function transformObjects(items: CanvasObject[], transform: SelectionTran
   const apply = pointTransform(transform);
   const result = new Map<string, TransformedObject>();
   for (const item of items) {
-    if (item.kind !== "group") result.set(item.id, transformObject(item, transform, apply));
+    if (!isContainerKind(item.kind)) result.set(item.id, transformObject(item, transform, apply));
   }
-  const groups = items.filter((item) => item.kind === "group");
+  const groups = items.filter((item) => isContainerKind(item.kind));
   const byId = new Map(items.map((item) => [item.id, item]));
   [...groups]
     .sort((left, right) => depth(right, byId) - depth(left, byId))
