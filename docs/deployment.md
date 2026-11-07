@@ -12,12 +12,15 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 - The relay: an Auto Scaling group behind the shared ALB at `relay.arconis.ahara.io`, its
   S3 bucket of relay code, and its security group and role.
 - The control Lambda behind `/control/*` on the same host, and its SSM parameters.
-- Accounts: a Cognito user pool, a DynamoDB table, a private bucket of encrypted workspaces, the API
-  behind `/api/*` on the relay's host, a pre sign-up Lambda holding new accounts to a daily limit,
-  and a daily maintenance Lambda publishing `Arconis/Accounts` metrics.
-- Agents: the pool's sign-in domain and a public app client for MCP clients, whose redirect addresses
-  are fixed in `accounts.tf`. The relay serves `/mcp` and reads the pool and client from its boot
-  script, and the website's runtime configuration names them for the account panel.
+- Arconis in the shared Ahara Auth0 tenant (`auth0.tf`): its database connection, the application the
+  user pool federates, the MCP API with its default grant for registered connectors, the lifecycle
+  client and the two Actions. The provider reads Ahara's credential from `/ahara/auth0/*`; the tenant,
+  its branding and `auth.ahara.io` belong to ahara-infra.
+- Accounts: a Cognito user pool that only federates Auth0, a DynamoDB table, a private bucket of saved
+  workspaces, the API behind `/api/*` on the relay's host, and a daily maintenance Lambda publishing
+  `Arconis/Accounts` metrics.
+- Agents: the relay serves `/mcp` and reads the tenant's issuer from its boot script, and the website's
+  runtime configuration names the MCP address for the account panel.
 - The website, through Ahara's `website` module: private S3 with S3-managed encryption, behind
   CloudFront and ACM TLS, at `arconis.ahara.io`.
 - Runtime configuration, delivered to browsers as `config.js`.

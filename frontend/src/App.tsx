@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createAccount } from "./account";
-import type { WorkspaceContents } from "./account/workspaceFile";
+import type { SavedCopy } from "./account/workspaceFile";
 import {
   RoomSession,
   createLocalRoomId,
@@ -17,7 +17,7 @@ const NAME_KEY = "arconis:name";
 const account = createAccount();
 
 /** A workspace opened from the account, waiting for its room to start. */
-let pendingSavedCopy: WorkspaceContents | null = null;
+let pendingSavedCopy: SavedCopy | null = null;
 function takeSavedCopy(room: string) {
   const saved = pendingSavedCopy;
   pendingSavedCopy = null;
@@ -96,13 +96,13 @@ export function App() {
     setCreated(id);
     open(id);
   };
-  const openSaved = (contents: WorkspaceContents) => {
-    if (session?.id === contents.roomId) {
-      void session.applySaved(contents);
+  const openSaved = (copy: SavedCopy) => {
+    if (session?.id === copy.roomId) {
+      void session.applySaved(copy);
       return;
     }
-    pendingSavedCopy = contents;
-    open(contents.roomId);
+    pendingSavedCopy = copy;
+    open(copy.roomId);
   };
   const shared = { account, onOpenSaved: openSaved };
   // The welcome form has already offered the name field.

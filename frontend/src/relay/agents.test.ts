@@ -13,9 +13,7 @@ import { Relay } from "./relay";
 const ROOM = "a".repeat(48);
 const config: McpConfig = {
   resource: "https://relay.example/mcp",
-  issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_test",
-  clientId: "agents",
-  authDomain: "https://arconis.auth.us-east-1.amazoncognito.com",
+  issuer: "https://auth.example/",
 };
 const TOKENS: Record<string, string> = { alice: "user-alice", bob: "user-bob" };
 
@@ -114,26 +112,21 @@ async function agent(token = "alice") {
 }
 
 describe("signing in", () => {
-  it("challenges an agent without a valid token and points it at the sign-in metadata", async () => {
+  it("challenges an agent without a valid token and points it at Auth0 to sign in", async () => {
     const response = await fetch(`${base}/mcp`, { method: "POST", body: "{}" });
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toBe(
-      'Bearer resource_metadata="https://relay.example/.well-known/oauth-protected-resource/mcp", scope="openid email"'
+      'Bearer resource_metadata="https://relay.example/.well-known/oauth-protected-resource/mcp", scope="edit:rooms offline_access"'
     );
     const resource = (await (
       await fetch(`${base}/.well-known/oauth-protected-resource/mcp`)
     ).json()) as Record<string, unknown>;
     expect(resource).toMatchObject({
       resource: config.resource,
-      authorization_servers: ["https://relay.example"],
+      authorization_servers: [config.issuer],
     });
-    const server = (await (
-      await fetch(`${base}/.well-known/oauth-authorization-server`)
-    ).json()) as Record<string, unknown>;
-    expect(server).toMatchObject({
-      authorization_endpoint: `${config.authDomain}/oauth2/authorize`,
-      code_challenge_methods_supported: ["S256"],
-    });
+    // The relay serves no authorization server of its own.
+    expect((await fetch(`${base}/.well-known/oauth-authorization-server`)).status).toBe(404);
   });
 
   it("keeps one user's session from another", async () => {

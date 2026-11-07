@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { attachRelay } from "./attach";
-import { cognitoVerifier } from "./cognitoTokens";
+import { accessTokenVerifier } from "./accessTokens";
 import { AgentGateway, type McpConfig } from "./mcpHttp";
 import { Relay, TICK_MS } from "./relay";
 import { s3Pictures } from "./s3Pictures";
@@ -34,12 +34,10 @@ const relay = new Relay({
 function agentGateway() {
   const config: McpConfig = {
     resource: process.env.MCP_RESOURCE ?? "",
-    issuer: process.env.COGNITO_ISSUER ?? "",
-    clientId: process.env.MCP_CLIENT_ID ?? "",
-    authDomain: process.env.AUTH_DOMAIN ?? "",
+    issuer: process.env.AUTH_ISSUER ?? "",
   };
   if (!Object.values(config).every(Boolean)) return null;
-  return new AgentGateway(() => relay, config, cognitoVerifier(config));
+  return new AgentGateway(() => relay, config, accessTokenVerifier(config));
 }
 const agents = agentGateway();
 

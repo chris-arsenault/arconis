@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEnvelope, generateRoomKey } from "../collaboration/roomKey";
 import {
   AccountsApi,
   MAX_NAME_LENGTH,
@@ -11,6 +10,7 @@ import { memoryAccountTable } from "./memoryTable";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
+const ROOM = "ab".repeat(24);
 
 function setup() {
   const table = memoryAccountTable();
@@ -23,23 +23,21 @@ function setup() {
     newRevision: () => "revision",
   };
   const api = new AccountsApi(table, services);
-  const save = (user: string, id: string, size = 100) =>
+  const save = (user: string, id: string, size = 100, values: object = {}) =>
     api.handle(
       user,
       "PUT",
       `/api/workspaces/${id}`,
-      JSON.stringify({ size, checksum: "abc=", sealedName: "sealed" })
+      JSON.stringify({ size, checksum: "abc=", name: "Roadmap", roomId: ROOM, ...values })
     );
   return { api, table, services, save };
 }
 
-const envelope = async () => createEnvelope("password", await generateRoomKey(), 1);
-
 describe("profiles", () => {
-  it("stores a name and key envelope, and has nothing before that", async () => {
+  it("stores a name, and has nothing before that", async () => {
     const { api } = setup();
     expect((await api.handle("a", "GET", "/api/me", "")).status).toBe(404);
-    const body = JSON.stringify({ name: "  Ada  ", envelope: await envelope() });
+    const body = JSON.stringify({ name: "  Ada  " });
     expect((await api.handle("a", "PUT", "/api/me", body)).status).toBe(200);
     const { status, body: profile } = await api.handle("a", "GET", "/api/me", "");
     expect(status).toBe(200);
@@ -51,14 +49,12 @@ describe("profiles", () => {
     ["a long name", { name: "x".repeat(MAX_NAME_LENGTH + 1) }],
   ])("refuses %s", async (_, values) => {
     const { api } = setup();
-    const body = JSON.stringify({ envelope: await envelope(), ...values });
+    const body = JSON.stringify(values);
     expect((await api.handle("a", "PUT", "/api/me", body)).status).toBe(400);
   });
 
-  it("refuses a malformed envelope, and a body that is not JSON", async () => {
+  it("refuses a body that is not JSON", async () => {
     const { api } = setup();
-    const bad = JSON.stringify({ name: "Ada", envelope: { salt: 5 } });
-    expect((await api.handle("a", "PUT", "/api/me", bad)).status).toBe(400);
     expect((await api.handle("a", "PUT", "/api/me", "not json")).status).toBe(400);
   });
 });
@@ -69,7 +65,14 @@ describe("workspaces", () => {
     expect((await save("a", ID)).body).toEqual({ url: `put:a:${ID}`, revision: "revision" });
     expect((await api.handle("a", "GET", "/api/workspaces", "")).body).toEqual({
       workspaces: [
-        { id: ID, sealedName: "sealed", size: 100, revision: "revision", updated: 1000 },
+        {
+          id: ID,
+          name: "Roadmap",
+          roomId: ROOM,
+          size: 100,
+          revision: "revision",
+          updated: 1000,
+        },
       ],
     });
     expect((await api.handle("a", "GET", `/api/workspaces/${ID}`, "")).body).toMatchObject({
@@ -134,15 +137,20 @@ describe("workspaces", () => {
   });
 });
 
+describe("workspace records", () => {
+  it("accepts every kind of room, and refuses a name or room that is not one", async () => {
+    const { save } = setup();
+    for (const roomId of [ROOM, `locked-${ROOM}`, `local-${ROOM}`])
+      expect((await save("a", ID, 100, { roomId })).status).toBe(200);
+    expect((await save("a", ID, 100, { roomId: "../other" })).status).toBe(400);
+    expect((await save("a", ID, 100, { name: "x".repeat(201) })).status).toBe(400);
+  });
+});
+
 describe("deleting an account", () => {
   it("removes workspaces, profile and login", async () => {
     const { api, save, table, services } = setup();
-    await api.handle(
-      "a",
-      "PUT",
-      "/api/me",
-      JSON.stringify({ name: "A", envelope: await envelope() })
-    );
+    await api.handle("a", "PUT", "/api/me", JSON.stringify({ name: "A" }));
     await save("a", ID, 100);
     expect((await api.handle("a", "DELETE", "/api/me", "")).status).toBe(200);
     expect(await table.profile("a")).toBeNull();

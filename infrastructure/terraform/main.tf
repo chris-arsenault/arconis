@@ -9,6 +9,14 @@ terraform {
       source  = "hashicorp/archive"
       version = ">= 2.0"
     }
+    auth0 = {
+      source  = "auth0/auth0"
+      version = "1.59.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
   backend "s3" {
     region       = "us-east-1"
@@ -35,12 +43,13 @@ module "frontend" {
     transport = "relay"
     relayUrl  = "https://${local.relay_hostname}"
 
-    cognitoUserPoolId = aws_cognito_user_pool.accounts.id
-    cognitoClientId   = aws_cognito_user_pool_client.accounts.id
+    # Sign-in goes through the user pool, which hands it to Auth0.
+    authAuthority  = local.cognito_issuer
+    authClientId   = aws_cognito_user_pool_client.accounts.id
+    authSignOutUrl = local.sign_out_url
 
     # Shown to signed-in people so they can connect an agent.
-    mcpUrl      = local.mcp_resource
-    mcpClientId = aws_cognito_user_pool_client.agents.id
+    mcpUrl = local.mcp_resource
   }
 }
 

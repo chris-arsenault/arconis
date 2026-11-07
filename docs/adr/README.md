@@ -16,6 +16,7 @@ product brief, earlier implementations or owner decisions.
 | [0009](0009-relay-on-ec2.md) | Peers sync through a relay on EC2 | Accepted; amended by ADR-0013 | 2026-11-07 |
 | [0010](0010-topics-as-general-abilities.md) | Layout and mind maps are abilities of any object | Accepted | 2026-11-07 |
 | [0011](0011-relay-in-an-auto-scaling-group.md) | The relay runs in an Auto Scaling group | Accepted | 2026-11-07 |
-| [0012](0012-accounts-and-encrypted-workspaces.md) | Accounts, with workspaces encrypted before they are saved | Accepted | 2026-11-07 |
-| [0013](0013-agents-work-through-domain-tools-on-the-relay.md) | Agents work through domain tools on the relay | Accepted; amended by ADR-0014 | 2026-11-07 |
+| [0012](0012-accounts-and-encrypted-workspaces.md) | Accounts, with workspaces encrypted before they are saved | Accepted; superseded in part by ADR-0015 | 2026-11-07 |
+| [0013](0013-agents-work-through-domain-tools-on-the-relay.md) | Agents work through domain tools on the relay | Accepted; amended by ADR-0014, superseded in part by ADR-0015 | 2026-11-07 |
 | [0014](0014-one-canvas-language.md) | One canvas language for the document, files and agents | Accepted | 2026-11-07 |
+| [0015](0015-auth0-accounts-and-connector-sign-in.md) | Accounts live in Ahara's Auth0 tenant, and connectors register there | Accepted | 2026-11-07 |

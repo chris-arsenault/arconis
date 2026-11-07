@@ -1,6 +1,6 @@
 # 0012 — Accounts, with workspaces encrypted before they are saved
 
-- Status: Accepted
+- Status: Accepted; sign-in and the account key superseded by ADR-0015
 - Date: 2026-11-07
 
 ## Context

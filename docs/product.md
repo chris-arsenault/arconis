@@ -49,7 +49,8 @@ thousands of items.
 
 ## Agents
 
-A signed-in person can connect Claude or ChatGPT on the web through MCP, as a custom connector. Given a room's link, the
+A person with an Ahara account can connect Claude or ChatGPT on the web through MCP, as a custom
+connector given only Arconis's address. Given a room's link, the
 agent reads and writes the canvas in the Arconis canvas language: nodes, cards, frames, bands, notes,
 lines, topic trees, references, named styles and discussions, placed beside or aligned with one
 another. One write can lay out a whole architecture, frames within frames. People in the room see its

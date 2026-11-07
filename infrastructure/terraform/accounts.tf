@@ -1,5 +1,6 @@
-# Accounts: a user pool of Arconis's own with open sign-up, DynamoDB for everything Cognito does not
-# hold, and a private bucket of workspaces that are encrypted before they reach it.
+# Accounts: Auth0 holds Arconis's users (auth0.tf). This user pool only federates them, so the ALB
+# can validate AWS-issued tokens. DynamoDB holds profiles and workspace records, and a private bucket
+# holds the workspaces.
 
 locals {
   # Claimed in the shared listener-priority table in ahara/INTEGRATION.md. Ahead of the relay's rule,
@@ -7,8 +8,16 @@ locals {
   accounts_listener_priority = 409
   accounts_table_arn         = aws_dynamodb_table.accounts.arn
   workspaces_bucket          = "arconis-workspaces-${data.aws_caller_identity.current.account_id}"
+  mcp_resource               = "https://${local.relay_hostname}/mcp"
+  cognito_issuer             = "https://cognito-idp.us-east-1.amazonaws.com/${aws_cognito_user_pool.accounts.id}"
+  cognito_domain             = "https://${aws_cognito_user_pool_domain.accounts.domain}.auth.us-east-1.amazoncognito.com"
+  auth0_provider_name        = "Auth0"
+  # Signing out leaves the pool, then Auth0, then returns to the site, so the next sign-in asks again.
+  auth0_sign_out = "${local.auth0_sign_in}/v2/logout?client_id=${auth0_client.web.client_id}&returnTo=${urlencode("${local.site_origin}/")}"
+  sign_out_url   = "${local.cognito_domain}/logout?client_id=${aws_cognito_user_pool_client.accounts.id}&logout_uri=${urlencode(local.auth0_sign_out)}"
 }
 
+# Nobody signs up here: every user arrives from Auth0.
 resource "aws_cognito_user_pool" "accounts" {
   name                     = "arconis-accounts"
   username_attributes      = ["email"]
@@ -17,7 +26,7 @@ resource "aws_cognito_user_pool" "accounts" {
   deletion_protection      = "ACTIVE"
 
   admin_create_user_config {
-    allow_admin_create_user_only = false
+    allow_admin_create_user_only = true
   }
 
   password_policy {
@@ -28,34 +37,6 @@ resource "aws_cognito_user_pool" "accounts" {
     require_symbols                  = false
     temporary_password_validity_days = 7
   }
-
-  verification_message_template {
-    default_email_option = "CONFIRM_WITH_CODE"
-    email_subject        = "Your Arconis activation code"
-    email_message        = "Your Arconis activation code is {####}."
-  }
-
-  lambda_config {
-    pre_sign_up = module.signup_limit.function_arn
-  }
-
-  account_recovery_setting {
-    recovery_mechanism {
-      name     = "verified_email"
-      priority = 1
-    }
-  }
-}
-
-# --- Agents: MCP clients sign in through the pool's own sign-in pages ---
-
-locals {
-  mcp_resource = "https://${local.relay_hostname}/mcp"
-  # Where claude.ai and ChatGPT connectors return after sign-in. ChatGPT gives each connector its own
-  # callback, shown when the connector is created; add each one here. Cognito matches exactly.
-  agent_callback_urls = [
-    "https://claude.ai/api/mcp/auth_callback",
-  ]
 }
 
 resource "aws_cognito_user_pool_domain" "accounts" {
@@ -64,35 +45,47 @@ resource "aws_cognito_user_pool_domain" "accounts" {
   managed_login_version = 1
 }
 
-# A public client using the authorization code flow with PKCE. The relay accepts only this client's
-# access tokens, and Cognito binds them to the MCP address when the agent asks for it.
-resource "aws_cognito_user_pool_client" "agents" {
-  name                                 = "arconis-agents"
+# Endpoints are given in full, so Cognito needs no discovery and matches Auth0's issuer exactly.
+resource "aws_cognito_identity_provider" "auth0" {
+  user_pool_id  = aws_cognito_user_pool.accounts.id
+  provider_name = local.auth0_provider_name
+  provider_type = "OIDC"
+
+  provider_details = {
+    client_id                 = auth0_client.web.client_id
+    client_secret             = random_password.cognito_federation.result
+    attributes_request_method = "GET"
+    oidc_issuer               = local.auth0_issuer
+    authorize_scopes          = "openid email profile"
+    authorize_url             = "${local.auth0_sign_in}/authorize"
+    token_url                 = "${local.auth0_sign_in}/oauth/token"
+    attributes_url            = "${local.auth0_sign_in}/userinfo"
+    jwks_uri                  = "${local.auth0_sign_in}/.well-known/jwks.json"
+  }
+
+  attribute_mapping = {
+    email          = "email"
+    email_verified = "email_verified"
+    username       = "sub"
+  }
+
+  depends_on = [auth0_client_credentials.web]
+}
+
+# The site signs in with the authorization code flow and PKCE, sent straight on to Auth0.
+resource "aws_cognito_user_pool_client" "accounts" {
+  name                                 = "arconis-web"
   user_pool_id                         = aws_cognito_user_pool.accounts.id
   generate_secret                      = false
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
-  allowed_oauth_scopes                 = ["openid", "email"]
-  supported_identity_providers         = ["COGNITO"]
-  callback_urls                        = local.agent_callback_urls
+  allowed_oauth_scopes                 = ["openid", "email", "profile"]
+  supported_identity_providers         = [aws_cognito_identity_provider.auth0.provider_name]
+  callback_urls                        = ["${local.site_origin}/"]
+  logout_urls                          = [local.auth0_sign_out]
   explicit_auth_flows                  = ["ALLOW_REFRESH_TOKEN_AUTH"]
   prevent_user_existence_errors        = "ENABLED"
   enable_token_revocation              = true
-  access_token_validity                = 1
-  refresh_token_validity               = 30
-  token_validity_units {
-    access_token  = "hours"
-    refresh_token = "days"
-  }
-}
-
-# SRP only, so a password never leaves the browser. It also derives the key workspaces are encrypted with.
-resource "aws_cognito_user_pool_client" "accounts" {
-  name                          = "arconis-web"
-  user_pool_id                  = aws_cognito_user_pool.accounts.id
-  generate_secret               = false
-  explicit_auth_flows           = ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
-  prevent_user_existence_errors = "ENABLED"
 }
 
 resource "aws_dynamodb_table" "accounts" {
@@ -174,8 +167,9 @@ data "aws_iam_policy_document" "accounts" {
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
     resources = ["${aws_s3_bucket.workspaces.arn}/workspaces/*"]
   }
+  # Deleting an account finds the person's Auth0 user from their pool user, then removes both.
   statement {
-    actions   = ["cognito-idp:AdminDeleteUser"]
+    actions   = ["cognito-idp:ListUsers", "cognito-idp:AdminDeleteUser"]
     resources = [aws_cognito_user_pool.accounts.arn]
   }
 }
@@ -205,12 +199,12 @@ module "accounts_api" {
 
   reserved_concurrent_executions = 5
 
-  environment = {
+  environment = merge(local.lifecycle_secrets, {
     TABLE_NAME   = aws_dynamodb_table.accounts.name
     BUCKET_NAME  = aws_s3_bucket.workspaces.id
     USER_POOL_ID = aws_cognito_user_pool.accounts.id
     SITE_ORIGIN  = local.site_origin
-  }
+  })
 
   depends_on = [aws_iam_role_policy.accounts, aws_iam_role_policy_attachment.accounts_vpc]
 }
@@ -265,72 +259,7 @@ resource "aws_lb_listener_rule" "accounts" {
   }
 }
 
-# --- Sign-up limit: Cognito asks this before creating an account ---
-
-resource "aws_iam_role" "signup_limit" {
-  name               = "arconis-signup-limit"
-  assume_role_policy = data.aws_iam_policy_document.assume_lambda.json
-}
-
-resource "aws_iam_role_policy_attachment" "signup_limit_basic" {
-  role       = aws_iam_role.signup_limit.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-resource "aws_iam_role_policy_attachment" "signup_limit_vpc" {
-  role       = aws_iam_role.signup_limit.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
-
-data "aws_iam_policy_document" "signup_limit" {
-  statement {
-    actions   = ["dynamodb:UpdateItem"]
-    resources = [local.accounts_table_arn]
-  }
-}
-
-resource "aws_iam_role_policy" "signup_limit" {
-  name   = "arconis-signup-limit"
-  role   = aws_iam_role.signup_limit.id
-  policy = data.aws_iam_policy_document.signup_limit.json
-}
-
-data "archive_file" "signup_limit" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../frontend/dist-relay/signup-limit"
-  output_path = "${path.module}/../../frontend/dist-relay/signup-limit.zip"
-}
-
-# Cognito stops waiting for a trigger after 5 seconds.
-module "signup_limit" {
-  source       = "git::https://github.com/chris-arsenault/ahara-tf-patterns.git//modules/lambda?ref=34287b1925e1b5681281c1fb3ee9199211202ec9"
-  name         = "arconis-signup-limit"
-  package_file = data.archive_file.signup_limit.output_path
-  runtime      = "nodejs24.x"
-  handler      = "index.handler"
-  role_arn     = aws_iam_role.signup_limit.arn
-  vpc          = module.ctx.vpc
-  timeout      = 5
-  memory_size  = 256
-
-  reserved_concurrent_executions = 5
-
-  environment = {
-    TABLE_NAME = aws_dynamodb_table.accounts.name
-  }
-
-  depends_on = [aws_iam_role_policy.signup_limit, aws_iam_role_policy_attachment.signup_limit_vpc]
-}
-
-resource "aws_lambda_permission" "signup_limit" {
-  statement_id  = "AllowCognitoInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = module.signup_limit.function_name
-  principal     = "cognito-idp.amazonaws.com"
-  source_arn    = aws_cognito_user_pool.accounts.arn
-}
-
-# --- Daily maintenance: removes accounts never activated, and publishes account counts ---
+# --- Daily maintenance: removes Auth0 accounts never activated, and publishes account counts ---
 
 resource "aws_iam_role" "maintenance" {
   name               = "arconis-maintenance"
@@ -348,10 +277,6 @@ resource "aws_iam_role_policy_attachment" "maintenance_vpc" {
 }
 
 data "aws_iam_policy_document" "maintenance" {
-  statement {
-    actions   = ["cognito-idp:ListUsers", "cognito-idp:AdminDeleteUser"]
-    resources = [aws_cognito_user_pool.accounts.arn]
-  }
   statement {
     actions   = ["cloudwatch:PutMetricData"]
     resources = ["*"]
@@ -390,10 +315,9 @@ module "maintenance" {
   timeout      = 300
   memory_size  = 256
 
-  environment = {
-    USER_POOL_ID    = aws_cognito_user_pool.accounts.id
+  environment = merge(local.lifecycle_secrets, {
     ALARM_TOPIC_ARN = nonsensitive(data.aws_ssm_parameter.alarm_topic.value)
-  }
+  })
 
   depends_on = [aws_iam_role_policy.maintenance, aws_iam_role_policy_attachment.maintenance_vpc]
 }

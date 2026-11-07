@@ -2,7 +2,7 @@ import { ArrowRight, Shapes, StickyNote, GitBranch, Sparkles } from "lucide-reac
 import { useState } from "react";
 import { parseRoom } from "../collaboration/room";
 import type { AccountStore } from "../account/accountStore";
-import type { WorkspaceContents } from "../account/workspaceFile";
+import type { SavedCopy } from "../account/workspaceFile";
 import { AccountButton } from "./AccountControls";
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
   error: string;
   signedIn: boolean;
   account: AccountStore | null;
-  onOpenSaved: (contents: WorkspaceContents) => void;
+  onOpenSaved: (copy: SavedCopy) => void;
 }
 
 export function Welcome(props: Readonly<Props>) {

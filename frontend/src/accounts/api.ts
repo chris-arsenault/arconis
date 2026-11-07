@@ -1,27 +1,27 @@
-import { parseEnvelope, type Envelope } from "../collaboration/roomKey";
-
 /**
  * The accounts API behind the ALB, which validates each request's token first. It holds profiles and
- * workspace records, and signs storage links. It never sees a password or a key, and workspace bytes
- * and names reach it only as ciphertext.
+ * workspace records, and signs storage links. A password room's saved copy reaches it encrypted under
+ * that room's key; it never sees a password or a key.
  */
 export const MAX_NAME_LENGTH = 40;
 export const MAX_WORKSPACES = 100;
 export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
 export const USER_STORAGE_BYTES = 1024 * 1024 * 1024;
 export const TOTAL_STORAGE_BYTES = 20 * 1024 * 1024 * 1024;
-/** A workspace's encrypted name, which grows a little past what a person would type. */
-const MAX_SEALED_NAME = 2048;
+/** A workspace's name is its room's title, which a person may write at length. */
+const MAX_WORKSPACE_NAME = 200;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** Ordinary, password and device-only rooms: `locked-` and `local-` mark the last two. */
+const ROOM_ID = /^(locked-|local-)?[a-f0-9]{48}$/;
 
 export interface Profile {
   name: string;
-  envelope: Envelope;
   bytes: number;
 }
 export interface WorkspaceRecord {
   id: string;
-  sealedName: string;
+  name: string;
+  roomId: string;
   size: number;
   revision: string;
   updated: number;
@@ -30,7 +30,7 @@ export interface WorkspaceRecord {
 /** What the API needs from DynamoDB. */
 export interface AccountTable {
   profile(user: string): Promise<Profile | null>;
-  saveProfile(user: string, values: Pick<Profile, "name" | "envelope">): Promise<void>;
+  saveProfile(user: string, values: Pick<Profile, "name">): Promise<void>;
   workspaces(user: string): Promise<WorkspaceRecord[]>;
   workspace(user: string, id: string): Promise<WorkspaceRecord | null>;
   saveWorkspace(user: string, record: WorkspaceRecord): Promise<void>;
@@ -40,11 +40,12 @@ export interface AccountTable {
   deleteProfile(user: string): Promise<void>;
 }
 
-/** What the API needs from S3 and Cognito. */
+/** What the API needs from S3, Cognito and Auth0. */
 export interface AccountServices {
   signUpload(user: string, id: string, size: number, checksum: string): Promise<string>;
   signDownload(user: string, id: string): Promise<string>;
   deleteObject(user: string, id: string): Promise<void>;
+  /** Removes the person's sign-in everywhere it exists: Auth0's user and its pool user. */
   deleteLogin(user: string): Promise<void>;
   now(): number;
   newRevision(): string;
@@ -77,16 +78,18 @@ function cleanName(value: unknown) {
 interface SaveRequest {
   size: number;
   checksum: string;
-  sealedName: string;
+  name: string;
+  roomId: string;
 }
 
-function saveProblem({ size, checksum, sealedName }: Record<string, unknown>) {
+function saveProblem({ size, checksum, name, roomId }: Record<string, unknown>) {
   const validSize = Number.isInteger(size) && (size as number) > 0;
   if (!validSize || (size as number) > MAX_WORKSPACE_BYTES)
     return "This workspace is too large to save.";
   if (typeof checksum !== "string" || !checksum) return "A checksum is required.";
-  if (typeof sealedName !== "string" || sealedName.length > MAX_SEALED_NAME)
+  if (typeof name !== "string" || name.length > MAX_WORKSPACE_NAME)
     return "The workspace name is not valid.";
+  if (typeof roomId !== "string" || !ROOM_ID.test(roomId)) return "The room is not valid.";
   return "";
 }
 
@@ -117,10 +120,8 @@ export class AccountsApi {
 
   private async saveProfile(user: string, body: Record<string, unknown>) {
     const name = cleanName(body.name);
-    const envelope = parseEnvelope(body.envelope);
     if (!name) return invalid(`A name needs 1 to ${MAX_NAME_LENGTH} characters.`);
-    if (!envelope) return invalid("The key envelope is not valid.");
-    await this.table.saveProfile(user, { name, envelope });
+    await this.table.saveProfile(user, { name });
     return reply(200, { name });
   }
 
@@ -161,7 +162,7 @@ export class AccountsApi {
   private async prepareSave(user: string, id: string, body: Record<string, unknown>) {
     const problem = saveProblem(body);
     if (problem) return invalid(problem);
-    const { size: bytes, checksum, sealedName } = body as unknown as SaveRequest;
+    const { size: bytes, checksum, name, roomId } = body as unknown as SaveRequest;
     const existing = await this.table.workspace(user, id);
     if (!existing && (await this.table.workspaces(user)).length >= MAX_WORKSPACES)
       return reply(409, { error: `An account can hold ${MAX_WORKSPACES} workspaces.` });
@@ -169,7 +170,8 @@ export class AccountsApi {
       return reply(409, { error: "This account's storage is full." });
     const record: WorkspaceRecord = {
       id,
-      sealedName,
+      name: name.trim(),
+      roomId,
       size: bytes,
       revision: this.services.newRevision(),
       updated: this.services.now(),

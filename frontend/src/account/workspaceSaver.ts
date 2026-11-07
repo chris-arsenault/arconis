@@ -1,5 +1,5 @@
 import type { AccountStore } from "./accountStore";
-import type { WorkspaceContents } from "./workspaceFile";
+import type { SavedCopy } from "./workspaceFile";
 
 /** Quiet time after an edit before a saved workspace is stored again. */
 export const AUTOSAVE_MS = 30_000;
@@ -8,9 +8,9 @@ export const AUTOSAVE_MS = 30_000;
 export interface SaveableRoom {
   id: string;
   title(): string;
-  contents(): Promise<WorkspaceContents>;
+  contents(): Promise<SavedCopy>;
   /** Merges a stored copy in. The document is a CRDT, so nothing in either copy is lost. */
-  apply(contents: WorkspaceContents): Promise<void>;
+  apply(copy: SavedCopy): Promise<void>;
   onChange(listener: () => void): () => void;
 }
 
@@ -52,8 +52,8 @@ export class WorkspaceSaver {
 
   private async mergeNewer(revision: string) {
     if (revision === this.revision) return;
-    const { contents, revision: loaded } = await this.account.load(this.id!);
-    await this.room.apply(contents);
+    const { copy, revision: loaded } = await this.account.load(this.id!);
+    await this.room.apply(copy);
     this.revision = loaded;
   }
 

@@ -156,9 +156,10 @@ to close its sockets with that reason. Counting by month re-enables it automatic
 month-scoped SSM parameter raises the limit by hand. Each level alerts once through Ahara's alarm
 topic.
 
-**Agents.** `relay/mcpHttp.ts` serves MCP over HTTP at `/mcp` on the relay host, with the OAuth
-discovery documents MCP clients need. Cognito is the authorization server: the relay accepts only access
-tokens issued to the agents' app client and bound to the endpoint. Opening a room adds a peer in the
+**Agents.** `relay/mcpHttp.ts` serves MCP over HTTP at `/mcp` on the relay host, with the protected
+resource metadata that points MCP clients at the Ahara Auth0 tenant. Connectors register there and the
+person signs in and consents; `relay/accessTokens.ts` accepts only the tenant's tokens whose audience is
+this endpoint ([ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Opening a room adds a peer in the
 relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the canvas from someone there
 and carries a language session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
 opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
@@ -167,12 +168,23 @@ canvas language, undo, and search icons.
 
 ## Accounts
 
-`accounts/` is the server side, and `account/` the browser's ([ADR-0012](adr/0012-accounts-and-encrypted-workspaces.md)).
-The browser wraps a random account key with the sign-in password, through the same envelope as password
-rooms, stores the wrapped key on the server, and keeps the opened key in IndexedDB until sign-out. It
-encrypts each workspace and its name under that key. The API behind `/api/*` checks limits and signs
-S3 links, and `account/workspaceSaver.ts` merges any newer saved copy before storing, so two devices
-cannot overwrite each other's work. `accounts/maintenance.ts` runs daily.
+`accounts/` is the server side, and `account/` the browser's ([ADR-0012](adr/0012-accounts-and-encrypted-workspaces.md),
+[ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Arconis's users are its own database
+connection in the shared Ahara Auth0 tenant. The browser signs in with the authorization code flow and
+PKCE (`account/auth.ts`, through `oidc-client-ts`) against the user pool, which sends it straight on to
+Auth0, so the ALB validates pool tokens on `/api/*`. Sign-up, activation and password resets are Auth0's
+pages.
+
+`account/workspaceFile.ts` defines the saved copy: an ordinary room's contents as they are, or a password
+room's sealed under its room key with the envelope its password opens, which `collaboration/room.ts`
+opens once the room's password is entered. The API checks limits and signs S3 links, and
+`account/workspaceSaver.ts` merges any newer saved copy before storing, so two devices cannot overwrite
+each other's work.
+
+Two Auth0 Actions, bundled from `accounts/auth0ActionEntries.ts`, act only on Arconis's connection: one
+holds sign-ups to the day's limit, the other refuses sign-in until the email is verified.
+`accounts/maintenance.ts` runs daily through the Management API, removing accounts never activated and
+publishing account counts.
 
 ## Limitations
 

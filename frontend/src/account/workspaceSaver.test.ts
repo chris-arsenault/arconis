@@ -2,29 +2,27 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import type { SavedWorkspace } from "./accountStore";
 import { AUTOSAVE_MS, WorkspaceSaver, type SaveableRoom } from "./workspaceSaver";
-import type { WorkspaceContents } from "./workspaceFile";
+import { isSealed, type SavedCopy } from "./workspaceFile";
 
 afterEach(() => vi.useRealTimers());
 
 /** A room over a real document, and a store holding what a server would. */
 function setup() {
   const doc = new Y.Doc();
-  const server: { saved: SavedWorkspace | null; contents: WorkspaceContents | null } = {
+  const server: { saved: SavedWorkspace | null; copy: SavedCopy | null } = {
     saved: null,
-    contents: null,
+    copy: null,
   };
   let revisions = 0;
   const account = {
     workspaces: vi.fn(() => Promise.resolve(server.saved ? [server.saved] : [])),
-    save: vi.fn((id: string, name: string, contents: WorkspaceContents) => {
+    save: vi.fn((id: string, name: string, copy: SavedCopy) => {
       const revision = `r${++revisions}`;
-      server.contents = contents;
-      server.saved = { id, name, roomId: contents.roomId, size: 1, updated: 1, revision };
+      server.copy = copy;
+      server.saved = { id, name, roomId: copy.roomId, size: 1, updated: 1, revision };
       return Promise.resolve(revision);
     }),
-    load: vi.fn(() =>
-      Promise.resolve({ contents: server.contents!, revision: server.saved!.revision })
-    ),
+    load: vi.fn(() => Promise.resolve({ copy: server.copy!, revision: server.saved!.revision })),
   };
   const room: SaveableRoom = {
     id: "room",
@@ -32,12 +30,10 @@ function setup() {
     contents: () =>
       Promise.resolve({
         roomId: "room",
-        update: Y.encodeStateAsUpdate(doc),
-        pictures: [],
-        envelope: null,
+        contents: { roomId: "room", update: Y.encodeStateAsUpdate(doc), pictures: [] },
       }),
-    apply: (contents) => {
-      Y.applyUpdate(doc, contents.update);
+    apply: (copy) => {
+      if (!isSealed(copy)) Y.applyUpdate(doc, copy.contents.update);
       return Promise.resolve();
     },
     onChange: (listener) => {
@@ -90,7 +86,7 @@ describe("other devices", () => {
     await first.saver.save();
     const second = setup();
     second.server.saved = first.server.saved;
-    second.server.contents = first.server.contents;
+    second.server.copy = first.server.copy;
     await second.saver.attach();
     expect(second.saver.id).toBe(first.saver.id);
     expect(second.doc.getMap("m").get("from first")).toBe(1);
@@ -100,15 +96,23 @@ describe("other devices", () => {
     const { doc, server, saver, account } = setup();
     doc.getMap("m").set("here", 1);
     await saver.save();
+    const stored = () => {
+      const copy = server.copy!;
+      if (isSealed(copy)) throw new Error("This test saves an ordinary room.");
+      return copy.contents;
+    };
     const elsewhere = new Y.Doc();
-    Y.applyUpdate(elsewhere, server.contents!.update);
+    Y.applyUpdate(elsewhere, stored().update);
     elsewhere.getMap("m").set("there", 2);
-    server.contents = { ...server.contents!, update: Y.encodeStateAsUpdate(elsewhere) };
+    server.copy = {
+      roomId: "room",
+      contents: { ...stored(), update: Y.encodeStateAsUpdate(elsewhere) },
+    };
     server.saved = { ...server.saved!, revision: "from another device" };
     await saver.save();
     expect(account.load).toHaveBeenCalledOnce();
     const merged = new Y.Doc();
-    Y.applyUpdate(merged, server.contents.update);
+    Y.applyUpdate(merged, stored().update);
     expect(merged.getMap("m").toJSON()).toEqual({ here: 1, there: 2 });
   });
 

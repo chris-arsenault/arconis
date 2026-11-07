@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { AccountsApi, tokenSubject } from "../accounts/api";
 import { memoryAccountTable } from "../accounts/memoryTable";
@@ -9,81 +9,41 @@ async function readBody(request: IncomingMessage) {
   return Buffer.concat(chunks);
 }
 
-/** A token shaped like Cognito's. The real ALB validates tokens; this stand-in has nothing to check. */
-function token(sub: string, use: string) {
+/** A token shaped like the pool's. The real ALB validates tokens; this stand-in has nothing to check. */
+function token(claims: object) {
   const part = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
   const now = Math.floor(Date.now() / 1000);
-  return `${part({ alg: "none" })}.${part({ sub, username: sub, token_use: use, iat: now, exp: now + 3600 })}.x`;
+  return `${part({ alg: "none" })}.${part({ iat: now, exp: now + 3600, ...claims })}.x`;
 }
 
-const CONFIRMATION_CODE = "123456";
+/** An email the stand-in treats as never activated, as Auth0's post-login Action refuses it. */
+export const UNACTIVATED_EMAIL = "unactivated@example.com";
+export const FIXTURE_CLIENT_ID = "fixture";
 
-type CognitoBody = Partial<{
-  Username: string;
-  ConfirmationCode: string;
-  AuthParameters: Record<string, string>;
-  ChallengeResponses: Record<string, string>;
-}>;
+interface Grant {
+  email: string;
+  challenge: string;
+}
 
-type CognitoReply = [number, object];
+const escape = (value: string) => value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
-function cognitoStandIn(
-  users: Map<string, { confirmed: boolean }>
-): Record<string, (body: CognitoBody) => CognitoReply> {
-  const authenticated = (username: string) => ({
-    AuthenticationResult: {
-      AccessToken: token(username, "access"),
-      IdToken: token(username, "id"),
-      RefreshToken: "refresh",
-      ExpiresIn: 3600,
-      TokenType: "Bearer",
-    },
-    ChallengeParameters: {},
-  });
-  return {
-    SignUp: ({ Username }) => {
-      users.set(Username!, { confirmed: false });
-      return [200, { UserConfirmed: false, UserSub: Username }];
-    },
-    ConfirmSignUp: ({ Username, ConfirmationCode }) => {
-      if (ConfirmationCode !== CONFIRMATION_CODE)
-        return [400, { __type: "CodeMismatchException", message: "Invalid code." }];
-      users.set(Username!, { confirmed: true });
-      return [200, {}];
-    },
-    InitiateAuth: ({ AuthParameters }) => {
-      const username = AuthParameters?.USERNAME ?? "";
-      if (!users.get(username)?.confirmed)
-        return [400, { __type: "UserNotConfirmedException", message: "User is not confirmed." }];
-      return [
-        200,
-        {
-          ChallengeName: "PASSWORD_VERIFIER",
-          ChallengeParameters: {
-            USER_ID_FOR_SRP: username,
-            USERNAME: username,
-            SALT: randomBytes(16).toString("hex"),
-            SECRET_BLOCK: randomBytes(64).toString("base64"),
-            SRP_B: randomBytes(256).toString("hex"),
-          },
-        },
-      ];
-    },
-    RespondToAuthChallenge: ({ ChallengeResponses }) => [
-      200,
-      authenticated(ChallengeResponses?.USERNAME ?? ""),
-    ],
-  };
+/** The stand-in for the hosted sign-in page: one email field, as if the password were accepted. */
+function signInPage(query: URLSearchParams) {
+  const hidden = ["redirect_uri", "state", "code_challenge"]
+    .map((name) => `<input type="hidden" name="${name}" value="${escape(query.get(name) ?? "")}">`)
+    .join("");
+  return `<!doctype html><title>Sign in to Ahara</title><form method="post">${hidden}
+<label>Email <input name="email" type="email" aria-label="Email"></label>
+<button>Continue</button></form>`;
 }
 
 /**
- * Test-only: the real accounts API over memory, and a stand-in for Cognito's wire protocol, so the
- * real sign-in library runs unchanged. SRP's proof is not checked, so wrong passwords are the one
- * thing here that only real Cognito can refuse.
+ * Test-only: the real accounts API over memory, and a stand-in for the sign-in service the site
+ * uses (the user pool, federating Auth0), so the real OIDC library runs unchanged. Passwords are
+ * the one thing here that only real Auth0 checks.
  */
 export function accountFixture(base: () => string) {
   const objects = new Map<string, Buffer>();
-  const users = new Map<string, { confirmed: boolean }>();
   const api = new AccountsApi(memoryAccountTable(), {
     signUpload: (user, id) => Promise.resolve(`${base()}/objects/${user}/${id}`),
     signDownload: (user, id) => Promise.resolve(`${base()}/objects/${user}/${id}`),
@@ -91,22 +51,11 @@ export function accountFixture(base: () => string) {
       objects.delete(`/objects/${user}/${id}`);
       return Promise.resolve();
     },
-    deleteLogin: (user) => {
-      users.delete(user);
-      return Promise.resolve();
-    },
+    deleteLogin: () => Promise.resolve(),
     now: Date.now,
     newRevision: () => crypto.randomUUID(),
   });
-  const cognito = cognitoStandIn(users);
-  const answerCognito = async (request: IncomingMessage, response: ServerResponse) => {
-    const target = String(request.headers["x-amz-target"]).split(".").pop()!;
-    const body = JSON.parse(String(await readBody(request))) as CognitoBody;
-    const [status, result] = cognito[target]?.(body) ?? [200, {}];
-    response.statusCode = status;
-    response.setHeader("content-type", "application/x-amz-json-1.1");
-    response.end(JSON.stringify(result));
-  };
+  const answerSignIn = signInStandIn(base);
   const answerObject = async (request: IncomingMessage, response: ServerResponse) => {
     if (request.method === "PUT") objects.set(request.url!, await readBody(request));
     const stored = objects.get(request.url!);
@@ -128,11 +77,95 @@ export function accountFixture(base: () => string) {
     /** Answers this fixture's requests, and returns false for anyone else's. */
     handle(request: IncomingMessage, response: ServerResponse) {
       const url = request.url ?? "";
-      if (url === "/cognito") void answerCognito(request, response);
+      if (url.startsWith("/oidc/")) answerSignIn(request, response);
       else if (url.startsWith("/objects/")) void answerObject(request, response);
       else if (url.startsWith("/api/")) void answerApi(request, response);
       else return false;
       return true;
     },
+  };
+}
+
+const json = (response: ServerResponse, status: number, body: object) => {
+  response.statusCode = status;
+  response.setHeader("content-type", "application/json");
+  response.end(JSON.stringify(body));
+};
+const redirect = (response: ServerResponse, to: string) => {
+  response.statusCode = 302;
+  response.setHeader("location", to);
+  response.end();
+};
+
+/** The sign-in service: discovery, the sign-in page, codes checked against PKCE, and tokens. */
+function signInStandIn(base: () => string) {
+  const grants = new Map<string, Grant>();
+  const issuer = () => `${base()}/oidc`;
+  const tokens = (email: string) => {
+    const sub = createHash("sha256").update(email).digest("hex").slice(0, 32);
+    return {
+      access_token: token({ sub, token_use: "access", client_id: FIXTURE_CLIENT_ID }),
+      id_token: token({ sub, iss: issuer(), aud: FIXTURE_CLIENT_ID, email, token_use: "id" }),
+      refresh_token: `refresh:${email}`,
+      token_type: "Bearer",
+      expires_in: 3600,
+    };
+  };
+  const discovery = () => ({
+    issuer: issuer(),
+    authorization_endpoint: `${issuer()}/authorize`,
+    token_endpoint: `${issuer()}/token`,
+    jwks_uri: `${issuer()}/jwks`,
+    response_types_supported: ["code"],
+    code_challenge_methods_supported: ["S256"],
+  });
+  const authorize = async (request: IncomingMessage, response: ServerResponse) => {
+    const url = new URL(request.url!, base());
+    if (request.method === "GET") {
+      response.setHeader("content-type", "text/html");
+      response.end(signInPage(url.searchParams));
+      return;
+    }
+    const form = new URLSearchParams(String(await readBody(request)));
+    const back = new URL(form.get("redirect_uri")!);
+    back.searchParams.set("state", form.get("state") ?? "");
+    const email = form.get("email") ?? "";
+    if (email === UNACTIVATED_EMAIL) {
+      back.searchParams.set("error", "access_denied");
+      back.searchParams.set(
+        "error_description",
+        "Activate your Arconis account from the email we sent, then sign in again."
+      );
+    } else {
+      const code = randomBytes(16).toString("hex");
+      grants.set(code, { email, challenge: form.get("code_challenge") ?? "" });
+      back.searchParams.set("code", code);
+    }
+    redirect(response, back.toString());
+  };
+  const exchange = async (request: IncomingMessage, response: ServerResponse) => {
+    const form = new URLSearchParams(String(await readBody(request)));
+    if (form.get("grant_type") === "refresh_token") {
+      const email = form.get("refresh_token")?.replace(/^refresh:/, "") ?? "";
+      return json(response, 200, tokens(email));
+    }
+    const grant = grants.get(form.get("code") ?? "");
+    grants.delete(form.get("code") ?? "");
+    const verifier = form.get("code_verifier") ?? "";
+    const challenge = createHash("sha256").update(verifier).digest("base64url");
+    if (!grant || grant.challenge !== challenge)
+      return json(response, 400, { error: "invalid_grant" });
+    json(response, 200, tokens(grant.email));
+  };
+  return (request: IncomingMessage, response: ServerResponse) => {
+    const path = new URL(request.url!, base()).pathname;
+    if (path === "/oidc/.well-known/openid-configuration") return json(response, 200, discovery());
+    if (path === "/oidc/authorize") return void authorize(request, response);
+    if (path === "/oidc/token") return void exchange(request, response);
+    if (path === "/oidc/jwks") return json(response, 200, { keys: [] });
+    // Signing out returns to the site, as the pool and then Auth0 do.
+    if (path === "/oidc/logout")
+      return redirect(response, `${new URL(request.headers.referer ?? base()).origin}/`);
+    json(response, 404, {});
   };
 }

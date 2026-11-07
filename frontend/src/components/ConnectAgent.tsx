@@ -3,13 +3,11 @@ import { Copy } from "lucide-react";
 
 interface AgentConfig {
   mcpUrl?: string;
-  mcpClientId?: string;
 }
 
-/** What a connector needs, or null where agents are not configured. */
+/** The address a connector needs, or null where agents are not configured. */
 export function agentSettings(config: AgentConfig | undefined) {
-  if (!config?.mcpUrl || !config.mcpClientId) return null;
-  return { url: config.mcpUrl, clientId: config.mcpClientId };
+  return config?.mcpUrl ? { url: config.mcpUrl } : null;
 }
 
 function CopyField({ label, value }: Readonly<{ label: string; value: string }>) {
@@ -38,13 +36,11 @@ export function ConnectAgent() {
     <section className="connect-agent" aria-label="Connect Claude or ChatGPT">
       <h3>Connect Claude or ChatGPT</h3>
       <p className="password-note">
-        Add a custom connector with this server address. Under its OAuth settings, enter this client
-        ID and leave the secret empty. Sign in with this account when asked, then give the assistant
-        a room&apos;s link. Someone must have the room open, and password rooms stay closed to
-        assistants.
+        Add a custom connector with this server address and leave its OAuth settings empty. Sign in
+        with this Ahara account when asked and allow access, then give the assistant a room&apos;s
+        link. Someone must have the room open, and password rooms stay closed to assistants.
       </p>
       <CopyField label="Server address" value={settings.url} />
-      <CopyField label="Client ID" value={settings.clientId} />
     </section>
   );
 }

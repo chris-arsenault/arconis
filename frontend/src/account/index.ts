@@ -1,10 +1,10 @@
-import { AccountStore, indexedDbKeyVault } from "./accountStore";
-import { cognitoAuth, type AccountConfig } from "./auth";
+import { AccountStore } from "./accountStore";
+import { oidcAuth, type AccountConfig } from "./auth";
 
 /** The account service, or null where none is configured, such as local development. */
 export function createAccount() {
   const config = window.__APP_CONFIG__ as Partial<AccountConfig> | undefined;
-  if (!config?.cognitoUserPoolId || !config.cognitoClientId || !config.relayUrl) return null;
-  const auth = cognitoAuth(config as AccountConfig);
-  return new AccountStore(auth, indexedDbKeyVault(), config.relayUrl);
+  if (!config?.authAuthority || !config.authClientId || !config.authSignOutUrl || !config.relayUrl)
+    return null;
+  return new AccountStore(oidcAuth(config as AccountConfig), config.relayUrl);
 }

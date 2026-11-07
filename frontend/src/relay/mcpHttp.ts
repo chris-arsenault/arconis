@@ -7,16 +7,15 @@ import { AgentSession } from "./agentSession";
 import { createMcpServer } from "./mcp";
 import type { Relay } from "./relay";
 
-/** How the MCP endpoint finds its sign-in service. Cognito is the authorization server. */
+/**
+ * How the MCP endpoint finds its sign-in service: the Ahara Auth0 tenant, where connectors register
+ * themselves and people sign in with their Arconis account.
+ */
 export interface McpConfig {
-  /** The endpoint's canonical URL, which tokens must be bound to. */
+  /** The endpoint's canonical URL, which is the Auth0 API's identifier and tokens' audience. */
   resource: string;
-  /** The user pool's issuer, `https://cognito-idp.<region>.amazonaws.com/<pool>`. */
+  /** The tenant's issuer, `https://auth.ahara.io/`. */
   issuer: string;
-  /** The app client agents sign in through. */
-  clientId: string;
-  /** The user pool's sign-in domain, `https://<prefix>.auth.<region>.amazoncognito.com`. */
-  authDomain: string;
 }
 
 export interface Caller {
@@ -28,7 +27,8 @@ export interface Caller {
 export type TokenVerifier = (token: string) => Promise<Caller | null>;
 
 export const MCP_PATH = "/mcp";
-export const SCOPES = ["openid", "email"];
+/** The API's scope, and `offline_access` so connectors can refresh instead of signing in again. */
+export const SCOPES = ["edit:rooms", "offline_access"];
 /** A connection unused this long is closed, with the agent's room peer. */
 export const SESSION_IDLE_MS = 30 * 60_000;
 export const MAX_SESSIONS = 50;
@@ -89,18 +89,11 @@ export class AgentGateway {
     return new URL(this.config.resource).origin;
   }
 
-  /** Answers MCP and its discovery documents; returns false for anything else. */
+  /** Answers MCP and its discovery document; returns false for anything else. */
   async handle(request: IncomingMessage, response: ServerResponse) {
     const path = (request.url ?? "/").split("?")[0];
     if (path.startsWith("/.well-known/oauth-protected-resource")) {
       json(response, 200, this.resourceMetadata());
-      return true;
-    }
-    if (
-      path === "/.well-known/oauth-authorization-server" ||
-      path === "/.well-known/openid-configuration"
-    ) {
-      json(response, 200, this.authorizationMetadata());
       return true;
     }
     if (path !== MCP_PATH) return false;
@@ -108,34 +101,14 @@ export class AgentGateway {
     return true;
   }
 
-  /** RFC 9728: where agents sign in for this endpoint. */
+  /** RFC 9728: Auth0 is where agents register and sign in for this endpoint. */
   resourceMetadata() {
     return {
       resource: this.config.resource,
-      authorization_servers: [this.origin],
+      authorization_servers: [this.config.issuer],
       scopes_supported: SCOPES,
       bearer_methods_supported: ["header"],
       resource_name: "Arconis",
-    };
-  }
-
-  /**
-   * RFC 8414 metadata describing the user pool's own endpoints. Cognito publishes no such document,
-   * and MCP clients need one that declares PKCE support.
-   */
-  authorizationMetadata() {
-    const domain = this.config.authDomain;
-    return {
-      issuer: this.origin,
-      authorization_endpoint: `${domain}/oauth2/authorize`,
-      token_endpoint: `${domain}/oauth2/token`,
-      revocation_endpoint: `${domain}/oauth2/revoke`,
-      jwks_uri: `${this.config.issuer}/.well-known/jwks.json`,
-      response_types_supported: ["code"],
-      grant_types_supported: ["authorization_code", "refresh_token"],
-      code_challenge_methods_supported: ["S256"],
-      token_endpoint_auth_methods_supported: ["none"],
-      scopes_supported: SCOPES,
     };
   }
 

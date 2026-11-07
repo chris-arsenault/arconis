@@ -42,20 +42,22 @@ choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a
 
 ## Accounts and saved workspaces
 
-Rooms need no account. Signing up takes an email, which must be activated with a code within 7 days, and
-a name, which then replaces the name you would otherwise type into rooms. The cloud button in the header
-saves the room to your account and keeps it saved, merging with anything saved from another device.
-Saved workspaces open from the account menu on any device, with nobody else online.
+Rooms need no account. "Sign in or create an account" in the account panel opens Ahara's sign-in page,
+which also creates accounts; a new one is activated from the email it is sent within 7 days. The account
+starts named after your email, and the name you choose in the panel replaces the one you would otherwise
+type into rooms. The cloud button in the header saves the room to your account and keeps it saved,
+merging with anything saved from another device. Saved workspaces open from the account menu on any
+device, with nobody else online.
 
-Workspaces are encrypted with your password in your browser. Resetting a forgotten password keeps them
-only if you still know the old one; otherwise they are lost.
+A saved password room is listed as "Password room" and asks for the room's password when opened.
+Resetting your account password keeps every saved workspace.
 
 ## Agents
 
-The account panel's Connect Claude or ChatGPT section gives the server address and client ID. In
-claude.ai or ChatGPT, add a custom connector with that address, enter the client ID in its OAuth
-settings with the secret left empty, sign in with your Arconis account when asked, then give the
-assistant a room's link. Someone must have the room open. The agent appears in the room under its own name, its changes merge like
+The account panel's Connect Claude or ChatGPT section gives the server address. In claude.ai or
+ChatGPT, add a custom connector with that address and leave its OAuth settings empty, sign in with your
+Ahara account and allow access when asked, then give the assistant a room's link. Someone must have the
+room open. The agent appears in the room under its own name, its changes merge like
 anyone's, and its comments are signed with that name. Password rooms and rooms on this device stay
 closed to agents.
 

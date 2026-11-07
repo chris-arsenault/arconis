@@ -5,7 +5,8 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 ## Accounts
 
 - Let groups share saved workspaces, when group activities are designed. A saved workspace is
-  private to its account until then, and its account key opens it.
+  private to its account until then.
+- Send Ahara's sign-in emails from an Ahara address through SES rather than Auth0's built-in sender.
 
 ## Agents
 
@@ -14,8 +15,8 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Let agents see the rendered canvas, to judge layout as people do.
 - Keep lines routed around items from crossing or overlapping one another where they can run apart.
 - Let agents add pictures.
-- Let MCP clients connect without being given the client id, through dynamic client registration or
-  client metadata documents in front of Cognito.
+- Let connectors register through client metadata documents as well as dynamic client registration,
+  once the Ahara tenant is entitled to them.
 
 ## Platform
 

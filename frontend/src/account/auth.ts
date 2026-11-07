@@ -1,116 +1,85 @@
-import {
-  AuthenticationDetails,
-  CognitoUser,
-  CognitoUserAttribute,
-  CognitoUserPool,
-  type CognitoUserSession,
-} from "amazon-cognito-identity-js";
+import { UserManager, WebStorageStateStore } from "oidc-client-ts";
 
 export interface AccountConfig {
-  cognitoUserPoolId: string;
-  cognitoClientId: string;
+  /** The user pool's issuer. The pool federates the Ahara Auth0 tenant, where accounts live. */
+  authAuthority: string;
+  authClientId: string;
+  /** Where signing out goes: the pool's sign-out, which then signs out of Auth0. */
+  authSignOutUrl: string;
   /** Where the accounts API is reached. */
   relayUrl: string;
-  /** Test fixtures only: a stand-in for Cognito. */
-  cognitoEndpoint?: string;
 }
 
-/** What the account needs from Cognito. Sign-in uses SRP, so the password never leaves the browser. */
+/** What the account needs from sign-in. Signing in, signing up and activation happen at Auth0. */
 export interface Auth {
-  signUp(email: string, password: string): Promise<void>;
-  confirm(email: string, code: string): Promise<void>;
-  resendCode(email: string): Promise<void>;
-  signIn(email: string, password: string): Promise<void>;
-  /** A current token, refreshed if needed, or null when signed out. */
+  /** Finishes a sign-in the browser has just come back from, if it has. */
+  completeSignIn(): Promise<void>;
+  /** Leaves for the sign-in page, which also creates accounts. */
+  signIn(): Promise<void>;
+  /** A current access token, refreshed if needed, or null when signed out. */
   token(): Promise<string | null>;
-  email(): string | null;
-  signOut(): void;
-  forgotPassword(email: string): Promise<void>;
-  resetPassword(email: string, code: string, password: string): Promise<void>;
-  changePassword(current: string, next: string): Promise<void>;
+  email(): Promise<string | null>;
+  signOut(): Promise<void>;
 }
 
-/** Cognito wraps what the pre sign-up trigger says; the person only needs what it said. */
-export function signUpFailure(error: Error) {
-  const said = /^PreSignUp failed with error (.+?)\.?$/.exec(error.message)?.[1];
-  return said ? new Error(`${said}.`) : error;
+/** The pool sends sign-in straight on to this identity provider (accounts.tf). */
+const IDENTITY_PROVIDER = "Auth0";
+
+interface ReturnState {
+  hash: string;
 }
 
-function done(resolve: () => void, reject: (error: Error) => void) {
-  return (error: Error | undefined | null) => {
-    if (error) reject(error);
-    else resolve();
-  };
+/** Why sign-in came back without a sign-in, in the person's terms. */
+export function signInFailure(params: URLSearchParams) {
+  const reason = params.get("error_description") ?? params.get("error");
+  return reason ? new Error(reason) : null;
 }
 
-export function cognitoAuth(config: AccountConfig): Auth {
-  const pool = new CognitoUserPool({
-    UserPoolId: config.cognitoUserPoolId,
-    ClientId: config.cognitoClientId,
-    endpoint: config.cognitoEndpoint,
+export function oidcAuth(config: AccountConfig): Auth {
+  const home = `${location.origin}/`;
+  const users = new UserManager({
+    authority: config.authAuthority,
+    client_id: config.authClientId,
+    redirect_uri: home,
+    response_type: "code",
+    scope: "openid email profile",
+    extraQueryParams: { identity_provider: IDENTITY_PROVIDER },
+    userStore: new WebStorageStateStore({ store: localStorage }),
+    automaticSilentRenew: false,
+    loadUserInfo: false,
   });
-  const user = (email: string) => new CognitoUser({ Username: email, Pool: pool });
-  const session = (current: CognitoUser) =>
-    new Promise<CognitoUserSession>((resolve, reject) =>
-      current.getSession((error: Error | null, value: CognitoUserSession | null) => {
-        if (value) resolve(value);
-        else reject(error ?? new Error("Sign in again."));
-      })
-    );
+  const current = async () => {
+    const user = await users.getUser();
+    if (!user) return null;
+    if (!user.expired) return user;
+    try {
+      return await users.signinSilent();
+    } catch {
+      await users.removeUser();
+      return null;
+    }
+  };
   return {
-    signUp: (email, password) =>
-      new Promise((resolve, reject) => {
-        const attribute = new CognitoUserAttribute({ Name: "email", Value: email });
-        pool.signUp(email, password, [attribute], [], (error) =>
-          done(resolve, reject)(error && signUpFailure(error))
-        );
-      }),
-    confirm: (email, code) =>
-      new Promise((resolve, reject) =>
-        user(email).confirmRegistration(code, true, (error: Error | null) =>
-          done(resolve, reject)(error)
-        )
-      ),
-    resendCode: (email) =>
-      new Promise((resolve, reject) =>
-        user(email).resendConfirmationCode((error) => done(resolve, reject)(error))
-      ),
-    signIn: (email, password) =>
-      new Promise((resolve, reject) =>
-        user(email).authenticateUser(
-          new AuthenticationDetails({ Username: email, Password: password }),
-          { onSuccess: () => resolve(), onFailure: reject }
-        )
-      ),
-    token: async () => {
-      const current = pool.getCurrentUser();
-      if (!current) return null;
-      try {
-        return (await session(current)).getAccessToken().getJwtToken();
-      } catch {
-        return null;
-      }
+    completeSignIn: async () => {
+      const params = new URLSearchParams(location.search);
+      if (!params.has("state")) return;
+      // Leave the sign-in's parameters out of the address the person sees.
+      const failure = signInFailure(params);
+      history.replaceState(null, "", `${home}${location.hash}`);
+      if (failure) throw failure;
+      const user = await users.signinRedirectCallback(`${home}?${params}`);
+      const state = user.state as ReturnState | undefined;
+      if (state?.hash) location.hash = state.hash;
     },
-    email: () => pool.getCurrentUser()?.getUsername() ?? null,
-    signOut: () => pool.getCurrentUser()?.signOut(),
-    forgotPassword: (email) =>
-      new Promise((resolve, reject) =>
-        user(email).forgotPassword({ onSuccess: () => resolve(), onFailure: reject })
-      ),
-    resetPassword: (email, code, password) =>
-      new Promise((resolve, reject) =>
-        user(email).confirmPassword(code, password, {
-          onSuccess: () => resolve(),
-          onFailure: reject,
-        })
-      ),
-    changePassword: async (current, next) => {
-      const account = pool.getCurrentUser();
-      if (!account) throw new Error("Sign in again.");
-      await session(account);
-      await new Promise<void>((resolve, reject) =>
-        account.changePassword(current, next, (error) => done(resolve, reject)(error))
-      );
+    signIn: () => users.signinRedirect({ state: { hash: location.hash } satisfies ReturnState }),
+    token: async () => (await current())?.access_token ?? null,
+    email: async () => {
+      const email = (await users.getUser())?.profile.email;
+      return typeof email === "string" ? email : null;
+    },
+    signOut: async () => {
+      await users.removeUser();
+      location.assign(config.authSignOutUrl);
     },
   };
 }

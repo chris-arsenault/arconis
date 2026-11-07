@@ -1,37 +1,18 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { CircleUser, FolderOpen, Trash2, X } from "lucide-react";
 import type { AccountStore, SavedWorkspace } from "../account/accountStore";
-import type { WorkspaceContents } from "../account/workspaceFile";
+import type { SavedCopy } from "../account/workspaceFile";
 import { ConnectAgent } from "./ConnectAgent";
-
-type Mode = "signIn" | "signUp" | "confirm" | "forgot" | "reset";
-const MIN_PASSWORD = 12;
-const CODE_NOTE = "We emailed you a code. An account not activated within 7 days is removed.";
-const LOSS_NOTE =
-  "Your workspaces are encrypted with this password in your browser, and nobody can read them without it.";
-
-interface FormProps {
-  account: AccountStore;
-  email: string;
-  setEmail: (email: string) => void;
-  setMode: (mode: Mode) => void;
-}
 
 function Field({
   label,
   value,
   onChange,
-  type = "text",
-}: Readonly<{ label: string; value: string; onChange: (value: string) => void; type?: string }>) {
+}: Readonly<{ label: string; value: string; onChange: (value: string) => void }>) {
   return (
     <label>
       {label}
-      <input
-        aria-label={label}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <input aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
@@ -40,16 +21,8 @@ function Field({
 function ActionForm({
   action,
   label,
-  note,
   children,
-  extra,
-}: Readonly<{
-  action: () => Promise<void>;
-  label: string;
-  note?: string;
-  children: ReactNode;
-  extra?: ReactNode;
-}>) {
+}: Readonly<{ action: () => Promise<void>; label: string; children: ReactNode }>) {
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
   return (
@@ -67,7 +40,6 @@ function ActionForm({
       }}
     >
       {children}
-      {note && <p className="password-note">{note}</p>}
       {error && (
         <p role="alert" className="error">
           {error}
@@ -76,166 +48,38 @@ function ActionForm({
       <button className="primary" disabled={working}>
         {working ? "Working…" : label}
       </button>
-      {extra}
     </form>
   );
 }
 
-function SignInForm({ account, email, setEmail, setMode }: Readonly<FormProps>) {
-  const [password, setPassword] = useState("");
-  return (
-    <ActionForm
-      label="Sign in"
-      action={() => account.signIn(email, password)}
-      extra={
-        <div className="account-links">
-          <button type="button" onClick={() => setMode("signUp")}>
-            Create an account
-          </button>
-          <button type="button" onClick={() => setMode("forgot")}>
-            Forgot password
-          </button>
-          <button type="button" onClick={() => setMode("confirm")}>
-            Enter an activation code
-          </button>
-        </div>
-      }
-    >
-      <Field label="Email" value={email} onChange={setEmail} type="email" />
-      <Field label="Password" value={password} onChange={setPassword} type="password" />
-    </ActionForm>
-  );
-}
-
-function SignUpForm({ account, email, setEmail, setMode }: Readonly<FormProps>) {
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  return (
-    <ActionForm
-      label="Create account"
-      note={`${LOSS_NOTE} If you forget it and reset it, they are lost.`}
-      action={async () => {
-        if (password.length < MIN_PASSWORD)
-          throw new Error(`Use at least ${MIN_PASSWORD} characters.`);
-        if (!name.trim()) throw new Error("Choose the name people will see.");
-        await account.signUp(email, password, name.trim());
-        setMode("confirm");
-      }}
-      extra={
-        <button type="button" className="account-back" onClick={() => setMode("signIn")}>
-          I already have an account
-        </button>
-      }
-    >
-      <Field label="Your name" value={name} onChange={setName} />
-      <Field label="Email" value={email} onChange={setEmail} type="email" />
-      <Field label="Password" value={password} onChange={setPassword} type="password" />
-    </ActionForm>
-  );
-}
-
-function ConfirmForm({ account, email, setEmail, setMode }: Readonly<FormProps>) {
-  const [code, setCode] = useState("");
-  return (
-    <ActionForm
-      label="Activate"
-      note={CODE_NOTE}
-      action={async () => {
-        await account.confirm(email, code.trim());
-        setMode("signIn");
-      }}
-      extra={
-        <button
-          type="button"
-          className="account-back"
-          onClick={() => void account.resendCode(email)}
-        >
-          Send a new code
-        </button>
-      }
-    >
-      <Field label="Email" value={email} onChange={setEmail} type="email" />
-      <Field label="Activation code" value={code} onChange={setCode} />
-    </ActionForm>
-  );
-}
-
-function ForgotForm({ account, email, setEmail, setMode }: Readonly<FormProps>) {
-  return (
-    <ActionForm
-      label="Send a reset code"
-      note="You can reset your password, but your workspaces still need the old one to open."
-      action={async () => {
-        await account.forgotPassword(email);
-        setMode("reset");
-      }}
-    >
-      <Field label="Email" value={email} onChange={setEmail} type="email" />
-    </ActionForm>
-  );
-}
-
-function ResetForm({ account, email, setMode }: Readonly<FormProps>) {
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  return (
-    <ActionForm
-      label="Reset password"
-      action={async () => {
-        await account.resetPassword(email, code.trim(), password);
-        setMode("signIn");
-      }}
-    >
-      <Field label="Reset code" value={code} onChange={setCode} />
-      <Field label="New password" value={password} onChange={setPassword} type="password" />
-    </ActionForm>
-  );
-}
-
-const FORMS = {
-  signIn: SignInForm,
-  signUp: SignUpForm,
-  confirm: ConfirmForm,
-  forgot: ForgotForm,
-  reset: ResetForm,
-};
-
+/** Signing in and creating an account both happen on Ahara's sign-in page. */
 function SignedOut({ account }: Readonly<{ account: AccountStore }>) {
-  const [mode, setMode] = useState<Mode>("signIn");
-  const [email, setEmail] = useState("");
-  const Form = FORMS[mode];
-  return <Form account={account} email={email} setEmail={setEmail} setMode={setMode} />;
-}
-
-/** After a password reset, the old password is the only thing that can open the account key. */
-function Locked({ account }: Readonly<{ account: AccountStore }>) {
-  const [old, setOld] = useState("");
   return (
-    <ActionForm
-      label="Open my workspaces"
-      note="Your password was reset, and your workspaces are still encrypted with the old one."
-      action={async () => {
-        try {
-          await account.unlockWithOldPassword(old);
-        } catch {
-          throw new Error("That is not your old password.");
-        }
-      }}
-      extra={
-        <button type="button" className="account-back" onClick={() => void account.startOver()}>
-          I can&apos;t remember it: delete my workspaces and start over
-        </button>
-      }
-    >
-      <Field label="Old password" value={old} onChange={setOld} type="password" />
-    </ActionForm>
+    <div className="account-form">
+      <p className="password-note">
+        Sign in with an Ahara account to keep workspaces and connect Claude or ChatGPT. Rooms work
+        without one.
+      </p>
+      {account.error && (
+        <p role="alert" className="error">
+          {account.error}
+        </p>
+      )}
+      <button className="primary" onClick={() => void account.signIn()}>
+        Sign in or create an account
+      </button>
+      <p className="password-note">
+        A new account is activated from the email it is sent, and one not activated within 7 days is
+        removed.
+      </p>
+    </div>
   );
 }
 
 function WorkspaceList({
   account,
   onOpen,
-}: Readonly<{ account: AccountStore; onOpen: (contents: WorkspaceContents) => void }>) {
+}: Readonly<{ account: AccountStore; onOpen: (copy: SavedCopy) => void }>) {
   const [items, setItems] = useState<SavedWorkspace[] | null>(null);
   const refresh = () => void account.workspaces().then(setItems);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -249,7 +93,7 @@ function WorkspaceList({
           <button
             className="workspace-open"
             onClick={() => {
-              void account.load(item.id).then(({ contents }) => onOpen(contents));
+              void account.load(item.id).then(({ copy }) => onOpen(copy));
             }}
           >
             <FolderOpen size={14} /> {item.name}
@@ -271,7 +115,7 @@ function WorkspaceList({
 function SignedIn({
   account,
   onOpen,
-}: Readonly<{ account: AccountStore; onOpen: (contents: WorkspaceContents) => void }>) {
+}: Readonly<{ account: AccountStore; onOpen: (copy: SavedCopy) => void }>) {
   const [name, setName] = useState(account.name);
   return (
     <>
@@ -304,10 +148,13 @@ function SignedIn({
 export function AccountButton({
   account,
   onOpen,
-}: Readonly<{ account: AccountStore; onOpen: (contents: WorkspaceContents) => void }>) {
+}: Readonly<{ account: AccountStore; onOpen: (copy: SavedCopy) => void }>) {
   useSyncExternalStore(account.subscribe, account.snapshot);
-  const [open, setOpen] = useState(false);
+  const [chosen, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState("");
   const signedIn = account.status === "in";
+  // A sign-in that came back refused opens the panel to say why, until it is closed.
+  const open = chosen || (account.error !== "" && account.error !== dismissed);
   return (
     <>
       <button className="icon-button account-button" onClick={() => setOpen(true)}>
@@ -319,21 +166,22 @@ export function AccountButton({
             <button
               className="icon-action account-close"
               aria-label="Close account"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                setDismissed(account.error);
+              }}
             >
               <X size={15} />
             </button>
-            {signedIn && (
+            {signedIn ? (
               <SignedIn
                 account={account}
-                onOpen={(contents) => {
+                onOpen={(copy) => {
                   setOpen(false);
-                  onOpen(contents);
+                  onOpen(copy);
                 }}
               />
-            )}
-            {account.status === "locked" && <Locked account={account} />}
-            {(account.status === "out" || account.status === "loading") && (
+            ) : (
               <SignedOut account={account} />
             )}
           </section>

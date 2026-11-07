@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { accountFixture } from "./accountFixture";
+import { FIXTURE_CLIENT_ID, accountFixture } from "./accountFixture";
 import { attachRelay } from "../relay/attach";
 import { Relay, type StopReason } from "../relay/relay";
 import { STORAGE_LIMIT_BYTES, type StoredPictures } from "../relay/uploads";
@@ -75,9 +75,9 @@ function fixtureConfig(base: string) {
   return {
     transport: "relay" as const,
     relayUrl: base,
-    cognitoUserPoolId: "us-east-1_fixture",
-    cognitoClientId: "fixture",
-    cognitoEndpoint: `${base}/cognito`,
+    authAuthority: `${base}/oidc`,
+    authClientId: FIXTURE_CLIENT_ID,
+    authSignOutUrl: `${base}/oidc/logout`,
   };
 }
 

@@ -1,13 +1,20 @@
 import { expect, it } from "vitest";
-import { SIGNUPS_FULL } from "../accounts/signupLimit";
-import { signUpFailure } from "./auth";
+import { signInFailure } from "./auth";
 
-it("shows the sign-up limit's own words rather than Cognito's wrapping", () => {
-  const wrapped = new Error(`PreSignUp failed with error ${SIGNUPS_FULL}.`);
-  expect(signUpFailure(wrapped).message).toBe(`${SIGNUPS_FULL}.`);
+it("reads why a sign-in came back refused, in the words the sign-in service used", () => {
+  const refused = new URLSearchParams({
+    state: "s",
+    error: "access_denied",
+    error_description: "Activate your Arconis account from the email we sent, then sign in again.",
+  });
+  expect(signInFailure(refused)?.message).toBe(
+    "Activate your Arconis account from the email we sent, then sign in again."
+  );
+  expect(signInFailure(new URLSearchParams({ error: "server_error" }))?.message).toBe(
+    "server_error"
+  );
 });
 
-it("leaves every other failure alone", () => {
-  const taken = new Error("An account with the given email already exists.");
-  expect(signUpFailure(taken)).toBe(taken);
+it("finds nothing wrong with a sign-in that came back with a code", () => {
+  expect(signInFailure(new URLSearchParams({ state: "s", code: "c" }))).toBeNull();
 });

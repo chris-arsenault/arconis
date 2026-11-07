@@ -16,7 +16,7 @@ import { ChangePassword } from "./PasswordGate";
 import { AccountButton } from "./AccountControls";
 import { SaveWorkspace } from "./SaveWorkspace";
 import type { AccountStore } from "../account/accountStore";
-import type { WorkspaceContents } from "../account/workspaceFile";
+import type { SavedCopy } from "../account/workspaceFile";
 
 interface Props {
   session: RoomSession;
@@ -28,7 +28,7 @@ interface Props {
   onMessage: (message: string) => void;
   onEditName: () => void;
   account: AccountStore | null;
-  onOpenSaved: (contents: WorkspaceContents) => void;
+  onOpenSaved: (copy: SavedCopy) => void;
 }
 
 export function WorkspaceHeader(props: Readonly<Props>) {

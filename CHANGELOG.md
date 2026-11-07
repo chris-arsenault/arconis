@@ -6,12 +6,13 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
-- Added accounts with email activation and a daily limit on new ones, whose name replaces the one
-  typed into rooms.
-- Added saved workspaces, encrypted in the browser and available on any device.
-- Added agents: signed-in people connect Claude Code or another MCP client, which reads and writes
-  a room in the canvas language while people work alongside it, building a whole architecture in one
-  write.
+- Added Ahara accounts, signed in at auth.ahara.io, with email activation and a daily limit on new
+  ones, whose name replaces the one typed into rooms.
+- Added saved workspaces available on any device; a password room's saved copy stays encrypted under
+  its room password, and a forgotten account password loses nothing.
+- Added agents: signed-in people add Arconis to Claude or ChatGPT on the web as a custom connector
+  with only its address, and the assistant reads and writes a room in the canvas language while
+  people work alongside it, building a whole architecture in one write.
 - Added the canvas language: frames within frames, rows, columns and grids, placement beside or
   aligned with other items, named styles, and lines with ports, labels, chains and fan-outs.
 - Changed files to the canvas written in that language; earlier files and rooms no longer open.

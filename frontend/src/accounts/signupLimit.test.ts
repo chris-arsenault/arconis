@@ -3,56 +3,42 @@ import {
   SIGNUPS_FULL,
   SIGNUPS_UNAVAILABLE,
   SIGNUP_LIMIT_PER_DAY,
-  admitSignup,
+  signupRefusal,
   type SignupLimitDeps,
 } from "./signupLimit";
 
-const SIGN_UP = { triggerSource: "PreSignUp_SignUp" };
 const MIDDAY = Date.UTC(2026, 10, 7, 12);
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Places counted per day, as the table's conditional update counts them. */
-function counter(start = MIDDAY) {
-  const days = new Map<string, number>();
-  const clock = { now: start };
+/** Accounts created at these times, counted as the tenant's user search counts them. */
+function tenant(created: number[], now = MIDDAY) {
+  const clock = { now };
   const deps: SignupLimitDeps = {
     now: () => clock.now,
-    claim: (day, limit) => {
-      const used = days.get(day) ?? 0;
-      if (used >= limit) return Promise.resolve(false);
-      days.set(day, used + 1);
-      return Promise.resolve(true);
-    },
+    createdSince: (time) => Promise.resolve(created.filter((at) => at >= time).length),
   };
   return { clock, deps };
 }
 
-it("admits the day's limit and refuses the next person with a readable reason", async () => {
-  const { deps } = counter();
-  for (let i = 0; i < SIGNUP_LIMIT_PER_DAY; i++)
-    await expect(admitSignup(SIGN_UP, deps)).resolves.toBe(SIGN_UP);
-  await expect(admitSignup(SIGN_UP, deps)).rejects.toThrow(SIGNUPS_FULL);
+it("admits sign-ups until the day's limit, then refuses with a readable reason", async () => {
+  const below = tenant(Array.from({ length: SIGNUP_LIMIT_PER_DAY - 1 }, () => MIDDAY - 1000));
+  await expect(signupRefusal(below.deps)).resolves.toBeNull();
+  const full = tenant(Array.from({ length: SIGNUP_LIMIT_PER_DAY }, () => MIDDAY - 1000));
+  await expect(signupRefusal(full.deps)).resolves.toBe(SIGNUPS_FULL);
 });
 
-it("opens again on the next UTC day", async () => {
-  const { clock, deps } = counter();
-  for (let i = 0; i < SIGNUP_LIMIT_PER_DAY; i++) await admitSignup(SIGN_UP, deps);
+it("counts from the start of the UTC day, so it opens again the next day", async () => {
+  const { clock, deps } = tenant(Array.from({ length: SIGNUP_LIMIT_PER_DAY }, () => MIDDAY));
+  await expect(signupRefusal(deps)).resolves.toBe(SIGNUPS_FULL);
   clock.now += DAY;
-  await expect(admitSignup(SIGN_UP, deps)).resolves.toBe(SIGN_UP);
+  await expect(signupRefusal(deps)).resolves.toBeNull();
 });
 
 it("refuses when the count cannot be read, without showing why", async () => {
   vi.spyOn(console, "error").mockImplementationOnce(() => {});
   const deps: SignupLimitDeps = {
     now: () => MIDDAY,
-    claim: () => Promise.reject(new Error("table detail")),
+    createdSince: () => Promise.reject(new Error("tenant detail")),
   };
-  await expect(admitSignup(SIGN_UP, deps)).rejects.toThrow(SIGNUPS_UNAVAILABLE);
-});
-
-it("leaves accounts an administrator creates uncounted", async () => {
-  const claim = vi.fn(() => Promise.resolve(true));
-  const event = { triggerSource: "PreSignUp_AdminCreateUser" };
-  await expect(admitSignup(event, { now: () => MIDDAY, claim })).resolves.toBe(event);
-  expect(claim).not.toHaveBeenCalled();
+  await expect(signupRefusal(deps)).resolves.toBe(SIGNUPS_UNAVAILABLE);
 });

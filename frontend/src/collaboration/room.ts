@@ -15,7 +15,13 @@ import {
 } from "./pictureStore";
 import { putToStorage, uploadWaitingPictures } from "./pictureUploads";
 import * as Y from "yjs";
-import type { WorkspaceContents } from "../account/workspaceFile";
+import {
+  decodeContents,
+  encodeContents,
+  isSealed,
+  type SavedCopy,
+  type WorkspaceContents,
+} from "../account/workspaceFile";
 import type { SaveableRoom } from "../account/workspaceSaver";
 import {
   decodePicture,
@@ -70,6 +76,8 @@ export function roomHash(id: string) {
 }
 
 const SAVED_COPY = Symbol("saved copy");
+/** How a saved password room is listed, since its title is encrypted with everything else. */
+export const LOCKED_ROOM_TITLE = "Password room";
 
 /** What carries this room's frames. The relay never sees the prefix naming a password room. */
 function createCarrier(id: string): Transport {
@@ -167,26 +175,45 @@ export class RoomSession {
     );
     return found.flatMap((picture) => picture ?? []);
   }
-  /** Merges a saved copy in, once a password room has been opened. */
-  applySaved = async (contents: WorkspaceContents) => {
-    if (contents.envelope) this.lock?.adoptEnvelope(contents.envelope);
+  /**
+   * Merges a saved copy in. A password room's copy opens with the room's key, so it waits for the
+   * password, which the copy's envelope lets this browser check with nobody else online.
+   */
+  applySaved = async (copy: SavedCopy) => {
+    let contents: WorkspaceContents;
+    if (isSealed(copy)) {
+      if (!this.lock) throw new Error("This saved copy belongs to a password room.");
+      this.lock.adoptEnvelope(copy.envelope);
+      await this.lock.whenOpen;
+      contents = decodeContents(await this.lock.codec.open(copy.sealed));
+    } else contents = copy.contents;
     const decoded = await Promise.all(contents.pictures.map(decodePicture));
     await Promise.all(
       decoded.map((picture) => picture && this.pictures.keep(picture.hash, picture))
     );
-    await this.lock?.whenOpen;
     if (!this.disposed) Y.applyUpdate(this.document.doc, contents.update, SAVED_COPY);
   };
-  /** This room, as the saved copy in an account sees it. */
-  readonly saveable: SaveableRoom = {
-    id: "",
-    title: () => this.document.title(),
-    contents: async () => ({
+  /** The saved copy's contents: as they are, or sealed under a password room's key. */
+  private async savedCopy(): Promise<SavedCopy> {
+    const contents: WorkspaceContents = {
       roomId: this.id,
       update: Y.encodeStateAsUpdate(this.document.doc),
       pictures: await this.unsharedPictures(),
-      envelope: this.lock?.currentEnvelope ?? null,
-    }),
+    };
+    const envelope = this.lock?.currentEnvelope;
+    if (!this.lock || !envelope) return { roomId: this.id, contents };
+    return {
+      roomId: this.id,
+      envelope,
+      sealed: await this.lock.codec.seal(encodeContents(contents)),
+    };
+  }
+  /** This room, as the saved copy in an account sees it. */
+  readonly saveable: SaveableRoom = {
+    id: "",
+    // A password room's title is inside what its password protects.
+    title: () => (this.lock ? LOCKED_ROOM_TITLE : this.document.title()),
+    contents: () => this.savedCopy(),
     apply: this.applySaved,
     onChange: (listener) => {
       const onUpdate = (_update: Uint8Array, origin: unknown) => {

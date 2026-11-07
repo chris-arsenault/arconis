@@ -1,6 +1,7 @@
 import {
   AdminDeleteUserCommand,
   CognitoIdentityProviderClient,
+  ListUsersCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import {
   ConditionalCheckFailedException,
@@ -31,6 +32,7 @@ import {
   type AccountTable,
   type WorkspaceRecord,
 } from "./api";
+import { federatedUserId, managementFromEnvironment } from "./auth0Management";
 
 const TableName = process.env.TABLE_NAME ?? "";
 const Bucket = process.env.BUCKET_NAME ?? "";
@@ -42,6 +44,7 @@ const TOTAL_KEY = { pk: "SERVICE", sk: "STORAGE" };
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({ requestChecksumCalculation: "WHEN_REQUIRED" });
 const cognito = new CognitoIdentityProviderClient({});
+const management = managementFromEnvironment(process.env);
 const userKey = (user: string) => `USER#${user}`;
 const objectKey = (user: string, id: string) => `workspaces/${user}/${id}`;
 const WORKSPACE_PREFIX = "WORKSPACE#";
@@ -52,16 +55,16 @@ const table: AccountTable = {
       new GetCommand({ TableName, Key: { pk: userKey(user), sk: "PROFILE" } })
     );
     if (!Item?.name) return null;
-    return { name: Item.name as string, envelope: Item.envelope, bytes: Number(Item.bytes ?? 0) };
+    return { name: Item.name as string, bytes: Number(Item.bytes ?? 0) };
   },
-  saveProfile: async (user, { name, envelope }) => {
+  saveProfile: async (user, { name }) => {
     await dynamo.send(
       new UpdateCommand({
         TableName,
         Key: { pk: userKey(user), sk: "PROFILE" },
-        UpdateExpression: "SET #name = :name, envelope = :envelope",
+        UpdateExpression: "SET #name = :name",
         ExpressionAttributeNames: { "#name": "name" },
-        ExpressionAttributeValues: { ":name": name, ":envelope": envelope },
+        ExpressionAttributeValues: { ":name": name },
       })
     );
   },
@@ -159,8 +162,16 @@ const api = new AccountsApi(table, {
   deleteObject: async (user, id) => {
     await s3.send(new DeleteObjectCommand({ Bucket, Key: objectKey(user, id) }));
   },
-  deleteLogin: async (Username) => {
-    await cognito.send(new AdminDeleteUserCommand({ UserPoolId: poolId, Username }));
+  // The token names the pool user by `sub`; that user records which Auth0 user it came from.
+  deleteLogin: async (sub) => {
+    const { Users } = await cognito.send(
+      new ListUsersCommand({ UserPoolId: poolId, Filter: `sub = "${sub}"`, Limit: 1 })
+    );
+    const user = Users?.[0];
+    if (!user?.Username) return;
+    const auth0User = federatedUserId(user.Attributes ?? []);
+    if (auth0User) await management.deleteUser(auth0User);
+    await cognito.send(new AdminDeleteUserCommand({ UserPoolId: poolId, Username: user.Username }));
   },
   now: Date.now,
   newRevision: () => crypto.randomUUID(),

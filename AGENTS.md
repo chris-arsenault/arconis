@@ -28,8 +28,9 @@ sticky notes and freehand drawing in one shared document.
   the same model ([ADR-0014](docs/adr/0014-one-canvas-language.md)). Change an item field in
   `document/types.ts`, the language in `language/`, and keep `language/reference.ts` exact; only
   `editor/styles.ts` speaks maxGraph styles.
-- Keep rooms usable without an account, and dependencies permissively licensed. Saved workspaces
-  reach the server only as ciphertext ([ADR-0012](docs/adr/0012-accounts-and-encrypted-workspaces.md)). InfiniPaint inspires
+- Keep rooms usable without an account, and dependencies permissively licensed. Accounts live in
+  Ahara's Auth0 tenant, and a password room's saved copy reaches the server only sealed under its
+  room key ([ADR-0015](docs/adr/0015-auth0-accounts-and-connector-sign-in.md)). InfiniPaint inspires
   interactions only; write original code ([ADR-0007](docs/adr/0007-permissive-licensing.md)).
   Vendor architecture icons are the one exception, and stay unrotated and evenly scaled
   ([ADR-0008](docs/adr/0008-vendor-architecture-icons.md)).

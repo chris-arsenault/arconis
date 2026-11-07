@@ -1,6 +1,6 @@
 # 0013 — Agents work through domain tools on the relay
 
-- Status: Accepted; amended by ADR-0014
+- Status: Accepted; amended by ADR-0014; agent sign-in superseded by ADR-0015
 - Date: 2026-11-07
 - Amends: ADR-0009
 
