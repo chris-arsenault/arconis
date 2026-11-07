@@ -20,6 +20,7 @@ import { bindCanvasInput } from "./input";
 import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { configureConnectionPoints } from "./connectionPoints";
+import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
 import { compareStacking, isVertexKind, offsetPoints } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 
@@ -71,9 +72,9 @@ export class EditorController {
     this.band = new RubberBandHandler(this.graph);
     this.graph.getDataModel().addListener(InternalEvent.CHANGE, this.onGraphChange);
     this.graph.getSelectionModel().addListener(InternalEvent.CHANGE, this.emit);
-    this.graph.view.addListener(InternalEvent.SCALE_AND_TRANSLATE, this.emit);
-    this.graph.view.addListener(InternalEvent.SCALE, this.emit);
-    this.graph.view.addListener(InternalEvent.TRANSLATE, this.emit);
+    this.graph.view.addListener(InternalEvent.SCALE_AND_TRANSLATE, this.onView);
+    this.graph.view.addListener(InternalEvent.SCALE, this.onView);
+    this.graph.view.addListener(InternalEvent.TRANSLATE, this.onView);
     this.document.doc.on("update", this.onDocumentChange);
     this.document.undo.on("stack-item-added", this.emit);
     this.document.undo.on("stack-item-popped", this.emit);
@@ -90,6 +91,10 @@ export class EditorController {
   emit = () => {
     this.version++;
     this.listeners.forEach((listener) => listener());
+  };
+  private onView = () => {
+    syncZoom(this.graph, this.element);
+    this.emit();
   };
   private onDocumentChange = () => {
     if (this.committing) {
@@ -166,9 +171,13 @@ export class EditorController {
     const view = this.graph.view;
     const centerX = this.element.clientWidth / 2 / view.scale - view.translate.x;
     const centerY = this.element.clientHeight / 2 / view.scale - view.translate.y;
-    const offset = (this.document.objects.size % 6) * 16;
-    const id = this.document.create(kind, x ?? centerX - 80 + offset, y ?? centerY - 45 + offset, {
+    const size = creationOffset(view.scale);
+    const offset = (this.document.objects.size % 6) * 16 * size;
+    const left = x ?? centerX + (offset - 80) * size;
+    const top = y ?? centerY + (offset - 45) * size;
+    const id = this.document.create(kind, left, top, {
       label: kind === "sticky" ? "Your idea here" : KIND_LABELS[kind],
+      ...creationValues(kind, view.scale),
     });
     this.select(id);
     this.setTool("select");
@@ -286,7 +295,11 @@ export class EditorController {
   connect() {
     const cells = this.graph.getSelectionCells().filter((cell) => cell.isVertex());
     if (cells.length === 2)
-      this.document.create("connector", 0, 0, { source: cells[0].id!, target: cells[1].id! });
+      this.document.create("connector", 0, 0, {
+        source: cells[0].id!,
+        target: cells[1].id!,
+        ...creationValues("connector", this.graph.view.scale),
+      });
   }
   duplicate() {
     const ids = this.selectionClosure();
@@ -333,7 +346,7 @@ export class EditorController {
     return [...ids];
   }
   zoom(factor: number) {
-    this.graph.zoomTo(Math.min(64, Math.max(0.02, this.graph.view.scale * factor)), true);
+    this.graph.zoomTo(clampScale(this.graph.view.scale * factor), true);
     this.emit();
   }
   fit() {
@@ -342,12 +355,14 @@ export class EditorController {
     const view = this.graph.view;
     const x = bounds.x / view.scale - view.translate.x;
     const y = bounds.y / view.scale - view.translate.y;
-    const scale = Math.min(
-      2,
-      (this.element.clientWidth - 120) / (bounds.width / view.scale),
-      (this.element.clientHeight - 120) / (bounds.height / view.scale)
+    const scale = clampScale(
+      Math.min(
+        2,
+        (this.element.clientWidth - 120) / (bounds.width / view.scale),
+        (this.element.clientHeight - 120) / (bounds.height / view.scale)
+      )
     );
-    view.scaleAndTranslate(Math.max(0.02, scale), 60 / scale - x, 60 / scale - y);
+    view.scaleAndTranslate(scale, 60 / scale - x, 60 / scale - y);
     this.emit();
   }
   bookmark(name: string) {

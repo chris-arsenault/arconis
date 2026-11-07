@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Undo2, Redo2, Minus, Plus, Scan, CheckCircle2, WifiOff, Keyboard } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
+import { zoomLabel } from "../editor/zoom";
 import { Canvas, InlineEditor, Cursors } from "./Canvas";
 import { Toolbar } from "./Toolbar";
 import { Inspector } from "./Inspector";
@@ -225,7 +226,7 @@ function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
         <button aria-label="Zoom out" onClick={() => editor.zoom(1 / 1.2)}>
           <Minus size={17} />
         </button>
-        <span data-testid="zoom-level">{Math.round(editor.graph.view.scale * 100)}%</span>
+        <span data-testid="zoom-level">{zoomLabel(editor.graph.view.scale)}</span>
         <button aria-label="Zoom in" onClick={() => editor.zoom(1.2)}>
           <Plus size={17} />
         </button>

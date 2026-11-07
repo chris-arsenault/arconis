@@ -21,8 +21,18 @@ export function configureRendering(graph: Graph) {
     return shape;
   };
   const createLabel = renderer.createLabel.bind(renderer);
+  // Labels lay out in screen pixels. maxGraph would lay them out in world units and scale the
+  // result, and browsers cannot lay out text in the tiny world units of a deep zoom.
+  renderer.getTextScale = () => 1;
   renderer.createLabel = (state, value) => {
     createLabel(state, value);
-    if (state.text) state.text.ignoreStringSize = true;
+    const { text } = state;
+    if (!text) return;
+    text.ignoreStringSize = true;
+    const configureCanvas = text.configureCanvas.bind(text);
+    text.configureCanvas = (canvas, x, y, width, height) => {
+      configureCanvas(canvas, x, y, width, height);
+      canvas.setFontSize(text.size * state.view.scale);
+    };
   };
 }

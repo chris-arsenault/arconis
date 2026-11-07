@@ -9,6 +9,7 @@ import {
 } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import type { StyleValue } from "../document/types";
+import { creationValues } from "./zoom";
 
 export const ANCHOR_STYLE_KEYS = [
   "exitX",
@@ -97,10 +98,12 @@ export function configureConnectionPoints(graph: Graph, document: CanvasDocument
     connection.isConnecting() ? markerColor(event, state, valid) : "none";
   connection.connect = (source, target) => {
     if (!source?.id || !target?.id || source === target) return;
+    const zoomed = creationValues("connector", graph.view.scale);
     document.create("connector", 0, 0, {
       source: source.id,
       target: target.id,
       style: {
+        ...zoomed.style,
         ...constraintStyle(connection.sourceConstraint, true),
         ...constraintStyle(connection.constraintHandler.currentConstraint, false),
       },

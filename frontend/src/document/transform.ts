@@ -146,5 +146,5 @@ function depth(item: CanvasObject, byId: Map<string, CanvasObject>) {
 }
 
 function round(value: number) {
-  return Math.round(value * 100) / 100;
+  return Math.round(value * 100000) / 100000;
 }

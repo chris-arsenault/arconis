@@ -2,6 +2,7 @@ import type { EditorController } from "./controller";
 import { PanningHandler } from "@maxgraph/core";
 import type { ObjectKind } from "../document/types";
 import { simplifyPath } from "../document/geometry";
+import { clampScale, creationValues, roundForScale } from "./zoom";
 
 function isTyping(target: EventTarget | null) {
   return (
@@ -121,12 +122,15 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
     "pointerup",
     () => {
       if (points.length > 1) {
-        const tolerance = 0.5 / editor.graph.view.scale;
-        const path = simplifyPath(points, tolerance).map(([x, y]) => [
-          Math.round(x * 100) / 100,
-          Math.round(y * 100) / 100,
+        const { scale } = editor.graph.view;
+        const path = simplifyPath(points, 0.5 / scale).map(([x, y]) => [
+          roundForScale(x, scale),
+          roundForScale(y, scale),
         ]);
-        editor.document.create("stroke", 0, 0, { points: JSON.stringify(path) });
+        editor.document.create("stroke", 0, 0, {
+          points: JSON.stringify(path),
+          ...creationValues("stroke", scale),
+        });
       }
       points = [];
       editor.element.querySelector(".stroke-preview")?.remove();
@@ -188,7 +192,11 @@ function connectClick(editor: EditorController, source: string, target: string) 
     editor.select(target);
     return target;
   }
-  editor.document.create("connector", 0, 0, { source, target });
+  editor.document.create("connector", 0, 0, {
+    source,
+    target,
+    ...creationValues("connector", editor.graph.view.scale),
+  });
   editor.setTool("select");
   return "";
 }
@@ -206,7 +214,7 @@ function wheelHandler(editor: EditorController, signal: AbortSignal) {
     const view = editor.graph.view;
     if (zoomDelta) {
       const point = editor.worldPoint(pointer);
-      const scale = Math.min(64, Math.max(0.02, view.scale * Math.exp(-zoomDelta * 0.002)));
+      const scale = clampScale(view.scale * Math.exp(-zoomDelta * 0.002));
       const ratio = view.scale / scale;
       view.scaleAndTranslate(
         scale,

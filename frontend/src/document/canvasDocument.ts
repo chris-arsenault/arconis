@@ -54,7 +54,12 @@ export class CanvasDocument {
       ...extras,
     };
     if (kind === "sticky")
-      Object.assign(item, { width: 190, height: 170, style: { fillColor: "#fff0ad" }, ...extras });
+      Object.assign(item, {
+        width: 190,
+        height: 170,
+        ...extras,
+        style: { fillColor: "#fff0ad", ...extras.style },
+      });
     this.doc.transact(() => this.insert(item), LOCAL);
     this.undo.stopCapturing();
     return id;
