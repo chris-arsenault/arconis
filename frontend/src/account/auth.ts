@@ -30,6 +30,12 @@ export interface Auth {
   changePassword(current: string, next: string): Promise<void>;
 }
 
+/** Cognito wraps what the pre sign-up trigger says; the person only needs what it said. */
+export function signUpFailure(error: Error) {
+  const said = /^PreSignUp failed with error (.+?)\.?$/.exec(error.message)?.[1];
+  return said ? new Error(`${said}.`) : error;
+}
+
 function done(resolve: () => void, reject: (error: Error) => void) {
   return (error: Error | undefined | null) => {
     if (error) reject(error);
@@ -55,7 +61,9 @@ export function cognitoAuth(config: AccountConfig): Auth {
     signUp: (email, password) =>
       new Promise((resolve, reject) => {
         const attribute = new CognitoUserAttribute({ Name: "email", Value: email });
-        pool.signUp(email, password, [attribute], [], (error) => done(resolve, reject)(error));
+        pool.signUp(email, password, [attribute], [], (error) =>
+          done(resolve, reject)(error && signUpFailure(error))
+        );
       }),
     confirm: (email, code) =>
       new Promise((resolve, reject) =>

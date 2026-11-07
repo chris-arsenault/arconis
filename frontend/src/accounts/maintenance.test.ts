@@ -1,11 +1,11 @@
 import { expect, it, vi } from "vitest";
 import {
   ACTIVATION_DAYS,
-  SIGNUP_ALERT_PER_DAY,
   runMaintenance,
   type MaintenanceDeps,
   type PoolUser,
 } from "./maintenance";
+import { SIGNUP_LIMIT_PER_DAY } from "./signupLimit";
 
 const NOW = 1_000_000_000_000;
 const DAY = 24 * 60 * 60 * 1000;
@@ -52,11 +52,13 @@ it("publishes the day's new accounts and the activated total", async () => {
   expect(deps.alert).not.toHaveBeenCalled();
 });
 
-it("alerts on an unusual day of sign-ups", async () => {
-  const many = Array.from({ length: SIGNUP_ALERT_PER_DAY + 1 }, (_, i) =>
-    user(`u${i}`, "UNCONFIRMED", 0)
-  );
-  const deps = setup(many);
-  await runMaintenance(deps);
-  expect(deps.alert).toHaveBeenCalledOnce();
+it("alerts once a day of sign-ups reaches the limit, and not before", async () => {
+  const accounts = (length: number) =>
+    Array.from({ length }, (_, i) => user(`u${i}`, "UNCONFIRMED", 0));
+  const below = setup(accounts(SIGNUP_LIMIT_PER_DAY - 1));
+  await runMaintenance(below);
+  expect(below.alert).not.toHaveBeenCalled();
+  const reached = setup(accounts(SIGNUP_LIMIT_PER_DAY));
+  await runMaintenance(reached);
+  expect(reached.alert).toHaveBeenCalledOnce();
 });

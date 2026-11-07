@@ -13,8 +13,11 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
   S3 bucket of relay code, and its security group and role.
 - The control Lambda behind `/control/*` on the same host, and its SSM parameters.
 - Accounts: a Cognito user pool, a DynamoDB table, a private bucket of encrypted workspaces, the API
-  behind `/api/*` on the relay's host, and a daily maintenance Lambda publishing `Arconis/Accounts`
-  metrics.
+  behind `/api/*` on the relay's host, a pre sign-up Lambda holding new accounts to a daily limit,
+  and a daily maintenance Lambda publishing `Arconis/Accounts` metrics.
+- Agents: the pool's sign-in domain and a public app client for MCP clients, whose redirect addresses
+  are fixed in `accounts.tf`. The relay serves `/mcp` and reads the pool and client from its boot
+  script, and the website's runtime configuration names them for the account panel.
 - The website, through Ahara's `website` module: private S3 with S3-managed encryption, behind
   CloudFront and ACM TLS, at `arconis.ahara.io`.
 - Runtime configuration, delivered to browsers as `config.js`.
@@ -22,7 +25,8 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 State uses the shared bucket at `projects/arconis.tfstate`. Arconis registers no login client.
 
 Instances are disposable, and replacing one loses nothing: usage comes from CloudWatch by group name,
-alerts and limits are in SSM, pictures are in S3, and documents are in browsers. A deployment that
+alerts and limits are in SSM, pictures are in S3, and documents are in browsers. Agent sessions end
+with the instance, and agents reconnect. A deployment that
 changes the relay's code or boot script rolls the group, launching the replacement and waiting for it to
 pass the ALB's health check before terminating the old instance. When the relay is off there is nothing
 to roll, and the next start uses the new version.

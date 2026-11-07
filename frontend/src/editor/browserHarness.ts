@@ -10,6 +10,7 @@ import {
 import { createServer, type ViteDevServer } from "vite";
 import { mkdir, readFile } from "node:fs/promises";
 import type { CanvasObject, SavedView } from "../document/types";
+import { fileObjects, parseFile, type ArconisFile } from "../domain/format";
 import { startRelayFixture } from "../collaboration/relayFixture";
 
 export let browser: Browser;
@@ -162,17 +163,27 @@ export function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
   return clickPath(page, "#6554c0", modifiers);
 }
 
-export async function exported(
-  page: Page
-): Promise<{ version: number; objects: CanvasObject[]; bookmarks: SavedView[] }> {
+export async function exported(page: Page): Promise<{
+  version: number;
+  objects: CanvasObject[];
+  bookmarks: SavedView[];
+  /** The file as downloaded, for importing it again. */
+  file: ArconisFile;
+}> {
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export document", exact: true }).click();
   const download = await pending;
-  return JSON.parse(await readFile((await download.path())!, "utf8")) as {
-    version: number;
-    objects: CanvasObject[];
-    bookmarks: SavedView[];
-  };
+  const file = parseFile(JSON.parse(await readFile((await download.path())!, "utf8")));
+  // Journeys check the stored records the export describes, under their own ids.
+  const views = file.views.map((view): SavedView => ({
+    ...view,
+    centerX: view.center?.x,
+    centerY: view.center?.y,
+    x: 0,
+    y: 0,
+    scale: view.zoom,
+  }));
+  return { version: file.version, objects: fileObjects(file), bookmarks: views, file };
 }
 
 export async function drag(page: Page, x: number, y: number, dx: number, dy: number) {

@@ -6,7 +6,8 @@
   "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build && pnpm build:relay && pnpm build:control && pnpm build:accounts && pnpm build:maintenance",
+    "build": "tsc --noEmit && vite build && pnpm build:relay && pnpm build:control && pnpm build:accounts && pnpm build:maintenance && pnpm build:signup-limit",
+    "build:signup-limit": "esbuild src/accounts/signupLimitLambda.ts --bundle --minify --platform=node --target=node24 --format=cjs --external:@aws-sdk/* --outfile=dist-relay/signup-limit/index.js",
     "build:accounts": "esbuild src/accounts/lambda.ts --bundle --minify --platform=node --target=node24 --format=cjs --external:@aws-sdk/* --outfile=dist-relay/accounts/index.js",
     "build:maintenance": "esbuild src/accounts/maintenanceLambda.ts --bundle --minify --platform=node --target=node24 --format=cjs --external:@aws-sdk/* --outfile=dist-relay/maintenance/index.js",
     "build:relay": "esbuild src/relay/server.ts --bundle --minify --platform=node --target=node24 --format=cjs --outfile=dist-relay/server.cjs",
@@ -20,7 +21,9 @@
   },
   "dependencies": {
     "@maxgraph/core": "0.25.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "amazon-cognito-identity-js": "6.3.16",
+    "jose": "6.2.13",
     "lib0": "^0.2.114",
     "lucide": "^1.70.0",
     "lucide-react": "^0.468.0",
@@ -29,7 +32,8 @@
     "simple-icons": "^16.36.0",
     "y-indexeddb": "^9.0.12",
     "y-protocols": "^1.0.6",
-    "yjs": "^13.6.27"
+    "yjs": "^13.6.27",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@ahara/standards": "github:chris-arsenault/ahara-standards",

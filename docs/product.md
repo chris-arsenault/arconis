@@ -44,12 +44,19 @@ document and takes part in the same relationships.
 Creating a room generates an unguessable identifier in the browser. Joining accepts a shareable
 URL or room code. Participants may supply an ephemeral display name. Changes stay within their room.
 
+## Agents
+
+A signed-in person can connect an agent, such as Claude Code, through MCP. Given a room's link, the
+agent reads and changes the canvas in the same terms people use: nodes, regions, notes, connections,
+topic trees, references and discussions. People in the room see its changes as they happen, and it is
+told what they change. Agents work only in ordinary rooms someone has open.
+
 ## Boundaries
 
-Arconis is a small multi-user visual workspace. It runs without custom server-side code, shared
-document storage or user accounts, and it focuses on the canvas rather than project management or
-facilitation tools such as comments, voting, timers and templates. Its files are its own portable
-format rather than draw.io files. The [ADRs](adr/README.md) record why, and the
+Arconis is a small multi-user visual workspace. Rooms need no account, and the relay keeps no copy of
+a room. It focuses on the canvas rather than project management or facilitation tools such as voting,
+timers and templates. Its files are its own portable format rather than draw.io files, and agents read
+and write the same format. The [ADRs](adr/README.md) record why, and the
 [backlog](backlog.md) holds planned additions.
 
 Rooms suit non-sensitive work: see [Limitations](architecture.md#limitations).

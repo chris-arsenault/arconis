@@ -37,6 +37,10 @@ module "frontend" {
 
     cognitoUserPoolId = aws_cognito_user_pool.accounts.id
     cognitoClientId   = aws_cognito_user_pool_client.accounts.id
+
+    # Shown to signed-in people so they can connect an agent.
+    mcpUrl      = local.mcp_resource
+    mcpClientId = aws_cognito_user_pool_client.agents.id
   }
 }
 

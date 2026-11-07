@@ -1,7 +1,7 @@
+import { SIGNUP_LIMIT_PER_DAY } from "./signupLimit";
+
 /** How long an account has to activate before it is removed. */
 export const ACTIVATION_DAYS = 7;
-/** More new accounts than this in a day is worth a person looking at. */
-export const SIGNUP_ALERT_PER_DAY = 50;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface PoolUser {
@@ -34,9 +34,10 @@ export async function runMaintenance(deps: MaintenanceDeps) {
     }
   }
   await deps.publish(counts);
-  if (counts.created > SIGNUP_ALERT_PER_DAY)
+  // Reaching the limit means someone may have been turned away, which is worth a person looking at.
+  if (counts.created >= SIGNUP_LIMIT_PER_DAY)
     await deps.alert(
-      "Arconis sign-ups are unusually high",
+      "Arconis sign-ups reached the daily limit",
       `${counts.created} accounts were created in the last day.`
     );
   return counts;

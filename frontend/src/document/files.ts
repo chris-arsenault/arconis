@@ -1,36 +1,22 @@
 import { CanvasDocument } from "./canvasDocument";
 import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
 import { normalizeLegacyObjects } from "./geometry";
-import { exportComments, importComments } from "./comments";
-import { NO_PICTURES, renamePictures, type FilePictures } from "./pictures";
+import { importComments } from "./comments";
+import { NO_PICTURES, type FilePictures } from "./pictures";
+import { FORMAT_VERSION, exportFile, importFile, parseFile } from "../domain/format";
 import { isPng, readCopy } from "./pngCopy";
 import { remapStyle } from "./relations";
 
-/** The portable form of a document, or of just the named objects, without its saved views. */
+/**
+ * The portable form of a document, or of just the named objects without its saved views. It is the
+ * domain read model written out, so people and agents read and write the same file.
+ */
 export function serializeDocument(
   document: CanvasDocument,
   ids: string[] = [],
-  { pictures, renames }: FilePictures = NO_PICTURES
+  pictures: FilePictures = NO_PICTURES
 ) {
-  const chosen = new Set(ids);
-  const objects = ids.length
-    ? document.list().filter((item) => chosen.has(item.id))
-    : document.list();
-  return JSON.stringify(
-    {
-      format: "arconis",
-      version: 2,
-      title: document.title(),
-      objects: renamePictures(objects, renames),
-      comments: exportComments(document, ids),
-      pictures,
-      bookmarks: ids.length
-        ? []
-        : [...document.views.values()].map((value) => JSON.parse(value) as unknown),
-    },
-    null,
-    2
-  );
+  return exportFile(document, ids, pictures);
 }
 
 export function downloadFile(
@@ -61,7 +47,10 @@ export async function readDocumentFile(file: File) {
 }
 
 export function importDocument(document: CanvasDocument, content: string) {
-  const parsed = parseFile(content);
+  const raw: unknown = JSON.parse(content);
+  if (raw && typeof raw === "object" && "version" in raw && raw.version === FORMAT_VERSION)
+    return importFile(document, parseFile(raw));
+  const parsed = parseLegacyFile(raw);
   if (!parsed.objects.every(validObject))
     throw new Error("This document contains invalid canvas objects.");
   const objects = parsed.version === 1 ? normalizeLegacyObjects(parsed.objects) : parsed.objects;
@@ -102,14 +91,14 @@ function fileOrder(item: CanvasObject) {
   return Number.isFinite(item.order) ? item.order : 0;
 }
 
-function parseFile(content: string): {
+/** Versions 1 and 2 stored the editor's own records. */
+function parseLegacyFile(parsed: unknown): {
   objects: CanvasObject[];
   bookmarks: unknown;
   comments: unknown;
   title: unknown;
   version: number;
 } {
-  const parsed: unknown = JSON.parse(content);
   if (
     !parsed ||
     typeof parsed !== "object" ||

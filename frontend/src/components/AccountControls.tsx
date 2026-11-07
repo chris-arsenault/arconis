@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react
 import { CircleUser, FolderOpen, Trash2, X } from "lucide-react";
 import type { AccountStore, SavedWorkspace } from "../account/accountStore";
 import type { WorkspaceContents } from "../account/workspaceFile";
+import { ConnectAgent } from "./ConnectAgent";
 
 type Mode = "signIn" | "signUp" | "confirm" | "forgot" | "reset";
 const MIN_PASSWORD = 12;
@@ -280,6 +281,7 @@ function SignedIn({
       </ActionForm>
       <h3>Workspaces</h3>
       <WorkspaceList account={account} onOpen={onOpen} />
+      <ConnectAgent />
       <div className="account-links">
         <button type="button" onClick={() => void account.signOut()}>
           Sign out

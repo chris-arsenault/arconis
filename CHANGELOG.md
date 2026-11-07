@@ -6,8 +6,13 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
-- Added accounts with email activation, whose name replaces the one typed into rooms.
+- Added accounts with email activation and a daily limit on new ones, whose name replaces the one
+  typed into rooms.
 - Added saved workspaces, encrypted in the browser and available on any device.
+- Added agents: signed-in people connect Claude Code or another MCP client, which reads and changes
+  a room through domain tools while people work alongside it.
+- Changed exported documents to version 3, which describes items in plain terms that people and
+  agents can read and write; earlier files still import.
 - Added pasted and dropped pictures in every room, uploaded once and carried in exported files.
 - Added threaded comments on any object or line, visible to everyone in the room.
 - Added nesting in any object, with children moving along with their parent.

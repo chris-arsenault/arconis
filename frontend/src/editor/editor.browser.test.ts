@@ -153,7 +153,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   await page.getByLabel("Import file").setInputFiles({
     name: "copy.arconis",
     mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify({ format: "arconis", ...saved })),
+    buffer: Buffer.from(JSON.stringify(saved.file)),
   });
   await expect.poll(() => objectCount(page)).toBe(6);
   expect((await exported(page)).bookmarks).toHaveLength(2);

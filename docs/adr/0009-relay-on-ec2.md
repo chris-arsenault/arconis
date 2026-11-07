@@ -1,6 +1,6 @@
 # 0009 — Peers sync through a relay on EC2
 
-- Status: Accepted
+- Status: Accepted; amended by ADR-0013
 - Date: 2026-11-07
 - Supersedes: ADR-0002
 

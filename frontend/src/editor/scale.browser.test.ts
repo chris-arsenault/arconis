@@ -22,7 +22,8 @@ it("stays usable with thousands of objects, including for someone joining late",
   await page.getByLabel("Import file").setInputFiles({
     name: "large.arconis",
     mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify({ format: "arconis", ...saved, objects })),
+    // Stored records, which version 2 files carry and still import.
+    buffer: Buffer.from(JSON.stringify({ format: "arconis", version: 2, objects })),
   });
   await expect.poll(() => objectCount(page), { timeout: 120_000 }).toBe(OBJECTS + 1);
 

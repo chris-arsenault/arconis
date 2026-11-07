@@ -206,6 +206,10 @@ resource "aws_launch_template" "relay" {
     allowed_origin     = local.site_origin
     picture_bucket     = module.frontend.bucket_name
     max_uptime_minutes = local.max_uptime_minutes
+    mcp_resource       = local.mcp_resource
+    cognito_issuer     = "https://cognito-idp.us-east-1.amazonaws.com/${aws_cognito_user_pool.accounts.id}"
+    mcp_client_id      = aws_cognito_user_pool_client.agents.id
+    auth_domain        = "https://${aws_cognito_user_pool_domain.accounts.domain}.auth.us-east-1.amazoncognito.com"
   }))
 
   tag_specifications {

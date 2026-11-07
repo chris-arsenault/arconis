@@ -108,7 +108,7 @@ it("moves legacy grouped routes and drawings once, then preserves them through u
   });
   await expect.poll(() => objectCount(page)).toBe(5);
   const before = await exported(page);
-  expect(before.version).toBe(2);
+  expect(before.version).toBe(3);
   expect(before.objects.find((item) => item.label === "Legacy shape")).toMatchObject({
     x: 140,
     y: 170,

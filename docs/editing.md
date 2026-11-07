@@ -50,6 +50,14 @@ Saved workspaces open from the account menu on any device, with nobody else onli
 Workspaces are encrypted with your password in your browser. Resetting a forgotten password keeps them
 only if you still know the old one; otherwise they are lost.
 
+## Agents
+
+The account panel's Connect an agent section shows the command that adds Arconis to Claude Code. Run
+it, sign in with your Arconis account when the agent asks, then give the agent a room's link. Someone
+must have the room open. The agent appears in the room under its own name, its changes merge like
+anyone's, and its comments are signed with that name. Password rooms and rooms on this device stay
+closed to agents.
+
 ## Password rooms
 
 "Create a password room" on the welcome screen asks for a password, and everyone joining by link needs
@@ -118,6 +126,9 @@ Saved views at the bottom of the left rail store a place and zoom. Save the curr
 plus button, click a view to fly there, and hover it to rename or remove it. Views are shared with the
 room and do not move other participants. Export downloads a
 portable `.arconis` document, and Import adds its contents to the current room.
+
+A document lists its items in plain terms, so a person or an agent can read or write one by hand;
+the agents' `format_schema` tool publishes its JSON Schema.
 
 Export PNG downloads a picture of the selection, or of the whole canvas when nothing is selected. The
 file carries a copy of those objects, so Import loads it like a document, in any room.

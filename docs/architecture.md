@@ -2,7 +2,8 @@
 
 The editor and its document run in the browser. Static assets come from S3 and CloudFront, a small
 relay on EC2 carries messages between peers and stores nothing, and IndexedDB keeps a copy on each
-device.
+device. Agents work in a room through MCP tools on the relay, which holds that room's canvas in memory
+while they do.
 
 ## Document model
 
@@ -15,7 +16,8 @@ edits stay independent of a participant's undo history.
   maxGraph uses parent-relative geometry ([ADR-0004](adr/0004-canonical-world-geometry.md)).
   Connector `x` and `y` are relative label coordinates. Records written by older clients keep their
   legacy fields, and a frozen compatibility baseline stays separate from per-axis movement fields.
-- **Files.** Exports declare world geometry; older file versions normalize during import. A PNG export
+- **Files.** Exports are the domain read model written out (version 3, below); versions 1 and 2, which
+  stored these records directly, still import, and older geometry normalizes then. A PNG export
   holds the same document in a compressed text chunk (`document/pngCopy.ts`), and its picture is the
   graph's draw pane rendered offscreen at an export scale (`editor/pngExport.ts`).
 - **Stacking.** Each record's `order` sets its stacking position, with its identifier breaking ties,
@@ -34,6 +36,28 @@ edits stay independent of a participant's undo history.
   projection. Document styles can never supply an image, because peers write them.
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
   so the selection frame scales and rotates them.
+
+## Domain layer
+
+`domain/` projects the document into the items people and agents reason about, by what each does rather
+than by stencil ([ADR-0013](adr/0013-agents-work-through-domain-tools-on-the-relay.md)): nodes, with a
+stencil or icon key; regions, which are panels or groups; text and sticky notes; pictures;
+connections; branches and references; and drawings. Holding is `inside`, discussions are threads on an
+item, and views are saved places. Renderer style keys become a `look` in plain terms, and the rest stay
+in an opaque `extra` so nothing is lost. `domain/schema.ts` declares all of it with zod, and the file
+format, the MCP tools and the published JSON Schema all come from those declarations.
+
+- **Operations.** `domain/operations.ts` adds, connects, branches, references, contains, relabels,
+  restyles, places, arranges and removes items, and comments, replies and resolves. Each works through
+  the document's own rules, so removing a holder removes what it holds and topics still move with their
+  parents. Placement is exact, relative or relational, and results say where items landed and what they
+  overlap.
+- **Sessions.** `domain/session.ts` applies a batch as one transaction after rehearsing it on a copy,
+  so a batch that fails partway never reaches the room. A session records each item's state as it last
+  showed it, refuses edits to items changed since by someone else with their current state, reports
+  others' changes on every call, and undoes only its own changes.
+- **Files.** `domain/format.ts` writes and reads version 3: items back to front, referring to each other
+  by id, with discussions, views and picture bytes. Opening a file assigns new ids.
 
 ## Editor
 
@@ -122,6 +146,14 @@ to close its sockets with that reason. Counting by month re-enables it automatic
 month-scoped SSM parameter raises the limit by hand. Each level alerts once through Ahara's alarm
 topic.
 
+**Agents.** `relay/mcpHttp.ts` serves MCP over HTTP at `/mcp` on the relay host, with the OAuth
+discovery documents MCP clients need. Cognito is the authorization server: the relay accepts only access
+tokens issued to the agents' app client and bound to the endpoint. Opening a room adds a peer in the
+relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the canvas from someone there
+and carries a domain session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
+opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
+close with their peers. `relay/mcp.ts` holds the tools and their descriptions.
+
 ## Accounts
 
 `accounts/` is the server side, and `account/` the browser's ([ADR-0012](adr/0012-accounts-and-encrypted-workspaces.md)).
@@ -135,6 +167,8 @@ cannot overwrite each other's work. `accounts/maintenance.ts` runs daily.
 
 - A new device needs an active peer holding the document, because the relay retains nothing. Export a
   file for a portable copy.
+- Agents reach only rooms someone has open, and their sessions end when the relay instance is
+  replaced.
 - Room codes are not enforced access control, so rooms suit non-sensitive work
   ([ADR-0003](adr/0003-anonymous-rooms-public-api-key.md)).
 - The relay is one process with no redundancy, so its failure stops collaboration until it returns.

@@ -18,10 +18,14 @@ sticky notes and freehand drawing in one shared document.
 ## Critical rules
 
 - Read `../ahara/INTEGRATION.md` and applicable Ahara standards before platform changes.
-- Keep Yjs canonical: maxGraph projects the document, and collaboration runs in the browser
-  with a relay that forwards frames and stores nothing
+- Keep Yjs canonical: maxGraph and the domain layer project the document, and collaboration runs
+  in the browser with a relay that forwards frames and stores nothing. The relay holds an ordinary
+  room's canvas in memory only while an agent works there
   ([ADR-0001](docs/adr/0001-yjs-canonical-maxgraph-projection.md),
-  [ADR-0009](docs/adr/0009-relay-on-ec2.md)).
+  [ADR-0009](docs/adr/0009-relay-on-ec2.md),
+  [ADR-0013](docs/adr/0013-agents-work-through-domain-tools-on-the-relay.md)).
+- Change the domain model in `domain/schema.ts`: the file format, MCP tools and published schema
+  all come from it.
 - Keep rooms usable without an account, and dependencies permissively licensed. Saved workspaces
   reach the server only as ciphertext ([ADR-0012](docs/adr/0012-accounts-and-encrypted-workspaces.md)). InfiniPaint inspires
   interactions only; write original code ([ADR-0007](docs/adr/0007-permissive-licensing.md)).
@@ -46,10 +50,11 @@ sticky notes and freehand drawing in one shared document.
 | Path | Purpose |
 | --- | --- |
 | `frontend/src/document/` | Stable object maps, Y.Text, undo, geometry, transforms and portable files |
+| `frontend/src/domain/` | Domain read model, operations, agent sessions and the version 3 file |
 | `frontend/src/editor/` | maxGraph projection, mutation capture, input, rendering and drag previews |
 | `frontend/src/collaboration/` | Peer protocol, frames, persistence, presence and transports |
 | `frontend/src/components/` | Interface, selection frame and object and room controls |
-| `frontend/src/relay/` | The relay process and its control Lambda, bundled separately from the site |
+| `frontend/src/relay/` | The relay process, its MCP endpoint and its control Lambda, bundled separately from the site |
 | `infrastructure/terraform/` | Relay, control Lambda and Ahara website deployment |
 | `.github/workflows/ci.yml` | Shared CI and deployment |
 | `docs/` | Current-state documentation, ADRs and backlog |

@@ -130,7 +130,12 @@ Boundaries:
 
 ### Open
 
-- **[DECISION] Agent-friendly format and MCP server (M14, M18).** The owner deferred both until they are designed.
+- **Agent-friendly format and MCP server (M14, M18), settled in a design session and merged.** Design follows
+  Ahara's domain-native work surfaces: domain objects by job (Node, Region, Text, Picture, Connection, Branch,
+  Reference, Discussion, View), not per stencil; strokes deferred to their own design. MCP is for signed-in users only,
+  hosted on the relay, never a peer users run; someone must have the room open, and the agent has no tab. Tools take
+  exact, relative and relational placement. Stale edits are refused with current state, every result carries a change
+  feed, and session state is transient on the instance. The file is the read model written out. Recorded in ADR-0013.
 - **Mind maps and layout (M11), settled.** Owner's definitions, which replaced the earlier proposals:
   layout's key part is composability, meaning moving parents moves children, grouping and ungrouping, placing with horizontal and vertical alignment, and common screen sizes, with
   some support for precision. A mind map's key part is a tree-like view where each node extends outward to other topics, holds conceptual references to other topics that need not be
@@ -393,6 +398,10 @@ execution from M6 until a design decision is needed.
 M6 to M10 are pushed. Infrastructure reaches AWS only through CI/CD, never by hand. The `ahara-infra` admission change must land
 through its pipeline before Arconis's. The admission change and the listener-priority row in `ahara/INTEGRATION.md` are committed in those repositories. Unverified until
 deployed: the instance's boot and shutdown units, WebSockets through the shared ALB and its WAF, the Lambda's IAM and metric reads, and the
-instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9 to M13, M15, M16 and M19 are built. M14 and M18 wait for design sessions with the owner, and M20 follows them. A priority server and similar account features are possible later. An independent security review of M15 is
+instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9 to M16, M18 and M19 are built; M14 and M18 were built together after the owner's design session. Their
+evidence: domain, format and end-to-end MCP tests against the local relay; a trial agent built a diagram and mind map
+through the tools alone, and another wrote a valid file from the schema alone, whose gaps in the descriptions were
+then fixed. Unverified until deployed: Cognito's sign-in domain, resource binding of `aud`, MCP clients completing
+sign-in, and `/mcp` through the ALB and WAF. M20 follows. A priority server and similar account features are possible later. An independent security review of M15 is
 recommended. The picture upload's signing and CORS, and M15's envelope exchange through the real relay, have only run against local stand-ins. PNG exports
 use system fonts where the page's web fonts are not available to an image, and have only been checked in Chromium.

@@ -27,6 +27,7 @@ import {
   type FilePictures,
 } from "../document/pictures";
 import type { CanvasObject } from "../document/types";
+import { renameFileItems, type ArconisFile } from "../domain/format";
 import { notifyPictures, setPictureSource } from "../editor/pictureSource";
 
 export function createRoomId() {
@@ -241,7 +242,7 @@ export class RoomSession {
   }
   /** Keeps a file's pictures here, sealing them in a password room, and returns the file to import. */
   async prepareFile(content: string) {
-    const file = JSON.parse(content) as { pictures: unknown; objects: CanvasObject[] };
+    const file = JSON.parse(content) as { pictures: unknown; objects?: CanvasObject[] };
     if (!Array.isArray(file.pictures)) return content;
     const decoded = await Promise.all(file.pictures.map(decodePicture));
     const renames = new Map<string, string>();
@@ -250,6 +251,7 @@ export class RoomSession {
       const kept = await this.pictures.add(picture.bytes, picture.type);
       if (kept !== picture.hash) renames.set(picture.hash, kept);
     }
+    if (!file.objects) return JSON.stringify(renameFileItems(file as ArconisFile, renames));
     return JSON.stringify({ ...file, objects: renamePictures(file.objects, renames) });
   }
   /** Whether the relay is off and someone here can ask for it. */

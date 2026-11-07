@@ -64,6 +64,8 @@ class TokenBucket {
 interface Peer {
   socket: RelaySocket;
   id: string;
+  /** An agent's peer inside the relay. It neither keeps the relay running nor counts as a person. */
+  agent: boolean;
   alive: boolean;
   messages: TokenBucket;
   /** Join requests from this peer, which rotate through the room so a retry reaches someone new. */
@@ -127,8 +129,17 @@ export class Relay {
     return (this.rooms.get(roomId)?.peers.size ?? 0) < MAX_ROOM_CONNECTIONS;
   }
 
+  /** How many people, not agents, are in a room. */
+  peopleIn(roomId: string) {
+    return [...(this.rooms.get(roomId)?.peers ?? [])].filter((peer) => !peer.agent).length;
+  }
+
+  get stopping() {
+    return this.stopped;
+  }
+
   /** `fresh` marks a person arriving by creating a room or loading a local copy. */
-  join(roomId: string, socket: RelaySocket, fresh: boolean) {
+  join(roomId: string, socket: RelaySocket, fresh: boolean, agent = false) {
     const now = this.options.now();
     const room = this.rooms.get(roomId) ?? {
       peers: new Set<Peer>(),
@@ -138,12 +149,13 @@ export class Relay {
     const peer: Peer = {
       socket,
       id: "",
+      agent,
       alive: true,
       messages: new TokenBucket(PEER_MESSAGES_PER_SECOND, PEER_MESSAGE_BURST, now),
       joinRequests: 0,
     };
     room.peers.add(peer);
-    this.connections++;
+    if (!agent) this.connections++;
     if (fresh) this.lastContent = now;
     return {
       receive: (message: string) => this.receive(room, peer, message),
@@ -156,7 +168,7 @@ export class Relay {
 
   private leave(roomId: string, room: Room, peer: Peer) {
     if (!room.peers.delete(peer)) return;
-    this.connections--;
+    if (!peer.agent) this.connections--;
     if (!room.peers.size) this.rooms.delete(roomId);
     if (!this.connections) this.noConnectionsSince = this.options.now();
   }
