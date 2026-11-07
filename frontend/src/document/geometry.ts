@@ -12,6 +12,19 @@ export interface StoredObject extends CanvasObject {
   legacyWorld: Optional<WorldGeometry>;
 }
 
+export const ICON_VENDORS = ["aws", "azure", "gcp"] as const;
+export type IconVendor = (typeof ICON_VENDORS)[number];
+
+export function vendorOfIcon(key: unknown): IconVendor | null {
+  if (typeof key !== "string") return null;
+  return ICON_VENDORS.find((vendor) => key.startsWith(`${vendor}:`)) ?? null;
+}
+
+/** Vendor terms ask that their icons stay undistorted and unrotated, so these only scale evenly. */
+export function isLockedIcon(style: Record<string, unknown>) {
+  return vendorOfIcon(style.icon) !== null;
+}
+
 /** Kinds that hold other objects as children. */
 export function isContainerKind(kind: ObjectKind | undefined) {
   return kind === "group" || kind === "panel";

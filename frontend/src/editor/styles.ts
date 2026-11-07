@@ -1,6 +1,7 @@
 import type { CellStyle } from "@maxgraph/core";
 import type { CanvasObject, ObjectKind } from "../document/types";
-import { iconImage, loadIcons } from "./icons";
+import { isLockedIcon } from "../document/geometry";
+import { iconImage, loadIconFor } from "./icons";
 
 const BASE_STYLE: CellStyle = {
   shape: "rectangle",
@@ -98,9 +99,13 @@ export function objectStyle(item: CanvasObject): CellStyle {
     Record<string, unknown>;
   delete style.image;
   if (item.kind === "icon") {
+    if (isLockedIcon(style)) {
+      delete style.rotation;
+      Object.assign(style, { aspect: "fixed", rotatable: false });
+    }
     const image = iconImage(style.icon, style.iconColor);
     if (image) Object.assign(style, { shape: "image", image });
-    else void loadIcons();
+    else void loadIconFor(style.icon);
   }
   return style;
 }

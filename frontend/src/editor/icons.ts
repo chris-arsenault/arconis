@@ -1,3 +1,5 @@
+import { ICON_VENDORS, vendorOfIcon, type IconVendor } from "../document/geometry";
+
 /** A catalog entry. Documents store only `key`; markup always comes from the local icon sets. */
 export interface IconEntry {
   key: string;
@@ -14,6 +16,11 @@ const catalog: IconEntry[] = [];
 const listeners = new Set<() => void>();
 let loading: Promise<void> | null = null;
 let version = 0;
+
+function notify() {
+  version++;
+  listeners.forEach((listener) => listener());
+}
 
 function attributes(values: Record<string, string | number | undefined>) {
   return Object.entries(values)
@@ -46,10 +53,69 @@ export function loadIcons() {
       renderers.set(key, () => markup);
       catalog.push({ key, title: icon.title, search: icon.title.toLowerCase() });
     });
-    version++;
-    listeners.forEach((listener) => listener());
+    notify();
   });
   return loading;
+}
+
+interface VendorIcon {
+  key: string;
+  title: string;
+  search: string;
+  svg: string;
+}
+const VENDOR_LOADERS: Record<IconVendor, () => Promise<{ default: unknown }>> = {
+  aws: () => import("./vendorIcons/aws.json"),
+  azure: () => import("./vendorIcons/azure.json"),
+  gcp: () => import("./vendorIcons/gcp.json"),
+};
+const vendorLoads = new Map<IconVendor, Promise<void>>();
+
+/** Loads one vendor's icons on first use. Each set is its own chunk, fetched only when needed. */
+export function loadVendor(vendor: IconVendor) {
+  let load = vendorLoads.get(vendor);
+  if (!load) {
+    load = VENDOR_LOADERS[vendor]().then(({ default: icons }) => {
+      (icons as VendorIcon[]).forEach(({ key, title, search, svg }) => {
+        renderers.set(key, () => svg);
+        catalog.push({ key, title, search: `${title} ${search}`.toLowerCase() });
+      });
+      notify();
+    });
+    vendorLoads.set(vendor, load);
+  }
+  return load;
+}
+
+export function loadAllVendors() {
+  return Promise.all(ICON_VENDORS.map(loadVendor));
+}
+
+/** Loads whichever set an icon key needs, so a room's icons appear for every peer. */
+export function loadIconFor(key: unknown) {
+  const vendor = vendorOfIcon(key);
+  return vendor ? loadVendor(vendor) : loadIcons();
+}
+
+function matchRank(search: string, query: string) {
+  const tokens = search.split(" ");
+  if (tokens.includes(query)) return 0;
+  if (tokens.some((token) => token.startsWith(query))) return 1;
+  return search.includes(query) ? 2 : 3;
+}
+
+/** Best matches first: a whole word, then the start of a word, then anywhere in the name. */
+export function searchIcons(query: string, limit: number) {
+  return catalog
+    .map((entry) => ({ entry, rank: matchRank(entry.search, query) }))
+    .filter(({ rank }) => rank < 3)
+    .sort((left, right) => left.rank - right.rank)
+    .slice(0, limit)
+    .map(({ entry }) => entry);
+}
+
+export function vendorEntries(vendor: IconVendor) {
+  return iconEntries().filter((entry) => vendorOfIcon(entry.key) === vendor);
 }
 
 export function subscribeIcons(listener: () => void) {

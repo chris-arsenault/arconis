@@ -1,5 +1,5 @@
 import type { CanvasObject } from "./types";
-import { isContainerKind, isVertexKind } from "./geometry";
+import { isContainerKind, isLockedIcon, isVertexKind } from "./geometry";
 
 export interface SelectionTransform {
   anchor: { x: number; y: number };
@@ -19,6 +19,8 @@ interface Box {
 }
 
 const GROUP_PADDING = 28;
+// Small enough for objects created at the deepest zoom.
+const MINIMUM_SIZE = 0.001;
 
 /** Applies one transform to world-space objects. Input is the gesture's starting snapshot. */
 export function transformObjects(items: CanvasObject[], transform: SelectionTransform) {
@@ -58,8 +60,10 @@ function transformObject(
     (JSON.parse(item.points) as [number, number][]).map((point) => apply(point).map(round))
   );
   if (!isVertexKind(item.kind)) return { ...item, points, rotation };
-  const width = Math.max(1, round(item.width * scaleX));
-  const height = Math.max(1, round(item.height * scaleY));
+  const locked = isLockedIcon(item.style);
+  const evenScale = Math.min(scaleX, scaleY);
+  const width = Math.max(MINIMUM_SIZE, round(item.width * (locked ? evenScale : scaleX)));
+  const height = Math.max(MINIMUM_SIZE, round(item.height * (locked ? evenScale : scaleY)));
   const [centerX, centerY] = apply([item.x + item.width / 2, item.y + item.height / 2]);
   return {
     x: round(centerX - width / 2),
@@ -67,7 +71,7 @@ function transformObject(
     width,
     height,
     points,
-    rotation: (((rotation + angle) % 360) + 360) % 360,
+    rotation: locked ? 0 : (((rotation + angle) % 360) + 360) % 360,
   };
 }
 
@@ -93,8 +97,8 @@ function transformGroup(
     };
   }
   const [x, y] = apply([group.x, group.y]);
-  const width = Math.max(1, round(group.width * transform.scaleX));
-  const height = Math.max(1, round(group.height * transform.scaleY));
+  const width = Math.max(MINIMUM_SIZE, round(group.width * transform.scaleX));
+  const height = Math.max(MINIMUM_SIZE, round(group.height * transform.scaleY));
   return { ...unchanged, x: round(x), y: round(y), width, height };
 }
 

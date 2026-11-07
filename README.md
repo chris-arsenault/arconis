@@ -47,4 +47,6 @@ Pushing to `main` runs the shared Ahara CI workflow, which deploys after its che
 
 ## License
 
-MIT; see [LICENSE](LICENSE). The deployed site lists dependency licenses at `/licenses.txt`.
+MIT; see [LICENSE](LICENSE). The deployed site lists dependency licenses at `/licenses.txt`. AWS, Azure
+and Google Cloud icons are not covered by the MIT license; see
+[their terms](frontend/public/third-party-icons.txt).

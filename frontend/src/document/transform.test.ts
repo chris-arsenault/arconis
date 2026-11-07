@@ -35,6 +35,27 @@ it("rotates shape centers, adds to their angle and refits group frames", () => {
   document.destroy();
 });
 
+it("keeps vendor icons unrotated and evenly scaled through any transform", () => {
+  const document = new CanvasDocument();
+  const aws = document.create("icon", 100, 100, {
+    width: 64,
+    height: 64,
+    style: { icon: "aws:Arch_AWS-Lambda" },
+  });
+  const lucide = document.create("icon", 200, 100, {
+    width: 64,
+    height: 64,
+    style: { icon: "lucide:Database" },
+  });
+  const stretched = transformObjects(document.list(), { anchor, scaleX: 3, scaleY: 2, angle: 0 });
+  expect(stretched.get(aws)).toMatchObject({ width: 128, height: 128 });
+  expect(stretched.get(lucide)).toMatchObject({ width: 192, height: 128 });
+  const turned = transformObjects(document.list(), { anchor, scaleX: 1, scaleY: 1, angle: 45 });
+  expect(turned.get(aws)?.rotation).toBe(0);
+  expect(turned.get(lucide)?.rotation).toBe(45);
+  document.destroy();
+});
+
 it("stacks by order and breaks ties by id on every peer", () => {
   const document = new CanvasDocument();
   const low = document.create("rectangle", 0, 0, { order: 1 });

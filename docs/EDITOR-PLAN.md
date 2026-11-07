@@ -69,16 +69,14 @@ Boundaries:
   canvas" goes away.
 - **Zoom range (#6):** 1000x. Read as 1000x in each direction from 100%, so 0.1% to 100,000%.
 - **Pictures (#11):** deferred to the end of the plan. The storage question stays open until then.
-- **Vendor icons (#10):** yes, alongside the general icon set.
+- **Vendor icons (#10):** ship AWS, Azure and Google Cloud icons, self-hosted in lazy chunks. The owner accepted the licensing gray
+  area, with rotation and proportions locked and even scaling allowed (ADR-0008).
 - **Bookmarks (#13):** no separate bookmark concept. Saved views and bookmarks are the same thing, so saved views deliver
   "save a place, see it in the left nav, click to zoom there".
 - **Mind mapping and layout (#8, #9):** the same editing mode, with specialized objects.
 
 ### Open
 
-- **[DECISION] AWS service icons, returned to the owner from M4.** AWS's Architecture Icons page allows customers to create
-  diagrams with the icons and says nothing about redistributing them, so they are not bundled. Simple Icons, which M4 ships,
-  has no AWS or Azure logos. Options: the owner accepts AWS's terms for bundling, or people use pasted pictures after M7.
 - **[DECISION] Picture storage, blocks M7.** Recommended: browser-compressed pictures inside the Yjs document with a size
   cap, which keeps the no-backend boundary. Sharp full-size images would need shared storage and a backend, the owner's call.
 - **[DECISION] Mind-map behavior, at M6 start.** The brief gives no requirements, so the owner reacts to the proposal in M6.

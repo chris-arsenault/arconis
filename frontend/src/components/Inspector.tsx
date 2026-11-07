@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import {
   AlignCenter,
   AlignLeft,
@@ -17,15 +16,20 @@ import {
 import type { EditorController } from "../editor/controller";
 import { COLORS, KIND_LABELS, type CanvasObject, type StyleValue } from "../document/types";
 import { useCollaborativeText } from "../document/useCollaborativeText";
-import { isContainerKind } from "../document/geometry";
+import { isContainerKind, isLockedIcon } from "../document/geometry";
 import { objectStyle } from "../editor/styles";
+import { ConnectionControls, Section } from "./ConnectionControls";
 
 type ItemProps = Readonly<{ editor: EditorController; item: CanvasObject }>;
 type ChangeStyle = (key: string, value: StyleValue) => void;
 type StyleProps = Readonly<{ item: CanvasObject; change: ChangeStyle }>;
 
-const HAS_FILL = (item: CanvasObject) => !["connector", "stroke", "text"].includes(item.kind);
-const HAS_LINE = (item: CanvasObject) => !["sticky", "text"].includes(item.kind);
+const HAS_FILL = (item: CanvasObject) =>
+  !["connector", "stroke", "text", "icon"].includes(item.kind);
+const HAS_LINE = (item: CanvasObject) => !["sticky", "text", "icon"].includes(item.kind);
+// Logos and vendor icons keep their own colors; only the line icon set takes one.
+const HAS_ICON_COLOR = (item: CanvasObject) =>
+  item.kind === "icon" && String(item.style.icon).startsWith("lucide:");
 const HAS_TEXT = (item: CanvasObject) => item.kind !== "stroke";
 
 function effectiveStyle(item: CanvasObject) {
@@ -122,15 +126,6 @@ function SelectionActions({
   );
 }
 
-function Section({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
-  return (
-    <section className="inspector-section" aria-label={title}>
-      <h3>{title}</h3>
-      {children}
-    </section>
-  );
-}
-
 function StyleControls({ editor, item }: ItemProps) {
   const change: ChangeStyle = (key, value) =>
     editor
@@ -140,6 +135,15 @@ function StyleControls({ editor, item }: ItemProps) {
     <>
       {HAS_FILL(item) && <FillControls item={item} change={change} />}
       {HAS_LINE(item) && <LineControls item={item} change={change} />}
+      {HAS_ICON_COLOR(item) && (
+        <Section title="Icon">
+          <ColorChip
+            label="Icon color"
+            value={item.style.iconColor ?? "#283249"}
+            onChange={(color) => change("iconColor", color)}
+          />
+        </Section>
+      )}
       {HAS_TEXT(item) && <TextControls item={item} change={change} />}
     </>
   );
@@ -303,6 +307,13 @@ const GEOMETRY = [
 ] as const;
 
 function GeometryControls({ editor, item }: ItemProps) {
+  const locked = isLockedIcon(item.style);
+  const setSize = (key: "width" | "height", value: number) => {
+    // Vendor icons scale evenly, so either size field sets both.
+    const ratio = key === "width" ? item.height / item.width : item.width / item.height;
+    const other = key === "width" ? "height" : "width";
+    editor.updateGeometry(item.id, { [key]: value, [other]: value * ratio });
+  };
   return (
     <Section title="Position and size">
       <div className="geometry-grid">
@@ -312,10 +323,14 @@ function GeometryControls({ editor, item }: ItemProps) {
             prefix={prefix}
             label={`Object ${key}`}
             value={item[key]}
-            onChange={(value) => editor.updateGeometry(item.id, { [key]: value })}
+            onChange={(value) =>
+              locked && (key === "width" || key === "height")
+                ? setSize(key, value)
+                : editor.updateGeometry(item.id, { [key]: value })
+            }
           />
         ))}
-        {!isContainerKind(item.kind) && (
+        {!isContainerKind(item.kind) && !locked && (
           <NumberField
             prefix="°"
             label="Object rotation"
@@ -332,86 +347,4 @@ function PositionControls(props: ItemProps) {
   if (props.item.kind === "connector") return <ConnectionControls {...props} />;
   if (props.item.kind === "stroke") return null;
   return <GeometryControls {...props} />;
-}
-
-const ROUTES = [
-  { value: "orthogonalEdgeStyle", label: "Orthogonal" },
-  { value: "elbowEdgeStyle", label: "Elbow" },
-  { value: "none", label: "Straight" },
-];
-const ARROWS = [
-  { value: "block", label: "Arrow" },
-  { value: "open", label: "Open arrow" },
-  { value: "none", label: "None" },
-];
-
-function SelectRow({
-  title,
-  label,
-  value,
-  options,
-  onChange,
-}: Readonly<{
-  title: string;
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}>) {
-  return (
-    <Fragment>
-      <span>{title}</span>
-      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </Fragment>
-  );
-}
-
-function ConnectionControls({ editor, item }: ItemProps) {
-  const objects = editor.document
-    .list()
-    .filter((value) => !["connector", "stroke"].includes(value.kind))
-    .map((value) => ({ value: value.id, label: value.label || KIND_LABELS[value.kind] }));
-  const style = effectiveStyle(item);
-  const patchStyle = (key: string) => (value: string) =>
-    editor.document.patchStyle(item.id, { [key]: value });
-  return (
-    <Section title="Connection">
-      <div className="select-grid">
-        <SelectRow
-          title="From"
-          label="Connector source"
-          value={item.source}
-          options={objects}
-          onChange={(value) => editor.document.patch(item.id, { source: value })}
-        />
-        <SelectRow
-          title="To"
-          label="Connector target"
-          value={item.target}
-          options={objects}
-          onChange={(value) => editor.document.patch(item.id, { target: value })}
-        />
-        <SelectRow
-          title="Route"
-          label="Connector routing"
-          value={String(style.edgeStyle || "orthogonalEdgeStyle")}
-          options={ROUTES}
-          onChange={patchStyle("edgeStyle")}
-        />
-        <SelectRow
-          title="End"
-          label="Connector arrow"
-          value={String(style.endArrow || "block")}
-          options={ARROWS}
-          onChange={patchStyle("endArrow")}
-        />
-      </div>
-    </Section>
-  );
 }

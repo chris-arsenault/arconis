@@ -25,8 +25,9 @@ choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a
 
 ## Icons
 
-Search the stencil rail for shapes and icons, or browse the Infrastructure and Technology sets. Icons
-place, connect, resize and label like other objects.
+Search the stencil rail for shapes and icons, or browse its sets, including AWS, Azure and Google Cloud.
+Icons place, connect, resize and label like other objects. Vendor icons keep their colors and
+proportions and cannot rotate, as their terms ask.
 
 ## Connecting
 

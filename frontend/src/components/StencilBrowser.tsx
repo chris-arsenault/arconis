@@ -1,5 +1,7 @@
 import {
+  memo,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -7,13 +9,18 @@ import {
   type ReactNode,
 } from "react";
 import type { EditorController } from "../editor/controller";
+import { ICON_VENDORS, type IconVendor } from "../document/geometry";
 import {
   iconEntries,
   iconEntry,
   iconImage,
   iconsVersion,
+  loadAllVendors,
   loadIcons,
+  loadVendor,
+  searchIcons,
   subscribeIcons,
+  vendorEntries,
   type IconEntry,
 } from "../editor/icons";
 import { INFRASTRUCTURE_ICONS, STENCIL_GROUPS, type Stencil } from "./stencils";
@@ -145,33 +152,94 @@ function Group({ title, children }: Readonly<{ title: string; children: ReactNod
   );
 }
 
-function SearchResults({ editor, query }: Readonly<{ editor: EditorController; query: string }>) {
+/** Memoized because large icon sets would otherwise re-render on every editor update. */
+const IconButtons = memo(function IconButtons({
+  editor,
+  entries,
+}: Readonly<{ editor: EditorController; entries: IconEntry[]; armedKey: string }>) {
+  return entries.map((entry) => <IconStencil key={entry.key} editor={editor} entry={entry} />);
+});
+
+const VENDOR_TITLES: Record<IconVendor, string> = {
+  aws: "AWS",
+  azure: "Azure",
+  gcp: "Google Cloud",
+};
+
+function VendorGroup({
+  editor,
+  vendor,
+  version,
+}: Readonly<{ editor: EditorController; vendor: IconVendor; version: number }>) {
+  const [open, setOpen] = useState(false);
+  const entries = useMemo(
+    () => (open ? vendorEntries(vendor) : []),
+    // A new icon set arriving changes the version, not the arguments.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [open, vendor, version]
+  );
+  return (
+    <details
+      className="vendor-group"
+      onToggle={(event) => {
+        const isOpen = event.currentTarget.open;
+        setOpen(isOpen);
+        if (isOpen) void loadVendor(vendor);
+      }}
+    >
+      <summary>{VENDOR_TITLES[vendor]}</summary>
+      {open && (
+        <div className="stencil-grid">
+          <IconButtons editor={editor} entries={entries} armedKey={editor.armedIcon?.key ?? ""} />
+        </div>
+      )}
+    </details>
+  );
+}
+
+function SearchResults({
+  editor,
+  query,
+  version,
+}: Readonly<{ editor: EditorController; query: string; version: number }>) {
   const shapes = STENCIL_GROUPS.flatMap((group) => group.stencils).filter((stencil) =>
     stencil.name.toLowerCase().includes(query)
   );
-  const icons = iconEntries()
-    .filter((entry) => entry.search.includes(query))
-    .slice(0, MAX_RESULTS);
+  const icons = useMemo(
+    () => searchIcons(query, MAX_RESULTS),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [query, version]
+  );
   if (!shapes.length && !icons.length) return <p className="stencil-empty">No stencils match.</p>;
   return (
     <Group title="Results">
       {shapes.map((stencil) => (
         <ShapeStencil key={stencil.kind} editor={editor} stencil={stencil} />
       ))}
-      {icons.map((entry) => (
-        <IconStencil key={entry.key} editor={editor} entry={entry} />
-      ))}
+      <IconButtons editor={editor} entries={icons} armedKey={editor.armedIcon?.key ?? ""} />
     </Group>
   );
 }
 
 export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }>) {
   const [query, setQuery] = useState("");
-  useSyncExternalStore(subscribeIcons, iconsVersion);
+  const version = useSyncExternalStore(subscribeIcons, iconsVersion);
   useEffect(() => void loadIcons(), []);
   const search = query.trim().toLowerCase();
-  const infrastructure = INFRASTRUCTURE_ICONS.flatMap((key) => iconEntry(key) ?? []);
-  const technology = iconEntries().filter((entry) => entry.key.startsWith("brand:"));
+  useEffect(() => {
+    if (search) void loadAllVendors();
+  }, [search]);
+  const armedKey = editor.armedIcon?.key ?? "";
+  const infrastructure = useMemo(
+    () => INFRASTRUCTURE_ICONS.flatMap((key) => iconEntry(key) ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [version]
+  );
+  const technology = useMemo(
+    () => iconEntries().filter((entry) => entry.key.startsWith("brand:")),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [version]
+  );
   return (
     <div className="stencil-browser">
       <input
@@ -184,7 +252,7 @@ export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }
       />
       <div className="stencil-groups">
         {search ? (
-          <SearchResults editor={editor} query={search} />
+          <SearchResults editor={editor} query={search} version={version} />
         ) : (
           <>
             {STENCIL_GROUPS.map((group) => (
@@ -194,15 +262,17 @@ export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }
                 ))}
               </Group>
             ))}
-            <Group title="Infrastructure">
-              {infrastructure.map((entry) => (
-                <IconStencil key={entry.key} editor={editor} entry={entry} />
+            <section aria-label="Cloud providers">
+              <h3>Cloud providers</h3>
+              {ICON_VENDORS.map((vendor) => (
+                <VendorGroup key={vendor} editor={editor} vendor={vendor} version={version} />
               ))}
+            </section>
+            <Group title="Infrastructure">
+              <IconButtons editor={editor} entries={infrastructure} armedKey={armedKey} />
             </Group>
             <Group title="Technology">
-              {technology.map((entry) => (
-                <IconStencil key={entry.key} editor={editor} entry={entry} />
-              ))}
+              <IconButtons editor={editor} entries={technology} armedKey={armedKey} />
             </Group>
           </>
         )}

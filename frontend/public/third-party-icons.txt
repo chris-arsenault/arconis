@@ -1,0 +1,21 @@
+Third-party architecture icons in Arconis
+
+These icons are not covered by Arconis's MIT license. They remain the property of their owners
+and are provided so people can create architecture diagrams.
+
+Amazon Web Services
+  AWS Architecture Icons: https://aws.amazon.com/architecture/icons/
+
+Microsoft Azure
+  Azure architecture icons: https://learn.microsoft.com/en-us/azure/architecture/icons/
+  Microsoft permits the use of these icons in architectural diagrams, training materials, or
+  documentation. You can copy, distribute, and display the icons only for the permitted use unless
+  granted explicit permission by Microsoft. Microsoft reserves all other rights.
+
+Google Cloud
+  Google Cloud icons: https://cloud.google.com/icons
+
+Arconis keeps these icons in their original colors and proportions and does not rotate them.
+
+Product names and logos are trademarks of their respective owners. Their use does not imply
+endorsement of or affiliation with Arconis.

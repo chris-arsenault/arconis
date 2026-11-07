@@ -193,6 +193,9 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
       <a href="/licenses.txt" target="_blank" rel="noreferrer">
         Licenses
       </a>
+      <a href="/third-party-icons.txt" target="_blank" rel="noreferrer">
+        Icon terms
+      </a>
     </footer>
   );
 }

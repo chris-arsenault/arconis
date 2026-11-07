@@ -405,6 +405,17 @@ h1 em {
   padding: 2px 8px;
   font-size: 12px;
 }
+.vendor-group summary {
+  padding: 5px 4px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.vendor-group summary:hover {
+  background: #f1f2f6;
+}
+.vendor-group .stencil-grid {
+  margin-bottom: 6px;
+}
 .stencil-empty {
   margin: 4px;
   color: #7c8497;

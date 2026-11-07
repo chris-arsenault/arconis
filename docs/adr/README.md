@@ -12,3 +12,4 @@ product brief, earlier implementations or owner decisions.
 | [0005](0005-one-toolbar.md) | One toolbar instead of editing modes | Accepted | 2026-11-06 |
 | [0006](0006-automated-tests-use-local-fixtures.md) | Automated tests use local fixtures only | Accepted | 2026-11-07 |
 | [0007](0007-permissive-licensing.md) | Permissive licensing and original interactions | Accepted | 2026-11-06 |
+| [0008](0008-vendor-architecture-icons.md) | Vendor architecture icons | Accepted | 2026-11-07 |

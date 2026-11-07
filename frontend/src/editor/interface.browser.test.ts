@@ -1,7 +1,7 @@
 import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, row, exported, objectCount } from "./browserHarness";
+import { browser, errors, open, add, row, exported, drag, objectCount } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
@@ -85,6 +85,72 @@ it("finds, places, connects and syncs icons from the stencil rail", async () => 
   await expect.poll(() => objectCount(b), { timeout: 15000 }).toBe(3);
   await expect.poll(() => canvas(b).locator('image[*|href^="data:image/svg+xml"]').count()).toBe(2);
   expect((await exported(b)).objects.find((item) => item.label === "Kubernetes")?.width).toBe(120);
+  expect(errors).toEqual([]);
+  await first.close();
+  await second.close();
+});
+
+it("offers cloud provider icons that scale evenly and never rotate, for every peer", async () => {
+  const first = await browser.newContext(VIEWPORT);
+  const second = await browser.newContext(VIEWPORT);
+  const room = createRoomId();
+  const a = await open(first, room);
+  const lambda = a.getByRole("button", { name: "Icon: AWS Lambda", exact: true });
+  await a.getByText("AWS", { exact: true }).click();
+  await lambda.waitFor({ timeout: 15000 });
+  await a.getByText("AWS", { exact: true }).click();
+  const search = a.getByLabel("Search stencils", { exact: true });
+  await search.fill("s3");
+  await a
+    .getByRole("button", { name: "Icon: Amazon Simple Storage Service", exact: true })
+    .waitFor();
+  await search.fill("lambda");
+  await lambda.click();
+  await canvas(a).click({ position: { x: 200, y: 180 } });
+  await search.fill("virtual machine");
+  await dragStencil(a, "Icon: Virtual Machine", 400, 180);
+  await search.fill("");
+  await expect.poll(() => objectCount(a)).toBe(2);
+
+  await canvas(a).click({ position: emptySpot });
+  await canvas(a).click({ position: { x: 232, y: 212 } });
+  expect(await a.getByLabel("Object rotation", { exact: true }).count()).toBe(0);
+  expect(await a.getByLabel("Icon color", { exact: true }).count()).toBe(0);
+  expect(await a.getByLabel("Fill color", { exact: true }).count()).toBe(0);
+  await a.getByLabel("Object width", { exact: true }).fill("128");
+  await expect.poll(() => a.getByLabel("Object height", { exact: true }).inputValue()).toBe("128");
+
+  // A corner drag asking for a wide shape still scales evenly.
+  const bounds = (await canvas(a).boundingBox())!;
+  await a.mouse.move(bounds.x + 328, bounds.y + 308);
+  await a.mouse.down();
+  await a.mouse.move(bounds.x + 450, bounds.y + 340, { steps: 8 });
+  await a.mouse.up();
+  await expect
+    .poll(async () => {
+      const item = (await exported(a)).objects.find((value) => value.label === "AWS Lambda")!;
+      return item.width === item.height && item.width > 128;
+    })
+    .toBe(true);
+
+  // Rotating a selection with a vendor icon moves it but leaves it upright.
+  await canvas(a).click({ position: emptySpot });
+  await drag(a, 180, 120, 480, 300);
+  const handle = (await a.getByTestId("frame-rotate").boundingBox())!;
+  await a.mouse.move(handle.x + 6, handle.y + 6);
+  await a.mouse.down();
+  await a.mouse.move(handle.x + 160, handle.y + 120, { steps: 8 });
+  await a.mouse.up();
+  const turned = (await exported(a)).objects.find((value) => value.label === "AWS Lambda")!;
+  expect(Number(turned.style.rotation || 0)).toBe(0);
+
+  const b = await open(second, room);
+  await expect.poll(() => objectCount(b), { timeout: 15000 }).toBe(2);
+  await expect
+    .poll(() => canvas(b).locator('image[*|href^="data:image/svg+xml"]').count(), {
+      timeout: 15000,
+    })
+    .toBe(2);
   expect(errors).toEqual([]);
   await first.close();
   await second.close();

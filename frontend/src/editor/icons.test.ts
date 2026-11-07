@@ -1,5 +1,5 @@
 import { it, expect, beforeAll } from "vitest";
-import { iconEntries, iconImage, loadIcons } from "./icons";
+import { iconEntries, iconImage, loadAllVendors, loadIcons, searchIcons } from "./icons";
 import { objectStyle } from "./styles";
 import type { CanvasObject } from "../document/types";
 
@@ -43,6 +43,34 @@ it("never lets document style choose an image URL", () => {
   expect(objectStyle(icon({ icon: "https://evil.example/x" })).image).toBeUndefined();
   const shape = objectStyle({ ...icon({ image: "https://evil.example/x" }), kind: "rectangle" });
   expect(shape.image).toBeUndefined();
+});
+
+it("loads vendor sets containing no active content", async () => {
+  await loadAllVendors();
+  const entries = iconEntries();
+  for (const prefix of ["aws:", "azure:", "gcp:"]) {
+    const vendor = entries.filter((entry) => entry.key.startsWith(prefix));
+    expect(vendor.length).toBeGreaterThan(100);
+    for (const { key } of vendor) {
+      const markup = decodeURIComponent(iconImage(key)!);
+      expect(markup).not.toMatch(/<script|<foreignObject|\son[a-z]+\s*=|javascript:/i);
+    }
+  }
+  expect(searchIcons("s3", 5).map((entry) => entry.title)).toContain(
+    "Amazon Simple Storage Service"
+  );
+  expect(searchIcons("lambda", 5).map((entry) => entry.title)).toContain("AWS Lambda");
+  // A whole-word match outranks a word that merely contains the search.
+  const titles = searchIcons("s3", 60).map((entry) => entry.title);
+  expect(titles.indexOf("Amazon Simple Storage Service")).toBeLessThan(titles.indexOf("Axis3 D"));
+});
+
+it("strips rotation from vendor icons whatever a peer writes", () => {
+  const style = objectStyle(icon({ icon: "aws:Arch_AWS-Lambda", rotation: 45 }));
+  expect(style.rotation).toBeUndefined();
+  expect(style.aspect).toBe("fixed");
+  expect(style.rotatable).toBe(false);
+  expect(objectStyle(icon({ icon: "lucide:Database", rotation: 45 })).rotation).toBe(45);
 });
 
 it("offers both icon sets for search", () => {

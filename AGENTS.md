@@ -23,6 +23,8 @@ sticky notes and freehand drawing in one shared document.
   [ADR-0002](docs/adr/0002-appsync-events-peer-sync.md)).
 - Keep rooms anonymous and dependencies permissively licensed. InfiniPaint inspires
   interactions only; write original code ([ADR-0007](docs/adr/0007-permissive-licensing.md)).
+  Vendor architecture icons are the one exception, and stay unrotated and evenly scaled
+  ([ADR-0008](docs/adr/0008-vendor-architecture-icons.md)).
 - Run automated tests and CI against the local server and AppSync protocol fixture only. Real
   AWS services stay out of testing, especially pay-per-use ones; deploying is separate
   ([ADR-0006](docs/adr/0006-automated-tests-use-local-fixtures.md)).
