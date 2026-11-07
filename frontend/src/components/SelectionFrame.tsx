@@ -70,7 +70,8 @@ export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }
     .getSelectionCells()
     .filter((cell) => editor.document.get(cell.id!)?.kind !== "connector");
   const kinds = cells.map((cell) => editor.document.get(cell.id!)?.kind);
-  const onlyGroup = kinds.length === 1 && isContainerKind(kinds[0]);
+  const holdsOthers = isContainerKind(kinds[0]) || cells[0]?.children.length > 0;
+  const onlyGroup = kinds.length === 1 && holdsOthers;
   if (kinds.length < 2 && !onlyGroup && kinds[0] !== "stroke") return null;
   const box = editor.graph.getBoundingBox(cells);
   return box && <Frame editor={editor} box={box} rotateOnly={onlyGroup} />;

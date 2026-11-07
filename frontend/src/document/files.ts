@@ -2,6 +2,7 @@ import { CanvasDocument } from "./canvasDocument";
 import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
 import { normalizeLegacyObjects } from "./geometry";
 import { isPng, readCopy } from "./pngCopy";
+import { remapStyle } from "./relations";
 
 /** The portable form of a document, or of just the named objects, without its saved views. */
 export function serializeDocument(document: CanvasDocument, ids: string[] = []) {
@@ -72,6 +73,7 @@ export function importDocument(document: CanvasDocument, content: string) {
         parent: ids.get(item.parent) || "",
         source: ids.get(item.source) || "",
         target: ids.get(item.target) || "",
+        style: remapStyle(item.style, ids),
       })
     );
     if (typeof parsed.title === "string") document.rename(parsed.title);

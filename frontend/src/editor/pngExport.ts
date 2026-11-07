@@ -1,4 +1,6 @@
 import type { Cell, Graph } from "@maxgraph/core";
+import { worldBounds } from "../document/relations";
+import type { CanvasObject } from "../document/types";
 
 const MARGIN_PIXELS = 20;
 const HIDE_ATTRIBUTE = "data-export-hidden";
@@ -22,7 +24,7 @@ export function exportScale(width: number, height: number) {
   return side * scale < MIN_SIDE_PIXELS ? MIN_SIDE_PIXELS / side : scale;
 }
 
-function worldBounds(graph: Graph, cells: Cell[]): WorldBox | null {
+function drawnBounds(graph: Graph, cells: Cell[]): WorldBox | null {
   const box = graph.getBoundingBox(cells);
   if (!box) return null;
   const { scale, translate } = graph.view;
@@ -105,9 +107,13 @@ async function rasterize({ svg, width, height }: ReturnType<typeof renderSvg>) {
  * Draws the named objects as a PNG, or the whole canvas when `ids` is empty. Returns null when there
  * is nothing to draw.
  */
-export async function renderPng(graph: Graph, ids: string[]) {
+export async function renderPng(graph: Graph, ids: string[], items: CanvasObject[]) {
   const cells = shownCells(graph, new Set(ids));
-  const box = worldBounds(graph, cells);
+  // Everything can be too small to draw at this zoom, while still being worth exporting.
+  const chosen = new Set(ids);
+  const box =
+    drawnBounds(graph, cells) ??
+    worldBounds(ids.length ? items.filter((item) => chosen.has(item.id)) : items);
   if (!box || !cells.length) return null;
   return rasterize(renderSvg(graph, cells, box));
 }

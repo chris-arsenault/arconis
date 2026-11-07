@@ -9,6 +9,7 @@ import {
   WifiOff,
   Keyboard,
   Grid3x3,
+  Waypoints,
 } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -265,6 +266,14 @@ function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
           }}
         >
           <Grid3x3 size={17} />
+        </button>
+        <button
+          aria-label="Reference lines"
+          title={editor.referencesVisible ? "Hide reference lines" : "Show references as lines"}
+          aria-pressed={editor.referencesVisible}
+          onClick={() => editor.toggleReferences()}
+        >
+          <Waypoints size={17} />
         </button>
       </div>
       <button

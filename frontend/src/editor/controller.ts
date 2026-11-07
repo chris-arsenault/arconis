@@ -1,5 +1,5 @@
 import {
-  Cell,
+  type Cell,
   Graph,
   InternalEvent,
   RubberBandHandler,
@@ -20,11 +20,16 @@ import { bindCanvasInput } from "./input";
 import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { configureConnectionPoints } from "./connectionPoints";
-import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
+import { clampScale, creationOffset, creationSize, creationValues, syncZoom } from "./zoom";
+import { configureCulling, hasHiddenDetail } from "./culling";
+import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
+import { configureComposition, endpointFor, syncLineAnchors } from "./topics";
+import { LINE_ANCHOR, referencesOf } from "../document/relations";
+import type { ScreenSize } from "../document/screens";
 import { createView, fitContents, flyToView } from "./views";
 import { subscribeIcons } from "./icons";
-import { configurePanels, panelAt } from "./panels";
-import { compareStacking, isContainerKind, isVertexKind, offsetPoints } from "../document/geometry";
+import { configurePanels, containerAt } from "./panels";
+import { compareStacking, isContainerKind, isVertexKind } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 import { CanvasGrid } from "./grid";
 import { RateLimitedWrite } from "./rateLimitedWrite";
@@ -34,12 +39,23 @@ const TRANSFORM_WRITE_MS = 100;
 
 export type Tool = ObjectKind | "select" | "pan";
 
+const defaultLabel = (kind: ObjectKind) =>
+  kind === "sticky" ? "Your idea here" : KIND_LABELS[kind];
+
+function newObjectSize(kind: ObjectKind, scale: number, screen: ScreenSize | null) {
+  if (!screen) return creationSize(kind, scale);
+  const factor = creationOffset(scale);
+  return { width: screen.width * factor, height: screen.height * factor };
+}
+
 export class EditorController {
   readonly graph: Graph;
   tool: Tool = "select";
   editId: string | null = null;
   selectOnEdit = false;
   armedIcon: { key: string; title: string } | null = null;
+  armedScreen: ScreenSize | null = null;
+  referencesVisible = false;
   connectionSource = "";
   version = 0;
   /** Receives in-progress move and resize boxes so peers can see a drag before it lands. */
@@ -70,13 +86,15 @@ export class EditorController {
     this.graph.setConnectable(true);
     this.graph.setAllowDanglingEdges(false);
     this.graph.setCellsEditable(false);
-    configureRendering(this.graph);
+    configureRendering(this.graph, (cell) => this.labelMarks(cell));
+    configureCulling(this.graph, () => this.referencesVisible);
     this.graph.isToggleEvent = (event) => event.shiftKey || event.ctrlKey || event.metaKey;
     this.graph.setDisconnectOnMove(false);
     this.graph.setDropEnabled(true);
     this.graph.setSplitEnabled(false);
     configureConnectionPoints(this.graph, this.document);
     configurePanels(this.graph, this.document);
+    configureComposition(this.graph, this.document);
     this.graph.addMouseListener({
       mouseDown: () => {},
       mouseMove: () => this.publishPreview(),
@@ -84,6 +102,8 @@ export class EditorController {
     });
     this.graph.getStylesheet().getDefaultEdgeStyle().edgeStyle = "orthogonalEdgeStyle";
     this.band = new RubberBandHandler(this.graph);
+    // Alt moves a topic without its branches, so it cannot also force a marquee.
+    this.band.isForceRubberbandEvent = () => false;
     this.graph.getDataModel().addListener(InternalEvent.CHANGE, this.onGraphChange);
     this.graph.getSelectionModel().addListener(InternalEvent.CHANGE, this.emit);
     this.graph.view.addListener(InternalEvent.SCALE_AND_TRANSLATE, this.onView);
@@ -107,6 +127,16 @@ export class EditorController {
     this.version++;
     this.listeners.forEach((listener) => listener());
   };
+  /** Signs that an object holds hidden detail or refers elsewhere. */
+  private labelMarks(cell: Cell) {
+    const references = referencesOf(this.document.list(), cell.id ?? "").length;
+    return [
+      hasHiddenDetail(cell, this.graph.view.scale) ? "⊕" : "",
+      references ? `↗${references}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
   private onView = () => {
     syncZoom(this.graph, this.element);
     this.emit();
@@ -124,6 +154,7 @@ export class EditorController {
     this.committing = true;
     try {
       commitGraph(this.graph, this.document);
+      syncLineAnchors(this.graph, this.document);
     } finally {
       this.committing = false;
     }
@@ -174,8 +205,14 @@ export class EditorController {
     this.armedIcon = icon;
     this.emit();
   }
+  armScreen(screen: ScreenSize) {
+    this.setTool("panel");
+    this.armedScreen = screen;
+    this.emit();
+  }
   setTool(tool: Tool) {
     this.armedIcon = null;
+    this.armedScreen = null;
     this.connectionSource = "";
     this.tool = tool;
     const pan = this.graph.getPlugin<PanningHandler>("PanningHandler");
@@ -188,7 +225,7 @@ export class EditorController {
     this.emit();
   }
 
-  add(kind: ObjectKind, x?: number, y?: number, icon = this.armedIcon) {
+  add(kind: ObjectKind, x?: number, y?: number, icon = this.armedIcon, screen = this.armedScreen) {
     const view = this.graph.view;
     const centerX = this.element.clientWidth / 2 / view.scale - view.translate.x;
     const centerY = this.element.clientHeight / 2 / view.scale - view.translate.y;
@@ -197,10 +234,12 @@ export class EditorController {
     const left = x ?? centerX + (offset - 80) * size;
     const top = y ?? centerY + (offset - 45) * size;
     const zoomed = creationValues(kind, view.scale);
+    const dimensions = newObjectSize(kind, view.scale, screen);
     const id = this.document.create(kind, left, top, {
-      label: icon?.title ?? (kind === "sticky" ? "Your idea here" : KIND_LABELS[kind]),
-      parent: panelAt(this.document, left, top),
+      label: screen?.name ?? icon?.title ?? defaultLabel(kind),
+      parent: containerAt(this.document, left, top, dimensions),
       ...zoomed,
+      ...dimensions,
       style: { ...zoomed.style, ...(icon ? { icon: icon.key } : {}) },
     });
     this.select(id);
@@ -291,79 +330,31 @@ export class EditorController {
     model.setGeometry(cell, geometry);
   }
   group() {
-    if (this.graph.getSelectionCount() > 1) {
-      const group = new Cell("Group");
-      group.setVertex(true);
-      this.graph.groupCells(group, 28);
-      this.graph.setSelectionCell(group);
-    }
+    groupSelection(this);
   }
   ungroup() {
-    const model = this.graph.getDataModel();
-    const labels = new Map(
-      Object.values(model.cells || {})
-        .filter((cell) => cell.isEdge() && cell.geometry)
-        .map((cell) => [cell, cell.geometry!.clone()])
-    );
-    model.beginUpdate();
-    try {
-      // Only groups dissolve; a panel keeps its contents.
-      const groups = this.graph
-        .getSelectionCells()
-        .filter((cell) => this.document.get(cell.id!)?.kind === "group");
-      this.graph.ungroupCells(groups).forEach((cell) => {
-        const label = labels.get(cell);
-        if (!label || !cell.geometry) return;
-        // maxGraph treats relative edge labels as relative child vertices on ungroup.
-        const geometry = cell.geometry.clone();
-        geometry.x = label.x;
-        geometry.y = label.y;
-        geometry.relative = true;
-        model.setGeometry(cell, geometry);
-      });
-    } finally {
-      model.endUpdate();
-    }
+    ungroupSelection(this);
   }
   connect() {
-    const cells = this.graph.getSelectionCells().filter((cell) => cell.isVertex());
-    if (cells.length === 2)
+    const selected = this.selected().filter((item) => item.kind !== "stroke");
+    if (selected.length !== 2) return;
+    const [source, target] = selected.map((item) => endpointFor(this, item));
+    if (source && target)
       this.document.create("connector", 0, 0, {
-        source: cells[0].id!,
-        target: cells[1].id!,
+        source,
+        target,
         ...creationValues("connector", this.graph.view.scale),
       });
   }
   duplicate() {
-    const ids = this.selectionClosure();
-    const mapping = new Map(ids.map((id) => [id, crypto.randomUUID()]));
-    const base = this.document.nextOrder();
-    this.document.undo.stopCapturing();
-    this.document.doc.transact(
-      () =>
-        ids.forEach((id, index) => {
-          const item = this.document.get(id)!;
-          const offset = 28;
-          this.document.insert({
-            ...item,
-            order: base + index,
-            id: mapping.get(id)!,
-            x: isVertexKind(item.kind) ? item.x + offset : item.x,
-            y: isVertexKind(item.kind) ? item.y + offset : item.y,
-            points: offsetPoints(item.points, offset, offset),
-            parent: mapping.get(item.parent) || item.parent,
-            source: mapping.get(item.source) || item.source,
-            target: mapping.get(item.target) || item.target,
-          });
-        }),
-      LOCAL
-    );
-    this.document.undo.stopCapturing();
-    this.graph.setSelectionCells(
-      ids
-        .map((id) => this.graph.getDataModel().getCell(mapping.get(id)!))
-        .filter((cell) => cell !== null)
-    );
+    duplicateSelection(this);
+  }
+  /** Shows or hides reference lines for this person. References always exist either way. */
+  toggleReferences() {
+    this.referencesVisible = !this.referencesVisible;
+    this.graph.view.invalidate();
+    this.graph.view.validate();
+    this.emit();
   }
   selectionClosure() {
     const ids = new Set(this.selected().map((item) => item.id));
@@ -371,7 +362,9 @@ export class EditorController {
     let previousSize = -1;
     while (previousSize !== ids.size) {
       previousSize = ids.size;
-      objects.filter((item) => ids.has(item.parent)).forEach((item) => ids.add(item.id));
+      objects
+        .filter((item) => ids.has(item.parent) || ids.has(String(item.style[LINE_ANCHOR])))
+        .forEach((item) => ids.add(item.id));
     }
     objects
       .filter((item) => item.kind === "connector" && ids.has(item.source) && ids.has(item.target))
@@ -383,7 +376,7 @@ export class EditorController {
     this.emit();
   }
   fit() {
-    fitContents(this.graph, this.element);
+    fitContents(this.graph, this.element, this.document.list());
     this.emit();
   }
   savedViews() {

@@ -23,6 +23,8 @@ import {
   vendorEntries,
   type IconEntry,
 } from "../editor/icons";
+import { PanelTop } from "lucide-react";
+import { SCREEN_SIZES, type ScreenSize } from "../document/screens";
 import { INFRASTRUCTURE_ICONS, STENCIL_GROUPS, type Stencil } from "./stencils";
 
 const DRAG_THRESHOLD = 4;
@@ -104,7 +106,7 @@ function ShapeStencil({
   return (
     <StencilButton
       label={stencil.label}
-      pressed={editor.tool === stencil.kind}
+      pressed={editor.tool === stencil.kind && !editor.armedScreen}
       onArm={() => editor.setTool(stencil.kind)}
       onDrop={(event) => {
         const point = pointInCanvas(editor, event);
@@ -115,6 +117,26 @@ function ShapeStencil({
     >
       <stencil.icon size={20} strokeWidth={1.5} />
       <span>{stencil.name}</span>
+    </StencilButton>
+  );
+}
+
+function ScreenStencil({
+  editor,
+  screen,
+}: Readonly<{ editor: EditorController; screen: ScreenSize }>) {
+  return (
+    <StencilButton
+      label={`Screen: ${screen.name}, ${screen.width} by ${screen.height}`}
+      pressed={editor.armedScreen?.name === screen.name}
+      onArm={() => editor.armScreen(screen)}
+      onDrop={(event) => {
+        const point = pointInCanvas(editor, event);
+        if (point) editor.add("panel", point.x, point.y, null, screen);
+      }}
+    >
+      <PanelTop size={20} strokeWidth={1.5} />
+      <span>{screen.name}</span>
     </StencilButton>
   );
 }
@@ -262,6 +284,11 @@ export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }
                 ))}
               </Group>
             ))}
+            <Group title="Screens">
+              {SCREEN_SIZES.map((screen) => (
+                <ScreenStencil key={screen.name} editor={editor} screen={screen} />
+              ))}
+            </Group>
             <section aria-label="Cloud providers">
               <h3>Cloud providers</h3>
               {ICON_VENDORS.map((vendor) => (

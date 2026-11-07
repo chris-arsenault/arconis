@@ -19,6 +19,7 @@ import { useCollaborativeText } from "../document/useCollaborativeText";
 import { isContainerKind, isLockedIcon } from "../document/geometry";
 import { objectStyle } from "../editor/styles";
 import { ConnectionControls, Section } from "./ConnectionControls";
+import { AlignControls, ScreenSizeControl, TopicControls } from "./TopicControls";
 
 type ItemProps = Readonly<{ editor: EditorController; item: CanvasObject }>;
 type ChangeStyle = (key: string, value: StyleValue) => void;
@@ -58,8 +59,11 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       {showText && (
         <textarea ref={textRef} className="object-text" aria-label="Object text" rows={2} />
       )}
+      <TopicControls editor={editor} selected={selected} />
+      <AlignControls editor={editor} />
       <StyleControls editor={editor} item={item} />
       {!several && <PositionControls editor={editor} item={item} />}
+      {!several && <ScreenSizeControl editor={editor} item={item} />}
     </aside>
   );
 }

@@ -1,4 +1,11 @@
-import { EdgeHandlerConfig, HandleConfig, VertexHandlerConfig, type Graph } from "@maxgraph/core";
+import {
+  EdgeHandlerConfig,
+  HandleConfig,
+  VertexHandlerConfig,
+  type Cell,
+  type Graph,
+} from "@maxgraph/core";
+import { labelIsLegible } from "./culling";
 
 const SELECTION_COLOR = "#5443b3";
 
@@ -9,7 +16,8 @@ function escapeLabel(value: unknown) {
     .replaceAll(">", "&gt;");
 }
 
-export function configureRendering(graph: Graph) {
+/** `marks` adds signs to a label, such as that an object holds more than is drawn. */
+export function configureRendering(graph: Graph, marks: (cell: Cell) => string) {
   HandleConfig.fillColor = "#f4f2fd";
   HandleConfig.strokeColor = SELECTION_COLOR;
   VertexHandlerConfig.selectionColor = SELECTION_COLOR;
@@ -17,7 +25,10 @@ export function configureRendering(graph: Graph) {
   // HTML labels are the only maxGraph mode that wraps text. Labels come from peers,
   // so every label is escaped before it reaches the DOM.
   graph.setHtmlLabels(true);
-  graph.getLabel = (cell) => escapeLabel(cell?.value);
+  graph.getLabel = (cell) => {
+    if (!cell || !labelIsLegible(cell, graph.view.scale)) return "";
+    return [escapeLabel(cell.value), marks(cell)].filter(Boolean).join(" ");
+  };
   // Measuring each shape with getBBox forces layout per cell and dominated zoom time.
   const renderer = graph.cellRenderer;
   const createShape = renderer.createShape.bind(renderer);

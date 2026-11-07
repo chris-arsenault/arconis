@@ -1,23 +1,22 @@
 import type { Graph } from "@maxgraph/core";
-import type { SavedView } from "../document/types";
+import { worldBounds } from "../document/relations";
+import type { CanvasObject, SavedView } from "../document/types";
 import { clampScale } from "./zoom";
 
 const FLY_MS = 350;
 
-export function fitContents(graph: Graph, element: HTMLElement) {
-  const bounds = graph.getGraphBounds();
-  if (bounds.width <= 0 || bounds.height <= 0) return;
-  const { view } = graph;
-  const x = bounds.x / view.scale - view.translate.x;
-  const y = bounds.y / view.scale - view.translate.y;
+/** Measures from the document, because objects too small to draw can still be all there is. */
+export function fitContents(graph: Graph, element: HTMLElement, items: CanvasObject[]) {
+  const bounds = worldBounds(items);
+  if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
   const scale = clampScale(
     Math.min(
       2,
-      (element.clientWidth - 120) / (bounds.width / view.scale),
-      (element.clientHeight - 120) / (bounds.height / view.scale)
+      (element.clientWidth - 120) / bounds.width,
+      (element.clientHeight - 120) / bounds.height
     )
   );
-  view.scaleAndTranslate(scale, 60 / scale - x, 60 / scale - y);
+  graph.view.scaleAndTranslate(scale, 60 / scale - bounds.x, 60 / scale - bounds.y);
 }
 
 function viewportCenter(graph: Graph, element: HTMLElement) {

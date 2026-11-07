@@ -3,6 +3,8 @@ import type { RoomSession } from "../collaboration/room";
 import { EditorController } from "../editor/controller";
 import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "../document/useCollaborativeText";
+import { isInTree } from "../document/relations";
+import { addBranch } from "../editor/topics";
 
 export function Canvas({
   session,
@@ -79,9 +81,18 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
       aria-label="Edit canvas text"
       onBlur={close}
       onKeyDown={(event) => {
-        if (event.key === "Escape" || ((event.ctrlKey || event.metaKey) && event.key === "Enter"))
-          close();
         event.stopPropagation();
+        if (event.key === "Escape" || ((event.ctrlKey || event.metaKey) && event.key === "Enter")) {
+          close();
+          return;
+        }
+        // Typing a tree: Tab goes deeper and Enter adds a sibling, so hands stay on the keyboard.
+        const sibling =
+          event.key === "Enter" && !event.shiftKey && isInTree(editor.document.list(), item.id);
+        if (event.key !== "Tab" && !sibling) return;
+        event.preventDefault();
+        close();
+        addBranch(editor, sibling);
       }}
     />
   );

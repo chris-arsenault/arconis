@@ -2,6 +2,7 @@ import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { LOCAL, type CanvasObject, type StyleValue } from "../document/types";
 import { offsetPoints } from "../document/geometry";
+import { orphanedAnchors } from "../document/relations";
 import { ANCHOR_STYLE_KEYS } from "./connectionPoints";
 
 export function commitGraph(graph: Graph, document: CanvasDocument) {
@@ -16,6 +17,7 @@ export function commitGraph(graph: Graph, document: CanvasDocument) {
       .list()
       .filter((item) => !present.has(item.id))
       .forEach((item) => document.objects.delete(item.id));
+    orphanedAnchors(document.list()).forEach((id) => document.objects.delete(id));
     changes.forEach(({ cell, values }) => commitCell(cell, values, document));
   }, LOCAL);
 }

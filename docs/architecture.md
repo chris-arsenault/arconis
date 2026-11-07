@@ -24,9 +24,12 @@ edits stay independent of a participant's undo history.
 - **Connectors.** A connector identifies its endpoint objects, and its style map holds any chosen
   connection points. A connector with a missing endpoint stays in Yjs, hidden from the graph, so
   out-of-order updates can complete it.
-- **Containers.** Groups and panels hold children through `parent`, and children keep world
-  coordinates. A group's frame follows its members; a panel keeps its size. Parent cycles break
+- **Containers.** Any object holds children through `parent`, and children keep world coordinates. A
+  group's frame follows its members; everything else keeps its size. Parent cycles break
   deterministically during projection.
+- **Topics.** Branches and references are connectors marked in their style, and a line joins them
+  through an anchor object kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)).
+  `document/relations.ts` holds the tree, layout and alignment logic.
 - **Icons.** An icon stores a key from the local Lucide and Simple Icons sets, resolved to an image at
   projection. Document styles can never supply an image, because peers write them.
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
@@ -44,6 +47,8 @@ maxGraph is an editing and rendering projection of the document.
 - `editor/rendering.ts` renders labels as escaped HTML, the maxGraph mode that wraps text, laid out in
   screen pixels so they render at any zoom, and computes shape bounds from geometry instead of measuring
   each shape. Labels come from peers, so the escaping is a security boundary.
+- `editor/culling.ts` leaves objects too small to see out of the view, and with them anything they hold
+  and connectors reaching them.
 - `editor/zoom.ts` holds the zoom range and everything that follows it: the snapping grid, background
   dots, stroke precision and the size of new objects.
 - `document/transform.ts` computes collective scale and rotation over a gesture's starting snapshot,

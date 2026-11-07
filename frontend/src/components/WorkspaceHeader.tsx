@@ -89,7 +89,7 @@ function DocumentActions({
     if (!editor) return;
     try {
       const ids = editor.selectionClosure();
-      const png = await renderPng(editor.graph, ids);
+      const png = await renderPng(editor.graph, ids, session.document.list());
       if (!png) {
         onMessage("Add something to the canvas first.");
         return;

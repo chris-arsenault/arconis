@@ -14,11 +14,28 @@ canvas. New notes and text open ready for typing; double-click edits any object 
 Selecting something opens the property panel on the right, showing only what applies to it. With
 several objects selected, it applies styles to all of them.
 
-## Panels and groups
+## Composing
 
-A panel is a titled container from the stencil rail. Dragging an object onto a panel, or placing one
-inside it, adds it to the panel, and dragging it out releases it. Moving a panel moves its contents,
-and resizing a panel leaves them alone. Panels accept connectors and can nest.
+Any object can hold others. Dragging an object onto a larger one, or placing one inside it, adds it,
+and dragging it out releases it. Moving an object moves what it holds, and resizing leaves them alone.
+
+A panel is a titled container from the stencil rail, and the Screens stencils are panels at common
+device sizes, which the property panel can change. Select several objects to align or distribute
+them, and guides appear while dragging.
+
+## Topics and depth
+
+Any object can be a topic, including a screen, a panel of notes or a line.
+
+- Tab grows a branch from the selection. In a tree, Enter adds a sibling, and F2 edits text. Both also
+  work while typing, so a tree can be written from the keyboard.
+- Moving a topic moves its branches. Hold Alt to move it alone. Tidy Branches lays out its tree.
+- Select two objects and choose Add Reference to link them without a line. A topic shows `↗` and a
+  count, and the property panel lists references to follow. The Reference Lines button beside the zoom
+  controls draws them.
+- Z zooms into the selection and Shift Z zooms back out. Anything placed while zoomed in lands inside
+  what it is placed on, at that scale. Objects too small to see are not drawn, and a label shows `⊕`
+  when it holds hidden detail.
 
 A group ties a selection together with a frame that fits its members. Select several objects and
 choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a group.
@@ -52,6 +69,9 @@ Connect objects in any of three ways:
 | Ctrl/Command A | Select all |
 | Ctrl/Command G, with Shift to ungroup | Group and ungroup |
 | ] and [ | Bring to front and send to back |
+| Tab, Enter | Add a branch, add a sibling |
+| F2 | Edit text |
+| Z, with Shift to go back | Zoom into the selection |
 
 ## Rooms and sharing
 

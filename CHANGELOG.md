@@ -6,6 +6,10 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added nesting in any object, with children moving along with their parent.
+- Added alignment, distribution, drag guides and common screen sizes.
+- Added branching topics built from the keyboard, references between them, and tidy layout, on any object or line.
+- Added zooming into any object for finer detail, with objects too small to see no longer drawn.
 - Added a visible grid with snapping, which each person can turn off.
 - Added PNG export of the selection or whole canvas, carrying a copy that Import can load in any room.
 

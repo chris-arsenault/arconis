@@ -25,7 +25,7 @@ export function isLockedIcon(style: Record<string, unknown>) {
   return vendorOfIcon(style.icon) !== null;
 }
 
-/** Kinds that hold other objects as children. */
+/** Kinds that exist to hold others. Any object can hold children, but these have frame behavior. */
 export function isContainerKind(kind: ObjectKind | undefined) {
   return kind === "group" || kind === "panel";
 }
@@ -52,7 +52,7 @@ export function readWorldObject(
   let origin = { x: 0, y: 0 };
   if (stored.parent && !visited.has(stored.parent)) {
     const parent = readWorldObject(stored.parent, lookup, visited);
-    if (parent && isContainerKind(parent.kind)) origin = parent;
+    if (parent && isVertexKind(parent.kind)) origin = parent;
   }
   return normalize(stored, origin);
 }

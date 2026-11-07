@@ -3,6 +3,7 @@ import { PanningHandler } from "@maxgraph/core";
 import type { ObjectKind } from "../document/types";
 import { simplifyPath } from "../document/geometry";
 import { clampScale, creationValues, roundForScale } from "./zoom";
+import { addBranch, zoomIntoSelection, zoomOutOfSelection } from "./topics";
 
 function isTyping(target: EventTarget | null) {
   return (
@@ -18,6 +19,17 @@ function activatesControl(target: EventTarget | null, key: string) {
     target instanceof HTMLElement &&
     Boolean(target.closest("button, a"))
   );
+}
+
+/** Tab belongs to the page unless the canvas has focus and something is selected. */
+function tabKey(editor: EditorController, event: KeyboardEvent) {
+  const onCanvas = event.target === document.body || editor.element.contains(event.target as Node);
+  if (onCanvas && !event.shiftKey && addBranch(editor)) event.preventDefault();
+}
+
+function editSelection(editor: EditorController) {
+  const item = editor.selected()[0];
+  if (item) editor.edit(item.id);
 }
 
 function keyboard(editor: EditorController, event: KeyboardEvent) {
@@ -40,12 +52,18 @@ function keyboard(editor: EditorController, event: KeyboardEvent) {
     p: () => editor.setTool("stroke"),
     "]": () => editor.stack("front"),
     "[": () => editor.stack("back"),
+    f2: () => editSelection(editor),
+    // In a tree, Enter grows a sibling, because that is the next thing typed in an outline.
     enter: () => {
-      const item = editor.selected()[0];
-      if (item) editor.edit(item.id);
+      if (!addBranch(editor, true)) editSelection(editor);
     },
+    z: () => (event.shiftKey ? zoomOutOfSelection(editor) : zoomIntoSelection(editor)),
   };
   if (modifier) return modifiedKey(editor, event);
+  if (key === "tab") {
+    tabKey(editor, event);
+    return;
+  }
   if (key === " ") {
     event.preventDefault();
     editor.setTool("pan");

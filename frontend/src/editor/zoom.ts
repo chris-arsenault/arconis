@@ -46,6 +46,19 @@ const STYLE_DEFAULTS: Partial<Record<ObjectKind, Record<string, number>>> = {
 };
 const SHAPE_STYLE = { fontSize: 14, spacing: 14, strokeWidth: 1 };
 
+const DEFAULT_SIZES: Partial<Record<ObjectKind, [number, number]>> = {
+  sticky: [190, 170],
+  icon: [64, 64],
+  panel: [320, 220],
+};
+
+/** The world size of a new object at this zoom. */
+export function creationSize(kind: ObjectKind, scale: number) {
+  const factor = creationFactor(scale);
+  const [width, height] = DEFAULT_SIZES[kind] ?? [160, 90];
+  return { width: width * factor, height: height * factor };
+}
+
 /** Size and style for an object created at this zoom. Empty near 100%. */
 export function creationValues(kind: ObjectKind, scale: number): Partial<CanvasObject> {
   const factor = creationFactor(scale);
@@ -55,13 +68,7 @@ export function creationValues(kind: ObjectKind, scale: number): Partial<CanvasO
     style[key] = value * factor;
   });
   if (kind === "connector" || kind === "stroke") return { style };
-  const sizes: Partial<Record<ObjectKind, [number, number]>> = {
-    sticky: [190, 170],
-    icon: [64, 64],
-    panel: [320, 220],
-  };
-  const [width, height] = sizes[kind] ?? [160, 90];
-  return { width: width * factor, height: height * factor, style };
+  return { ...creationSize(kind, scale), style };
 }
 
 /** Applies the parts of the view that follow zoom: the snapping grid and its visible lines. */

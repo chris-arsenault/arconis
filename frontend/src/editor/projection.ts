@@ -2,7 +2,7 @@ import { Cell, Geometry, Graph, Point, type CellStyle } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import type { CanvasObject } from "../document/types";
 import { objectStyle } from "./styles";
-import { isContainerKind, offsetPoints } from "../document/geometry";
+import { isVertexKind, offsetPoints } from "../document/geometry";
 
 function safeParent(item: CanvasObject, all: Map<string, CanvasObject>) {
   const visited = new Set([item.id]);
@@ -11,7 +11,7 @@ function safeParent(item: CanvasObject, all: Map<string, CanvasObject>) {
     if (visited.has(parent)) return "";
     visited.add(parent);
     const ancestor = all.get(parent);
-    if (!ancestor || !isContainerKind(ancestor.kind)) return "";
+    if (!ancestor || !isVertexKind(ancestor.kind)) return "";
     parent = ancestor.parent;
   }
   return item.parent;

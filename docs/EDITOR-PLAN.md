@@ -132,7 +132,12 @@ Boundaries:
 
 ### Open
 
-- **[DECISION] Mind maps and layout, at M11 start.** A design session with the owner comes first.
+- **[DECISION] Mind maps and layout, at M11 start.** The design session is under way. Owner's definitions, which replace the M11 proposals below where they differ:
+  layout's key part is composability, meaning moving parents moves children, grouping and ungrouping, placing with horizontal and vertical alignment, and common screen sizes, with
+  some support for precision. A mind map's key part is a tree-like view where each node extends outward to other topics, holds conceptual references to other topics that need not be
+  physical links, and can be zoomed into for finer detail. People can decide positions themselves, and some auto layout is nice. Further owner decisions: zooming into a topic is
+  literal. Objects below a size threshold are meant to be culled, which M2 did not build. References can sometimes appear as lines. The tree is on the canvas only, with no outline panel.
+  Layout and mind maps are general-purpose concepts in one seamless product: a topic can be a screen, a group of stickies or an architecture diagram, and a line in a diagram can be a topic.
 - **[DECISION] Storage architecture, at M16 start.** The owner will design this when the work reaches it. Accounts, server storage and an MCP server reverse the standing
   no-accounts, no-backend boundary (ADR-0003). It needs answers on identity, who pays for storage, what happens to anonymous rooms, and how an agent reads an encrypted room
   from M15. A server can only act on a password-protected document if a member's client grants it the key.
@@ -291,14 +296,16 @@ Acceptance: an export matches the canvas, including labels, icons and connectors
 the objects back, in any room, and a PNG without a copy gets a clear message.
 Evidence: browser journeys comparing exported images and reloaded documents.
 
-### M11 — Layout mode with mind maps and screens (#8, #9) [DECISION at start]
+### M11 — Layout and mind maps as general abilities (#8, #9)
 
-Scope: one layout mode with specialized objects, in the one room document.
+Scope: no modes and no topic object. Any object gains four abilities, and layout and mind maps are ways of using them (ADR-0010):
 
-- **Screens:** frames with device size presets, built on panels, plus sharp-cornered rectangles and text boxes, pixel snapping, alignment
-  guides and live size readouts.
-- **Mind maps (proposed):** a root object, Tab for child, Enter for sibling, automatic balanced layout with curved branches, collapse and
-  expand, drag to re-parent, and connectors to any other object.
+- **Containment:** any object holds children, which move with it.
+- **Depth:** objects under a size threshold on screen are culled, and appear on zooming toward them.
+- **Branches:** Tab and Enter grow a tree, moving a topic moves its branches, and tidy lays one out.
+- **References:** conceptual links shown as a mark, followed from the property panel, and drawn as lines on request.
+
+Layout adds alignment, distribution, guides and screen sizes for any selection. A line takes part through an anchor at its midpoint.
 
 Acceptance: a person composes a screen from a preset with precisely sized, aligned rectangles and text. A person builds a multi-level map
 from the keyboard alone, and peers editing concurrently converge to the same layout. Peers and diagram work see all of it in the same
@@ -388,8 +395,8 @@ M0 to M5 and the vendor icons are deployed. M2 also laid labels out in screen pi
 sizes. M3 kept the saved view storage name so existing rooms keep their views. Limits: no real-device, Firefox or WebKit check. The owner authorized
 execution from M6 until a design decision is needed.
 
-M6, M7, M8 and the build part of M8b are committed locally and unpushed, with nothing deployed. Infrastructure reaches AWS only through CI/CD, never by hand. The `ahara-infra` admission change must land
+M6 to M10 are pushed. Infrastructure reaches AWS only through CI/CD, never by hand. The `ahara-infra` admission change must land
 through its pipeline before Arconis's. The admission change and the listener-priority row in `ahara/INTEGRATION.md` are committed in those repositories. Unverified until
 deployed: the instance's boot and shutdown units, WebSockets through the shared ALB and its WAF, the Lambda's IAM and metric reads, and the
-instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9 and M10 are built. Next is M11, which starts with a design session with the owner on mind maps and layout. PNG exports
+instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9, M10 and M11 are built. Next is M12, comments visible to everyone in the room. PNG exports
 use system fonts where the page's web fonts are not available to an image, and have only been checked in Chromium.

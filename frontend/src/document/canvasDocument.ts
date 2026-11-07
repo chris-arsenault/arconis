@@ -1,6 +1,7 @@
 import * as Y from "yjs";
 import { LOCAL, type CanvasObject, type ObjectKind, type StyleValue } from "./types";
 import { compareStacking, isVertexKind, readWorldObject, type StoredObject } from "./geometry";
+import { LINE_ANCHOR } from "./relations";
 
 export class CanvasDocument {
   private listed: CanvasObject[] | null = null;
@@ -37,9 +38,16 @@ export class CanvasDocument {
 
   create(kind: ObjectKind, x: number, y: number, extras: Partial<CanvasObject> = {}) {
     this.undo.stopCapturing();
-    const id = crypto.randomUUID();
+    const item = this.build(kind, x, y, extras);
+    this.doc.transact(() => this.insert(item), LOCAL);
+    this.undo.stopCapturing();
+    return item.id;
+  }
+
+  /** A complete new record, not yet in the document, for inserting several in one undo step. */
+  build(kind: ObjectKind, x: number, y: number, extras: Partial<CanvasObject> = {}) {
     const item: CanvasObject = {
-      id,
+      id: crypto.randomUUID(),
       kind,
       label: "",
       x,
@@ -63,9 +71,7 @@ export class CanvasDocument {
         ...extras,
         style: { fillColor: "#fff0ad", ...extras.style },
       });
-    this.doc.transact(() => this.insert(item), LOCAL);
-    this.undo.stopCapturing();
-    return id;
+    return item;
   }
 
   insert(item: CanvasObject) {
@@ -183,7 +189,9 @@ export class CanvasDocument {
     let previousSize = -1;
     while (previousSize !== removed.size) {
       previousSize = removed.size;
-      objects.filter((item) => removed.has(item.parent)).forEach((item) => removed.add(item.id));
+      objects
+        .filter((item) => removed.has(item.parent) || removed.has(String(item.style[LINE_ANCHOR])))
+        .forEach((item) => removed.add(item.id));
     }
     this.doc.transact(() => {
       this.freezeLegacyGeometry();

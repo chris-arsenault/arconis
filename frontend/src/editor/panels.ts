@@ -1,21 +1,37 @@
 import type { Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
+import { isVertexKind } from "../document/geometry";
 
-/** The topmost panel containing a world point, so objects placed inside one join it. */
-export function panelAt(document: CanvasDocument, x: number, y: number) {
-  const items = document.list();
-  for (let index = items.length - 1; index >= 0; index--) {
-    const item = items[index];
+/**
+ * The smallest object at a world point that is larger than something being placed there, so a new
+ * object joins whatever it lands inside. That is how detail gets added: zoom into any object and
+ * place things in it.
+ */
+export function containerAt(
+  document: CanvasDocument,
+  x: number,
+  y: number,
+  size: { width: number; height: number }
+) {
+  let best = "";
+  let bestArea = Number.POSITIVE_INFINITY;
+  const newArea = size.width * size.height;
+  for (const item of document.list()) {
+    const area = item.width * item.height;
     if (
-      item.kind === "panel" &&
+      isVertexKind(item.kind) &&
+      area > newArea &&
+      area < bestArea &&
       x >= item.x &&
       y >= item.y &&
       x <= item.x + item.width &&
       y <= item.y + item.height
-    )
-      return item.id;
+    ) {
+      best = item.id;
+      bestArea = area;
+    }
   }
-  return "";
+  return best;
 }
 
 export function configurePanels(graph: Graph, document: CanvasDocument) {
