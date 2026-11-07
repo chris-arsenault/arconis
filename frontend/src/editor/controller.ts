@@ -26,6 +26,10 @@ import { subscribeIcons } from "./icons";
 import { configurePanels, panelAt } from "./panels";
 import { compareStacking, isContainerKind, isVertexKind, offsetPoints } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
+import { RateLimitedWrite } from "./rateLimitedWrite";
+
+/** How often a selection-frame gesture writes to the document, and so reaches peers. */
+const TRANSFORM_WRITE_MS = 100;
 
 export type Tool = ObjectKind | "select" | "pan";
 
@@ -44,6 +48,7 @@ export class EditorController {
   private committed = false;
   private destroyed = false;
   private previewing = false;
+  private transformWrites = new RateLimitedWrite(TRANSFORM_WRITE_MS);
   private lastPreview = 0;
   private listeners = new Set<() => void>();
   private cleanupInput: () => void;
@@ -249,7 +254,11 @@ export class EditorController {
     this.document.undo.stopCapturing();
     this.document.undo.captureTimeout = Number.MAX_SAFE_INTEGER;
   }
+  /** Writes at a bounded rate, because each write rewrites every point of every drawing moved. */
   applyTransform(items: CanvasObject[], transform: SelectionTransform) {
+    this.transformWrites.schedule(() => this.writeTransform(items, transform));
+  }
+  private writeTransform(items: CanvasObject[], transform: SelectionTransform) {
     const values = transformObjects(items, transform);
     this.document.doc.transact(() => {
       this.document.freezeLegacyGeometry();
@@ -262,6 +271,7 @@ export class EditorController {
     }, LOCAL);
   }
   endTransform() {
+    this.transformWrites.flush();
     this.document.undo.captureTimeout = 400;
     this.document.undo.stopCapturing();
   }

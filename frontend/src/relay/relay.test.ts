@@ -85,6 +85,27 @@ describe("forwarding", () => {
     expect(c.socket.sent).toEqual([]);
   });
 
+  it("sends a join request to one person, and a retry to the next", () => {
+    const { person } = setup();
+    const [a, b, c] = [person("a"), person("b"), person("c")];
+    a.connection.receive(frame("a", "awareness"));
+    b.connection.receive(frame("b", "awareness"));
+    a.socket.sent = [];
+    b.socket.sent = [];
+    c.connection.receive(frame("c", "hello"));
+    expect([a.socket.sent.length, b.socket.sent.length]).toEqual([1, 0]);
+    c.connection.receive(frame("c", "hello"));
+    expect([a.socket.sent.length, b.socket.sent.length]).toEqual([1, 1]);
+  });
+
+  it("sends a join request to everyone when nobody has spoken yet", () => {
+    const { person } = setup();
+    const [a, b, c] = [person("a"), person("b"), person("c")];
+    a.connection.receive(frame("a", "hello"));
+    expect(b.socket.sent).toHaveLength(1);
+    expect(c.socket.sent).toHaveLength(1);
+  });
+
   it("refuses to let a socket speak as another peer", () => {
     const { person } = setup();
     const [a, b] = [person("a"), person("b")];

@@ -61,6 +61,8 @@ interface Peer {
   id: string;
   alive: boolean;
   messages: TokenBucket;
+  /** Join requests from this peer, which rotate through the room so a retry reaches someone new. */
+  joinRequests: number;
 }
 interface Room {
   peers: Set<Peer>;
@@ -131,6 +133,7 @@ export class Relay {
       id: "",
       alive: true,
       messages: new TokenBucket(PEER_MESSAGES_PER_SECOND, PEER_MESSAGE_BURST, now),
+      joinRequests: 0,
     };
     room.peers.add(peer);
     this.connections++;
@@ -159,15 +162,24 @@ export class Relay {
     // A socket keeps the identity it first claimed, so it cannot speak as another peer.
     peer.id ||= header.from;
     if (peer.id !== header.from) return;
-    const recipients = [...room.peers].filter(
-      (other) => other !== peer && (!header.target || other.id === header.target)
-    );
+    const recipients = this.recipients(room, peer, header);
     const bytes = Buffer.byteLength(message) * recipients.length;
     if (!room.egress.take(bytes, now)) return;
     if (header.kind === "update" && !header.target) this.lastContent = now;
     recipients.forEach((other) => this.deliver(other, message));
     this.sessionBytes += bytes;
     if (this.sessionBytes > MAX_SESSION_BYTES) this.shutdown("limit");
+  }
+
+  private recipients(room: Room, peer: Peer, header: Header) {
+    const others = [...room.peers].filter((other) => other !== peer);
+    if (header.target) return others.filter((other) => other.id === header.target);
+    if (header.kind !== "hello") return others;
+    // One person answers a join, which avoids everyone sending a full copy. The joiner then
+    // broadcasts its state vector, and anyone holding more sends only the difference.
+    const candidates = others.filter((other) => other.id);
+    if (!candidates.length) return others;
+    return [candidates[peer.joinRequests++ % candidates.length]];
   }
 
   private deliver(peer: Peer, message: string) {

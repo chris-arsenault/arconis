@@ -53,15 +53,21 @@ Transport adapters know Yjs updates and state vectors, never graph or UI types. 
 serves deployed rooms and `LocalTransport` serves same-browser development.
 
 - **Rooms.** Each room is a set of sockets on the relay ([ADR-0009](adr/0009-relay-on-ec2.md)).
-- **Joining.** A peer publishes its state vector, and peers answer with the difference and their own
-  vector, so both sides converge. Unanswered requests repeat for a short period, after which the
-  room reports that nobody else is online. A periodic exchange repairs anything lost later.
-- **Reconnecting.** Reconnecting repeats the same exchange in both directions.
+- **Joining.** A join request reaches one person, who answers with the difference and their own
+  holdings. The joiner then broadcasts its holdings, and anyone with more sends only that.
+  Unanswered requests move to the next person for a short period, after which the room reports that
+  nobody else is online.
+- **Repair.** Peers periodically broadcast their holdings: a state vector plus a digest of deletions,
+  because a deletion does not advance a vector. A peer replies only when the two differ, so a matching
+  room exchanges nothing else.
+- **Reconnecting.** Reconnecting repeats the join, and holdings showing unseen edits draw them out
+  immediately in either direction.
 - **Messages.** Updates are coalesced and split into bounded chunks that reassemble out of order.
   `collaboration/frames.ts` and `collaboration/provider.ts` declare the sizes and timings.
 - **Presence.** Names, cursors and native move and resize previews travel on Yjs awareness, adding no
-  document history; the document changes on drop. Selection-frame transforms write to the document
-  during the gesture, with undo merged into one step.
+  document history; the document changes on drop. Presence coalesces to a bounded rate, and hidden
+  tabs send none, so peers time them out until they are shown again. Selection-frame transforms write
+  to the document at a bounded rate during the gesture, with undo merged into one step.
 - **Persistence.** y-indexeddb stores each room's document on the device and restores it before
   connecting.
 

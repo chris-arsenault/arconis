@@ -1,5 +1,5 @@
 import { it, expect, vi } from "vitest";
-import { CollaborationProvider } from "./provider";
+import { CollaborationProvider, PRESENCE_INTERVAL_MS } from "./provider";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { ConnectionState, Transport } from "./transport";
 import { FrameAssembler, frames } from "./frames";
@@ -105,6 +105,132 @@ it("repeats an unanswered join request so a lost message cannot strand a late jo
     b.destroy();
   } finally {
     vi.useRealTimers();
+  }
+});
+
+it("repairs a lost deletion, which leaves state vectors equal, at the periodic exchange", () => {
+  vi.useFakeTimers();
+  try {
+    const peers: Bus[] = [];
+    const a = new CanvasDocument();
+    const b = new CanvasDocument();
+    const id = a.create("sticky", 0, 0, { label: "doomed" });
+    const busA = new Bus(peers);
+    const first = new CollaborationProvider(a.doc, busA, () => {});
+    const second = new CollaborationProvider(b.doc, new Bus(peers), () => {});
+    first.connect();
+    second.connect();
+    expect(b.get(id)).not.toBeNull();
+    const send = busA.send.bind(busA);
+    busA.send = () => {};
+    a.remove([id]);
+    vi.advanceTimersByTime(100);
+    busA.send = send;
+    expect(b.get(id)).not.toBeNull();
+    vi.advanceTimersByTime(30000);
+    expect(b.get(id)).toBeNull();
+    first.destroy();
+    second.destroy();
+    a.destroy();
+    b.destroy();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("exchanges only vectors once peers match, however much history they hold", () => {
+  vi.useFakeTimers();
+  try {
+    const peers: Bus[] = [];
+    const a = new CanvasDocument();
+    const b = new CanvasDocument();
+    const id = a.create("sticky", 0, 0, { label: "edited" });
+    a.patch(id, { x: 5 });
+    a.remove([a.create("sticky", 0, 0, {})]);
+    const busA = new Bus(peers);
+    const busB = new Bus(peers);
+    const first = new CollaborationProvider(a.doc, busA, () => {});
+    const second = new CollaborationProvider(b.doc, busB, () => {});
+    first.connect();
+    second.connect();
+    vi.advanceTimersByTime(10000);
+    const kinds: string[] = [];
+    for (const bus of [busA, busB]) {
+      const send = bus.send.bind(bus);
+      bus.send = (message) => {
+        kinds.push((JSON.parse(message) as { kind: string }).kind);
+        send(message);
+      };
+    }
+    vi.advanceTimersByTime(14000);
+    kinds.length = 0;
+    vi.advanceTimersByTime(30000);
+    expect(kinds.filter((kind) => kind === "update" || kind === "hello")).toEqual([]);
+    first.destroy();
+    second.destroy();
+    a.destroy();
+    b.destroy();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+function presenceSetup() {
+  vi.useFakeTimers();
+  const peers: Bus[] = [];
+  const doc = new CanvasDocument();
+  const bus = new Bus(peers);
+  const provider = new CollaborationProvider(doc.doc, bus, () => {});
+  new Bus(peers).connected = true;
+  provider.connect();
+  vi.advanceTimersByTime(PRESENCE_INTERVAL_MS);
+  const sent: string[] = [];
+  const send = bus.send.bind(bus);
+  bus.send = (message) => {
+    const { kind } = JSON.parse(message) as { kind: string };
+    if (kind === "awareness") sent.push(kind);
+    send(message);
+  };
+  return { provider, doc, sent };
+}
+
+it("coalesces rapid cursor movement to a bounded rate", () => {
+  try {
+    const { provider, doc, sent } = presenceSetup();
+    for (let step = 0; step < 100; step++) {
+      provider.awareness.setLocalStateField("cursor", { x: step, y: 0 });
+      vi.advanceTimersByTime(8);
+    }
+    expect(sent.length).toBeLessThanOrEqual(11);
+    expect(sent.length).toBeGreaterThan(5);
+    provider.destroy();
+    doc.destroy();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("keeps a hidden tab's presence quiet until it is shown again", () => {
+  const listeners: (() => void)[] = [];
+  const page = {
+    hidden: true,
+    addEventListener: (_: string, listener: () => void) => listeners.push(listener),
+    removeEventListener: () => {},
+  };
+  vi.stubGlobal("document", page);
+  try {
+    const { provider, doc, sent } = presenceSetup();
+    provider.awareness.setLocalStateField("cursor", { x: 1, y: 0 });
+    vi.advanceTimersByTime(60_000);
+    expect(sent).toEqual([]);
+    page.hidden = false;
+    listeners.forEach((listener) => listener());
+    expect(sent).toHaveLength(1);
+    provider.destroy();
+    doc.destroy();
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   }
 });
 
