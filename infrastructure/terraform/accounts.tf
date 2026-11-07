@@ -13,27 +13,6 @@ locals {
   sign_out_url = "${local.auth0_sign_in}/v2/logout?client_id=${auth0_client.web.client_id}&returnTo=${urlencode("${local.site_origin}/")}"
 }
 
-# The user pool Auth0 replaced. Deletion protection comes off first, so a later change can remove it.
-resource "aws_cognito_user_pool" "accounts" {
-  name                     = "arconis-accounts"
-  username_attributes      = ["email"]
-  auto_verified_attributes = ["email"]
-  mfa_configuration        = "OFF"
-  deletion_protection      = "INACTIVE"
-
-  admin_create_user_config {
-    allow_admin_create_user_only = true
-  }
-
-  password_policy {
-    minimum_length                   = 12
-    require_lowercase                = false
-    require_uppercase                = false
-    require_numbers                  = false
-    require_symbols                  = false
-    temporary_password_validity_days = 7
-  }
-}
 
 resource "aws_dynamodb_table" "accounts" {
   name         = "arconis-accounts"
