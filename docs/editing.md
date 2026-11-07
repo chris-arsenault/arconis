@@ -19,7 +19,8 @@ routing and endpoints. With several objects selected, it applies styles to all o
 Connect objects in any of three ways:
 
 - Choose the connector tool and click two objects.
-- Hover a shape and drag from its connection handle to another object.
+- Hover an object to see its connection points, then drag from a point to a point on another object.
+  Dropping on an object's body leaves that end free to follow its outline.
 - Select two objects and choose Connect.
 
 ## Shortcuts

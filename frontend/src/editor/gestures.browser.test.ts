@@ -111,29 +111,81 @@ it("multi-selects on the canvas and limits the panel to shared properties", asyn
   await context.close();
 });
 
-it("connects objects by walking the pointer from a shape onto its connection handle", async () => {
-  const context = await browser.newContext(VIEWPORT);
-  const page = await open(context, createRoomId());
-  await add(page, "Rectangle (R)", "Handle source", 220, 170);
-  await add(page, "Sticky note (N)", "Handle target", 560, 170);
+async function connectBetween(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+) {
+  const origin = await canvasOrigin(page);
+  await page.mouse.move(origin.x + from.x - 40, origin.y + from.y, { steps: 2 });
+  await page.mouse.move(origin.x + from.x, origin.y + from.y, { steps: 8 });
+  await page.mouse.down();
+  await page.mouse.move(origin.x + to.x - 10, origin.y + to.y, { steps: 12 });
+  await page.mouse.move(origin.x + to.x, origin.y + to.y, { steps: 3 });
+  await page.mouse.up();
+}
+
+const connector = async (page: Page) =>
+  (await exported(page)).objects.find((item) => item.kind === "connector")!;
+
+it("connects chosen points that hold through moves, peers and reload", async () => {
+  const first = await browser.newContext(VIEWPORT);
+  const second = await browser.newContext(VIEWPORT);
+  const room = createRoomId();
+  const page = await open(first, room);
+  await add(page, "Rectangle (R)", "Point source", 220, 170);
+  await add(page, "Sticky note (N)", "Point target", 560, 170);
   await canvas(page).click({ position: emptySpot });
   const origin = await canvasOrigin(page);
   await page.mouse.move(origin.x + 300, origin.y + 215);
-  await page.mouse.move(origin.x + 302, origin.y + 216);
-  const handle = canvas(page).locator("image, img");
-  await handle.first().waitFor();
-  const box = (await handle.first().boundingBox())!;
-  const grab = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-  await page.mouse.move(grab.x, grab.y, { steps: 25 });
-  expect(await handle.count()).toBe(1);
-  await page.mouse.down();
-  await page.mouse.move(origin.x + 650, origin.y + 250, { steps: 15 });
-  await page.mouse.up();
+  await page.mouse.move(origin.x + 304, origin.y + 217);
+  await expect.poll(() => canvas(page).locator("image").count()).toBe(12);
+  await connectBetween(page, { x: 380, y: 215 }, { x: 560, y: 255 });
   await expect.poll(() => page.locator(".object-row").count()).toBe(3);
-  const saved = await exported(page);
-  const edge = saved.objects.find((item) => item.kind === "connector")!;
-  expect(saved.objects.find((item) => item.id === edge.source)?.label).toBe("Handle source");
-  expect(saved.objects.find((item) => item.id === edge.target)?.label).toBe("Handle target");
+  const edge = await connector(page);
+  expect(edge.style).toMatchObject({ exitX: 1, exitY: 0.5, entryX: 0, entryY: 0.5 });
+  await drag(page, 300, 215, 40, 200);
+  await expect.poll(async () => (await exported(page)).objects[0].y).toBeGreaterThan(150);
+  expect((await connector(page)).style).toMatchObject({ exitX: 1, exitY: 0.5 });
+  const peer = await open(second, room);
+  await expect.poll(() => peer.locator(".object-row").count(), { timeout: 15000 }).toBe(3);
+  expect((await connector(peer)).style).toMatchObject({ entryX: 0, entryY: 0.5 });
+  await page.reload();
+  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  expect((await connector(page)).style).toMatchObject({ exitX: 1, entryX: 0 });
+  expect(errors).toEqual([]);
+  await first.close();
+  await second.close();
+});
+
+it("leaves a free end on a body drop, re-anchors an end, and drags from the body move", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  const page = await open(context, createRoomId());
+  await add(page, "Rectangle (R)", "Free source", 220, 170);
+  await add(page, "Sticky note (N)", "Free target", 560, 170);
+  await canvas(page).click({ position: emptySpot });
+  await connectBetween(page, { x: 380, y: 215 }, { x: 655, y: 255 });
+  await expect.poll(() => page.locator(".object-row").count()).toBe(3);
+  const edge = await connector(page);
+  expect(edge.style.exitX).toBe(1);
+  expect(edge.style.entryX).toBeUndefined();
+  await row(page, "Connector").click();
+  const end = (await canvas(page).locator('rect[fill="#0000ff"]').last().boundingBox())!;
+  await page.mouse.move(0, 0);
+  const origin = await canvasOrigin(page);
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 3 });
+  await page.mouse.down();
+  await page.mouse.move(origin.x + 655, origin.y + 180, { steps: 10 });
+  await page.mouse.move(origin.x + 655, origin.y + 170, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(async () => (await connector(page)).style.entryY).toBe(0);
+  await row(page, "Free source").click();
+  const before = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
+  await drag(page, 300, 215, 30, 0);
+  await expect
+    .poll(() => page.getByLabel("Object x", { exact: true }).inputValue())
+    .toBe(String(before + 30));
+  expect(await page.locator(".object-row").count()).toBe(3);
   expect(errors).toEqual([]);
   await context.close();
 });

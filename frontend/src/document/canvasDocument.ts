@@ -131,6 +131,11 @@ export class CanvasDocument {
     }, LOCAL);
   }
 
+  clearStyle(id: string, key: string) {
+    const styles = this.objects.get(id)?.get("style") as Y.Map<StyleValue> | undefined;
+    this.doc.transact(() => styles?.delete(key), LOCAL);
+  }
+
   patchStyle(id: string, values: Record<string, StyleValue>) {
     const styles = this.objects.get(id)?.get("style") as Y.Map<StyleValue> | undefined;
     this.doc.transact(

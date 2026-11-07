@@ -1,7 +1,8 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { LOCAL, type CanvasObject } from "../document/types";
+import { LOCAL, type CanvasObject, type StyleValue } from "../document/types";
 import { offsetPoints } from "../document/geometry";
+import { ANCHOR_STYLE_KEYS } from "./connectionPoints";
 
 export function commitGraph(graph: Graph, document: CanvasDocument) {
   const cells = Object.values(graph.getDataModel().cells || {}).filter(
@@ -29,6 +30,7 @@ function commitCell(cell: Cell, values: Partial<CanvasObject>, document: CanvasD
     const rotation = cell.getStyle().rotation;
     if (rotation !== undefined && rotation !== existing.style.rotation)
       document.patchStyle(cell.id, { rotation });
+    if (cell.isEdge()) commitAnchors(cell, existing, document);
   } else {
     const kind = cell.isEdge() ? "connector" : "group";
     document.insert({
@@ -47,6 +49,17 @@ function commitCell(cell: Cell, values: Partial<CanvasObject>, document: CanvasD
       style: {},
       ...values,
     });
+  }
+}
+
+/** Dragging a connector's end changes its anchor through the cell style. */
+function commitAnchors(cell: Cell, existing: CanvasObject, document: CanvasDocument) {
+  const style = cell.getStyle() as Record<string, StyleValue | null | undefined>;
+  for (const key of ANCHOR_STYLE_KEYS) {
+    const value = style[key] ?? undefined;
+    if (value === existing.style[key]) continue;
+    if (value === undefined) document.clearStyle(cell.id!, key);
+    else document.patchStyle(cell.id!, { [key]: value });
   }
 }
 

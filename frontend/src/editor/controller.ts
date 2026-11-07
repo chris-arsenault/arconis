@@ -4,9 +4,6 @@ import {
   InternalEvent,
   RubberBandHandler,
   PanningHandler,
-  ConnectionHandler,
-  ImageBox,
-  Point,
   VertexHandlerConfig,
 } from "@maxgraph/core";
 import { CanvasDocument } from "../document/canvasDocument";
@@ -22,6 +19,7 @@ import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
 import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
+import { configureConnectionPoints } from "./connectionPoints";
 import { compareStacking, isVertexKind, offsetPoints } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 
@@ -63,18 +61,7 @@ export class EditorController {
     this.graph.setDisconnectOnMove(false);
     this.graph.setDropEnabled(true);
     this.graph.setSplitEnabled(false);
-    const connection = this.graph.getPlugin<ConnectionHandler>("ConnectionHandler");
-    if (connection) {
-      connection.connectImage = new ImageBox("/connection.svg", 18, 18);
-      // The handle must overlap its shape: leaving the shape dismisses the handle.
-      connection.getIconPosition = (_icon, state) =>
-        new Point(state.x + state.width - 24, state.y + state.height / 2 - 9);
-      // maxGraph's default gives the new edge an empty id, which cannot reach the document.
-      connection.connect = (source, target) => {
-        if (source?.id && target?.id && source !== target)
-          this.document.create("connector", 0, 0, { source: source.id, target: target.id });
-      };
-    }
+    configureConnectionPoints(this.graph, this.document);
     this.graph.addMouseListener({
       mouseDown: () => {},
       mouseMove: () => this.publishPreview(),
