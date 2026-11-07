@@ -29,7 +29,6 @@ export class CollaborationProvider {
   readonly awareness: Awareness;
   sync: SyncState = "idle";
   private syncTimers: ReturnType<typeof setTimeout>[] = [];
-  private id = crypto.randomUUID();
   private assembler = new FrameAssembler();
   private updates: Uint8Array[] = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -44,7 +43,9 @@ export class CollaborationProvider {
   constructor(
     readonly doc: Y.Doc,
     readonly transport: Transport,
-    private synchronized: () => void
+    private synchronized: () => void,
+    /** This peer's identity in frames. A locked transport has to send as the same peer. */
+    private id: string = crypto.randomUUID()
   ) {
     this.awareness = new Awareness(doc);
     this.doc.on("update", this.onUpdate);

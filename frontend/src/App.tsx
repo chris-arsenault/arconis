@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import {
   RoomSession,
   createLocalRoomId,
+  createLockedRoomId,
   createRoomId,
   parseRoom,
   roomHash,
@@ -81,6 +82,11 @@ export function App() {
           setAskName(false);
           changeName(name);
           create(createLocalRoomId());
+        }}
+        onCreateLocked={() => {
+          setAskName(false);
+          changeName(name);
+          create(createLockedRoomId());
         }}
         onJoin={(id) => {
           setAskName(false);

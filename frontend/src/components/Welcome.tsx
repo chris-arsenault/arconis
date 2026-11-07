@@ -7,6 +7,7 @@ interface Props {
   onName: (name: string) => void;
   onCreate: () => void;
   onCreateLocal: () => void;
+  onCreateLocked: () => void;
   onJoin: (id: string) => void;
   error: string;
 }
@@ -68,7 +69,8 @@ export function Welcome(props: Readonly<Props>) {
   );
 }
 
-function WelcomeForm({ name, onName, onCreate, onCreateLocal, onJoin, error }: Readonly<Props>) {
+function WelcomeForm(props: Readonly<Props>) {
+  const { name, onName, onCreate, onCreateLocal, onJoin, error } = props;
   const [code, setCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const join = () => {
@@ -92,6 +94,9 @@ function WelcomeForm({ name, onName, onCreate, onCreateLocal, onJoin, error }: R
       </button>
       <button type="button" className="welcome-local" onClick={onCreateLocal}>
         Work on this device only
+      </button>
+      <button type="button" className="welcome-local" onClick={props.onCreateLocked}>
+        Create a password room
       </button>
       <div className="divider">or join a shared canvas</div>
       <form

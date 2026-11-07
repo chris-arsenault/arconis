@@ -40,6 +40,16 @@ Any object can be a topic, including a screen, a panel of notes or a line.
 A group ties a selection together with a frame that fits its members. Select several objects and
 choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a group.
 
+## Password rooms
+
+"Create a password room" on the welcome screen asks for a password, and everyone joining by link needs
+it. Everything in the room is encrypted in the browser: the document, presence, pictures and the copy on
+this device. Nothing can recover a forgotten password, so the room would be lost. The key button in the
+header changes it; people already in the room stay in, and anyone joining later needs the new one.
+
+Someone joining from a new device needs another person in the room to be online, because they hold what
+the password opens.
+
 ## Pictures
 
 Paste a picture to place it at the pointer, or drop an image file on the canvas. Pictures keep their

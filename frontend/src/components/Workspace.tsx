@@ -16,6 +16,7 @@ import type { EditorController } from "../editor/controller";
 import { zoomLabel } from "../editor/zoom";
 import { Canvas, InlineEditor, Cursors } from "./Canvas";
 import { Inspector } from "./Inspector";
+import { PasswordGate } from "./PasswordGate";
 import { LeftRail } from "./LeftRail";
 import { SelectionFrame } from "./SelectionFrame";
 import { WorkspaceHeader } from "./WorkspaceHeader";
@@ -45,6 +46,7 @@ export function Workspace(props: Readonly<Props>) {
   };
   return (
     <div className="workspace">
+      <PasswordGate session={session} />
       <WorkspaceHeader
         {...props}
         editor={editor}

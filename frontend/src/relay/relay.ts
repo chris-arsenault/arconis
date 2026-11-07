@@ -81,7 +81,7 @@ interface Header {
 
 /** Messages for the relay itself, rather than for other people in the room. */
 const RELAY_REQUEST = '{"relay"';
-const FORWARDED_KINDS = new Set(["hello", "vector", "update", "awareness"]);
+const FORWARDED_KINDS = new Set(["hello", "vector", "update", "awareness", "envelope"]);
 
 function readHeader(message: string): Header | null {
   try {

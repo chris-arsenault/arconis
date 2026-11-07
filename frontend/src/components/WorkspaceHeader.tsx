@@ -12,6 +12,7 @@ import {
 import { embedCopy } from "../document/pngCopy";
 import { renderPng } from "../editor/pngExport";
 import { RoomControls } from "./RoomControls";
+import { ChangePassword } from "./PasswordGate";
 
 interface Props {
   session: RoomSession;
@@ -48,6 +49,7 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         />
       </div>
       <div className="topbar-actions">
+        <ChangePassword session={session} />
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
         <button
           className="participant-badge"

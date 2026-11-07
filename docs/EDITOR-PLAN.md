@@ -130,7 +130,8 @@ Boundaries:
 
 ### Open
 
-- **[DECISION] Mind maps and layout, at M11 start.** The design session is under way. Owner's definitions, which replace the M11 proposals below where they differ:
+- **[DECISION] Agent-friendly format and MCP server (M14, M18).** The owner deferred both until they are designed.
+- **Mind maps and layout (M11), settled.** Owner's definitions, which replaced the earlier proposals:
   layout's key part is composability, meaning moving parents moves children, grouping and ungrouping, placing with horizontal and vertical alignment, and common screen sizes, with
   some support for precision. A mind map's key part is a tree-like view where each node extends outward to other topics, holds conceptual references to other topics that need not be
   physical links, and can be zoomed into for finer detail. People can decide positions themselves, and some auto layout is nice. Further owner decisions: zooming into a topic is
@@ -392,5 +393,6 @@ execution from M6 until a design decision is needed.
 M6 to M10 are pushed. Infrastructure reaches AWS only through CI/CD, never by hand. The `ahara-infra` admission change must land
 through its pipeline before Arconis's. The admission change and the listener-priority row in `ahara/INTEGRATION.md` are committed in those repositories. Unverified until
 deployed: the instance's boot and shutdown units, WebSockets through the shared ALB and its WAF, the Lambda's IAM and metric reads, and the
-instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9, M10 and M11 are built. Next is M12, comments visible to everyone in the room. PNG exports
+instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9 to M13, M15 and M19 are built. M14, M16 and M18 wait for design sessions with the owner, and M20 follows them. An independent security review of M15 is
+recommended. The picture upload's signing and CORS, and M15's envelope exchange through the real relay, have only run against local stand-ins. PNG exports
 use system fonts where the page's web fonts are not available to an image, and have only been checked in Chromium.

@@ -4,6 +4,8 @@ import { CollaborationProvider } from "./provider";
 import { LocalTransport, readConfig, type ConnectionState, type Transport } from "./transport";
 import { RelayTransport } from "./relayTransport";
 import { EditCounter } from "./relayStart";
+import { LockedTransport } from "./lockedTransport";
+import { RoomLock, indexedDbLockedStorage } from "./roomLock";
 import {
   PLAIN_CODEC,
   PictureStore,
@@ -27,12 +29,23 @@ export function parseRoom(value: string) {
   } catch {
     /* Raw room codes need no URL parsing. */
   }
-  const local = candidate.startsWith("local=");
-  candidate = candidate.replace(/^(room|local)=/, "");
+  const prefix = candidate.startsWith("local=") ? LOCAL_PREFIX : lockedPrefix(candidate);
+  candidate = candidate.replace(/^(room|local|locked)=/, "");
   if (!/^[a-f0-9]{48}$/.test(candidate)) return null;
-  return local ? `${LOCAL_PREFIX}${candidate}` : candidate;
+  return `${prefix}${candidate}`;
 }
 const LOCAL_PREFIX = "local-";
+const LOCKED_PREFIX = "locked-";
+function lockedPrefix(hash: string) {
+  return hash.startsWith("locked=") ? LOCKED_PREFIX : "";
+}
+/** A room whose contents are encrypted in the browser under a password. */
+export function createLockedRoomId() {
+  return `${LOCKED_PREFIX}${createRoomId()}`;
+}
+export function isLockedRoom(id: string) {
+  return id.startsWith(LOCKED_PREFIX);
+}
 /** A room on this device only. It never connects to the relay, and nothing leaves the browser. */
 export function createLocalRoomId() {
   return `${LOCAL_PREFIX}${createRoomId()}`;
@@ -41,12 +54,23 @@ export function isLocalRoom(id: string) {
   return id.startsWith(LOCAL_PREFIX);
 }
 export function roomHash(id: string) {
-  return isLocalRoom(id) ? `local=${id.slice(LOCAL_PREFIX.length)}` : `room=${id}`;
+  if (isLocalRoom(id)) return `local=${id.slice(LOCAL_PREFIX.length)}`;
+  if (isLockedRoom(id)) return `locked=${id.slice(LOCKED_PREFIX.length)}`;
+  return `room=${id}`;
+}
+
+/** What carries this room's frames. The relay never sees the prefix naming a password room. */
+function createCarrier(id: string): Transport {
+  const config = readConfig();
+  if (config.transport === "local" || isLocalRoom(id)) return new LocalTransport(id);
+  return new RelayTransport(config.relayUrl, id.replace(LOCKED_PREFIX, ""));
 }
 
 export class RoomSession {
   readonly document = new CanvasDocument();
-  readonly persistence: IndexeddbPersistence;
+  readonly persistence: { whenSynced: Promise<unknown>; destroy(): unknown };
+  /** Present in a password room. */
+  readonly lock: RoomLock | null;
   readonly provider: CollaborationProvider;
   state: ConnectionState = "connecting";
   detail = "Restoring this device's canvas";
@@ -67,22 +91,24 @@ export class RoomSession {
     /** Creating a room starts the relay, because a new room is about to be shared. */
     private created = false
   ) {
-    const config = readConfig();
-    const transport: Transport =
-      config.transport === "local" || isLocalRoom(id)
-        ? new LocalTransport(id)
-        : new RelayTransport(config.relayUrl, id);
+    const peerId = crypto.randomUUID();
+    const carrier = createCarrier(id);
+    const locked = isLockedRoom(id) ? new LockedTransport(carrier, peerId) : null;
+    const transport = locked ?? carrier;
     this.transport = transport;
+    this.lock = locked
+      ? new RoomLock(indexedDbLockedStorage(id), locked, this.document.doc, this.emit, created)
+      : null;
     this.pictures = new PictureStore({
       shelf: indexedDbShelf(),
-      codec: PLAIN_CODEC,
+      codec: this.lock?.codec ?? PLAIN_CODEC,
       download: transport.requestUpload ? downloadPicture : null,
       ...browserPictureUrls(),
     });
     this.pictures.subscribe(notifyPictures);
     setPictureSource((hash, type, shared) => this.pictures.url(hash, type, shared));
-    this.persistence = new IndexeddbPersistence(`arconis:${id}`, this.document.doc);
-    this.provider = new CollaborationProvider(this.document.doc, transport, this.emit);
+    this.persistence = this.lock ?? new IndexeddbPersistence(`arconis:${id}`, this.document.doc);
+    this.provider = new CollaborationProvider(this.document.doc, transport, this.emit, peerId);
     transport.onStatus = (state, detail = "") => {
       this.state = state;
       this.detail = detail;
@@ -104,7 +130,8 @@ export class RoomSession {
       this.stored = true;
       // A person arriving at a room or at their own saved work is about to use the relay. Someone
       // following a link with no local copy has nothing to send yet, and can use the button.
-      if (this.created || this.document.doc.store.clients.size > 0) {
+      const hasCopy = this.lock?.hasLocalCopy ?? this.document.doc.store.clients.size > 0;
+      if (this.created || hasCopy) {
         this.transport.markFresh?.();
         this.transport.start?.();
       }
@@ -128,7 +155,8 @@ export class RoomSession {
           store: this.pictures,
           request,
           put: putToStorage,
-          contentType: (type) => type,
+          // Encrypted bytes must not claim to be an image.
+          contentType: (type) => (this.lock ? "application/octet-stream" : type),
         })
       );
     } catch {
@@ -189,7 +217,7 @@ export class RoomSession {
     setPictureSource(null);
     this.pictures.close();
     this.provider.destroy();
-    void this.persistence.destroy();
+    Promise.resolve(this.persistence.destroy()).catch(() => {});
     this.document.destroy();
     this.listeners.clear();
   }

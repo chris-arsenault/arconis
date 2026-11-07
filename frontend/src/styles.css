@@ -253,6 +253,36 @@ h1 em {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.password-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: #f6f7fbee;
+}
+.password-gate section {
+  width: min(420px, calc(100vw - 32px));
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.password-gate h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+.password-gate label {
+  display: grid;
+  gap: 6px;
+}
+.password-note {
+  color: #6b7284;
+  font-size: 12px;
+}
 .welcome-local {
   width: 100%;
   margin-top: 8px;

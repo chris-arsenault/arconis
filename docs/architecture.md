@@ -72,6 +72,13 @@ serves deployed rooms and `LocalTransport` serves same-browser development.
   immediately in either direction.
 - **Messages.** Updates are coalesced and split into bounded chunks that reassemble out of order.
   `collaboration/frames.ts` and `collaboration/provider.ts` declare the sizes and timings.
+- **Password rooms.** A random room key encrypts every frame's contents, the local copy and picture
+  bytes with AES-GCM, and the password only wraps that key, through PBKDF2. The wrapped key is an
+  envelope that peers exchange unencrypted, and it replaces another only with proof of holding the
+  room key. `collaboration/lockedTransport.ts` wraps any transport, and `collaboration/roomLock.ts`
+  stands in for y-indexeddb. The relay still sees each frame's sender, kind and target, plus sizes and
+  timing. Nothing authenticates who a keyholder is, and removing someone requires a new room, because
+  changing the password does not change the key.
 - **Presence.** Names, cursors and native move and resize previews travel on Yjs awareness, adding no
   document history; the document changes on drop. Presence coalesces to a bounded rate, and hidden
   tabs send none, so peers time them out until they are shown again. Selection-frame transforms write
