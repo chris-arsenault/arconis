@@ -6,6 +6,7 @@ import {
   isPictureHash,
   isPictureType,
   pictureHashes,
+  renamePictures,
   sha256,
 } from "./pictures";
 import type { CanvasObject } from "./types";
@@ -48,6 +49,19 @@ it("lists each picture once, ignoring invalid ones", () => {
     ({ kind: "picture", style: { pictureHash: hash } }) as unknown as CanvasObject;
   const hash = "b".repeat(64);
   expect(pictureHashes([picture(hash), picture(hash), picture("nope")])).toEqual([hash]);
+});
+
+it("points objects at renamed pictures, which have not reached storage under that name", () => {
+  const [a, b] = ["a".repeat(64), "b".repeat(64)];
+  const picture = {
+    id: "p",
+    style: { pictureHash: a, pictureStored: true },
+  } as unknown as CanvasObject;
+  const other = { id: "o", style: { fillColor: "red" } } as unknown as CanvasObject;
+  const [renamed, untouched] = renamePictures([picture, other], new Map([[a, b]]));
+  expect(renamed.style).toEqual({ pictureHash: b, pictureStored: false });
+  expect(untouched).toBe(other);
+  expect(picture.style.pictureHash).toBe(a);
 });
 
 describe("pictures in files", () => {

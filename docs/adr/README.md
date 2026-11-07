@@ -15,3 +15,4 @@ product brief, earlier implementations or owner decisions.
 | [0008](0008-vendor-architecture-icons.md) | Vendor architecture icons | Accepted | 2026-11-07 |
 | [0009](0009-relay-on-ec2.md) | Peers sync through a relay on EC2 | Accepted | 2026-11-07 |
 | [0010](0010-topics-as-general-abilities.md) | Layout and mind maps are abilities of any object | Accepted | 2026-11-07 |
+| [0011](0011-relay-in-an-auto-scaling-group.md) | The relay runs in an Auto Scaling group | Accepted | 2026-11-07 |

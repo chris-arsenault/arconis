@@ -2,7 +2,7 @@ import { CanvasDocument } from "./canvasDocument";
 import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
 import { normalizeLegacyObjects } from "./geometry";
 import { exportComments, importComments } from "./comments";
-import type { PortablePicture } from "./pictures";
+import { NO_PICTURES, renamePictures, type FilePictures } from "./pictures";
 import { isPng, readCopy } from "./pngCopy";
 import { remapStyle } from "./relations";
 
@@ -10,15 +10,18 @@ import { remapStyle } from "./relations";
 export function serializeDocument(
   document: CanvasDocument,
   ids: string[] = [],
-  pictures: PortablePicture[] = []
+  { pictures, renames }: FilePictures = NO_PICTURES
 ) {
   const chosen = new Set(ids);
+  const objects = ids.length
+    ? document.list().filter((item) => chosen.has(item.id))
+    : document.list();
   return JSON.stringify(
     {
       format: "arconis",
       version: 2,
       title: document.title(),
-      objects: ids.length ? document.list().filter((item) => chosen.has(item.id)) : document.list(),
+      objects: renamePictures(objects, renames),
       comments: exportComments(document, ids),
       pictures,
       bookmarks: ids.length
@@ -44,7 +47,7 @@ export function downloadFile(
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function downloadDocument(document: CanvasDocument, pictures: PortablePicture[]) {
+export function downloadDocument(document: CanvasDocument, pictures: FilePictures) {
   downloadFile(document, serializeDocument(document, [], pictures), "application/json", "arconis");
 }
 

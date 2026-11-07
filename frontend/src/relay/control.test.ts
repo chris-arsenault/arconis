@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import { DISK_DOLLARS_PER_HOUR, INSTANCE_DOLLARS_PER_HOUR, limitFor, monthlySpend } from "./budget";
 import {
-  DISK_DOLLARS_PER_MONTH,
-  INSTANCE_DOLLARS_PER_HOUR,
-  limitFor,
-  monthlySpend,
-} from "./budget";
-import { RelayControl, SPEND_CACHE_MS, type ControlDeps, type InstanceState } from "./control";
+  RelayControl,
+  SPEND_CACHE_MS,
+  capacityState,
+  type ControlDeps,
+  type InstanceState,
+} from "./control";
 
 const NOW = new Date("2026-11-15T12:00:00Z");
 
@@ -16,7 +17,8 @@ function setup({
   lastAlert = "none",
 } = {}) {
   let time = NOW;
-  const hours = (dollars - DISK_DOLLARS_PER_MONTH) / INSTANCE_DOLLARS_PER_HOUR;
+  // Nudged up so that rounding cannot land just under the amount a test names.
+  const hours = (dollars + 1e-9) / (INSTANCE_DOLLARS_PER_HOUR + DISK_DOLLARS_PER_HOUR);
   const deps = {
     now: () => time,
     instanceState: vi.fn(() => Promise.resolve(state)),
@@ -36,6 +38,22 @@ function setup({
     },
   };
 }
+
+describe("the relay's state, from its Auto Scaling group", () => {
+  it.each([
+    [0, [], "stopped"],
+    [0, ["Terminating"], "stopping"],
+    [0, ["InService"], "stopping"],
+    [1, [], "pending"],
+    [1, ["Pending"], "pending"],
+    [1, ["InService"], "running"],
+    // A rollout: the old instance serves until the new one is healthy.
+    [1, ["InService", "Pending"], "running"],
+    [2, ["InService", "InService"], "running"],
+  ] as const)("desired %i with %j is %s", (desired, lifecycles, state) => {
+    expect(capacityState(desired, [...lifecycles])).toBe(state);
+  });
+});
 
 describe("starting", () => {
   it("starts a stopped relay under the limit", async () => {
@@ -108,8 +126,8 @@ describe("the hard stop", () => {
   });
 
   it("counts hours and transfer", () => {
-    expect(monthlySpend({ hours: 0, gigabytes: 0 })).toBe(DISK_DOLLARS_PER_MONTH);
-    expect(monthlySpend({ hours: 50, gigabytes: 16 })).toBeCloseTo(4.05);
+    expect(monthlySpend({ hours: 0, gigabytes: 0 })).toBe(0);
+    expect(monthlySpend({ hours: 50, gigabytes: 16 })).toBeCloseTo(3.45);
   });
 });
 

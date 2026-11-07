@@ -41,10 +41,10 @@ importers:
       "@ahara/standards":
         specifier: github:chris-arsenault/ahara-standards
         version: https://codeload.github.com/chris-arsenault/ahara-standards/tar.gz/30e038a09b01c8f72e509e3fb1e7aa76003cda3a
-      "@aws-sdk/client-cloudwatch":
+      "@aws-sdk/client-auto-scaling":
         specifier: ^3.1164.0
         version: 3.1164.0
-      "@aws-sdk/client-ec2":
+      "@aws-sdk/client-cloudwatch":
         specifier: ^3.1164.0
         version: 3.1164.0
       "@aws-sdk/client-s3":
@@ -147,17 +147,17 @@ packages:
       }
     engines: { node: ">=20.0.0" }
 
+  "@aws-sdk/client-auto-scaling@3.1164.0":
+    resolution:
+      {
+        integrity: sha512-33kXQDWZS8bJmsX+sXtfpwfkNlTJmqPgB5jJx0zx1OvhE5i+1DM1pRkt8ssVpyXQ8NQVfvQBcbSSlBWIF7RvKQ==,
+      }
+    engines: { node: ">=20.0.0" }
+
   "@aws-sdk/client-cloudwatch@3.1164.0":
     resolution:
       {
         integrity: sha512-t/A5aVFXXRlfwuCVJZp/nYAL9vYLZgFzhg5/XySx1faxowwiIW9r67zSQ2kXaZU33+g5sfWNQmNJSSvUN4mAdA==,
-      }
-    engines: { node: ">=20.0.0" }
-
-  "@aws-sdk/client-ec2@3.1164.0":
-    resolution:
-      {
-        integrity: sha512-2NLpGtiQ0tpESLkFTTiHLkHo5q07ssG7OA+T+tiTZxarH6biBlvmF8mZylUUvONDM5ERWp/jqIws3iGVwWwBZA==,
       }
     engines: { node: ">=20.0.0" }
 
@@ -242,13 +242,6 @@ packages:
     resolution:
       {
         integrity: sha512-RmeE04naP7gWzux9l1vqNQPzuo2OkH0Ca9WDtX5Zf4NERoBLeWZNU2g1ka7aJ4Fc9fqBxBLtGL89vYEfFP1LHw==,
-      }
-    engines: { node: ">=20.0.0" }
-
-  "@aws-sdk/middleware-sdk-ec2@3.972.70":
-    resolution:
-      {
-        integrity: sha512-2zJdiuzxL8pR3Rrkfz4UQVbID9+JhO50eGq7L9DlWRcPAruz+ckijNm++YM6ArRRxBO8weRFYRjR1VhTXTVP5A==,
       }
     engines: { node: ">=20.0.0" }
 
@@ -3514,6 +3507,17 @@ snapshots:
       "@smithy/types": 4.20.0
       tslib: 2.9.1
 
+  "@aws-sdk/client-auto-scaling@3.1164.0":
+    dependencies:
+      "@aws-sdk/core": 3.980.1
+      "@aws-sdk/credential-provider-node": 3.972.94
+      "@aws-sdk/types": 3.975.0
+      "@smithy/core": 3.39.0
+      "@smithy/fetch-http-handler": 5.8.1
+      "@smithy/node-http-handler": 4.14.2
+      "@smithy/types": 4.20.0
+      tslib: 2.9.1
+
   "@aws-sdk/client-cloudwatch@3.1164.0":
     dependencies:
       "@aws-sdk/core": 3.980.1
@@ -3522,18 +3526,6 @@ snapshots:
       "@smithy/core": 3.39.0
       "@smithy/fetch-http-handler": 5.8.1
       "@smithy/middleware-compression": 4.6.2
-      "@smithy/node-http-handler": 4.14.2
-      "@smithy/types": 4.20.0
-      tslib: 2.9.1
-
-  "@aws-sdk/client-ec2@3.1164.0":
-    dependencies:
-      "@aws-sdk/core": 3.980.1
-      "@aws-sdk/credential-provider-node": 3.972.94
-      "@aws-sdk/middleware-sdk-ec2": 3.972.70
-      "@aws-sdk/types": 3.975.0
-      "@smithy/core": 3.39.0
-      "@smithy/fetch-http-handler": 5.8.1
       "@smithy/node-http-handler": 4.14.2
       "@smithy/types": 4.20.0
       tslib: 2.9.1
@@ -3666,15 +3658,6 @@ snapshots:
       "@aws-sdk/nested-clients": 3.998.1
       "@aws-sdk/types": 3.975.0
       "@smithy/core": 3.39.0
-      "@smithy/types": 4.20.0
-      tslib: 2.9.1
-
-  "@aws-sdk/middleware-sdk-ec2@3.972.70":
-    dependencies:
-      "@aws-sdk/core": 3.980.1
-      "@aws-sdk/types": 3.975.0
-      "@smithy/core": 3.39.0
-      "@smithy/signature-v4": 5.7.5
       "@smithy/types": 4.20.0
       tslib: 2.9.1
 

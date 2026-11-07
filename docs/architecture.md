@@ -96,15 +96,17 @@ exchange.
 
 **Starting.** The relay runs only when needed, and local editing never depends on it. Creating a
 room, loading a room with a local copy, three separate edits by one person within an hour, and the
-Start collaboration button each ask the control Lambda to start the instance. Clients decide those
+Start collaboration button each ask the control Lambda to scale its Auto Scaling group to one
+([ADR-0011](adr/0011-relay-in-an-auto-scaling-group.md)). Clients decide those
 triggers and the Lambda holds the limit, so a client ignoring them can only reach the same limit.
 An open tab retries its socket without waking anything, and joins when someone else starts the relay.
 
 **Stopping.** The relay stops after a period with no connections, or with connections but no
 contentful update. A broadcast Yjs update is contentful, and so is a connection arriving with the
 `fresh` flag, which clients set for a created room or a loaded local copy. Presence, sync exchange
-and targeted replies are not. Stopping tells clients why, then exits cleanly, which shuts the
-instance down. A crash restarts the process instead, and a maximum runtime catches a hung one.
+and targeted replies are not. Stopping tells clients why, then exits cleanly, and the instance removes
+itself from the group. A crash restarts the process instead, and a maximum runtime catches a hung one.
+Nothing lives only on an instance, so clients simply reconnect when one is replaced.
 
 **Pictures.** Picture bytes stay outside the document. The browser re-encodes a picture through a canvas
 and names it by its hash, the relay checks the storage limit and signs a link fixing the key, type, size
@@ -112,9 +114,10 @@ and checksum, and the browser uploads straight to the website's bucket under `pi
 only the validated hash, marked once the bytes have reached storage, so a peer's data never becomes a
 URL. Peers fetch through the website's CloudFront, verify the hash and keep the bytes in IndexedDB.
 
-**Limit.** `relay/control.ts` computes the month's spend from the instance's CloudWatch metrics, so
-no client or relay report can change it. `relay/budget.ts` declares the rates and limit. At the limit
-the Lambda refuses to start the instance and stops a running one, and the relay checks periodically
+**Limit.** `relay/control.ts` computes the month's spend from the group's CloudWatch metrics, which
+outlive any instance, so no client or relay report can change it and no replacement resets it.
+`relay/budget.ts` declares the rates and limit. At the limit the Lambda refuses to start the relay and
+scales a running one to zero, and the relay checks periodically
 to close its sockets with that reason. Counting by month re-enables it automatically, and a
 month-scoped SSM parameter raises the limit by hand. Each level alerts once through Ahara's alarm
 topic.

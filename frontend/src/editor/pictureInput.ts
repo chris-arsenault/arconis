@@ -14,6 +14,11 @@ import { containerAt } from "./panels";
 const MAX_PLACED_PIXELS = 640;
 const QUALITY = 0.9;
 
+/** Nothing can be added to a password room until its password has opened it. */
+function isLocked(session: RoomSession) {
+  return session.lock !== null && session.lock.state !== "unlocked";
+}
+
 function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && Boolean(target.closest("input, textarea, [role=dialog]"));
 }
@@ -83,7 +88,7 @@ export function bindPictureInput(editor: EditorController, session: RoomSession)
   window.addEventListener(
     "paste",
     (event) => {
-      if (isTyping(event.target)) return;
+      if (isTyping(event.target) || isLocked(session)) return;
       const file = firstImage(event.clipboardData?.files);
       if (!file) return;
       event.preventDefault();

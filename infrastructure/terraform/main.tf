@@ -38,4 +38,4 @@ module "frontend" {
 }
 
 output "url" { value = module.frontend.url }
-output "relay_instance_id" { value = aws_instance.relay.id }
+output "relay_group" { value = aws_autoscaling_group.relay.name }

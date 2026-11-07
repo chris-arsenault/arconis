@@ -48,11 +48,8 @@ afterEach(async ({ task }) => {
   }
 });
 
-export async function open(context: BrowserContext, room = "", join = false, status = "Connected") {
-  if (!traced.has(context)) {
-    await context.tracing.start({ screenshots: true, snapshots: true });
-    traced.add(context);
-  }
+/** Points a context at the local relay, and at picture storage through the website's address. */
+export async function serveFixtures(context: BrowserContext) {
   await context.route("**/config.js", (route) =>
     route.fulfill({
       contentType: "application/javascript",
@@ -68,6 +65,45 @@ export async function open(context: BrowserContext, room = "", join = false, sta
         : { body: "<!doctype html>", contentType: "text/html" }
     );
   });
+}
+
+/** Pastes a generated picture, as the browser delivers a real clipboard image. */
+export async function pastePicture(page: Page, color: string) {
+  await page.evaluate(async (fill) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 100;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = fill;
+    context.fillRect(0, 0, 200, 100);
+    const blob = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((b) => resolve(b!), "image/png")
+    );
+    const data = new DataTransfer();
+    data.items.add(new File([blob], "pasted.png", { type: "image/png" }));
+    window.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true }));
+  }, color);
+}
+
+/** How many pictures are drawn from their bytes, as opposed to icons or empty frames. */
+export function drawnPictures(page: Page) {
+  return page
+    .getByTestId("canvas")
+    .locator("image")
+    .evaluateAll(
+      (nodes) =>
+        nodes.filter((node) =>
+          (node.getAttribute("href") ?? node.getAttribute("xlink:href") ?? "").startsWith("blob:")
+        ).length
+    );
+}
+
+export async function open(context: BrowserContext, room = "", join = false, status = "Connected") {
+  if (!traced.has(context)) {
+    await context.tracing.start({ screenshots: true, snapshots: true });
+    traced.add(context);
+  }
+  await serveFixtures(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => {
     errors.push(error.message);

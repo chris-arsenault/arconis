@@ -14,7 +14,15 @@ import {
   indexedDbShelf,
 } from "./pictureStore";
 import { putToStorage, uploadWaitingPictures } from "./pictureUploads";
-import { decodePicture, encodePicture, pictureHashes } from "../document/pictures";
+import {
+  decodePicture,
+  encodePicture,
+  pictureHashes,
+  renamePictures,
+  sha256,
+  type FilePictures,
+} from "../document/pictures";
+import type { CanvasObject } from "../document/types";
 import { notifyPictures, setPictureSource } from "../editor/pictureSource";
 
 export function createRoomId() {
@@ -165,28 +173,37 @@ export class RoomSession {
       this.uploading = false;
     }
   };
-  /** The pictures a file needs, in the form they are stored. */
-  async portablePictures(ids: string[] = []) {
+  /**
+   * The pictures a file needs, opened and named by their plain bytes. An export is a deliberate copy
+   * out of the room, and bytes sealed under this room's key would be useless anywhere else.
+   */
+  async portablePictures(ids: string[] = []): Promise<FilePictures> {
     const chosen = new Set(ids);
     const items = this.document.list().filter((item) => !ids.length || chosen.has(item.id));
+    const renames = new Map<string, string>();
     const found = await Promise.all(
       pictureHashes(items).map(async (hash) => {
-        const picture = await this.pictures.read(hash);
-        return picture ? encodePicture(hash, picture.type, picture.bytes) : null;
+        const picture = await this.pictures.readOpen(hash);
+        if (!picture) return null;
+        const { hex } = await sha256(picture.bytes);
+        if (hex !== hash) renames.set(hash, hex);
+        return encodePicture(hex, picture.type, picture.bytes);
       })
     );
-    return found.filter((picture) => picture !== null);
+    return { pictures: found.filter((picture) => picture !== null), renames };
   }
-  /** Keeps the pictures in a file's text, before its objects are imported. */
-  async keepFilePictures(content: string) {
-    const { pictures } = JSON.parse(content) as { pictures: unknown };
-    if (!Array.isArray(pictures)) return;
-    const decoded = await Promise.all(pictures.map(decodePicture));
-    await Promise.all(
-      decoded
-        .filter((picture) => picture !== null)
-        .map(({ hash, type, bytes }) => this.pictures.keep(hash, { bytes, type }))
-    );
+  /** Keeps a file's pictures here, sealing them in a password room, and returns the file to import. */
+  async prepareFile(content: string) {
+    const file = JSON.parse(content) as { pictures: unknown; objects: CanvasObject[] };
+    if (!Array.isArray(file.pictures)) return content;
+    const decoded = await Promise.all(file.pictures.map(decodePicture));
+    const renames = new Map<string, string>();
+    for (const picture of decoded) {
+      if (!picture) continue;
+      const kept = await this.pictures.add(picture.bytes, picture.type);
+      if (kept !== picture.hash) renames.set(picture.hash, kept);
+    }
+    return JSON.stringify({ ...file, objects: renamePictures(file.objects, renames) });
   }
   /** Whether the relay is off and someone here can ask for it. */
   get canStartCollaboration() {

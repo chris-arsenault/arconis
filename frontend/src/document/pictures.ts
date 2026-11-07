@@ -55,6 +55,25 @@ export interface PortablePicture {
   data: string;
 }
 
+/** A file's pictures, and which objects must point at them under a different name. */
+export interface FilePictures {
+  pictures: PortablePicture[];
+  renames: Map<string, string>;
+}
+export const NO_PICTURES: FilePictures = { pictures: [], renames: new Map() };
+
+/**
+ * Points objects at renamed pictures. A password room names a picture by its encrypted form, so moving
+ * one in or out of such a room changes its name, and it has not reached storage under the new one.
+ */
+export function renamePictures(items: CanvasObject[], renames: Map<string, string>) {
+  return items.map((item) => {
+    const renamed = renames.get(String(item.style[PICTURE_HASH]));
+    if (!renamed) return item;
+    return { ...item, style: { ...item.style, [PICTURE_HASH]: renamed, [PICTURE_STORED]: false } };
+  });
+}
+
 export function encodePicture(hash: string, type: string, bytes: Uint8Array): PortablePicture {
   return { hash, type, data: toBase64(bytes) };
 }

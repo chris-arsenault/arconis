@@ -66,6 +66,13 @@ export class PictureStore {
     return this.options.shelf.get(hash);
   }
 
+  /** The picture itself, opened from its stored form, for a file outside this room. */
+  async readOpen(hash: string) {
+    const stored = await this.options.shelf.get(hash);
+    if (!stored) return null;
+    return { bytes: await this.options.codec.open(stored.bytes), type: stored.type };
+  }
+
   /** Keeps a picture from a file, already checked against its hash. */
   async keep(hash: string, picture: StoredPicture) {
     await this.options.shelf.put(hash, picture);

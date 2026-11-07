@@ -1,6 +1,6 @@
-# The relay: one stop-when-idle instance behind the shared ALB, plus a small Lambda that starts it
-# and enforces the monthly limit. Follows the plain-instance pattern in ahara-infra's bastion and
-# foundry-vtt: an ASG would treat the stopped instance as unhealthy and replace it.
+# The relay: an Auto Scaling group behind the shared ALB that scales between none and one instance,
+# plus a small Lambda that starts it and enforces the monthly limit. Instances are disposable:
+# everything that must outlive one is outside it, and rollouts launch before terminating.
 
 locals {
   relay_hostname = "relay.arconis.ahara.io"
@@ -8,6 +8,9 @@ locals {
   site_origin    = "https://arconis.ahara.io"
   ssm_prefix     = "/ahara/arconis"
   relay_bundle   = "${path.module}/../../frontend/dist-relay/server.cjs"
+  # A fixed name, because CloudWatch's usage metrics for the group are found by it.
+  relay_group_name = "arconis-relay"
+  relay_group_arn  = "arn:aws:autoscaling:us-east-1:${data.aws_caller_identity.current.account_id}:autoScalingGroup:*:autoScalingGroupName/${local.relay_group_name}"
 
   # Claimed in the shared listener-priority table in ahara/INTEGRATION.md. The control rule sits
   # first so its paths reach the Lambda rather than the instance.
@@ -115,6 +118,11 @@ data "aws_iam_policy_document" "relay" {
       values   = ["pictures/*"]
     }
   }
+  # An idle instance removes itself from the group, which is how the relay stops.
+  statement {
+    actions   = ["autoscaling:TerminateInstanceInAutoScalingGroup"]
+    resources = [local.relay_group_arn]
+  }
 }
 
 # Browsers upload pictures straight to the website's bucket, under links the relay signs.
@@ -161,14 +169,15 @@ resource "aws_security_group" "relay" {
   tags = { Name = "arconis-relay-sg" }
 }
 
-resource "aws_instance" "relay" {
-  ami                                  = data.aws_ssm_parameter.al2023_ami_arm64.value
-  instance_type                        = "c7g.medium"
-  subnet_id                            = sort(module.ctx.vpc.private_subnet_ids)[0]
-  vpc_security_group_ids               = [aws_security_group.relay.id]
-  iam_instance_profile                 = aws_iam_instance_profile.relay.name
-  instance_initiated_shutdown_behavior = "stop"
-  user_data_replace_on_change          = true
+resource "aws_launch_template" "relay" {
+  name_prefix            = "arconis-relay-"
+  image_id               = data.aws_ssm_parameter.al2023_ami_arm64.value
+  instance_type          = "c7g.medium"
+  vpc_security_group_ids = [aws_security_group.relay.id]
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.relay.name
+  }
 
   metadata_options {
     http_endpoint               = "enabled"
@@ -176,15 +185,22 @@ resource "aws_instance" "relay" {
     http_put_response_hop_limit = 1
   }
 
-  root_block_device {
-    encrypted   = true
-    volume_size = 8
-    volume_type = "gp3"
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      encrypted             = true
+      volume_size           = 8
+      volume_type           = "gp3"
+      delete_on_termination = true
+    }
   }
 
-  user_data_base64 = base64gzip(templatefile("${path.module}/templates/relay_user_data.sh.tpl", {
+  user_data = base64gzip(templatefile("${path.module}/templates/relay_user_data.sh.tpl", {
     bucket             = aws_s3_bucket.relay.id
     key                = aws_s3_object.relay.key
+    relay_version      = filemd5(local.relay_bundle)
+    region             = "us-east-1"
     port               = local.relay_port
     control_url        = "https://${local.relay_hostname}"
     allowed_origin     = local.site_origin
@@ -192,7 +208,47 @@ resource "aws_instance" "relay" {
     max_uptime_minutes = local.max_uptime_minutes
   }))
 
-  tags = { Name = "arconis-relay" }
+  tag_specifications {
+    resource_type = "instance"
+    tags          = { Name = "arconis-relay", Project = "arconis", ManagedBy = "Terraform" }
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+    tags          = { Name = "arconis-relay", Project = "arconis", ManagedBy = "Terraform" }
+  }
+}
+
+resource "aws_autoscaling_group" "relay" {
+  name                      = local.relay_group_name
+  min_size                  = 0
+  max_size                  = 2
+  desired_capacity          = 0
+  vpc_zone_identifier       = module.ctx.vpc.private_subnet_ids
+  target_group_arns         = [aws_lb_target_group.relay.arn]
+  health_check_type         = "ELB"
+  health_check_grace_period = 180
+
+  launch_template {
+    id      = aws_launch_template.relay.id
+    version = aws_launch_template.relay.latest_version
+  }
+
+  # Launches the replacement and waits for it to pass the ALB's health check before terminating
+  # the old instance, so a rollout has no gap in service.
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 100
+      max_healthy_percentage = 200
+      instance_warmup        = 60
+    }
+  }
+
+  # The control Lambda and idle instances set this at runtime.
+  lifecycle {
+    ignore_changes = [desired_capacity]
+  }
 }
 
 # --- ALB: TLS, DNS and two rules ---
@@ -264,12 +320,6 @@ resource "aws_lb_target_group" "relay" {
     path                = "/health"
     matcher             = "200"
   }
-}
-
-resource "aws_lb_target_group_attachment" "relay" {
-  target_group_arn = aws_lb_target_group.relay.arn
-  target_id        = aws_instance.relay.id
-  port             = local.relay_port
 }
 
 resource "aws_lb_listener_rule" "control" {
@@ -359,12 +409,12 @@ resource "aws_iam_role_policy_attachment" "control_vpc" {
 data "aws_iam_policy_document" "control" {
   # Neither of these supports resource-level scoping.
   statement {
-    actions   = ["ec2:DescribeInstances", "cloudwatch:GetMetricData"]
+    actions   = ["autoscaling:DescribeAutoScalingGroups", "cloudwatch:GetMetricData"]
     resources = ["*"]
   }
   statement {
-    actions   = ["ec2:StartInstances", "ec2:StopInstances"]
-    resources = [aws_instance.relay.arn]
+    actions   = ["autoscaling:SetDesiredCapacity"]
+    resources = [local.relay_group_arn]
   }
   statement {
     actions   = ["ssm:GetParameter"]
@@ -407,7 +457,7 @@ module "control" {
   reserved_concurrent_executions = 2
 
   environment = {
-    INSTANCE_ID        = aws_instance.relay.id
+    GROUP_NAME         = local.relay_group_name
     SITE_ORIGIN        = local.site_origin
     OVERRIDE_PARAMETER = aws_ssm_parameter.budget_override.name
     ALERT_PARAMETER    = aws_ssm_parameter.last_alert.name

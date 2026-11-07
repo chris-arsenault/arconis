@@ -1,6 +1,21 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { add, baseUrl, browser, errors, fixture, objectCount, row } from "./browserHarness";
+import { readFile } from "node:fs/promises";
+import { createRoomId } from "../collaboration/room";
+import {
+  add,
+  baseUrl,
+  browser,
+  drawnPictures,
+  errors,
+  exported,
+  fixture,
+  objectCount,
+  open,
+  pastePicture,
+  row,
+  serveFixtures,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const SECRET = "Merger codename";
@@ -9,12 +24,7 @@ const PHRASE = "correct horse battery";
 /** Opens a browser with sockets recorded, since what they carry is the point. */
 async function visit(url = baseUrl()) {
   const context = await browser.newContext(VIEWPORT);
-  await context.route("**/config.js", (route) =>
-    route.fulfill({
-      contentType: "application/javascript",
-      body: `window.__APP_CONFIG__ = ${JSON.stringify(fixture.config)};`,
-    })
-  );
+  await serveFixtures(context);
   const page = await context.newPage();
   const frames: string[] = [];
   page.on("websocket", (socket) => {
@@ -55,6 +65,60 @@ const storedText = (page: Page) =>
     }
     return seen.join("\n");
   });
+
+async function createRoom() {
+  const a = await visit();
+  await a.page.getByRole("button", { name: "Create a password room", exact: true }).click();
+  await a.page.getByLabel("Choose a password", { exact: true }).fill(PHRASE);
+  await a.page.getByRole("button", { name: "Create room", exact: true }).click();
+  await a.page.getByRole("dialog", { name: "Password required" }).waitFor({ state: "detached" });
+  await a.page.getByTestId("connection-status").filter({ hasText: "Connected" }).waitFor();
+  return a;
+}
+
+async function exportPng(page: Page) {
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export PNG", exact: true }).click();
+  return readFile((await (await pending).path())!);
+}
+
+const importPng = (page: Page, buffer: Buffer) =>
+  page.getByLabel("Import file").setInputFiles({ name: "c.png", mimeType: "image/png", buffer });
+
+it("stores a picture encrypted, and only people with the password can see it", async () => {
+  const a = await createRoom();
+  await pastePicture(a.page, "#a040d0");
+  await expect.poll(() => drawnPictures(a.page)).toBe(1);
+  // A file holds the picture itself, under the name of its plain bytes. Storage holds something else.
+  const exportedPicture = (await exported(a.page)).objects[0];
+  await expect.poll(() => fixture.storedPictures().length).toBeGreaterThan(0);
+  const stored = fixture.storedPictures().at(-1)!;
+  expect(fixture.picture(String(exportedPicture.style.pictureHash))).toBeUndefined();
+  expect(stored.type).toBe("application/octet-stream");
+  expect(stored.bytes.includes("WEBP")).toBe(false);
+  expect(stored.bytes.includes("RIFF")).toBe(false);
+  expect(await storedText(a.page)).not.toContain("WEBP");
+
+  const b = await visit(a.page.url());
+  await enter(b.page, PHRASE);
+  await expect.poll(() => drawnPictures(b.page)).toBe(1);
+  expect(errors).toEqual([]);
+}, 90_000);
+
+it("moves a picture in and out of a password room through a file", async () => {
+  const locked = await createRoom();
+  await pastePicture(locked.page, "#40a0d0");
+  await expect.poll(() => drawnPictures(locked.page)).toBe(1);
+
+  const plain = await open(await browser.newContext(VIEWPORT), createRoomId());
+  await importPng(plain, await exportPng(locked.page));
+  await expect.poll(() => drawnPictures(plain)).toBe(1);
+
+  const second = await createRoom();
+  await importPng(second.page, await exportPng(plain));
+  await expect.poll(() => drawnPictures(second.page)).toBe(1);
+  expect(errors).toEqual([]);
+}, 90_000);
 
 it("encrypts on the wire and on disk, and opens only with the password", async () => {
   const a = await visit();

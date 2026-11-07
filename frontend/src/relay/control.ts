@@ -4,8 +4,16 @@ import { ALERT_FRACTION, limitFor, monthOf, monthlySpend, type Usage } from "./b
 /** How long a spend figure is reused. Its source lags by minutes, and each read costs a little. */
 export const SPEND_CACHE_MS = 5 * 60_000;
 
-export type InstanceState =
-  "pending" | "running" | "stopping" | "stopped" | "shutting-down" | "terminated";
+export type InstanceState = "pending" | "running" | "stopping" | "stopped";
+
+/**
+ * The relay's state, from its Auto Scaling group. Scaling to zero is how it stops, because a group
+ * replaces an instance that merely shuts down. During a rollout, a healthy old instance counts as up.
+ */
+export function capacityState(desired: number, lifecycles: string[]): InstanceState {
+  if (desired === 0) return lifecycles.length ? "stopping" : "stopped";
+  return lifecycles.includes("InService") ? "running" : "pending";
+}
 
 export interface ControlDeps {
   now(): Date;

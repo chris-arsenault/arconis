@@ -32,6 +32,8 @@ sticky notes and freehand drawing in one shared document.
 - Keep escaping labels in `editor/rendering.ts`, because labels come from peers and render as
   HTML.
 - Use native agent file editing, current Git branches and broker-backed credentials.
+- Relay instances are disposable: nothing, including runtime stats, may live only on one
+  ([ADR-0011](docs/adr/0011-relay-in-an-auto-scaling-group.md)).
 - Infrastructure reaches AWS only through the CI/CD pipeline. Never run `terraform apply` or deploy
   by hand.
 - Preserve unrelated edits in Ahara repositories. Diagnose deployment failures from real logs.

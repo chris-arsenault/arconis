@@ -1,17 +1,17 @@
 import { CloudWatchClient, GetMetricDataCommand } from "@aws-sdk/client-cloudwatch";
 import {
-  DescribeInstancesCommand,
-  EC2Client,
-  StartInstancesCommand,
-  StopInstancesCommand,
-} from "@aws-sdk/client-ec2";
+  AutoScalingClient,
+  DescribeAutoScalingGroupsCommand,
+  SetDesiredCapacityCommand,
+} from "@aws-sdk/client-auto-scaling";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { GetParameterCommand, PutParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
-import { RelayControl, type InstanceState } from "./control";
+import { RelayControl, capacityState } from "./control";
 
-// The ALB-facing Lambda: POST /control/start and GET /control/status. Usage comes from the
-// instance's CloudWatch metrics, so nothing a client or the relay reports can change it.
-const instanceId = process.env.INSTANCE_ID ?? "";
+// The ALB-facing Lambda: POST /control/start and GET /control/status. Usage comes from CloudWatch's
+// metrics for the Auto Scaling group, which outlive any instance, and nothing a client or the relay
+// reports can change them.
+const groupName = process.env.GROUP_NAME ?? "";
 const siteOrigin = process.env.SITE_ORIGIN ?? "";
 const overrideParameter = process.env.OVERRIDE_PARAMETER ?? "";
 const alertParameter = process.env.ALERT_PARAMETER ?? "";
@@ -20,7 +20,12 @@ const alarmTopic = process.env.ALARM_TOPIC_ARN ?? "";
 const FIVE_MINUTES = 300;
 const BYTES_PER_GB = 1024 ** 3;
 
-const ec2 = new EC2Client({});
+const autoscaling = new AutoScalingClient({});
+const setCapacity = async (DesiredCapacity: number) => {
+  await autoscaling.send(
+    new SetDesiredCapacityCommand({ AutoScalingGroupName: groupName, DesiredCapacity })
+  );
+};
 const cloudwatch = new CloudWatchClient({});
 const ssm = new SSMClient({});
 const sns = new SNSClient({});
@@ -35,7 +40,7 @@ function metric(id: string, name: string, stat: string) {
       Metric: {
         Namespace: "AWS/EC2",
         MetricName: name,
-        Dimensions: [{ Name: "InstanceId", Value: instanceId }],
+        Dimensions: [{ Name: "AutoScalingGroupName", Value: groupName }],
       },
       Period: FIVE_MINUTES,
       Stat: stat,
@@ -46,15 +51,15 @@ function metric(id: string, name: string, stat: string) {
 const control = new RelayControl({
   now: () => new Date(),
   instanceState: async () => {
-    const reply = await ec2.send(new DescribeInstancesCommand({ InstanceIds: [instanceId] }));
-    return reply.Reservations?.[0]?.Instances?.[0]?.State?.Name as InstanceState;
+    const reply = await autoscaling.send(
+      new DescribeAutoScalingGroupsCommand({ AutoScalingGroupNames: [groupName] })
+    );
+    const group = reply.AutoScalingGroups?.[0];
+    const lifecycles = (group?.Instances ?? []).map((instance) => instance.LifecycleState ?? "");
+    return capacityState(group?.DesiredCapacity ?? 0, lifecycles);
   },
-  startInstance: async () => {
-    await ec2.send(new StartInstancesCommand({ InstanceIds: [instanceId] }));
-  },
-  stopInstance: async () => {
-    await ec2.send(new StopInstancesCommand({ InstanceIds: [instanceId] }));
-  },
+  startInstance: () => setCapacity(1),
+  stopInstance: () => setCapacity(0),
   usage: async (from, to) => {
     const reply = await cloudwatch.send(
       new GetMetricDataCommand({
@@ -67,7 +72,8 @@ const control = new RelayControl({
       })
     );
     const series = (id: string) => reply.MetricDataResults?.find((r) => r.Id === id)?.Values ?? [];
-    // Each five-minute period with any data counts whole, which rounds running time up.
+    // Each five-minute period with any data counts as one instance's whole period. That rounds a
+    // short session up, and undercounts only the minutes two instances overlap during a rollout.
     return {
       hours: (series("cpu").length * FIVE_MINUTES) / 3600,
       gigabytes: series("out").reduce((sum, bytes) => sum + bytes, 0) / BYTES_PER_GB,

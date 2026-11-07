@@ -110,11 +110,9 @@ export async function startRelayFixture() {
     get starts() {
       return starts;
     },
-    get connections() {
-      return relay.connectionCount;
-    },
     picture: (hash: string) => storage.pictures.get(hash),
     uploadsOf: (hash: string) => storage.counts.get(hash) ?? 0,
+    storedPictures: () => [...storage.pictures.values()],
     /** Simulates the relay stopping, or being off before the test begins. */
     stop(reason: StopReason = "idle") {
       status = reason === "limit" ? "limit" : "stopped";

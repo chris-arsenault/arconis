@@ -6,55 +6,28 @@ import {
   baseUrl,
   browser,
   drag,
+  drawnPictures,
   errors,
   exported,
   fixture,
   objectCount,
   open,
+  pastePicture,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
 afterEach(() => fixture.reset());
 
-/** Pastes a generated picture, as the browser delivers a real clipboard image. */
-async function pastePicture(page: Page, color = "#d04040") {
-  await page.evaluate(async (fill) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 200;
-    canvas.height = 100;
-    const context = canvas.getContext("2d")!;
-    context.fillStyle = fill;
-    context.fillRect(0, 0, 200, 100);
-    const blob = await new Promise<Blob>((resolve) =>
-      canvas.toBlob((b) => resolve(b!), "image/png")
-    );
-    const data = new DataTransfer();
-    data.items.add(new File([blob], "pasted.png", { type: "image/png" }));
-    window.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true }));
-  }, color);
-}
-
 const pictureOf = async (page: Page) =>
   (await exported(page)).objects.find((item) => item.kind === "picture");
-const drawnImages = (page: Page) => ({
-  count: () =>
-    page
-      .getByTestId("canvas")
-      .locator("image")
-      .evaluateAll(
-        (nodes) =>
-          nodes.filter((node) =>
-            (node.getAttribute("href") ?? node.getAttribute("xlink:href") ?? "").startsWith("blob:")
-          ).length
-      ),
-});
+const drawnImages = (page: Page) => ({ count: () => drawnPictures(page) });
 
 it("uploads a pasted picture once, and peers and late joiners load it", async () => {
   const room = createRoomId();
   const a = await open(await browser.newContext(VIEWPORT), room);
   const b = await open(await browser.newContext(VIEWPORT), room);
-  await pastePicture(a);
+  await pastePicture(a, "#d04040");
   await expect.poll(() => objectCount(b)).toBe(1);
   await expect.poll(async () => (await pictureOf(a))?.style.pictureStored).toBe(true);
   const hash = String((await pictureOf(a))!.style.pictureHash);
@@ -124,7 +97,7 @@ it("keeps a device-only room's pictures off the network, through reload and file
 
 it("carries a picture in an exported file to a browser without it", async () => {
   const a = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await pastePicture(a);
+  await pastePicture(a, "#40d0d0");
   await expect.poll(() => drawnImages(a).count()).toBe(1);
   const pending = a.waitForEvent("download");
   await a.getByRole("button", { name: "Export PNG", exact: true }).click();

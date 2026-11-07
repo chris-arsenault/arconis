@@ -9,7 +9,7 @@ the shared OIDC route.
 Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-arconis.tf`.
 `infrastructure/terraform/` owns:
 
-- The relay: one stop-when-idle EC2 instance behind the shared ALB at `relay.arconis.ahara.io`, its
+- The relay: an Auto Scaling group behind the shared ALB at `relay.arconis.ahara.io`, its
   S3 bucket of relay code, and its security group and role.
 - The control Lambda behind `/control/*` on the same host, and its SSM parameters.
 - The website, through Ahara's `website` module: private S3 with S3-managed encryption, behind
@@ -18,9 +18,11 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 
 State uses the shared bucket at `projects/arconis.tfstate`. Arconis registers no login client.
 
-The instance fetches relay code from S3 each time it boots, so a deployment reaches the relay at its
-next start. Changing the boot script replaces the instance, which restarts the month's usage count,
-because usage is read per instance.
+Instances are disposable, and replacing one loses nothing: usage comes from CloudWatch by group name,
+alerts and limits are in SSM, pictures are in S3, and documents are in browsers. A deployment that
+changes the relay's code or boot script rolls the group, launching the replacement and waiting for it to
+pass the ALB's health check before terminating the old instance. When the relay is off there is nothing
+to roll, and the next start uses the new version.
 
 ## Operating the relay
 
@@ -35,5 +37,5 @@ The value lapses when the month ends. Spend figures are cached for a few minutes
 
 ## Costs
 
-The instance bills while running, and its disk and data transfer bill as used. Using existing hosting
+The instance and its disk bill only while running, and data transfer bills as used. Using existing hosting
 and S3-managed encryption avoids adding a dedicated KMS key.
