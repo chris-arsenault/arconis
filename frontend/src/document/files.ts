@@ -1,25 +1,51 @@
 import { CanvasDocument } from "./canvasDocument";
 import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
 import { normalizeLegacyObjects } from "./geometry";
+import { isPng, readCopy } from "./pngCopy";
 
-export function downloadDocument(document: CanvasDocument) {
-  const data = JSON.stringify(
+/** The portable form of a document, or of just the named objects, without its saved views. */
+export function serializeDocument(document: CanvasDocument, ids: string[] = []) {
+  const chosen = new Set(ids);
+  return JSON.stringify(
     {
       format: "arconis",
       version: 2,
       title: document.title(),
-      objects: document.list(),
-      bookmarks: [...document.views.values()].map((value) => JSON.parse(value) as unknown),
+      objects: ids.length ? document.list().filter((item) => chosen.has(item.id)) : document.list(),
+      bookmarks: ids.length
+        ? []
+        : [...document.views.values()].map((value) => JSON.parse(value) as unknown),
     },
     null,
     2
   );
-  const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+}
+
+export function downloadFile(
+  document: CanvasDocument,
+  content: BlobPart,
+  type: string,
+  ext: string
+) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = window.document.createElement("a");
   anchor.href = url;
-  anchor.download = `${document.title().replace(/[^a-z0-9 -]/gi, "_")}.arconis`;
+  anchor.download = `${document.title().replace(/[^a-z0-9 -]/gi, "_")}.${ext}`;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function downloadDocument(document: CanvasDocument) {
+  downloadFile(document, serializeDocument(document), "application/json", "arconis");
+}
+
+/** Reads a chosen file as document text, whether it is a document or a picture carrying one. */
+export async function readDocumentFile(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!isPng(bytes)) return new TextDecoder().decode(bytes);
+  const copy = await readCopy(bytes);
+  if (copy === null) throw new Error("This picture has no canvas inside it.");
+  return copy;
 }
 
 export function importDocument(document: CanvasDocument, content: string) {

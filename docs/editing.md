@@ -66,3 +66,16 @@ Saved views at the bottom of the left rail store a place and zoom. Save the curr
 plus button, click a view to fly there, and hover it to rename or remove it. Views are shared with the
 room and do not move other participants. Export downloads a
 portable `.arconis` document, and Import adds its contents to the current room.
+
+Export PNG downloads a picture of the selection, or of the whole canvas when nothing is selected. The
+file carries a copy of those objects, so Import loads it like a document, in any room.
+
+## Grid
+
+The grid button beside the zoom controls shows or hides the grid, and objects snap to it only while it
+shows. The setting belongs to each person and stays with their browser.
+
+## Rooms on this device
+
+"Work on this device only" on the welcome screen creates a room that never connects to the relay.
+Nothing in it leaves the browser, and it has no link to share.

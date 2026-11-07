@@ -1,5 +1,15 @@
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { Undo2, Redo2, Minus, Plus, Scan, CheckCircle2, WifiOff, Keyboard } from "lucide-react";
+import {
+  Undo2,
+  Redo2,
+  Minus,
+  Plus,
+  Scan,
+  CheckCircle2,
+  WifiOff,
+  Keyboard,
+  Grid3x3,
+} from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { zoomLabel } from "../editor/zoom";
@@ -244,6 +254,17 @@ function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
         <span className="zoom-divider" />
         <button aria-label="Fit canvas" title="Fit to contents" onClick={() => editor.fit()}>
           <Scan size={17} />
+        </button>
+        <button
+          aria-label="Grid and snapping"
+          title={editor.grid.visible ? "Hide grid and stop snapping" : "Show grid and snap to it"}
+          aria-pressed={editor.grid.visible}
+          onClick={() => {
+            editor.grid.toggle();
+            editor.emit();
+          }}
+        >
+          <Grid3x3 size={17} />
         </button>
       </div>
       <button

@@ -124,21 +124,18 @@ Boundaries:
 - **Bookmarks (#13):** no separate bookmark concept. Saved views and bookmarks are the same thing, so saved views deliver
   "save a place, see it in the left nav, click to zoom there".
 - **Mind mapping and layout (#8, #9):** the same editing mode, with specialized objects.
+- **Grid view (M9):** a visible grid with snapping.
+- **Copy (M10):** "graph" was a typo. An export carries a copy of the canvas so someone can load it, just like draw.io.
+- **Comments (M12):** everyone in the room sees them.
+- **Password recovery (M15):** none. People need to remember their password.
+- **Signed-in pictures (M17):** everyone in the room sees them.
 
 ### Open
 
-- **[DECISION] What "grid view" means, at M9 start.** Assumed: a toggle for a visible grid, with snapping following it.
-- **[DECISION] What "copy of graph" means, at M10 start.** Assumed: copying the selection or canvas as an image to paste elsewhere, plus
-  copying objects to paste into another room, as draw.io does.
-- **[DECISION] Mind-map behavior, at M11 start.** The brief gives no requirements, so the owner reacts to the proposal in M11.
-- **[DECISION] Comment visibility, at M12 start.** Assumed: threaded comments pinned to objects, visible to everyone in the room, signed
-  with the ephemeral display name. Rooms have no accounts, so authorship cannot be verified before M16.
-- **[DECISION] Password recovery, at M15 start.** A forgotten password means the room is unreadable, because nothing can recover the key.
-- **[DECISION] Storage architecture, blocks M16.** Accounts, server storage and an MCP server reverse the standing no-accounts,
-  no-backend boundary (ADR-0002, ADR-0003), so M16 begins with a design and costs for the owner to approve. It needs answers on
-  identity, who pays for storage, what happens to anonymous rooms, and how an agent reads an encrypted room from M15. A server can only
-  act on a password-protected document if a member's client grants it the key.
-- **[DECISION] Who sees a signed-in user's pictures, at M17 start.** Assumed: everyone in the room sees the picture.
+- **[DECISION] Mind maps and layout, at M11 start.** A design session with the owner comes first.
+- **[DECISION] Storage architecture, at M16 start.** The owner will design this when the work reaches it. Accounts, server storage and an MCP server reverse the standing
+  no-accounts, no-backend boundary (ADR-0003). It needs answers on identity, who pays for storage, what happens to anonymous rooms, and how an agent reads an encrypted room
+  from M15. A server can only act on a password-protected document if a member's client grants it the key.
 
 ### Agent proposals, revisable
 
@@ -281,18 +278,18 @@ transfers and for networks that block the relay, and build it only if the owner 
 Acceptance: losing or regaining the relay changes only the status text, and work merges when it returns. A non-collaborative room opens no network connection at all.
 Evidence: browser journeys through the local relay with it blocked, stopped and restarted, including a check that a local room opens no sockets.
 
-### M9 — Grid view (B5) [DECISION at start]
+### M9 — Grid view (B5)
 
 Scope: a toggle for a visible grid that follows zoom, with snapping following it.
 Acceptance: the grid stays readable at every zoom, and turning it off also frees placement from it. Each person's setting is their own.
 Evidence: browser journeys at both zoom extremes, with screenshots reviewed.
 
-### M10 — Export and copy (B6) [DECISION at start]
+### M10 — PNG export carrying a copy of the canvas (B6)
 
-Scope: export the canvas or selection as PNG, and copy to the clipboard, as draw.io does.
-Acceptance: an export matches the canvas, including labels, icons and connectors, for a selection and for the whole canvas. Copied content
-pastes into another application as an image, and into another Arconis room as objects.
-Evidence: browser journeys comparing exported images and pasted documents.
+Scope: export the canvas or selection as PNG with a copy of the document inside the file, as draw.io does, so loading that PNG restores the objects.
+Acceptance: an export matches the canvas, including labels, icons and connectors, for a selection and for the whole canvas. Importing the PNG through the existing import brings
+the objects back, in any room, and a PNG without a copy gets a clear message.
+Evidence: browser journeys comparing exported images and reloaded documents.
 
 ### M11 — Layout mode with mind maps and screens (#8, #9) [DECISION at start]
 
@@ -394,4 +391,5 @@ execution from M6 until a design decision is needed.
 M6, M7, M8 and the build part of M8b are committed locally and unpushed, with nothing deployed. Infrastructure reaches AWS only through CI/CD, never by hand. The `ahara-infra` admission change must land
 through its pipeline before Arconis's. The admission change and the listener-priority row in `ahara/INTEGRATION.md` are committed in those repositories. Unverified until
 deployed: the instance's boot and shutdown units, WebSockets through the shared ALB and its WAF, the Lambda's IAM and metric reads, and the
-instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. Next is M9, which starts with the owner's decision on what grid view means.
+instance rate in `relay/budget.ts`, which is from memory. Strokes reach peers on pointer up. M9 and M10 are built. Next is M11, which starts with a design session with the owner on mind maps and layout. PNG exports
+use system fonts where the page's web fonts are not available to an image, and have only been checked in Chromium.

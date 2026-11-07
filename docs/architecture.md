@@ -15,7 +15,9 @@ edits stay independent of a participant's undo history.
   maxGraph uses parent-relative geometry ([ADR-0004](adr/0004-canonical-world-geometry.md)).
   Connector `x` and `y` are relative label coordinates. Records written by older clients keep their
   legacy fields, and a frozen compatibility baseline stays separate from per-axis movement fields.
-- **Files.** Exports declare world geometry; older file versions normalize during import.
+- **Files.** Exports declare world geometry; older file versions normalize during import. A PNG export
+  holds the same document in a compressed text chunk (`document/pngCopy.ts`), and its picture is the
+  graph's draw pane rendered offscreen at an export scale (`editor/pngExport.ts`).
 - **Stacking.** Each record's `order` sets its stacking position, with its identifier breaking ties,
   because `Y.Map` iteration differs between peers. Records from older clients stack by identifier
   until reordered.

@@ -4,6 +4,11 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Canvas
+
+- Added a visible grid with snapping, which each person can turn off.
+- Added PNG export of the selection or whole canvas, carrying a copy that Import can load in any room.
+
 ### Collaboration
 
 - Replaced AWS AppSync Events with a relay on EC2 that runs only while a room needs it, with a hard monthly spending limit.

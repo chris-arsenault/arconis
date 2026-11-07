@@ -4,7 +4,9 @@ import type { CanvasObject, ObjectKind, StyleValue } from "../document/types";
 export const MIN_SCALE = 0.001;
 export const MAX_SCALE = 1000;
 const GRID_PIXELS = 10;
-const DOT_PIXELS = 20;
+/** Close enough to show snap points at 100%, and not so close that lines become a solid tint. */
+const LINE_PIXELS = 8;
+const MAJOR_LINE_EVERY = 10;
 
 export function clampScale(scale: number) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
@@ -62,13 +64,17 @@ export function creationValues(kind: ObjectKind, scale: number): Partial<CanvasO
   return { width: width * factor, height: height * factor, style };
 }
 
-/** Applies the parts of the view that follow zoom: the snapping grid and background dots. */
+/** Applies the parts of the view that follow zoom: the snapping grid and its visible lines. */
 export function syncZoom(graph: Graph, element: HTMLElement) {
   const { scale, translate } = graph.view;
   graph.setGridSize(gridForScale(scale));
-  // Dot spacing steps through powers of ten in world units, staying readable on screen.
-  const worldSpacing = 10 ** Math.ceil(Math.log10(DOT_PIXELS / scale));
-  const spacing = worldSpacing * scale;
-  element.style.backgroundSize = `${spacing}px ${spacing}px`;
-  element.style.backgroundPosition = `${(translate.x * scale) % spacing}px ${(translate.y * scale) % spacing}px`;
+  // Line spacing steps through powers of ten in world units, staying readable on screen. The first
+  // two background layers are major lines and the last two minor, as `.canvas-surface` declares.
+  const minor = 10 ** Math.ceil(Math.log10(LINE_PIXELS / scale)) * scale;
+  const major = minor * MAJOR_LINE_EVERY;
+  const size = (spacing: number) => `${spacing}px ${spacing}px`;
+  const position = (spacing: number) =>
+    `${(translate.x * scale) % spacing}px ${(translate.y * scale) % spacing}px`;
+  element.style.backgroundSize = [major, major, minor, minor].map(size).join(",");
+  element.style.backgroundPosition = [major, major, minor, minor].map(position).join(",");
 }

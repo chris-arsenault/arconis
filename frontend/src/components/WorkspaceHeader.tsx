@@ -1,8 +1,16 @@
 import { useRef } from "react";
-import { Download, Upload, Shapes } from "lucide-react";
+import { Download, ImageDown, Upload, Shapes } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
-import { downloadDocument, importDocument } from "../document/files";
+import {
+  downloadDocument,
+  downloadFile,
+  importDocument,
+  readDocumentFile,
+  serializeDocument,
+} from "../document/files";
+import { embedCopy } from "../document/pngCopy";
+import { renderPng } from "../editor/pngExport";
 import { RoomControls } from "./RoomControls";
 
 interface Props {
@@ -70,9 +78,24 @@ function DocumentActions({
   const input = useRef<HTMLInputElement>(null);
   const load = async (file: File) => {
     try {
-      const count = importDocument(session.document, await file.text());
+      const count = importDocument(session.document, await readDocumentFile(file));
       onMessage(`Imported ${count} objects.`);
       editor?.fit();
+    } catch (error) {
+      onMessage(String(error));
+    }
+  };
+  const exportPicture = async () => {
+    if (!editor) return;
+    try {
+      const ids = editor.selectionClosure();
+      const png = await renderPng(editor.graph, ids);
+      if (!png) {
+        onMessage("Add something to the canvas first.");
+        return;
+      }
+      const copy = serializeDocument(session.document, ids);
+      downloadFile(session.document, await embedCopy(png, copy), "image/png", "png");
     } catch (error) {
       onMessage(String(error));
     }
@@ -89,6 +112,14 @@ function DocumentActions({
       </button>
       <button
         className="icon-button"
+        title="Export the selection or whole canvas as a PNG that can be loaded again"
+        aria-label="Export PNG"
+        onClick={() => void exportPicture()}
+      >
+        <ImageDown size={18} />
+      </button>
+      <button
+        className="icon-button"
         title="Import document"
         aria-label="Import document"
         onClick={() => input.current?.click()}
@@ -99,7 +130,7 @@ function DocumentActions({
         ref={input}
         className="visually-hidden"
         type="file"
-        accept=".arconis,application/json"
+        accept=".arconis,application/json,.png,image/png"
         aria-label="Import file"
         onChange={(event) => {
           const file = event.target.files?.[0];

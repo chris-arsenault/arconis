@@ -26,6 +26,7 @@ import { subscribeIcons } from "./icons";
 import { configurePanels, panelAt } from "./panels";
 import { compareStacking, isContainerKind, isVertexKind, offsetPoints } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
+import { CanvasGrid } from "./grid";
 import { RateLimitedWrite } from "./rateLimitedWrite";
 
 /** How often a selection-frame gesture writes to the document, and so reaches peers. */
@@ -55,6 +56,7 @@ export class EditorController {
   private cleanupIcons: () => void;
   private band: RubberBandHandler;
 
+  readonly grid: CanvasGrid;
   constructor(
     readonly element: HTMLDivElement,
     readonly document: CanvasDocument
@@ -62,6 +64,7 @@ export class EditorController {
     InternalEvent.disableContextMenu(element);
     VertexHandlerConfig.rotationEnabled = true;
     this.graph = new Graph(element);
+    this.grid = new CanvasGrid(this.graph, element);
     this.graph.getDataModel().createId = () => crypto.randomUUID();
     this.graph.setPanning(true);
     this.graph.setConnectable(true);
@@ -362,7 +365,7 @@ export class EditorController {
         .filter((cell) => cell !== null)
     );
   }
-  private selectionClosure() {
+  selectionClosure() {
     const ids = new Set(this.selected().map((item) => item.id));
     const objects = this.document.list();
     let previousSize = -1;

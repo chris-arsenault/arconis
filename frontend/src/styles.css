@@ -545,10 +545,16 @@ h1 em {
   inset: 0;
   overflow: hidden;
   background-color: #f7f8fc;
-  background-image: radial-gradient(#dce0eb 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-image:
+    linear-gradient(to right, #d5daea 1px, transparent 1px),
+    linear-gradient(to bottom, #d5daea 1px, transparent 1px),
+    linear-gradient(to right, #eef0f6 1px, transparent 1px),
+    linear-gradient(to bottom, #eef0f6 1px, transparent 1px);
   outline: none;
   touch-action: none;
+}
+.canvas-surface.grid-off {
+  background-image: none;
 }
 .canvas-surface[data-tool="pan"] {
   cursor: grab;
@@ -784,6 +790,9 @@ h1 em {
   background: transparent;
   padding: 9px;
   color: #8991a6;
+}
+.canvas-zoom button[aria-pressed="true"] {
+  color: var(--purple);
 }
 .canvas-zoom > span {
   font-size: 10px;
