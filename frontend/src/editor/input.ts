@@ -52,11 +52,7 @@ function keyboard(editor: EditorController, event: KeyboardEvent) {
     p: () => editor.setTool("stroke"),
     "]": () => editor.stack("front"),
     "[": () => editor.stack("back"),
-    f2: () => editSelection(editor),
-    // In a tree, Enter grows a sibling, because that is the next thing typed in an outline.
-    enter: () => {
-      if (!addBranch(editor, true)) editSelection(editor);
-    },
+    enter: () => (event.altKey ? addBranch(editor, true) : editSelection(editor)),
     z: () => (event.shiftKey ? zoomOutOfSelection(editor) : zoomIntoSelection(editor)),
   };
   if (modifier) return modifiedKey(editor, event);

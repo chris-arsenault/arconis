@@ -27,8 +27,8 @@ them, and guides appear while dragging.
 
 Any object can be a topic, including a screen, a panel of notes or a line.
 
-- Tab grows a branch from the selection. In a tree, Enter adds a sibling, and F2 edits text. Both also
-  work while typing, so a tree can be written from the keyboard.
+- Tab grows a branch from the selection, and Alt Enter adds a sibling. Both also work while typing, so
+  a tree can be written from the keyboard.
 - Moving a topic moves its branches. Hold Alt to move it alone. Tidy Branches lays out its tree.
 - Select two objects and choose Add Reference to link them without a line. A topic shows `↗` and a
   count, and the property panel lists references to follow. The Reference Lines button beside the zoom
@@ -69,8 +69,8 @@ Connect objects in any of three ways:
 | Ctrl/Command A | Select all |
 | Ctrl/Command G, with Shift to ungroup | Group and ungroup |
 | ] and [ | Bring to front and send to back |
-| Tab, Enter | Add a branch, add a sibling |
-| F2 | Edit text |
+| Enter | Edit the selection's text |
+| Tab, Alt Enter | Add a branch, add a sibling |
 | Z, with Shift to go back | Zoom into the selection |
 
 ## Rooms and sharing

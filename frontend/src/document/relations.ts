@@ -34,12 +34,6 @@ export function branchParent(items: CanvasObject[], id: string) {
   return incoming[0]?.source ?? "";
 }
 
-export function isInTree(items: CanvasObject[], id: string) {
-  return items.some(
-    (item) => isRelation(item, RELATION_BRANCH) && (item.source === id || item.target === id)
-  );
-}
-
 /** Everything below a topic in its tree. Peers can create cycles, so each is visited once. */
 export function branchDescendants(items: CanvasObject[], id: string) {
   const found = new Set([id]);

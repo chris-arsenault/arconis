@@ -3,7 +3,6 @@ import type { RoomSession } from "../collaboration/room";
 import { EditorController } from "../editor/controller";
 import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "../document/useCollaborativeText";
-import { isInTree } from "../document/relations";
 import { addBranch } from "../editor/topics";
 
 export function Canvas({
@@ -86,12 +85,10 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
           close();
           return;
         }
-        // Typing a tree: Tab goes deeper and Enter adds a sibling, so hands stay on the keyboard.
-        const sibling =
-          event.key === "Enter" && !event.shiftKey && isInTree(editor.document.list(), item.id);
+        // The same keys as on the canvas, so a tree can be typed. Plain Enter stays a new line.
+        const sibling = event.key === "Enter" && event.altKey;
         if (event.key !== "Tab" && !sibling) return;
         event.preventDefault();
-        close();
         addBranch(editor, sibling);
       }}
     />

@@ -141,7 +141,10 @@ it("builds a tree from the keyboard alone, which peers see the same way", async 
   await canvas(page).focus();
   await page.keyboard.press("Tab");
   await typeTopic(page, "First");
-  await page.keyboard.press("Enter");
+  await page.keyboard.press("Alt+Enter");
+  await expect
+    .poll(() => page.getByLabel("Edit canvas text", { exact: true }).inputValue())
+    .toBe("");
   await typeTopic(page, "Second");
   await page.keyboard.press("Tab");
   await typeTopic(page, "Deep");
@@ -160,6 +163,17 @@ it("builds a tree from the keyboard alone, which peers see the same way", async 
   );
   await expect.poll(() => objectCount(peer)).toBe(7);
   expect(await drawn(peer, "Deep")).toBe(true);
+
+  // Enter keeps its meaning on a topic: it edits, and adds a line while editing.
+  await canvas(page).focus();
+  await page.keyboard.press("Enter");
+  const editor = page.getByLabel("Edit canvas text", { exact: true });
+  await expect.poll(() => editor.inputValue()).toBe("Deep");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => editor.inputValue()).toBe("Deep\n");
+  await page.keyboard.press("Escape");
+  expect(await objectCount(page)).toBe(7);
   expect(errors).toEqual([]);
 });
 

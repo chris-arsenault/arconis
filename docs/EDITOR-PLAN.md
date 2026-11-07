@@ -302,7 +302,7 @@ Scope: no modes and no topic object. Any object gains four abilities, and layout
 
 - **Containment:** any object holds children, which move with it.
 - **Depth:** objects under a size threshold on screen are culled, and appear on zooming toward them.
-- **Branches:** Tab and Enter grow a tree, moving a topic moves its branches, and tidy lays one out.
+- **Branches:** Tab and Alt Enter grow a tree, with Enter keeping its meaning everywhere, moving a topic moves its branches, and tidy lays one out.
 - **References:** conceptual links shown as a mark, followed from the property panel, and drawn as lines on request.
 
 Layout adds alignment, distribution, guides and screen sizes for any selection. A line takes part through an anchor at its midpoint.
