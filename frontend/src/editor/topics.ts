@@ -1,12 +1,13 @@
 import type { Cell, Graph, SelectionHandler } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { isContainerKind, isVertexKind } from "../document/geometry";
+import { isVertexKind } from "../document/geometry";
 import {
   LINE_ANCHOR,
   RELATION_BRANCH,
   RELATION_REFERENCE,
   alignOffsets,
   anchorOf,
+  branchCopiesParent,
   branchDescendants,
   branchParent,
   branchPlacement,
@@ -26,17 +27,6 @@ const ANCHOR_PIXELS = 14;
 /** How much of the window an object fills after zooming into it. */
 const ZOOM_FILL = 0.8;
 const JUMP_FILL = 0.3;
-/** Kinds that a new branch copies. Anything else branches into a plain rectangle. */
-const BRANCHING_KINDS = new Set<ObjectKind>([
-  "rectangle",
-  "ellipse",
-  "diamond",
-  "service",
-  "database",
-  "cloud",
-  "person",
-  "sticky",
-]);
 
 function isLine(item: CanvasObject) {
   return !isVertexKind(item.kind);
@@ -101,7 +91,7 @@ export function syncLineAnchors(graph: Graph, document: CanvasDocument) {
 }
 
 function branchSize(editor: EditorController, parent: CanvasObject, kind: ObjectKind) {
-  if (parent.kind === kind && !isContainerKind(parent.kind)) return parent;
+  if (branchCopiesParent(parent)) return parent;
   return creationSize(kind, editor.graph.view.scale);
 }
 
@@ -114,11 +104,12 @@ export function addBranch(editor: EditorController, sibling = false) {
   const parentId = sibling ? branchParent(items, selected.id) : endpointFor(editor, selected);
   const parent = document.get(parentId);
   if (!parent) return "";
-  const kind = BRANCHING_KINDS.has(parent.kind) ? parent.kind : "rectangle";
+  const copies = branchCopiesParent(parent);
+  const kind = copies ? parent.kind : "rectangle";
   const { width, height } = branchSize(editor, parent, kind);
   const placed = branchPlacement(document.list(), parent, { width, height });
   const { scale } = graph.view;
-  const style = BRANCHING_KINDS.has(parent.kind) ? parent.style : creationValues(kind, scale).style;
+  const style = copies ? parent.style : creationValues(kind, scale).style;
   const node = document.build(kind, placed.x, placed.y, {
     width,
     height,

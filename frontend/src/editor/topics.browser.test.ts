@@ -265,6 +265,8 @@ it("lets a line be a topic, whose anchor and branches follow the line", async ()
   };
   await expect.poll(anchorAt).not.toBe(anchor.x + anchor.y);
   const moved = (await objects(page)).find((item) => item.id === anchor.id)!;
+  expect(notes.style.lineAnchor).toBeUndefined();
+  expect(notes.width).toBeGreaterThan(anchor.width);
   const expectedX = notes.x + moved.x - anchor.x;
   await expect.poll(async () => (await named(page, "Protocol notes")).x).toBe(expectedX);
   await expect.poll(async () => (await named(peer, "Protocol notes")).x).toBe(expectedX);

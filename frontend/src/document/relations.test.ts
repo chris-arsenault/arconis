@@ -5,6 +5,7 @@ import {
   alignOffsets,
   anchorOf,
   branchChildren,
+  branchCopiesParent,
   branchDescendants,
   branchParent,
   branchPlacement,
@@ -126,6 +127,23 @@ describe("tidying", () => {
     expect([...tidyBranch(reversed, "root")].sort(([a], [b]) => a.localeCompare(b))).toEqual(
       [...tidyBranch(items, "root")].sort(([a], [b]) => a.localeCompare(b))
     );
+  });
+});
+
+describe("what a new branch looks like", () => {
+  it("copies an ordinary object", () => {
+    expect(branchCopiesParent(box("a"))).toBe(true);
+    expect(branchCopiesParent(box("a", 0, 0, { kind: "sticky" }))).toBe(true);
+  });
+
+  it("does not copy a line's anchor, or the new topic would become another anchor", () => {
+    const dot = box("dot", 0, 0, { kind: "ellipse", style: { [LINE_ANCHOR]: "line" } });
+    expect(branchCopiesParent(dot)).toBe(false);
+  });
+
+  it("does not copy a container or an icon", () => {
+    expect(branchCopiesParent(box("a", 0, 0, { kind: "panel" }))).toBe(false);
+    expect(branchCopiesParent(box("a", 0, 0, { kind: "icon" }))).toBe(false);
   });
 });
 

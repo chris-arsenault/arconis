@@ -1,5 +1,5 @@
 import { compareStacking, isVertexKind, offsetPoints } from "./geometry";
-import type { CanvasObject, StyleValue } from "./types";
+import type { CanvasObject, ObjectKind, StyleValue } from "./types";
 
 /**
  * Topics are not a kind of object. Any object can extend outward through branches and point at
@@ -76,6 +76,25 @@ export function referencesOf(items: CanvasObject[], id: string) {
       other: edge.source === id ? edge.target : edge.source,
       outgoing: edge.source === id,
     }));
+}
+
+const COPIED_KINDS = new Set<ObjectKind>([
+  "rectangle",
+  "ellipse",
+  "diamond",
+  "service",
+  "database",
+  "cloud",
+  "person",
+  "sticky",
+]);
+
+/**
+ * Whether a new branch takes its parent's kind, size and style. A line's anchor and a container are
+ * not what the next topic should look like, so those branch into a plain rectangle.
+ */
+export function branchCopiesParent(parent: CanvasObject) {
+  return COPIED_KINDS.has(parent.kind) && !(LINE_ANCHOR in parent.style);
 }
 
 export function anchorOf(items: CanvasObject[], lineId: string) {
