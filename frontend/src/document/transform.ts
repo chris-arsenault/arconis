@@ -1,5 +1,5 @@
-import type { CanvasObject } from "./types";
-import { isContainerKind, isLockedIcon, isVertexKind } from "./geometry";
+import { isBox, isFrame, isLink, type Item, type PathPoint } from "./types";
+import { isLockedIcon } from "./geometry";
 
 export interface SelectionTransform {
   anchor: { x: number; y: number };
@@ -8,7 +8,7 @@ export interface SelectionTransform {
   /** Clockwise degrees around the anchor. */
   angle: number;
 }
-export type TransformedObject = Pick<CanvasObject, "x" | "y" | "width" | "height" | "points"> & {
+export type TransformedObject = Pick<Item, "x" | "y" | "width" | "height" | "points"> & {
   rotation: number;
 };
 interface Box {
@@ -23,13 +23,13 @@ const GROUP_PADDING = 28;
 const MINIMUM_SIZE = 0.001;
 
 /** Applies one transform to world-space objects. Input is the gesture's starting snapshot. */
-export function transformObjects(items: CanvasObject[], transform: SelectionTransform) {
+export function transformObjects(items: Item[], transform: SelectionTransform) {
   const apply = pointTransform(transform);
   const result = new Map<string, TransformedObject>();
   for (const item of items) {
-    if (!isContainerKind(item.kind)) result.set(item.id, transformObject(item, transform, apply));
+    if (!isFrame(item)) result.set(item.id, transformObject(item, transform, apply));
   }
-  const groups = items.filter((item) => isContainerKind(item.kind));
+  const groups = items.filter((item) => isFrame(item));
   const byId = new Map(items.map((item) => [item.id, item]));
   [...groups]
     .sort((left, right) => depth(right, byId) - depth(left, byId))
@@ -43,7 +43,7 @@ function pointTransform({ anchor, scaleX, scaleY, angle }: SelectionTransform) {
   const radians = (angle * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
-  return ([x, y]: [number, number]): [number, number] => {
+  return ([x, y]: PathPoint): PathPoint => {
     const dx = (x - anchor.x) * scaleX;
     const dy = (y - anchor.y) * scaleY;
     return [anchor.x + dx * cos - dy * sin, anchor.y + dx * sin + dy * cos];
@@ -51,18 +51,16 @@ function pointTransform({ anchor, scaleX, scaleY, angle }: SelectionTransform) {
 }
 
 function transformObject(
-  item: CanvasObject,
+  item: Item,
   { scaleX, scaleY, angle }: SelectionTransform,
-  apply: (point: [number, number]) => [number, number]
+  apply: (point: PathPoint) => PathPoint
 ): TransformedObject {
-  const rotation = Number(item.style.rotation || 0);
-  const points = JSON.stringify(
-    (JSON.parse(item.points) as [number, number][]).map((point) => apply(point).map(round))
-  );
-  if (!isVertexKind(item.kind)) return { ...item, points, rotation };
-  const locked = isLockedIcon(item.style);
+  const rotation = item.look.rotation ?? 0;
+  const points = item.points.map((point) => apply(point).map(round) as PathPoint);
+  if (!isBox(item)) return { ...item, points, rotation };
+  const locked = isLockedIcon(item);
   const evenScale = Math.min(scaleX, scaleY);
-  const even = locked || item.kind === "picture";
+  const even = locked || item.type === "picture";
   const width = Math.max(MINIMUM_SIZE, round(item.width * (even ? evenScale : scaleX)));
   const height = Math.max(MINIMUM_SIZE, round(item.height * (even ? evenScale : scaleY)));
   const [centerX, centerY] = apply([item.x + item.width / 2, item.y + item.height / 2]);
@@ -77,15 +75,15 @@ function transformObject(
 }
 
 function transformGroup(
-  group: CanvasObject,
-  items: CanvasObject[],
+  group: Item,
+  items: Item[],
   result: Map<string, TransformedObject>,
   transform: SelectionTransform,
-  apply: (point: [number, number]) => [number, number]
+  apply: (point: PathPoint) => PathPoint
 ): TransformedObject {
   const unchanged = { points: group.points, rotation: 0 };
   // Rotating a frame's corners would inflate it on every gesture, so it refits its children.
-  const children = items.filter((item) => item.parent === group.id && item.kind !== "connector");
+  const children = items.filter((item) => item.inside === group.id && !isLink(item));
   if (transform.angle && children.length) {
     const boxes = children.map((item) => objectBox(item, result.get(item.id)!));
     const box = boxes.reduce(unionBox, boxes[0]);
@@ -103,8 +101,8 @@ function transformGroup(
   return { ...unchanged, x: round(x), y: round(y), width, height };
 }
 
-function objectBox(item: CanvasObject, value: TransformedObject): Box {
-  if (!isVertexKind(item.kind)) return pointsBox(JSON.parse(value.points) as [number, number][]);
+function objectBox(item: Item, value: TransformedObject): Box {
+  if (!isBox(item)) return pointsBox(value.points);
   const radians = (value.rotation * Math.PI) / 180;
   const halfWidth =
     (Math.abs(Math.cos(radians)) * value.width + Math.abs(Math.sin(radians)) * value.height) / 2;
@@ -120,7 +118,7 @@ function objectBox(item: CanvasObject, value: TransformedObject): Box {
   };
 }
 
-function pointsBox(points: [number, number][]): Box {
+function pointsBox(points: PathPoint[]): Box {
   const xs = points.map(([x]) => x);
   const ys = points.map(([, y]) => y);
   return {
@@ -140,12 +138,12 @@ function unionBox(left: Box, right: Box): Box {
   };
 }
 
-function depth(item: CanvasObject, byId: Map<string, CanvasObject>) {
+function depth(item: Item, byId: Map<string, Item>) {
   let levels = 0;
-  let parent = byId.get(item.parent);
+  let parent = byId.get(item.inside);
   while (parent && levels < byId.size) {
     levels++;
-    parent = byId.get(parent.parent);
+    parent = byId.get(parent.inside);
   }
   return levels;
 }

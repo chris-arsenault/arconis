@@ -1,11 +1,7 @@
 import { fromBase64, toBase64 } from "lib0/buffer";
-import type { CanvasObject } from "./types";
+import type { Item } from "./types";
 
-/** Style keys on a picture object. The bytes live outside the document, named by their hash. */
-export const PICTURE_HASH = "pictureHash";
-export const PICTURE_TYPE = "pictureType";
-/** Set once the bytes are in shared storage, so peers do not ask for them before they exist. */
-export const PICTURE_STORED = "pictureStored";
+/** A picture item names its bytes by their hash; the bytes live outside the document. */
 
 export const MAX_PICTURE_BYTES = 10 * 1024 * 1024;
 export const MAX_PICTURE_SIDE = 4096;
@@ -38,15 +34,8 @@ export function fitWithin(width: number, height: number, limit: number) {
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
-export function pictureHashes(items: CanvasObject[]) {
-  return [
-    ...new Set(
-      items
-        .filter((item) => item.kind === "picture")
-        .map((item) => item.style[PICTURE_HASH])
-        .filter(isPictureHash)
-    ),
-  ];
+export function pictureHashes(items: Item[]) {
+  return [...new Set(items.map((item) => item.picture?.hash).filter(isPictureHash))];
 }
 
 export interface PortablePicture {
@@ -66,11 +55,11 @@ export const NO_PICTURES: FilePictures = { pictures: [], renames: new Map() };
  * Points objects at renamed pictures. A password room names a picture by its encrypted form, so moving
  * one in or out of such a room changes its name, and it has not reached storage under the new one.
  */
-export function renamePictures(items: CanvasObject[], renames: Map<string, string>) {
+export function renamePictures(items: Item[], renames: Map<string, string>) {
   return items.map((item) => {
-    const renamed = renames.get(String(item.style[PICTURE_HASH]));
+    const renamed = item.picture && renames.get(item.picture.hash);
     if (!renamed) return item;
-    return { ...item, style: { ...item.style, [PICTURE_HASH]: renamed, [PICTURE_STORED]: false } };
+    return { ...item, picture: { ...item.picture!, hash: renamed, stored: false } };
   });
 }
 

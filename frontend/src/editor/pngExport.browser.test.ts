@@ -66,10 +66,10 @@ it("exports the whole canvas as a picture that loads back in another room", asyn
   const other = await open(await browser.newContext(VIEWPORT), createRoomId());
   await load(other, "canvas.png", png);
   await expect.poll(() => objectCount(other)).toBe(3);
-  const labels = (await exported(other)).objects.map((item) => item.label);
+  const labels = (await exported(other)).objects.map((item) => item.name);
   expect(labels).toEqual(expect.arrayContaining(["", "First box", "Second note"]));
-  const edge = (await exported(other)).objects.find((item) => item.kind === "connector")!;
-  expect(edge.source && edge.target).toBeTruthy();
+  const edge = (await exported(other)).objects.find((item) => item.type === "line")!;
+  expect(edge.from && edge.to).toBeTruthy();
   expect(errors).toEqual([]);
 });
 
@@ -85,7 +85,7 @@ it("exports only the selection, in the picture and in its copy", async () => {
   const other = await open(await browser.newContext(VIEWPORT), createRoomId());
   await load(other, "part.png", png);
   await expect.poll(() => objectCount(other)).toBe(1);
-  expect((await exported(other)).objects[0].label).toBe("First box");
+  expect((await exported(other)).objects[0].name).toBe("First box");
   expect(errors).toEqual([]);
 });
 

@@ -1,12 +1,5 @@
 import type { RoomSession } from "../collaboration/room";
-import {
-  MAX_PICTURE_BYTES,
-  MAX_PICTURE_SIDE,
-  PICTURE_HASH,
-  PICTURE_STORED,
-  PICTURE_TYPE,
-  fitWithin,
-} from "../document/pictures";
+import { MAX_PICTURE_BYTES, MAX_PICTURE_SIDE, fitWithin } from "../document/pictures";
 import type { EditorController } from "./controller";
 import { containerAt } from "./panels";
 
@@ -58,8 +51,8 @@ async function placePicture(
   const y = point.y - size.height / 2;
   const id = editor.document.create("picture", x, y, {
     ...size,
-    parent: containerAt(editor.document, point.x, point.y, size),
-    style: { [PICTURE_HASH]: hash, [PICTURE_TYPE]: type, [PICTURE_STORED]: false },
+    inside: containerAt(editor.document, point.x, point.y, size),
+    picture: { hash, format: type, stored: false },
   });
   editor.select(id);
   void session.uploadPictures();

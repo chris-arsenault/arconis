@@ -37,7 +37,7 @@ async function connectBetween(
 }
 
 const connector = async (page: Page) =>
-  (await exported(page)).objects.find((item) => item.kind === "connector")!;
+  (await exported(page)).objects.find((item) => item.type === "line")!;
 
 it("connects chosen points that hold through moves, peers and reload", async () => {
   const first = await browser.newContext(VIEWPORT);
@@ -54,16 +54,16 @@ it("connects chosen points that hold through moves, peers and reload", async () 
   await connectBetween(page, { x: 380, y: 215 }, { x: 560, y: 255 });
   await expect.poll(() => objectCount(page)).toBe(3);
   const edge = await connector(page);
-  expect(edge.style).toMatchObject({ exitX: 1, exitY: 0.5, entryX: 0, entryY: 0.5 });
+  expect(edge).toMatchObject({ fromPort: [1, 0.5], toPort: [0, 0.5] });
   await drag(page, 300, 215, 40, 200);
   await expect.poll(async () => (await exported(page)).objects[0].y).toBeGreaterThan(150);
-  expect((await connector(page)).style).toMatchObject({ exitX: 1, exitY: 0.5 });
+  expect((await connector(page)).fromPort).toEqual([1, 0.5]);
   const peer = await open(second, room);
   await expect.poll(() => objectCount(peer), { timeout: 15000 }).toBe(3);
-  expect((await connector(peer)).style).toMatchObject({ entryX: 0, entryY: 0.5 });
+  expect((await connector(peer)).toPort).toEqual([0, 0.5]);
   await page.reload();
   await expect.poll(() => objectCount(page)).toBe(3);
-  expect((await connector(page)).style).toMatchObject({ exitX: 1, entryX: 0 });
+  expect(await connector(page)).toMatchObject({ fromPort: [1, 0.5], toPort: [0, 0.5] });
   expect(errors).toEqual([]);
   await first.close();
   await second.close();
@@ -83,7 +83,7 @@ it("re-attaches either connector end by dragging, with no endpoint menus", async
   await connectBetween(page, { x: 380, y: 215 }, { x: 560, y: 215 });
   await expect.poll(() => objectCount(page)).toBe(5);
   const idOf = async (label: string) =>
-    (await exported(page)).objects.find((item) => item.label === label)!.id;
+    (await exported(page)).objects.find((item) => item.name === label)!.id;
 
   const dragEnd = async (handle: number, to: { x: number; y: number }) => {
     await selectConnector(page);
@@ -101,17 +101,17 @@ it("re-attaches either connector end by dragging, with no endpoint menus", async
 
   await dragEnd(-1, { x: 640, y: 420 });
   const lowerRight = await idOf("Lower right");
-  await expect.poll(async () => (await connector(page)).target).toBe(lowerRight);
+  await expect.poll(async () => (await connector(page)).to).toBe(lowerRight);
   await canvas(page).click({ position: emptySpot });
   await dragEnd(0, { x: 300, y: 420 });
   const lowerLeft = await idOf("Lower left");
-  await expect.poll(async () => (await connector(page)).source).toBe(lowerLeft);
+  await expect.poll(async () => (await connector(page)).from).toBe(lowerLeft);
 
-  await expect.poll(async () => (await connector(peer)).source).toBe(lowerLeft);
-  expect((await connector(peer)).target).toBe(lowerRight);
+  await expect.poll(async () => (await connector(peer)).from).toBe(lowerLeft);
+  expect((await connector(peer)).to).toBe(lowerRight);
   await page.reload();
   await expect.poll(() => objectCount(page)).toBe(5);
-  expect(await connector(page)).toMatchObject({ source: lowerLeft, target: lowerRight });
+  expect(await connector(page)).toMatchObject({ from: lowerLeft, to: lowerRight });
   expect(errors).toEqual([]);
   await first.close();
   await second.close();
@@ -126,8 +126,8 @@ it("leaves a free end on a body drop, re-anchors an end, and drags from the body
   await connectBetween(page, { x: 380, y: 215 }, { x: 655, y: 255 });
   await expect.poll(() => objectCount(page)).toBe(3);
   const edge = await connector(page);
-  expect(edge.style.exitX).toBe(1);
-  expect(edge.style.entryX).toBeUndefined();
+  expect(edge.fromPort?.[0]).toBe(1);
+  expect(edge.toPort).toBeUndefined();
   await selectConnector(page);
   const end = (await canvas(page).locator('rect[fill="#0000ff"]').last().boundingBox())!;
   await page.mouse.move(0, 0);
@@ -137,7 +137,7 @@ it("leaves a free end on a body drop, re-anchors an end, and drags from the body
   await page.mouse.move(origin.x + 655, origin.y + 180, { steps: 10 });
   await page.mouse.move(origin.x + 655, origin.y + 170, { steps: 3 });
   await page.mouse.up();
-  await expect.poll(async () => (await connector(page)).style.entryY).toBe(0);
+  await expect.poll(async () => (await connector(page)).toPort?.[1]).toBe(0);
   await row(page, "Free source").click();
   const before = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
   await drag(page, 300, 215, 30, 0);
@@ -183,13 +183,14 @@ it("zooms across the 1000x range and keeps editing usable at both ends", async (
     await page.keyboard.press("Escape");
     await page.screenshot({ path: `test-results/zoom-${name}.png` });
     const saved = await exported(page);
-    const note = saved.objects.find((item) => item.label === `Zoomed ${name}`)!;
+    const note = saved.objects.find((item) => item.name === `Zoomed ${name}`)!;
     const scale = name === "in" ? 1000 : 0.001;
-    // Created at a familiar on-screen size, with text to match.
+    // Created at a familiar on-screen size, with text to match: a note's text is 16 at scale 1.
+    const textSize = (note.look.textSize ?? 16) * (note.look.scale ?? 1);
     expect(note.width * scale).toBeGreaterThan(100);
     expect(note.width * scale).toBeLessThan(400);
-    expect(Number(note.style.fontSize) * scale).toBeGreaterThan(8);
-    expect(Number(note.style.fontSize) * scale).toBeLessThan(32);
+    expect(textSize * scale).toBeGreaterThan(8);
+    expect(textSize * scale).toBeLessThan(32);
     const box = (await canvas(page)
       .locator("div", { hasText: `Zoomed ${name}` })
       .last()
@@ -215,8 +216,8 @@ it("zooms across the 1000x range and keeps editing usable at both ends", async (
     await page.mouse.move(origin.x + 560, origin.y + 540, { steps: 5 });
     await page.mouse.move(origin.x + 620, origin.y + 500, { steps: 5 });
     await page.mouse.up();
-    const strokes = (await exported(page)).objects.filter((item) => item.kind === "stroke");
-    const points = JSON.parse(strokes[strokes.length - 1].points) as [number, number][];
+    const strokes = (await exported(page)).objects.filter((item) => item.type === "drawing");
+    const points = strokes[strokes.length - 1].points;
     expect(Math.abs(points[points.length - 1][0] - points[0][0]) * scale).toBeGreaterThan(100);
     await page.getByRole("button", { name: "Select (V)", exact: true }).click();
   }

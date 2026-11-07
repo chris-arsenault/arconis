@@ -1,10 +1,6 @@
 import type { Cell, Graph, SelectionHandler } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { isVertexKind } from "../document/geometry";
 import {
-  LINE_ANCHOR,
-  RELATION_BRANCH,
-  RELATION_REFERENCE,
   alignOffsets,
   anchorOf,
   branchCopiesParent,
@@ -18,7 +14,7 @@ import {
   type Axis,
   type Offset,
 } from "../document/relations";
-import { LOCAL, type CanvasObject, type ObjectKind } from "../document/types";
+import { LOCAL, isBox, type Item } from "../document/types";
 import type { EditorController } from "./controller";
 import { flyToView } from "./views";
 import { clampScale, creationSize, creationValues } from "./zoom";
@@ -28,8 +24,8 @@ const ANCHOR_PIXELS = 14;
 const ZOOM_FILL = 0.8;
 const JUMP_FILL = 0.3;
 
-function isLine(item: CanvasObject) {
-  return !isVertexKind(item.kind);
+function isLine(item: Item) {
+  return !isBox(item);
 }
 
 /** A world point midway along a line as it is currently drawn, or null if it is not drawn. */
@@ -43,30 +39,23 @@ function lineMidpoint(graph: Graph, lineId: string) {
 }
 
 /** The object standing in for a line in tree and reference links, created on first use. */
-function anchorFor(editor: EditorController, line: CanvasObject) {
+function anchorFor(editor: EditorController, line: Item) {
   const { document, graph } = editor;
   const existing = anchorOf(document.list(), line.id);
   if (existing) return existing.id;
   const middle = lineMidpoint(graph, line.id);
   if (!middle) return "";
   const size = ANCHOR_PIXELS / graph.view.scale;
-  return document.create("ellipse", middle.x - size / 2, middle.y - size / 2, {
+  return document.create("node", middle.x - size / 2, middle.y - size / 2, {
+    stencil: "ellipse",
     width: size,
     height: size,
-    style: {
-      [LINE_ANCHOR]: line.id,
-      fillColor: "#7863d4",
-      strokeColor: "#ffffff",
-      movable: false,
-      resizable: false,
-      rotatable: false,
-      spacing: 0,
-    },
+    onLine: line.id,
   });
 }
 
-/** The object that represents this one in a link: itself, or for a line, its anchor. */
-export function endpointFor(editor: EditorController, item: CanvasObject) {
+/** The item that represents this one in a link: itself, or for a line, its anchor. */
+export function endpointFor(editor: EditorController, item: Item) {
   return isLine(item) ? anchorFor(editor, item) : item.id;
 }
 
@@ -74,9 +63,8 @@ export function endpointFor(editor: EditorController, item: CanvasObject) {
 export function syncLineAnchors(graph: Graph, document: CanvasDocument) {
   const items = document.list();
   for (const anchor of items) {
-    const line = anchor.style[LINE_ANCHOR];
-    if (typeof line !== "string") continue;
-    const middle = lineMidpoint(graph, line);
+    if (!anchor.onLine) continue;
+    const middle = lineMidpoint(graph, anchor.onLine);
     if (!middle) continue;
     const dx = middle.x - anchor.width / 2 - anchor.x;
     const dy = middle.y - anchor.height / 2 - anchor.y;
@@ -90,9 +78,19 @@ export function syncLineAnchors(graph: Graph, document: CanvasDocument) {
   }
 }
 
-function branchSize(editor: EditorController, parent: CanvasObject, kind: ObjectKind) {
+function branchSize(editor: EditorController, parent: Item) {
   if (branchCopiesParent(parent)) return parent;
-  return creationSize(kind, editor.graph.view.scale);
+  return creationSize("node", editor.graph.view.scale);
+}
+
+/** A new topic beside or under `parent`, looking like it when that suits a topic. */
+function topicFor(editor: EditorController, parent: Item, x: number, y: number) {
+  const { width, height } = branchSize(editor, parent);
+  const fields: Partial<Item> = branchCopiesParent(parent)
+    ? { stencil: parent.stencil, style: parent.style, look: { ...parent.look } }
+    : creationValues("node", editor.graph.view.scale);
+  const type = branchCopiesParent(parent) ? parent.type : "node";
+  return editor.document.build(type, x, y, { width, height, inside: parent.inside, ...fields });
 }
 
 /** Grows a new topic out of the selection, or beside it. Returns its identifier. */
@@ -104,35 +102,18 @@ export function addBranch(editor: EditorController, sibling = false) {
   const parentId = sibling ? branchParent(items, selected.id) : endpointFor(editor, selected);
   const parent = document.get(parentId);
   if (!parent) return "";
-  const copies = branchCopiesParent(parent);
-  const kind = copies ? parent.kind : "rectangle";
-  const { width, height } = branchSize(editor, parent, kind);
-  const placed = branchPlacement(document.list(), parent, { width, height });
-  const { scale } = graph.view;
-  const style = copies ? parent.style : creationValues(kind, scale).style;
-  const node = document.build(kind, placed.x, placed.y, {
-    width,
-    height,
-    parent: parent.parent,
-    style: { ...style },
-  });
+  const placed = branchPlacement(document.list(), parent, branchSize(editor, parent));
+  const node = topicFor(editor, parent, placed.x, placed.y);
   document.undo.stopCapturing();
   document.doc.transact(() => {
     document.insert(node);
     document.insert(
-      document.build("connector", 0, 0, {
-        source: parent.id,
-        target: node.id,
-        ...creationValues("connector", scale),
-        style: {
-          ...creationValues("connector", scale).style,
-          relation: RELATION_BRANCH,
-          endArrow: "none",
-          exitX: placed.towardLeft ? 0 : 1,
-          exitY: 0.5,
-          entryX: placed.towardLeft ? 1 : 0,
-          entryY: 0.5,
-        },
+      document.build("branch", 0, 0, {
+        from: parent.id,
+        to: node.id,
+        ...creationValues("branch", graph.view.scale),
+        fromPort: [placed.towardLeft ? 0 : 1, 0.5],
+        toPort: [placed.towardLeft ? 1 : 0, 0.5],
       })
     );
   }, LOCAL);
@@ -146,21 +127,12 @@ export function addBranch(editor: EditorController, sibling = false) {
 export function addReference(editor: EditorController) {
   const selected = editor.selected();
   if (selected.length !== 2) return;
-  const [source, target] = selected.map((item) => endpointFor(editor, item));
-  if (!source || !target) return;
-  const { scale } = editor.graph.view;
-  editor.document.create("connector", 0, 0, {
-    source,
-    target,
-    ...creationValues("connector", scale),
-    style: {
-      ...creationValues("connector", scale).style,
-      relation: RELATION_REFERENCE,
-      dashed: true,
-      edgeStyle: "none",
-      endArrow: "open",
-      strokeColor: "#a797cc",
-    },
+  const [from, to] = selected.map((item) => endpointFor(editor, item));
+  if (!from || !to) return;
+  editor.document.create("reference", 0, 0, {
+    from,
+    to,
+    ...creationValues("reference", editor.graph.view.scale),
   });
 }
 
@@ -183,14 +155,13 @@ export function tidySelection(editor: EditorController) {
   document.undo.stopCapturing();
 }
 
-function flyTo(editor: EditorController, item: CanvasObject, fill: number) {
+function flyTo(editor: EditorController, item: Item, fill: number) {
   const { element, graph } = editor;
-  const scale = clampScale(
+  const zoom = clampScale(
     Math.min((element.clientWidth * fill) / item.width, (element.clientHeight * fill) / item.height)
   );
-  const centerX = item.x + item.width / 2;
-  const centerY = item.y + item.height / 2;
-  flyToView(graph, element, { id: "", name: "", centerX, centerY, x: 0, y: 0, scale });
+  const center = { x: item.x + item.width / 2, y: item.y + item.height / 2 };
+  flyToView(graph, element, { id: "", name: "", center, zoom });
 }
 
 /** Zooms until the selection fills the window, revealing whatever it holds. */
@@ -205,7 +176,7 @@ export function zoomIntoSelection(editor: EditorController) {
 /** Zooms back out to the object holding the selection, or to the whole canvas. */
 export function zoomOutOfSelection(editor: EditorController) {
   const [selected] = editor.selected();
-  const parent = selected && editor.document.get(selected.parent);
+  const parent = selected && editor.document.get(selected.inside);
   if (parent) flyTo(editor, parent, ZOOM_FILL);
   else editor.fit();
 }
@@ -234,9 +205,9 @@ function applyOffsets(editor: EditorController, offsets: Map<string, Offset>) {
 
 /** Selected objects that move for themselves, leaving out ones held by another selected object. */
 function movableSelection(editor: EditorController) {
-  const selected = editor.selected().filter((item) => isVertexKind(item.kind));
+  const selected = editor.selected().filter(isBox);
   const ids = new Set(selected.map((item) => item.id));
-  return selected.filter((item) => !ids.has(item.parent));
+  return selected.filter((item) => !ids.has(item.inside));
 }
 
 export function alignSelection(editor: EditorController, mode: AlignMode) {
@@ -292,7 +263,7 @@ export function configureComposition(graph: Graph, document: CanvasDocument) {
   if (handler) handler.guidesEnabled = true;
 }
 
-function followerCells(graph: Graph, items: CanvasObject[], moved: Set<Cell>) {
+function followerCells(graph: Graph, items: Item[], moved: Set<Cell>) {
   const model = graph.getDataModel();
   const followers = new Set<Cell>();
   moved.forEach((cell) =>

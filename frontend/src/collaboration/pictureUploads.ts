@@ -1,5 +1,5 @@
 import type { CanvasDocument } from "../document/canvasDocument";
-import { PICTURE_HASH, PICTURE_STORED, isPictureHash, sha256 } from "../document/pictures";
+import { isPictureHash, sha256 } from "../document/pictures";
 import type { PictureStore } from "./pictureStore";
 import type { UploadReply, UploadRequest } from "./transport";
 
@@ -20,18 +20,18 @@ export const putToStorage: PutBytes = async (url, bytes, { type, checksum }) => 
 function waitingHashes(document: CanvasDocument) {
   const hashes = document
     .list()
-    .filter((item) => item.kind === "picture" && item.style[PICTURE_STORED] !== true)
-    .map((item) => item.style[PICTURE_HASH])
+    .filter((item) => item.picture && !item.picture.stored)
+    .map((item) => item.picture!.hash)
     .filter(isPictureHash);
   return [...new Set(hashes)];
 }
 
 function markStored(document: CanvasDocument, hash: string) {
   document.doc.transact(() => {
-    document
-      .list()
-      .filter((item) => item.style[PICTURE_HASH] === hash)
-      .forEach((item) => document.patchStyle(item.id, { [PICTURE_STORED]: true }));
+    document.list().forEach((item) => {
+      if (item.picture?.hash === hash)
+        document.items.get(item.id)?.set("picture", { ...item.picture, stored: true });
+    });
   }, STORAGE_ORIGIN);
 }
 

@@ -1,6 +1,6 @@
 import type { Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { isVertexKind } from "../document/geometry";
+import { isBox } from "../document/types";
 
 /**
  * The smallest object at a world point that is larger than something being placed there, so a new
@@ -19,7 +19,9 @@ export function containerAt(
   for (const item of document.list()) {
     const area = item.width * item.height;
     if (
-      isVertexKind(item.kind) &&
+      isBox(item) &&
+      // A band marks out a span of the canvas without holding what lies on it.
+      item.type !== "band" &&
       area > newArea &&
       area < bestArea &&
       x >= item.x &&
@@ -39,6 +41,6 @@ export function configurePanels(graph: Graph, document: CanvasDocument) {
   graph.setSwimlaneSelectionEnabled(false);
   // A group's frame follows its members. A panel keeps the size it was given.
   graph.isExtendParent = (cell) =>
-    !cell.isEdge() && document.get(cell.parent?.id ?? "")?.kind === "group";
+    !cell.isEdge() && document.get(cell.parent?.id ?? "")?.type === "group";
   graph.isConstrainChild = () => false;
 }

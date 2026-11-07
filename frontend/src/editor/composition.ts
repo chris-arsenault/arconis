@@ -1,7 +1,8 @@
 import { Cell } from "@maxgraph/core";
-import { isVertexKind, offsetPoints } from "../document/geometry";
-import { remapStyle } from "../document/relations";
-import { LOCAL } from "../document/types";
+import { offsetPoints } from "../document/geometry";
+import { renameItem } from "../document/relations";
+import { newId } from "../document/ids";
+import { LOCAL, isBox } from "../document/types";
 import type { EditorController } from "./controller";
 
 export function groupSelection(editor: EditorController) {
@@ -25,7 +26,7 @@ export function ungroupSelection(editor: EditorController) {
     // Only groups dissolve; a panel keeps its contents.
     const groups = graph
       .getSelectionCells()
-      .filter((cell) => document.get(cell.id!)?.kind === "group");
+      .filter((cell) => document.get(cell.id!)?.type === "group");
     graph.ungroupCells(groups).forEach((cell) => {
       const label = labels.get(cell);
       if (!label || !cell.geometry) return;
@@ -44,7 +45,13 @@ export function ungroupSelection(editor: EditorController) {
 export function duplicateSelection(editor: EditorController) {
   const { graph, document } = editor;
   const ids = editor.selectionClosure();
-  const mapping = new Map(ids.map((id) => [id, crypto.randomUUID()]));
+  const mapping = new Map<string, string>();
+  ids.forEach((id) =>
+    mapping.set(
+      id,
+      newId((candidate) => document.items.has(candidate) || mapping.has(candidate))
+    )
+  );
   const base = document.nextOrder();
   document.undo.stopCapturing();
   document.doc.transact(
@@ -53,16 +60,11 @@ export function duplicateSelection(editor: EditorController) {
         const item = document.get(id)!;
         const offset = 28;
         document.insert({
-          ...item,
+          ...renameItem(item, mapping),
           order: base + index,
-          id: mapping.get(id)!,
-          x: isVertexKind(item.kind) ? item.x + offset : item.x,
-          y: isVertexKind(item.kind) ? item.y + offset : item.y,
+          x: isBox(item) ? item.x + offset : item.x,
+          y: isBox(item) ? item.y + offset : item.y,
           points: offsetPoints(item.points, offset, offset),
-          parent: mapping.get(item.parent) || item.parent,
-          source: mapping.get(item.source) || item.source,
-          target: mapping.get(item.target) || item.target,
-          style: remapStyle(item.style, mapping),
         });
       }),
     LOCAL

@@ -11,7 +11,6 @@ import {
   objectCount,
   groupLabel,
 } from "./browserHarness";
-import { CanvasDocument } from "../document/canvasDocument";
 
 async function shapePosition(page: Page) {
   // Poll rendered geometry, keeping file downloads for the actual export checks.
@@ -61,7 +60,7 @@ async function moveDuplicateUngroup(page: Page) {
   const copy = await exported(page);
   expect(
     copy.objects
-      .filter((item) => item.label === "Grouped shape")
+      .filter((item) => item.name === "Grouped shape")
       .map((item) => item.x)
       .sort((left, right) => left - right)
   ).toEqual([250, 278]);
@@ -72,86 +71,67 @@ async function moveDuplicateUngroup(page: Page) {
   expect(await objectCount(page)).toBe(2);
 }
 
-function legacyFile() {
-  const document = new CanvasDocument();
-  const group = document.create("group", 100, 120, {
-    label: "Legacy group",
-    width: 500,
-    height: 400,
-  });
-  const shape = document.create("rectangle", 40, 50, { parent: group, label: "Legacy shape" });
-  const note = document.create("sticky", 260, 200, { parent: group, label: "Legacy note" });
-  document.create("connector", 0, 0, {
-    parent: group,
-    source: shape,
-    target: note,
-    label: "Legacy path",
-    points: "[[230,80],[230,200]]",
-  });
-  document.create("stroke", 0, 0, {
-    parent: group,
-    label: "Legacy drawing",
-    points: "[[30,300],[100,330],[200,300]]",
-  });
-  const result = JSON.stringify({ format: "arconis", version: 1, objects: document.list() });
-  document.destroy();
-  return result;
+/** A group holding a shape, a note, a routed line between them and a drawing, in world units. */
+const GROUPED_FILE = `arconis 1
+group g "Group" at 100,120 size 500,400 {
+  node shape "Shape" at 140,170 size 160,90
+  note n "Note" at 360,320 size 190,170
+  drawing d "Drawing" points 130,420 200,450 300,420
 }
+shape -> n "Path" as path via 330,200 330,320 in g
+`;
 
-it("moves legacy grouped routes and drawings once, then preserves them through undo and reload", async () => {
+it("moves grouped routes and drawings with their group, through duplicate, undo and reload", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
   await page.getByLabel("Import file").setInputFiles({
-    name: "legacy.arconis",
-    mimeType: "application/json",
-    buffer: Buffer.from(legacyFile()),
+    name: "grouped.arconis",
+    mimeType: "text/plain",
+    buffer: Buffer.from(GROUPED_FILE),
   });
   await expect.poll(() => objectCount(page)).toBe(5);
+  const named = (items: { name: string }[], name: string) =>
+    items.find((item) => item.name === name) as (typeof items)[number] & Record<string, unknown>;
   const before = await exported(page);
-  expect(before.version).toBe(3);
-  expect(before.objects.find((item) => item.label === "Legacy shape")).toMatchObject({
-    x: 140,
-    y: 170,
-  });
-  expect(before.objects.find((item) => item.label === "Legacy path")?.points).toBe(
-    "[[330,200],[330,320]]"
-  );
-  await row(page, "Legacy group").click();
+  expect(named(before.objects, "Shape")).toMatchObject({ x: 140, y: 170 });
+  expect(named(before.objects, "Path").points).toEqual([
+    [330, 200],
+    [330, 320],
+  ]);
+  await row(page, "Group").click();
   await page.getByLabel("Object x", { exact: true }).fill("180");
   await page.getByLabel("Object y", { exact: true }).fill("160");
   const moved = await exported(page);
-  expect(moved.objects.find((item) => item.label === "Legacy shape")).toMatchObject({
-    x: 220,
-    y: 210,
-  });
-  expect(moved.objects.find((item) => item.label === "Legacy path")?.points).toBe(
-    "[[410,240],[410,360]]"
-  );
-  expect(moved.objects.find((item) => item.label === "Legacy drawing")?.points).toBe(
-    "[[210,460],[280,490],[380,460]]"
-  );
+  expect(named(moved.objects, "Shape")).toMatchObject({ x: 220, y: 210 });
+  expect(named(moved.objects, "Path").points).toEqual([
+    [410, 240],
+    [410, 360],
+  ]);
+  expect(named(moved.objects, "Drawing").points).toEqual([
+    [210, 460],
+    [280, 490],
+    [380, 460],
+  ]);
   await page.getByRole("button", { name: "Duplicate", exact: true }).click();
-  const copies = (await exported(page)).objects.filter((item) => item.label === "Legacy path");
+  const copies = (await exported(page)).objects.filter((item) => item.name === "Path");
   expect(copies.map((item) => item.x)).toEqual([0, 0]);
-  expect(
-    copies.map((item) => item.points).sort((left, right) => left.localeCompare(right))
-  ).toEqual(["[[410,240],[410,360]]", "[[438,268],[438,388]]"]);
+  expect(copies.map((item) => item.points[0][0]).sort((a, b) => a - b)).toEqual([410, 438]);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await row(page, "Legacy group").click();
+  await row(page, "Group").click();
   await page.getByRole("button", { name: "Ungroup", exact: true }).click();
   await page.reload();
   await expect.poll(() => objectCount(page)).toBe(4);
   const restored = await exported(page);
-  expect(restored.objects.find((item) => item.label === "Legacy path")).toMatchObject({
-    x: 0,
-    y: 0,
-  });
-  expect(restored.objects.find((item) => item.label === "Legacy path")?.points).toBe(
-    "[[410,240],[410,360]]"
-  );
-  expect(restored.objects.find((item) => item.label === "Legacy drawing")?.points).toBe(
-    "[[210,460],[280,490],[380,460]]"
-  );
+  expect(named(restored.objects, "Path")).toMatchObject({ x: 0, y: 0 });
+  expect(named(restored.objects, "Path").points).toEqual([
+    [410, 240],
+    [410, 360],
+  ]);
+  expect(named(restored.objects, "Drawing").points).toEqual([
+    [210, 460],
+    [280, 490],
+    [380, 460],
+  ]);
   expect(errors).toEqual([]);
   await context.close();
 });

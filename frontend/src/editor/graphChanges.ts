@@ -1,9 +1,8 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { LOCAL, type CanvasObject, type StyleValue } from "../document/types";
+import { LOCAL, type Item, type PathPoint, type Port } from "../document/types";
 import { offsetPoints } from "../document/geometry";
 import { orphanedAnchors } from "../document/relations";
-import { ANCHOR_STYLE_KEYS } from "./connectionPoints";
 
 export function commitGraph(graph: Graph, document: CanvasDocument) {
   const cells = Object.values(graph.getDataModel().cells || {}).filter(
@@ -12,57 +11,50 @@ export function commitGraph(graph: Graph, document: CanvasDocument) {
   const present = new Set(cells.map((cell) => cell.id!));
   const changes = cells.map((cell) => ({ cell, values: cellValues(cell, document) }));
   document.doc.transact(() => {
-    document.freezeLegacyGeometry();
     document
       .list()
       .filter((item) => !present.has(item.id))
-      .forEach((item) => document.objects.delete(item.id));
-    orphanedAnchors(document.list()).forEach((id) => document.objects.delete(id));
+      .forEach((item) => document.items.delete(item.id));
+    orphanedAnchors(document.list()).forEach((id) => document.items.delete(id));
     changes.forEach(({ cell, values }) => commitCell(cell, values, document));
   }, LOCAL);
 }
 
-function commitCell(cell: Cell, values: Partial<CanvasObject>, document: CanvasDocument) {
+function commitCell(cell: Cell, values: Partial<Item>, document: CanvasDocument) {
   if (!cell.id || !cell.geometry) return;
   const existing = document.get(cell.id);
-  const { x, y, width, height } = cell.geometry;
   if (existing) {
     document.patch(cell.id, values);
     // Native rotation handles write the angle to the cell style, not its geometry.
     const rotation = cell.getStyle().rotation;
-    if (rotation !== undefined && rotation !== existing.style.rotation)
-      document.patchStyle(cell.id, { rotation });
-    if (cell.isEdge()) commitAnchors(cell, existing, document);
+    if (rotation !== undefined && rotation !== existing.look.rotation)
+      document.patchLook(cell.id, { rotation });
+    if (cell.isEdge()) commitPorts(cell, existing, document);
   } else {
-    const kind = cell.isEdge() ? "connector" : "group";
+    // maxGraph makes cells of its own only when grouping or connecting.
+    const type = cell.isEdge() ? "line" : "group";
     document.insert({
+      ...document.build(type, 0, 0, { order: newCellOrder(cell, document) }),
       id: cell.id,
-      kind,
-      label: "",
-      x,
-      y,
-      width,
-      height,
-      parent: "",
-      source: "",
-      target: "",
-      points: "[]",
-      order: newCellOrder(cell, document),
-      style: {},
       ...values,
     });
   }
 }
 
-/** Dragging a connector's end changes its anchor through the cell style. */
-function commitAnchors(cell: Cell, existing: CanvasObject, document: CanvasDocument) {
-  const style = cell.getStyle() as Record<string, StyleValue | null | undefined>;
-  for (const key of ANCHOR_STYLE_KEYS) {
-    const value = style[key] ?? undefined;
-    if (value === existing.style[key]) continue;
-    if (value === undefined) document.clearStyle(cell.id!, key);
-    else document.patchStyle(cell.id!, { [key]: value });
-  }
+function portOf(style: Record<string, unknown>, prefix: "exit" | "entry"): Port | undefined {
+  const x = style[`${prefix}X`];
+  const y = style[`${prefix}Y`];
+  return typeof x === "number" && typeof y === "number" ? [x, y] : undefined;
+}
+
+/** Dragging a line's end changes where it attaches through the cell style. */
+function commitPorts(cell: Cell, existing: Item, document: CanvasDocument) {
+  const style = cell.getStyle() as Record<string, unknown>;
+  const fromPort = portOf(style, "exit");
+  const toPort = portOf(style, "entry");
+  const changed = (left?: Port, right?: Port) => JSON.stringify(left) !== JSON.stringify(right);
+  if (changed(fromPort, existing.fromPort) || changed(toPort, existing.toPort))
+    document.patch(cell.id!, { fromPort, toPort });
 }
 
 /** A new group stays at its highest member's level so grouping hides none of its members. */
@@ -74,18 +66,18 @@ function newCellOrder(cell: Cell, document: CanvasDocument) {
   return orders.length ? Math.max(...orders) : document.nextOrder();
 }
 
-function cellValues(cell: Cell, document: CanvasDocument): Partial<CanvasObject> {
+function cellValues(cell: Cell, document: CanvasDocument): Partial<Item> {
   const { x, y, width, height } = cell.geometry!;
   const origin = parentOrigin(cell);
   return {
-    label: String(cell.value || ""),
+    name: String(cell.value || ""),
     x: cell.isVertex() ? x + origin.x : x,
     y: cell.isVertex() ? y + origin.y : y,
     width,
     height,
-    parent: cell.parent?.isVertex() ? cell.parent.id! : "",
-    source: cell.source?.id || "",
-    target: cell.target?.id || "",
+    inside: cell.parent?.isVertex() ? cell.parent.id! : "",
+    from: cell.source?.id || "",
+    to: cell.target?.id || "",
     points: worldPoints(cell, document, origin),
   };
 }
@@ -104,9 +96,13 @@ function parentOrigin(cell: Cell) {
 function worldPoints(cell: Cell, document: CanvasDocument, origin: { x: number; y: number }) {
   const geometry = cell.geometry!;
   const path = [...(geometry.points || [])];
-  if (document.get(cell.id!)?.kind === "stroke") {
+  if (document.get(cell.id!)?.type === "drawing") {
     if (geometry.sourcePoint) path.unshift(geometry.sourcePoint);
     if (geometry.targetPoint) path.push(geometry.targetPoint);
   }
-  return offsetPoints(JSON.stringify(path.map((point) => [point.x, point.y])), origin.x, origin.y);
+  return offsetPoints(
+    path.map((point): PathPoint => [point.x, point.y]),
+    origin.x,
+    origin.y
+  );
 }

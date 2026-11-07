@@ -1,7 +1,7 @@
 import { it, expect } from "vitest";
 import * as Y from "yjs";
 import { CanvasDocument } from "./canvasDocument";
-import { importDocument } from "./files";
+import { importDocument, serializeDocument } from "./files";
 
 function exchange(a: CanvasDocument, b: CanvasDocument) {
   const aUpdate = Y.encodeStateAsUpdate(a.doc, Y.encodeStateVector(b.doc));
@@ -10,41 +10,41 @@ function exchange(a: CanvasDocument, b: CanvasDocument) {
   Y.applyUpdate(b.doc, aUpdate);
 }
 
-it("omits concurrent connectors whose endpoint was deleted without losing unrelated objects", () => {
+it("omits concurrent lines whose end was deleted without losing unrelated items", () => {
   const a = new CanvasDocument();
   const b = new CanvasDocument();
-  const source = a.create("rectangle", 0, 0);
-  const target = a.create("sticky", 200, 0);
+  const from = a.create("node", 0, 0);
+  const to = a.create("note", 200, 0);
   exchange(a, b);
-  a.remove([source]);
-  b.create("connector", 0, 0, { source, target });
+  a.remove([from]);
+  b.create("line", 0, 0, { from, to });
   exchange(a, b);
   expect(a.list()).toEqual(b.list());
-  expect(a.list().map((item) => item.id)).toEqual([target]);
+  expect(a.list().map((item) => item.id)).toEqual([to]);
   a.destroy();
   b.destroy();
 });
-it("retains a connector until its out-of-order endpoint objects arrive", () => {
+it("retains a line until its out-of-order ends arrive", () => {
   const source = new CanvasDocument();
-  const first = source.create("rectangle", 0, 0);
-  const second = source.create("sticky", 200, 0);
+  const first = source.create("node", 0, 0);
+  const second = source.create("note", 200, 0);
   const target = new CanvasDocument();
-  target.create("connector", 0, 0, { source: first, target: second });
+  target.create("line", 0, 0, { from: first, to: second });
   expect(target.list()).toHaveLength(0);
   target.doc.transact(() => source.list().forEach((item) => target.insert(item)));
   expect(target.list()).toHaveLength(3);
   source.destroy();
   target.destroy();
 });
-it("merges independent geometry, style and collaborative text changes", () => {
+it("merges independent geometry, look and collaborative text changes", () => {
   const a = new CanvasDocument();
   const b = new CanvasDocument();
-  const id = a.create("sticky", 20, 30, { label: "idea" });
+  const id = a.create("note", 20, 30, { name: "idea" });
   exchange(a, b);
   a.patch(id, { x: 210 });
   b.patch(id, { y: 180 });
-  a.patchStyle(id, { fillColor: "#ffd9da" });
-  b.patchStyle(id, { fontSize: 24 });
+  a.patchLook(id, { fill: "#ffd9da" });
+  b.patchLook(id, { textSize: 24 });
   a.text(id)!.insert(0, "Our ");
   b.text(id)!.insert(4, " grows");
   exchange(a, b);
@@ -52,17 +52,17 @@ it("merges independent geometry, style and collaborative text changes", () => {
   expect(a.get(id)).toMatchObject({
     x: 210,
     y: 180,
-    label: "Our idea grows",
-    style: { fillColor: "#ffd9da", fontSize: 24 },
+    name: "Our idea grows",
+    look: { fill: "#ffd9da", textSize: 24 },
   });
   a.destroy();
   b.destroy();
 });
-it("deletes dependent connectors and retains unrelated objects", () => {
+it("deletes dependent lines and retains unrelated items", () => {
   const document = new CanvasDocument();
-  const shape = document.create("database", 0, 0);
-  const note = document.create("sticky", 300, 0);
-  document.create("connector", 0, 0, { source: shape, target: note });
+  const shape = document.create("node", 0, 0, { stencil: "database" });
+  const note = document.create("note", 300, 0);
+  document.create("line", 0, 0, { from: shape, to: note });
   document.remove([shape]);
   expect(document.list().map((item) => item.id)).toEqual([note]);
   document.destroy();
@@ -70,7 +70,7 @@ it("deletes dependent connectors and retains unrelated objects", () => {
 it("undoes local changes without undoing concurrent peer work", () => {
   const a = new CanvasDocument();
   const b = new CanvasDocument();
-  const id = a.create("rectangle", 0, 0);
+  const id = a.create("node", 0, 0);
   exchange(a, b);
   a.patch(id, { x: 120 });
   b.patch(id, { y: 240 });
@@ -81,19 +81,24 @@ it("undoes local changes without undoing concurrent peer work", () => {
   a.destroy();
   b.destroy();
 });
-it("restores a portable mixed document with remapped relationships", () => {
+it("ignores records a peer wrote in an unknown shape", () => {
+  const document = new CanvasDocument();
+  document.doc.transact(() => document.items.set("odd", new Y.Map([["kind", "rectangle"]])));
+  expect(document.list()).toEqual([]);
+  document.destroy();
+});
+it("carries a canvas through a file, keeping relationships", () => {
   const a = new CanvasDocument();
-  const shape = a.create("rectangle", 20, 30, { label: "API" });
-  const note = a.create("sticky", 300, 20, { label: "Idea" });
-  a.create("connector", 0, 0, { source: shape, target: note });
+  const shape = a.create("node", 20, 30, { name: "API" });
+  const note = a.create("note", 300, 20, { name: "Idea" });
+  a.create("line", 0, 0, { from: shape, to: note });
   const b = new CanvasDocument();
-  importDocument(b, JSON.stringify({ format: "arconis", version: 1, objects: a.list() }));
-  const edge = b.list().find((item) => item.kind === "connector")!;
-  expect(b.get(edge.source)?.label).toBe("API");
-  expect(b.get(edge.target)?.label).toBe("Idea");
-  expect(() => importDocument(b, '{"format":"arconis","objects":[{}]}')).toThrow(
-    "invalid canvas objects"
-  );
+  importDocument(b, serializeDocument(a));
+  const line = b.list().find((item) => item.type === "line")!;
+  expect(b.get(line.from)?.name).toBe("API");
+  expect(b.get(line.to)?.name).toBe("Idea");
+  expect(() => importDocument(b, '{"format":"arconis"}')).toThrow();
+  expect(() => importDocument(b, "node a")).toThrow("Choose an Arconis canvas file");
   a.destroy();
   b.destroy();
 });

@@ -1,5 +1,4 @@
 import type { Cell, Geometry, Graph } from "@maxgraph/core";
-import { RELATION_REFERENCE } from "../document/relations";
 
 /** Anything drawn smaller than this disappears, and reappears on zooming toward it. */
 export const CULL_PIXELS = 4;
@@ -55,7 +54,7 @@ export function configureCulling(graph: Graph, showReferences: () => boolean) {
   const validateCell = view.validateCell.bind(view);
   view.validateCell = (cell: Cell, visible = true) => {
     const style = cell.getStyle() as Record<string, unknown>;
-    const reference = style.relation === RELATION_REFERENCE;
+    const reference = style.reference === true;
     const shown = !(reference && !showReferences()) && !tooSmall(cell, view.scale);
     return validateCell(cell, visible && shown);
   };

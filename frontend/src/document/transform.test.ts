@@ -7,22 +7,30 @@ const anchor = { x: 0, y: 0 };
 
 it("scales shapes, drawings and inner routes around the anchor", () => {
   const document = new CanvasDocument();
-  const shape = document.create("rectangle", 100, 100, { width: 100, height: 50 });
-  const stroke = document.create("stroke", 0, 0, { points: "[[10,20],[30,40]]" });
+  const shape = document.create("node", 100, 100, { width: 100, height: 50 });
+  const stroke = document.create("drawing", 0, 0, {
+    points: [
+      [10, 20],
+      [30, 40],
+    ],
+  });
   const result = transformObjects(document.list(), { anchor, scaleX: 2, scaleY: 3, angle: 0 });
   expect(result.get(shape)).toMatchObject({ x: 200, y: 300, width: 200, height: 150, rotation: 0 });
-  expect(result.get(stroke)?.points).toBe("[[20,60],[60,120]]");
+  expect(result.get(stroke)?.points).toEqual([
+    [20, 60],
+    [60, 120],
+  ]);
   document.destroy();
 });
 
 it("rotates shape centers, adds to their angle and refits group frames", () => {
   const document = new CanvasDocument();
   const group = document.create("group", 0, 0, { width: 300, height: 300 });
-  const shape = document.create("rectangle", 90, -20, {
+  const shape = document.create("node", 90, -20, {
     width: 20,
     height: 40,
-    parent: group,
-    style: { rotation: 350 },
+    inside: group,
+    look: { rotation: 350 },
   });
   const result = transformObjects(document.list(), { anchor, scaleX: 1, scaleY: 1, angle: 90 });
   const value = result.get(shape)!;
@@ -37,15 +45,13 @@ it("rotates shape centers, adds to their angle and refits group frames", () => {
 
 it("keeps vendor icons unrotated and evenly scaled through any transform", () => {
   const document = new CanvasDocument();
-  const aws = document.create("icon", 100, 100, {
-    width: 64,
-    height: 64,
-    style: { icon: "aws:Arch_AWS-Lambda" },
+  const aws = document.create("node", 100, 100, {
+    stencil: "icon",
+    icon: "aws:AWS-Lambda",
   });
-  const lucide = document.create("icon", 200, 100, {
-    width: 64,
-    height: 64,
-    style: { icon: "lucide:Database" },
+  const lucide = document.create("node", 200, 100, {
+    stencil: "icon",
+    icon: "lucide:Database",
   });
   const stretched = transformObjects(document.list(), { anchor, scaleX: 3, scaleY: 2, angle: 0 });
   expect(stretched.get(aws)).toMatchObject({ width: 128, height: 128 });
@@ -58,8 +64,8 @@ it("keeps vendor icons unrotated and evenly scaled through any transform", () =>
 
 it("stacks by order and breaks ties by id on every peer", () => {
   const document = new CanvasDocument();
-  const low = document.create("rectangle", 0, 0, { order: 1 });
-  const high = document.create("rectangle", 0, 0, { order: 2 });
+  const low = document.create("node", 0, 0, { order: 1 });
+  const high = document.create("node", 0, 0, { order: 2 });
   document.patch(low, { order: 3 });
   expect(document.list().map((item) => item.id)).toEqual([high, low]);
   document.patch(high, { order: 3 });

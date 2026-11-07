@@ -1,41 +1,33 @@
-import { compareStacking, isVertexKind, offsetPoints } from "./geometry";
-import type { CanvasObject, ObjectKind, StyleValue } from "./types";
+import { compareStacking, offsetPoints } from "./geometry";
+import { isBox, type Item, type ItemType, type PathPoint } from "./types";
 
 /**
- * Topics are not a kind of object. Any object can extend outward through branches and point at
- * others through references, and both are connectors marked in their style. Each link is therefore
- * its own record: concurrent additions never conflict, and deleting an end removes the link.
+ * Topics are not a type of item. Any item can extend outward through branches and point at others
+ * through references. Each link is its own record: concurrent additions never conflict, and
+ * deleting an end removes the link.
  */
-export const RELATION_BRANCH = "branch";
-export const RELATION_REFERENCE = "reference";
-/** Style key naming the line a small object sits on, which lets a line act as a topic. */
-export const LINE_ANCHOR = "lineAnchor";
-
-type Box = Pick<CanvasObject, "id" | "x" | "y" | "width" | "height">;
+type Box = Pick<Item, "id" | "x" | "y" | "width" | "height">;
 export type AlignMode = "left" | "center" | "right" | "top" | "middle" | "bottom";
 export type Axis = "horizontal" | "vertical";
 export type Offset = { dx: number; dy: number };
 
-const isRelation = (item: CanvasObject, relation: string) =>
-  item.kind === "connector" && item.style.relation === relation;
-
-export function branchChildren(items: CanvasObject[], id: string) {
+export function branchChildren(items: Item[], id: string) {
   const byId = new Map(items.map((item) => [item.id, item]));
   return items
-    .filter((item) => isRelation(item, RELATION_BRANCH) && item.source === id)
-    .map((edge) => byId.get(edge.target))
+    .filter((item) => item.type === "branch" && item.from === id)
+    .map((edge) => byId.get(edge.to))
     .filter((item) => item !== undefined)
     .sort((left, right) => left.y - right.y || compareStacking(left, right));
 }
 
-export function branchParent(items: CanvasObject[], id: string) {
-  const incoming = items.filter((item) => isRelation(item, RELATION_BRANCH) && item.target === id);
+export function branchParent(items: Item[], id: string) {
+  const incoming = items.filter((item) => item.type === "branch" && item.to === id);
   incoming.sort(compareStacking);
-  return incoming[0]?.source ?? "";
+  return incoming[0]?.from ?? "";
 }
 
 /** Everything below a topic in its tree. Peers can create cycles, so each is visited once. */
-export function branchDescendants(items: CanvasObject[], id: string) {
+export function branchDescendants(items: Item[], id: string) {
   const found = new Set([id]);
   const walk = (current: string) =>
     branchChildren(items, current).forEach((child) => {
@@ -48,84 +40,75 @@ export function branchDescendants(items: CanvasObject[], id: string) {
   return [...found];
 }
 
-/** Objects held inside this one, at any depth, excluding itself. */
-export function containedDescendants(items: CanvasObject[], id: string) {
+/** Items held inside this one, at any depth, excluding itself. */
+export function containedDescendants(items: Item[], id: string) {
   const found = new Set([id]);
   let previousSize = 0;
   while (previousSize !== found.size) {
     previousSize = found.size;
-    items.filter((item) => found.has(item.parent)).forEach((item) => found.add(item.id));
+    items.filter((item) => found.has(item.inside)).forEach((item) => found.add(item.id));
   }
   found.delete(id);
   return [...found];
 }
 
-/** How many references touch each object, in one pass over the document. */
-export function referenceCounts(items: CanvasObject[]) {
+/** How many references touch each item, in one pass over the document. */
+export function referenceCounts(items: Item[]) {
   const counts = new Map<string, number>();
   for (const item of items) {
-    if (!isRelation(item, RELATION_REFERENCE)) continue;
-    counts.set(item.source, (counts.get(item.source) ?? 0) + 1);
-    counts.set(item.target, (counts.get(item.target) ?? 0) + 1);
+    if (item.type !== "reference") continue;
+    counts.set(item.from, (counts.get(item.from) ?? 0) + 1);
+    counts.set(item.to, (counts.get(item.to) ?? 0) + 1);
   }
   return counts;
 }
 
-export function referencesOf(items: CanvasObject[], id: string) {
+export function referencesOf(items: Item[], id: string) {
   return items
-    .filter(
-      (item) => isRelation(item, RELATION_REFERENCE) && (item.source === id || item.target === id)
-    )
+    .filter((item) => item.type === "reference" && (item.from === id || item.to === id))
     .map((edge) => ({
       id: edge.id,
-      other: edge.source === id ? edge.target : edge.source,
-      outgoing: edge.source === id,
+      other: edge.from === id ? edge.to : edge.from,
+      outgoing: edge.from === id,
     }));
 }
 
-const COPIED_KINDS = new Set<ObjectKind>([
-  "rectangle",
-  "ellipse",
-  "diamond",
-  "service",
-  "database",
-  "cloud",
-  "person",
-  "sticky",
-]);
+const COPIED_TYPES = new Set<ItemType>(["node", "card", "note"]);
 
 /**
- * Whether a new branch takes its parent's kind, size and style. A line's anchor and a container are
- * not what the next topic should look like, so those branch into a plain rectangle.
+ * Whether a new branch takes its parent's type, size and look. A line's anchor, an icon and a
+ * container are not what the next topic should look like, so those branch into a plain rectangle.
  */
-export function branchCopiesParent(parent: CanvasObject) {
-  return COPIED_KINDS.has(parent.kind) && !(LINE_ANCHOR in parent.style);
+export function branchCopiesParent(parent: Item) {
+  return COPIED_TYPES.has(parent.type) && parent.stencil !== "icon" && !parent.onLine;
 }
 
-export function anchorOf(items: CanvasObject[], lineId: string) {
-  return items.find((item) => item.style[LINE_ANCHOR] === lineId);
+/** An item under new ids, with its references to other renamed items following them. */
+export function renameItem(item: Item, ids: Map<string, string>): Item {
+  const rename = (id: string) => ids.get(id) ?? id;
+  return {
+    ...item,
+    id: rename(item.id),
+    inside: rename(item.inside),
+    from: rename(item.from),
+    to: rename(item.to),
+    onLine: rename(item.onLine),
+  };
 }
 
-/** A copy of a style with its reference to another object rewritten for new identifiers. */
-export function remapStyle(style: Record<string, StyleValue>, ids: Map<string, string>) {
-  const line = style[LINE_ANCHOR];
-  if (typeof line !== "string") return style;
-  return { ...style, [LINE_ANCHOR]: ids.get(line) ?? "" };
+export function anchorOf(items: Item[], lineId: string) {
+  return items.find((item) => item.onLine === lineId);
 }
 
-/** Removes objects sitting on a line that no longer exists, with what they hold. */
-export function orphanedAnchors(items: CanvasObject[]) {
+/** Removes items sitting on a line that no longer exists, with what they hold. */
+export function orphanedAnchors(items: Item[]) {
   const present = new Set(items.map((item) => item.id));
   return items
-    .filter((item) => {
-      const line = item.style[LINE_ANCHOR];
-      return typeof line === "string" && !present.has(line);
-    })
+    .filter((item) => item.onLine && !present.has(item.onLine))
     .flatMap((item) => [item.id, ...containedDescendants(items, item.id)]);
 }
 
-function pathBox(item: CanvasObject) {
-  const points = JSON.parse(item.points) as [number, number][];
+function pathBox(points: PathPoint[]) {
   if (!points.length) return null;
   const xs = points.map(([x]) => x);
   const ys = points.map(([, y]) => y);
@@ -133,11 +116,11 @@ function pathBox(item: CanvasObject) {
   return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
 }
 
-/** World bounds of objects, including ones too small to be drawn at the current zoom. */
-export function worldBounds(items: CanvasObject[]) {
-  const boxOf = (item: CanvasObject) => {
-    if (isVertexKind(item.kind)) return item;
-    return item.kind === "stroke" ? pathBox(item) : null;
+/** World bounds of items, including ones too small to be drawn at the current zoom. */
+export function worldBounds(items: Item[]) {
+  const boxOf = (item: Item) => {
+    if (isBox(item)) return item;
+    return item.type === "drawing" ? pathBox(item.points) : null;
   };
   const boxes = items.map(boxOf).filter((box) => box !== null);
   if (!boxes.length) return null;
@@ -153,8 +136,8 @@ export function worldBounds(items: CanvasObject[]) {
 
 /** Where to place a new branch: beyond its parent, under the children already there. */
 export function branchPlacement(
-  items: CanvasObject[],
-  parent: CanvasObject,
+  items: Item[],
+  parent: Item,
   size: { width: number; height: number }
 ) {
   const children = branchChildren(items, parent.id);
@@ -171,7 +154,7 @@ export function branchPlacement(
 }
 
 /** Lays out a topic's tree around it, keeping each child on the side it is already on. */
-export function tidyBranch(items: CanvasObject[], rootId: string) {
+export function tidyBranch(items: Item[], rootId: string) {
   const result = new Map<string, { x: number; y: number }>();
   const root = items.find((item) => item.id === rootId);
   if (!root) return result;
@@ -182,22 +165,22 @@ export function tidyBranch(items: CanvasObject[], rootId: string) {
       seen.add(child.id);
       return true;
     });
-  const tree = new Map<string, CanvasObject[]>();
+  const tree = new Map<string, Item[]>();
   const build = (id: string) => {
     const children = childrenOf(id);
     tree.set(id, children);
     children.forEach((child) => build(child.id));
   };
   build(rootId);
-  const gapOf = (item: CanvasObject) => item.height * 0.25;
-  const heightOf = (item: CanvasObject): number => {
+  const gapOf = (item: Item) => item.height * 0.25;
+  const heightOf = (item: Item): number => {
     const children = tree.get(item.id) ?? [];
     const stack =
       children.reduce((total, child) => total + heightOf(child), 0) +
       (children.length - 1) * gapOf(item);
     return Math.max(item.height, stack);
   };
-  const place = (parent: CanvasObject, children: CanvasObject[], left: boolean) => {
+  const place = (parent: Item, children: Item[], left: boolean) => {
     const total =
       children.reduce((sum, child) => sum + heightOf(child), 0) +
       (children.length - 1) * gapOf(parent);
@@ -239,7 +222,7 @@ export function alignOffsets(boxes: Box[], mode: AlignMode) {
   return new Map(boxes.map((box) => [box.id, targets[mode](box)]));
 }
 
-/** Evens the gaps between objects, leaving the first and last where they are. */
+/** Evens the gaps between items, leaving the first and last where they are. */
 export function distributeOffsets(boxes: Box[], axis: Axis) {
   const [start, size, other] =
     axis === "horizontal" ? (["x", "width", "dx"] as const) : (["y", "height", "dy"] as const);
@@ -258,13 +241,13 @@ export function distributeOffsets(boxes: Box[], axis: Axis) {
   return result;
 }
 
-/** New geometry for an object and what it holds, moved together in world coordinates. */
-export function movedWithContents(items: CanvasObject[], id: string, dx: number, dy: number) {
+/** New geometry for an item and what it holds, moved together in world coordinates. */
+export function movedWithContents(items: Item[], id: string, dx: number, dy: number) {
   const ids = new Set([id, ...containedDescendants(items, id)]);
   return items
     .filter((item) => ids.has(item.id))
     .map((item) =>
-      isVertexKind(item.kind)
+      isBox(item)
         ? { id: item.id, values: { x: item.x + dx, y: item.y + dy } }
         : { id: item.id, values: { points: offsetPoints(item.points, dx, dy) } }
     );

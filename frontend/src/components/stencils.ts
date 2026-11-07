@@ -15,8 +15,7 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react";
-import type { Tool } from "../editor/controller";
-import type { ObjectKind } from "../document/types";
+import type { Shape, Tool } from "../editor/controller";
 
 export interface ToolEntry {
   id: Tool;
@@ -24,7 +23,7 @@ export interface ToolEntry {
   icon: LucideIcon;
 }
 export interface Stencil {
-  kind: ObjectKind;
+  shape: Shape;
   label: string;
   name: string;
   icon: LucideIcon;
@@ -61,29 +60,29 @@ export const INFRASTRUCTURE_ICONS = [
 export const TOOLS: ToolEntry[] = [
   { id: "select", label: "Select (V)", icon: MousePointer2 },
   { id: "pan", label: "Pan (H / Space)", icon: Hand },
-  { id: "connector", label: "Connector: click two objects", icon: MoveUpRight },
-  { id: "stroke", label: "Draw (P)", icon: Pencil },
+  { id: "connect", label: "Connector: click two objects", icon: MoveUpRight },
+  { id: "draw", label: "Draw (P)", icon: Pencil },
 ];
 
 export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [
   {
     title: "Basics",
     stencils: [
-      { kind: "sticky", name: "Note", label: "Sticky note (N)", icon: StickyNote },
-      { kind: "text", name: "Text", label: "Text", icon: Type },
-      { kind: "rectangle", name: "Rectangle", label: "Rectangle (R)", icon: Square },
-      { kind: "ellipse", name: "Ellipse", label: "Ellipse", icon: Circle },
-      { kind: "diamond", name: "Decision", label: "Decision (D)", icon: Diamond },
-      { kind: "panel", name: "Panel", label: "Panel", icon: PanelTop },
+      { shape: "note", name: "Note", label: "Sticky note (N)", icon: StickyNote },
+      { shape: "text", name: "Text", label: "Text", icon: Type },
+      { shape: "rectangle", name: "Rectangle", label: "Rectangle (R)", icon: Square },
+      { shape: "ellipse", name: "Ellipse", label: "Ellipse", icon: Circle },
+      { shape: "decision", name: "Decision", label: "Decision (D)", icon: Diamond },
+      { shape: "frame", name: "Frame", label: "Frame", icon: PanelTop },
     ],
   },
   {
     title: "Architecture",
     stencils: [
-      { kind: "service", name: "Service", label: "Service", icon: Server },
-      { kind: "database", name: "Database", label: "Database", icon: Database },
-      { kind: "cloud", name: "Cloud", label: "Cloud", icon: Cloud },
-      { kind: "person", name: "Person", label: "Person", icon: UserRound },
+      { shape: "service", name: "Service", label: "Service", icon: Server },
+      { shape: "database", name: "Database", label: "Database", icon: Database },
+      { shape: "cloud", name: "Cloud", label: "Cloud", icon: Cloud },
+      { shape: "person", name: "Person", label: "Person", icon: UserRound },
     ],
   },
 ];

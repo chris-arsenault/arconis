@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, objectCount, open } from "./browserHarness";
+import { add, browser, errors, objectCount, open } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const OBJECTS = 3000;
@@ -9,21 +9,15 @@ it("stays usable with thousands of objects, including for someone joining late",
   const room = createRoomId();
   const page = await open(await browser.newContext(VIEWPORT), room);
   await add(page, "Rectangle (R)", "Template", 100, 100);
-  const saved = await exported(page);
-  const template = saved.objects[0];
-  const objects = Array.from({ length: OBJECTS }, (_, index) => ({
-    ...template,
-    id: `object-${index}`,
-    label: `Object ${index}`,
-    x: (index % 60) * 200,
-    y: Math.floor(index / 60) * 120,
-    order: index,
-  }));
+  const lines = Array.from(
+    { length: OBJECTS },
+    (_, index) =>
+      `node o${index} "Object ${index}" at ${(index % 60) * 200},${Math.floor(index / 60) * 120} size 160,90`
+  );
   await page.getByLabel("Import file").setInputFiles({
     name: "large.arconis",
-    mimeType: "application/json",
-    // Stored records, which version 2 files carry and still import.
-    buffer: Buffer.from(JSON.stringify({ format: "arconis", version: 2, objects })),
+    mimeType: "text/plain",
+    buffer: Buffer.from(["arconis 1", ...lines].join("\n")),
   });
   await expect.poll(() => objectCount(page), { timeout: 120_000 }).toBe(OBJECTS + 1);
 

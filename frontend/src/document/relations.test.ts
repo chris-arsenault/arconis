@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { CanvasObject } from "./types";
+import type { Item, ItemType } from "./types";
 import {
-  LINE_ANCHOR,
   alignOffsets,
   anchorOf,
   branchChildren,
@@ -14,36 +13,36 @@ import {
   movedWithContents,
   orphanedAnchors,
   referencesOf,
-  remapStyle,
+  renameItem,
   tidyBranch,
   worldBounds,
 } from "./relations";
 
-function box(id: string, x = 0, y = 0, extras: Partial<CanvasObject> = {}): CanvasObject {
+function box(id: string, x = 0, y = 0, extras: Partial<Item> = {}): Item {
   return {
     id,
-    kind: "rectangle",
-    label: id,
+    type: "node",
+    stencil: "rectangle",
+    name: id,
+    subtitle: "",
     x,
     y,
     width: 100,
     height: 50,
-    parent: "",
-    source: "",
-    target: "",
-    points: "[]",
+    inside: "",
+    from: "",
+    to: "",
+    points: [],
     order: 0,
-    style: {},
+    style: "",
+    look: {},
+    icon: "",
+    onLine: "",
     ...extras,
   };
 }
-const link = (source: string, target: string, relation = "branch") =>
-  box(`${source}-${target}`, 0, 0, {
-    kind: "connector",
-    source,
-    target,
-    style: { relation },
-  });
+const link = (from: string, to: string, type: ItemType = "branch") =>
+  box(`${from}-${to}`, 0, 0, { type, from, to });
 
 describe("trees", () => {
   it("finds parents, ordered children and all descendants", () => {
@@ -74,7 +73,7 @@ describe("trees", () => {
 
   it("ignores plain connectors and references when walking a tree", () => {
     const items = [box("a"), box("b"), box("c"), link("a", "b", "reference")];
-    items.push(box("line", 0, 0, { kind: "connector", source: "a", target: "c" }));
+    items.push(box("line", 0, 0, { type: "line", from: "a", to: "c" }));
     expect(branchChildren(items, "a")).toEqual([]);
   });
 
@@ -133,69 +132,77 @@ describe("tidying", () => {
 describe("what a new branch looks like", () => {
   it("copies an ordinary object", () => {
     expect(branchCopiesParent(box("a"))).toBe(true);
-    expect(branchCopiesParent(box("a", 0, 0, { kind: "sticky" }))).toBe(true);
+    expect(branchCopiesParent(box("a", 0, 0, { type: "note" }))).toBe(true);
   });
 
   it("does not copy a line's anchor, or the new topic would become another anchor", () => {
-    const dot = box("dot", 0, 0, { kind: "ellipse", style: { [LINE_ANCHOR]: "line" } });
+    const dot = box("dot", 0, 0, { stencil: "ellipse", onLine: "line" });
     expect(branchCopiesParent(dot)).toBe(false);
   });
 
   it("does not copy a container or an icon", () => {
-    expect(branchCopiesParent(box("a", 0, 0, { kind: "panel" }))).toBe(false);
-    expect(branchCopiesParent(box("a", 0, 0, { kind: "icon" }))).toBe(false);
+    expect(branchCopiesParent(box("a", 0, 0, { type: "frame" }))).toBe(false);
+    expect(branchCopiesParent(box("a", 0, 0, { stencil: "icon" }))).toBe(false);
   });
 });
 
 describe("references and lines", () => {
   it("lists references in both directions", () => {
-    const items = [box("a"), box("b"), link("a", "b", "reference"), link("a", "b")];
+    const items = [box("a"), box("b"), link("a", "b", "reference"), link("b", "a")];
     expect(referencesOf(items, "a")).toEqual([{ id: "a-b", other: "b", outgoing: true }]);
     expect(referencesOf(items, "b")[0]).toMatchObject({ other: "a", outgoing: false });
   });
 
   it("finds a line's anchor, and anything left behind when the line goes", () => {
-    const anchor = box("dot", 0, 0, { style: { [LINE_ANCHOR]: "line" } });
-    const held = box("held", 0, 0, { parent: "dot" });
-    const line = box("line", 0, 0, { kind: "connector" });
+    const anchor = box("dot", 0, 0, { onLine: "line" });
+    const held = box("held", 0, 0, { inside: "dot" });
+    const line = box("line", 0, 0, { type: "line" });
     expect(anchorOf([anchor, line], "line")).toBe(anchor);
     expect(orphanedAnchors([anchor, held, line])).toEqual([]);
     expect(orphanedAnchors([anchor, held])).toEqual(["dot", "held"]);
   });
 
-  it("rewrites an anchor's line when objects get new identifiers", () => {
-    const ids = new Map([["old", "new"]]);
-    expect(remapStyle({ [LINE_ANCHOR]: "old", fillColor: "red" }, ids)).toEqual({
-      [LINE_ANCHOR]: "new",
-      fillColor: "red",
+  it("follows renamed items through every reference an item holds", () => {
+    const ids = new Map([
+      ["old", "new"],
+      ["holder", "frame"],
+    ]);
+    const item = box("old", 0, 0, { inside: "holder", onLine: "old", from: "x" });
+    expect(renameItem(item, ids)).toMatchObject({
+      id: "new",
+      inside: "frame",
+      onLine: "new",
+      from: "x",
     });
-    expect(remapStyle({ fillColor: "red" }, ids)).toEqual({ fillColor: "red" });
-    expect(remapStyle({ [LINE_ANCHOR]: "gone" }, ids)).toEqual({ [LINE_ANCHOR]: "" });
   });
 });
 
 describe("containment and bounds", () => {
   it("walks nesting at any depth", () => {
-    const items = [box("a"), box("b", 0, 0, { parent: "a" }), box("c", 0, 0, { parent: "b" })];
+    const items = [box("a"), box("b", 0, 0, { inside: "a" }), box("c", 0, 0, { inside: "b" })];
     expect(containedDescendants(items, "a")).toEqual(["b", "c"]);
   });
 
   it("moves contents and drawings along with their parent", () => {
     const items = [
       box("a"),
-      box("b", 5, 5, { parent: "a" }),
-      box("s", 0, 0, { kind: "stroke", parent: "a", points: "[[1,1]]" }),
+      box("b", 5, 5, { inside: "a" }),
+      box("s", 0, 0, { type: "drawing", inside: "a", points: [[1, 1]] }),
       box("other", 9, 9),
     ];
     expect(movedWithContents(items, "a", 10, 20)).toEqual([
       { id: "a", values: { x: 10, y: 20 } },
       { id: "b", values: { x: 15, y: 25 } },
-      { id: "s", values: { points: "[[11,21]]" } },
+      { id: "s", values: { points: [[11, 21]] } },
     ]);
   });
 
-  it("measures objects and drawings", () => {
-    const items = [box("a", 10, 10), box("s", 0, 0, { kind: "stroke", points: "[[300,0],[0,5]]" })];
+  it("measures items and drawings", () => {
+    const path: [number, number][] = [
+      [300, 0],
+      [0, 5],
+    ];
+    const items = [box("a", 10, 10), box("s", 0, 0, { type: "drawing", points: path })];
     expect(worldBounds(items)).toEqual({ x: 0, y: 0, width: 300, height: 60 });
     expect(worldBounds([])).toBeNull();
   });

@@ -164,7 +164,7 @@ function EmptyCanvasHint({
       )}
       <button
         onClick={() => {
-          editor.edit(editor.add("sticky"), true);
+          editor.edit(editor.add("note"), true);
         }}
       >
         <Plus size={14} /> Add a sticky note

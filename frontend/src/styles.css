@@ -707,7 +707,7 @@ h1 em {
 .canvas-surface[data-tool="pan"] {
   cursor: grab;
 }
-.canvas-surface[data-tool="stroke"] {
+.canvas-surface[data-tool="draw"] {
   cursor: crosshair;
 }
 .canvas-hint {
@@ -775,13 +775,16 @@ h1 em {
   background: #fdecec;
   color: #b3261e;
 }
-.object-text {
+.object-text,
+.object-subtitle {
   display: block;
   width: calc(100% - 20px);
   margin: 0 10px 8px;
   padding: 5px 7px;
   font-size: 12px;
   line-height: 1.35;
+}
+.object-text {
   resize: vertical;
 }
 .inspector-section {

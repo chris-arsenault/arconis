@@ -93,7 +93,7 @@ it("stores a picture encrypted, and only people with the password can see it", a
   const exportedPicture = (await exported(a.page)).objects[0];
   await expect.poll(() => fixture.storedPictures().length).toBeGreaterThan(0);
   const stored = fixture.storedPictures().at(-1)!;
-  expect(fixture.picture(String(exportedPicture.style.pictureHash))).toBeUndefined();
+  expect(fixture.picture(String(exportedPicture.picture?.hash))).toBeUndefined();
   expect(stored.type).toBe("application/octet-stream");
   expect(stored.bytes.includes("WEBP")).toBe(false);
   expect(stored.bytes.includes("RIFF")).toBe(false);

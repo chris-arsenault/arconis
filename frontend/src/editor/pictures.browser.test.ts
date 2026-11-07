@@ -20,7 +20,7 @@ const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 afterEach(() => fixture.reset());
 
 const pictureOf = async (page: Page) =>
-  (await exported(page)).objects.find((item) => item.kind === "picture");
+  (await exported(page)).objects.find((item) => item.type === "picture");
 const drawnImages = (page: Page) => ({ count: () => drawnPictures(page) });
 
 it("uploads a pasted picture once, and peers and late joiners load it", async () => {
@@ -29,8 +29,8 @@ it("uploads a pasted picture once, and peers and late joiners load it", async ()
   const b = await open(await browser.newContext(VIEWPORT), room);
   await pastePicture(a, "#d04040");
   await expect.poll(() => objectCount(b)).toBe(1);
-  await expect.poll(async () => (await pictureOf(a))?.style.pictureStored).toBe(true);
-  const hash = String((await pictureOf(a))!.style.pictureHash);
+  await expect.poll(async () => (await pictureOf(a))?.picture?.stored).toBe(true);
+  const hash = String((await pictureOf(a))!.picture?.hash);
   expect(fixture.uploadsOf(hash)).toBe(1);
   await expect.poll(() => drawnImages(b).count()).toBe(1);
 
@@ -57,7 +57,7 @@ it("keeps a picture local while the relay is off, and uploads when it returns", 
   await a.getByTestId("connection-status").filter({ hasText: "Collaboration off" }).waitFor();
   await pastePicture(a, "#40d040");
   await expect.poll(() => drawnImages(a).count()).toBe(1);
-  const hash = String((await pictureOf(a))!.style.pictureHash);
+  const hash = String((await pictureOf(a))!.picture?.hash);
   expect(fixture.uploadsOf(hash)).toBe(0);
   await a.getByRole("button", { name: "Start collaboration", exact: true }).click();
   await expect.poll(() => fixture.uploadsOf(hash), { timeout: 30_000 }).toBe(1);
@@ -70,7 +70,7 @@ it("explains a full store, and the picture still works here", async () => {
   await pastePicture(a, "#4040d0");
   await a.getByTestId("sync-status").filter({ hasText: "Picture storage is full" }).waitFor();
   await expect.poll(() => drawnImages(a).count()).toBe(1);
-  expect((await pictureOf(a))!.style.pictureStored).toBe(false);
+  expect((await pictureOf(a))!.picture?.stored).toBe(false);
   expect(errors).toEqual([]);
 });
 
@@ -88,7 +88,7 @@ it("keeps a device-only room's pictures off the network, through reload and file
   await page.getByTestId("connection-status").filter({ hasText: "On this device only" }).waitFor();
   await pastePicture(page, "#d0d040");
   await expect.poll(() => drawnImages(page).count()).toBe(1);
-  const hash = String((await pictureOf(page))!.style.pictureHash);
+  const hash = String((await pictureOf(page))!.picture?.hash);
   await page.reload();
   await expect.poll(() => drawnImages(page).count()).toBe(1);
   expect(fixture.uploadsOf(hash)).toBe(0);

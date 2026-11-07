@@ -14,28 +14,54 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import { COLORS, KIND_LABELS, type CanvasObject, type StyleValue } from "../document/types";
+import { COLORS, isBox, isFrame, isLink, typeLabel, type Item, type Look } from "../document/types";
 import { useCollaborativeText } from "../document/useCollaborativeText";
-import { isContainerKind, isLockedIcon } from "../document/geometry";
+import { isLockedIcon } from "../document/geometry";
 import { objectStyle } from "../editor/styles";
 import { ConnectionControls, Section } from "./ConnectionControls";
 import { AlignControls, ScreenSizeControl, TopicControls } from "./TopicControls";
 import { CommentControls } from "./CommentControls";
 
-type ItemProps = Readonly<{ editor: EditorController; item: CanvasObject }>;
-type ChangeStyle = (key: string, value: StyleValue) => void;
-type StyleProps = Readonly<{ item: CanvasObject; change: ChangeStyle }>;
+type ItemProps = Readonly<{ editor: EditorController; item: Item }>;
+type ChangeLook = (values: Look) => void;
+/** `drawn` is the item as rendered, so controls show defaults the item does not set itself. */
+type StyleProps = Readonly<{ item: Item; drawn: Record<string, unknown>; change: ChangeLook }>;
 
-const HAS_FILL = (item: CanvasObject) =>
-  !["connector", "stroke", "text", "icon"].includes(item.kind);
-const HAS_LINE = (item: CanvasObject) => !["sticky", "text", "icon"].includes(item.kind);
+const isIcon = (item: Item) => item.type === "node" && item.stencil === "icon";
+const HAS_FILL = (item: Item) =>
+  isBox(item) && item.type !== "text" && item.type !== "picture" && !isIcon(item);
+const HAS_LINE = (item: Item) => item.type !== "note" && item.type !== "text" && !isIcon(item);
 // Logos and vendor icons keep their own colors; only the line icon set takes one.
-const HAS_ICON_COLOR = (item: CanvasObject) =>
-  item.kind === "icon" && String(item.style.icon).startsWith("lucide:");
-const HAS_TEXT = (item: CanvasObject) => item.kind !== "stroke";
+const HAS_ICON_COLOR = (item: Item) => item.icon.startsWith("lucide:");
+const HAS_TEXT = (item: Item) => item.type !== "drawing";
+const HAS_SUBTITLE = (item: Item) => ["node", "card", "band"].includes(item.type) && !item.onLine;
 
-function effectiveStyle(item: CanvasObject) {
-  return objectStyle(item) as Record<string, StyleValue | undefined>;
+/** Named styles, which people and agents share; an item's own look applies over its style. */
+function NamedStyle({ editor, item }: ItemProps) {
+  const names = [...editor.document.styles.keys()].sort((a, b) => a.localeCompare(b));
+  if (!names.length && !item.style) return null;
+  return (
+    <Section title="Style">
+      <select
+        aria-label="Named style"
+        value={item.style}
+        onChange={(event) =>
+          editor
+            .selected()
+            .forEach((selected) =>
+              editor.document.patch(selected.id, { style: event.target.value })
+            )
+        }
+      >
+        <option value="">None</option>
+        {names.map((name) => (
+          <option key={name} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
+    </Section>
+  );
 }
 
 function number(value: number) {
@@ -56,7 +82,7 @@ export function Inspector({
     <aside className="inspector" aria-label="Object properties">
       <header className="inspector-header">
         <strong data-testid="selection-count">
-          {several ? `${selected.length} objects` : KIND_LABELS[item.kind]}
+          {several ? `${selected.length} objects` : typeLabel(item)}
         </strong>
         <SelectionActions editor={editor} selected={selected} />
       </header>
@@ -66,10 +92,28 @@ export function Inspector({
       <TopicControls editor={editor} selected={selected} />
       <AlignControls editor={editor} />
       <StyleControls editor={editor} item={item} />
-      {!several && <PositionControls editor={editor} item={item} />}
-      {!several && <ScreenSizeControl editor={editor} item={item} />}
-      {!several && <CommentControls editor={editor} item={item} author={author} />}
+      {!several && <SingleItemControls editor={editor} item={item} author={author} />}
     </aside>
+  );
+}
+
+/** Controls that only make sense for one item at a time. */
+function SingleItemControls({ editor, item, author }: ItemProps & Readonly<{ author: string }>) {
+  return (
+    <>
+      {HAS_SUBTITLE(item) && (
+        <input
+          className="object-subtitle"
+          aria-label="Object subtitle"
+          placeholder="Subtitle"
+          value={item.subtitle}
+          onChange={(event) => editor.document.patch(item.id, { subtitle: event.target.value })}
+        />
+      )}
+      <PositionControls editor={editor} item={item} />
+      <ScreenSizeControl editor={editor} item={item} />
+      <CommentControls editor={editor} item={item} author={author} />
+    </>
   );
 }
 
@@ -101,7 +145,7 @@ function ActionButton({
 function SelectionActions({
   editor,
   selected,
-}: Readonly<{ editor: EditorController; selected: CanvasObject[] }>) {
+}: Readonly<{ editor: EditorController; selected: Item[] }>) {
   return (
     <div className="selection-actions" role="toolbar" aria-label="Selection actions">
       <ActionButton
@@ -120,7 +164,7 @@ function SelectionActions({
         label="Ungroup"
         icon={Ungroup}
         onClick={() => editor.ungroup()}
-        disabled={!selected.some((value) => value.kind === "group")}
+        disabled={!selected.some((value) => value.type === "group")}
       />
       <ActionButton label="To front" icon={BringToFront} onClick={() => editor.stack("front")} />
       <ActionButton label="To back" icon={SendToBack} onClick={() => editor.stack("back")} />
@@ -136,24 +180,28 @@ function SelectionActions({
 }
 
 function StyleControls({ editor, item }: ItemProps) {
-  const change: ChangeStyle = (key, value) =>
-    editor
-      .selected()
-      .forEach((selected) => editor.document.patchStyle(selected.id, { [key]: value }));
+  const change: ChangeLook = (values) =>
+    editor.selected().forEach((selected) => editor.document.patchLook(selected.id, values));
+  const drawn = objectStyle(item, editor.document.namedStyle(item.style)) as Record<
+    string,
+    unknown
+  >;
+  const props = { item, drawn, change };
   return (
     <>
-      {HAS_FILL(item) && <FillControls item={item} change={change} />}
-      {HAS_LINE(item) && <LineControls item={item} change={change} />}
+      <NamedStyle editor={editor} item={item} />
+      {HAS_FILL(item) && <FillControls {...props} />}
+      {HAS_LINE(item) && <LineControls {...props} />}
       {HAS_ICON_COLOR(item) && (
         <Section title="Icon">
           <ColorChip
             label="Icon color"
-            value={item.style.iconColor ?? "#283249"}
-            onChange={(color) => change("iconColor", color)}
+            value={item.look.iconColor ?? "#283249"}
+            onChange={(color) => change({ iconColor: color })}
           />
         </Section>
       )}
-      {HAS_TEXT(item) && <TextControls item={item} change={change} />}
+      {HAS_TEXT(item) && <TextControls {...props} />}
     </>
   );
 }
@@ -176,8 +224,7 @@ function ColorChip({
   );
 }
 
-function FillControls({ item, change }: StyleProps) {
-  const style = effectiveStyle(item);
+function FillControls({ drawn, change }: StyleProps) {
   return (
     <Section title="Fill">
       <div className="control-row">
@@ -187,35 +234,34 @@ function FillControls({ item, change }: StyleProps) {
             title={`Fill ${color}`}
             aria-label={`Fill ${color}`}
             className={`swatch swatch-${index}`}
-            aria-pressed={style.fillColor === color}
-            onClick={() => change("fillColor", color)}
+            aria-pressed={drawn.fillColor === color}
+            onClick={() => change({ fill: color })}
           />
         ))}
         <ColorChip
           label="Fill color"
-          value={style.fillColor}
-          onChange={(color) => change("fillColor", color)}
+          value={drawn.fillColor}
+          onChange={(color) => change({ fill: color })}
         />
       </div>
     </Section>
   );
 }
 
-function LineControls({ item, change }: StyleProps) {
-  const style = effectiveStyle(item);
+function LineControls({ drawn, change }: StyleProps) {
   return (
     <Section title="Line">
       <div className="control-row">
         <ColorChip
           label="Line color"
-          value={style.strokeColor}
-          onChange={(color) => change("strokeColor", color)}
+          value={drawn.strokeColor}
+          onChange={(color) => change({ line: color })}
         />
         <NumberField
           prefix="W"
           label="Line width"
-          value={Number(style.strokeWidth || 1)}
-          onChange={(value) => change("strokeWidth", value)}
+          value={Number(drawn.strokeWidth || 1)}
+          onChange={(value) => change({ lineWidth: value })}
         />
       </div>
     </Section>
@@ -248,44 +294,45 @@ function NumberField({
   );
 }
 
-const ALIGNMENTS: { value: string; icon: LucideIcon }[] = [
+const ALIGNMENTS: { value: "left" | "center" | "right"; icon: LucideIcon }[] = [
   { value: "left", icon: AlignLeft },
   { value: "center", icon: AlignCenter },
   { value: "right", icon: AlignRight },
 ];
 
-function TextControls({ item, change }: StyleProps) {
-  const style = effectiveStyle(item);
-  const fontStyle = Number(style.fontStyle || 0);
-  const align = String(style.align || "center");
+function TextControls({ drawn, change }: StyleProps) {
+  const fontStyle = Number(drawn.fontStyle || 0);
+  const align = String(drawn.align || "center");
+  const bold = Boolean(fontStyle & 1);
+  const italic = Boolean(fontStyle & 2);
   return (
     <Section title="Text">
       <div className="control-row">
         <ColorChip
           label="Text color"
-          value={style.fontColor}
-          onChange={(color) => change("fontColor", color)}
+          value={drawn.fontColor}
+          onChange={(color) => change({ textColor: color })}
         />
         <NumberField
           prefix="Aa"
           label="Font size"
-          value={Number(style.fontSize || 14)}
-          onChange={(value) => change("fontSize", value)}
+          value={Number(drawn.fontSize || 14)}
+          onChange={(value) => change({ textSize: value })}
         />
         <div className="segmented">
           <button
             aria-label="Bold"
             title="Bold"
-            aria-pressed={Boolean(fontStyle & 1)}
-            onClick={() => change("fontStyle", fontStyle ^ 1)}
+            aria-pressed={bold}
+            onClick={() => change({ bold: !bold })}
           >
             <Bold size={14} />
           </button>
           <button
             aria-label="Italic"
             title="Italic"
-            aria-pressed={Boolean(fontStyle & 2)}
-            onClick={() => change("fontStyle", fontStyle ^ 2)}
+            aria-pressed={italic}
+            onClick={() => change({ italic: !italic })}
           >
             <Italic size={14} />
           </button>
@@ -298,7 +345,7 @@ function TextControls({ item, change }: StyleProps) {
             aria-label={`Align ${value}`}
             title={`Align ${value}`}
             aria-pressed={align === value}
-            onClick={() => change("align", value)}
+            onClick={() => change({ align: value })}
           >
             <Icon size={14} />
           </button>
@@ -316,7 +363,7 @@ const GEOMETRY = [
 ] as const;
 
 function GeometryControls({ editor, item }: ItemProps) {
-  const locked = isLockedIcon(item.style);
+  const locked = isLockedIcon(item);
   const setSize = (key: "width" | "height", value: number) => {
     // Vendor icons scale evenly, so either size field sets both.
     const ratio = key === "width" ? item.height / item.width : item.width / item.height;
@@ -339,12 +386,12 @@ function GeometryControls({ editor, item }: ItemProps) {
             }
           />
         ))}
-        {!isContainerKind(item.kind) && !locked && (
+        {!isFrame(item) && !locked && (
           <NumberField
             prefix="°"
             label="Object rotation"
-            value={Number(item.style.rotation || 0)}
-            onChange={(value) => editor.document.patchStyle(item.id, { rotation: value })}
+            value={item.look.rotation ?? 0}
+            onChange={(value) => editor.document.patchLook(item.id, { rotation: value })}
           />
         )}
       </div>
@@ -353,7 +400,7 @@ function GeometryControls({ editor, item }: ItemProps) {
 }
 
 function PositionControls(props: ItemProps) {
-  if (props.item.kind === "connector") return <ConnectionControls {...props} />;
-  if (props.item.kind === "stroke") return null;
+  if (isLink(props.item)) return <ConnectionControls {...props} />;
+  if (props.item.type === "drawing") return null;
   return <GeometryControls {...props} />;
 }

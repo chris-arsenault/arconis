@@ -18,12 +18,6 @@ const config: McpConfig = {
   authDomain: "https://arconis.auth.us-east-1.amazoncognito.com",
 };
 const TOKENS: Record<string, string> = { alice: "user-alice", bob: "user-bob" };
-interface Reply {
-  status: string;
-  reason?: string;
-  result?: Record<string, unknown>;
-  changes: { items: unknown[] };
-}
 
 /** A person's browser in miniature: the real provider over a real socket to the relay. */
 class SocketTransport implements Transport {
@@ -114,7 +108,7 @@ async function agent(token = "alice") {
     const result = (await client.callTool({ name, arguments: args })) as {
       content: { text: string }[];
     };
-    return JSON.parse(result.content[0].text) as Reply;
+    return result.content[0].text;
   };
   return { client, call };
 }
@@ -164,33 +158,16 @@ describe("working in a room", () => {
     const alice = await person();
     const { call } = await agent();
     const opened = await call("open_room", { room: `https://arconis.ahara.io/#room=${ROOM}` });
-    expect(opened).toMatchObject({ status: "done", result: { present: ["Alice"] } });
-    const added = await call("apply", {
-      operations: [
-        {
-          op: "add",
-          type: "node",
-          stencil: "service",
-          name: "Auth",
-          at: { x: 0, y: 0 },
-          as: "auth",
-        },
-        {
-          op: "add",
-          type: "node",
-          stencil: "database",
-          name: "Users DB",
-          at: { beside: "auth", side: "right" },
-        },
-        { op: "connect", from: "auth", to: "Users DB", name: "reads" },
-      ],
+    expect(opened).toMatch(/People here: Alice/);
+    const added = await call("write", {
+      statements: 'node auth "Auth" service at 0,0\nauth -> node db "Users DB" database "reads"',
     });
-    expect(added.status).toBe("done");
+    expect(added).toMatch(/Done: 3 created/);
     await expect
       .poll(() =>
         alice.document
           .list()
-          .map((object) => object.label)
+          .map((item) => item.name)
           .sort((a, b) => a.localeCompare(b))
       )
       .toEqual(["Auth", "reads", "Users DB"]);
@@ -204,23 +181,19 @@ describe("working in a room", () => {
     const alice = await person();
     const { call } = await agent();
     await call("open_room", { room: ROOM });
-    await call("apply", {
-      operations: [{ op: "add", type: "node", name: "Box", at: { x: 0, y: 0 } }],
-    });
+    await call("write", { statements: 'node box "Box" at 0,0' });
     await expect.poll(() => alice.document.list().length).toBe(1);
-    alice.document.patch(alice.document.list()[0].id, { y: 500 });
+    alice.document.patch("box", { y: 500 });
     // Long enough for the person's edit to cross the relay, far shorter than any timeout.
     await new Promise((resolve) => setTimeout(resolve, 300));
-    const move = { operations: [{ op: "place", item: "Box", to: { by: { dx: 100, dy: 0 } } }] };
-    const refused = await call("apply", move);
-    expect(refused).toMatchObject({
-      status: "refused",
-      current: [expect.objectContaining({ name: "Box", y: 500 })],
-      changes: { items: [expect.objectContaining({ name: "Box", what: ["moved"] })] },
-    });
+    const move = { statements: "edit box by 100,0" };
+    const refused = await call("write", move);
+    expect(refused).toMatch(/^\/\/ Nothing was changed\. Since you last saw them/);
+    expect(refused).toMatch(/node box "Box" at 0,500/);
+    expect(refused).toMatch(/Others changed since your last call:\nnode box "Box" at 0,500/);
     expect(alice.document.list()[0].x).toBe(0);
     // Having been shown the change, the agent resends and the move composes with it.
-    expect((await call("apply", move)).status).toBe("done");
+    expect(await call("write", move)).toMatch(/Done/);
     await expect.poll(() => alice.document.list()[0]).toMatchObject({ x: 100, y: 500 });
   });
 });
@@ -228,17 +201,14 @@ describe("working in a room", () => {
 describe("rooms an agent cannot use", () => {
   it("refuses rooms it cannot work in", async () => {
     const { call } = await agent();
-    expect(await call("open_room", { room: ROOM })).toMatchObject({
-      status: "failed",
-      reason: expect.stringMatching(/Nobody has this room open/),
-    });
-    expect(
-      await call("open_room", { room: `https://arconis.ahara.io/#locked=${ROOM}` })
-    ).toMatchObject({ reason: expect.stringMatching(/password room/) });
-    expect(
-      await call("open_room", { room: `https://arconis.ahara.io/#local=${ROOM}` })
-    ).toMatchObject({ reason: expect.stringMatching(/only in one browser/) });
-    expect(await call("read")).toMatchObject({ reason: "Open a room first with open_room." });
+    expect(await call("open_room", { room: ROOM })).toMatch(/Nobody has this room open/);
+    expect(await call("open_room", { room: `https://arconis.ahara.io/#locked=${ROOM}` })).toMatch(
+      /password room/
+    );
+    expect(await call("open_room", { room: `https://arconis.ahara.io/#local=${ROOM}` })).toMatch(
+      /only in one browser/
+    );
+    expect(await call("read")).toMatch(/Open a room first with open_room\./);
   });
 
   it("stops editing once everyone has left, since nothing would be kept", async () => {
@@ -247,12 +217,7 @@ describe("rooms an agent cannot use", () => {
     await call("open_room", { room: ROOM });
     alice.provider.destroy();
     await expect.poll(() => relay.peopleIn(ROOM)).toBe(0);
-    expect(
-      await call("apply", { operations: [{ op: "add", type: "node", name: "Lost" }] })
-    ).toMatchObject({
-      status: "failed",
-      reason: expect.stringMatching(/Everyone has left/),
-    });
+    expect(await call("write", { statements: 'node lost "Lost"' })).toMatch(/Everyone has left/);
   });
 
   it("does not keep the relay running for agents alone", async () => {

@@ -17,7 +17,7 @@ import {
 import type { AlignMode } from "../document/relations";
 import { branchChildren, referencesOf } from "../document/relations";
 import { SCREEN_SIZES } from "../document/screens";
-import { KIND_LABELS, type CanvasObject } from "../document/types";
+import { isBox, typeLabel, type Item } from "../document/types";
 import type { EditorController } from "../editor/controller";
 import {
   addBranch,
@@ -61,7 +61,7 @@ function SmallAction({
 }
 
 export function AlignControls({ editor }: Readonly<{ editor: EditorController }>) {
-  const objects = editor.selected().filter((item) => !["connector", "stroke"].includes(item.kind));
+  const objects = editor.selected().filter(isBox);
   if (objects.length < 2) return null;
   const run = (action: () => void) => () => {
     action();
@@ -98,8 +98,8 @@ export function AlignControls({ editor }: Readonly<{ editor: EditorController }>
 export function ScreenSizeControl({
   editor,
   item,
-}: Readonly<{ editor: EditorController; item: CanvasObject }>) {
-  if (item.kind !== "panel") return null;
+}: Readonly<{ editor: EditorController; item: Item }>) {
+  if (item.type !== "frame") return null;
   const current = SCREEN_SIZES.find(
     (size) => size.width === item.width && size.height === item.height
   );
@@ -132,7 +132,7 @@ function ReferenceRow({
 }: Readonly<{ editor: EditorController; id: string; other: string; outgoing: boolean }>) {
   const target = editor.document.get(other);
   if (!target) return null;
-  const name = target.label || KIND_LABELS[target.kind];
+  const name = target.name || typeLabel(target);
   return (
     <li className="reference-row">
       <button className="reference-target" onClick={() => jumpTo(editor, other)}>
@@ -153,7 +153,7 @@ function ReferenceRow({
 export function TopicControls({
   editor,
   selected,
-}: Readonly<{ editor: EditorController; selected: CanvasObject[] }>) {
+}: Readonly<{ editor: EditorController; selected: Item[] }>) {
   const [item] = selected;
   if (!item) return null;
   const items = editor.document.list();

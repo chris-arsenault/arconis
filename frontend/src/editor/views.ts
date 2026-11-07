@@ -1,12 +1,12 @@
 import type { Graph } from "@maxgraph/core";
 import { worldBounds } from "../document/relations";
-import type { CanvasObject, SavedView } from "../document/types";
+import type { Item, View } from "../document/types";
 import { clampScale } from "./zoom";
 
 const FLY_MS = 350;
 
 /** Measures from the document, because objects too small to draw can still be all there is. */
-export function fitContents(graph: Graph, element: HTMLElement, items: CanvasObject[]) {
+export function fitContents(graph: Graph, element: HTMLElement, items: Item[]) {
   const bounds = worldBounds(items);
   if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
   const scale = clampScale(
@@ -27,31 +27,14 @@ function viewportCenter(graph: Graph, element: HTMLElement) {
   };
 }
 
-export function createView(graph: Graph, element: HTMLElement, name: string): SavedView {
-  const { scale, translate } = graph.view;
-  const center = viewportCenter(graph, element);
-  return {
-    id: crypto.randomUUID(),
-    name,
-    scale,
-    x: translate.x,
-    y: translate.y,
-    centerX: center.x,
-    centerY: center.y,
-  };
-}
-
-function targetCenter(view: SavedView, element: HTMLElement) {
-  return {
-    x: view.centerX ?? element.clientWidth / 2 / view.scale - view.x,
-    y: view.centerY ?? element.clientHeight / 2 / view.scale - view.y,
-  };
+export function createView(graph: Graph, element: HTMLElement, name: string): Omit<View, "id"> {
+  return { name, zoom: graph.view.scale, center: viewportCenter(graph, element) };
 }
 
 /** Animates to a saved view, centered in the current window whatever its size. */
-export function flyToView(graph: Graph, element: HTMLElement, view: SavedView) {
+export function flyToView(graph: Graph, element: HTMLElement, view: View) {
   const start = viewportCenter(graph, element);
-  const target = targetCenter(view, element);
+  const target = view.center;
   const startScale = graph.view.scale;
   const place = (scale: number, x: number, y: number) =>
     graph.view.scaleAndTranslate(
@@ -60,7 +43,7 @@ export function flyToView(graph: Graph, element: HTMLElement, view: SavedView) {
       element.clientHeight / 2 / scale - y
     );
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    place(view.scale, target.x, target.y);
+    place(view.zoom, target.x, target.y);
     return;
   }
   const began = performance.now();
@@ -68,7 +51,7 @@ export function flyToView(graph: Graph, element: HTMLElement, view: SavedView) {
     const progress = Math.min(1, (now - began) / FLY_MS);
     const eased = 1 - (1 - progress) ** 3;
     place(
-      startScale * (view.scale / startScale) ** eased,
+      startScale * (view.zoom / startScale) ** eased,
       start.x + (target.x - start.x) * eased,
       start.y + (target.y - start.y) * eased
     );

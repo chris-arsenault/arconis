@@ -1,25 +1,30 @@
 import { it, expect, beforeAll } from "vitest";
 import { iconEntries, iconImage, loadAllVendors, loadIcons, searchIcons } from "./icons";
 import { objectStyle } from "./styles";
-import type { CanvasObject } from "../document/types";
+import type { Item, Look } from "../document/types";
 
 beforeAll(loadIcons);
 
-function icon(style: CanvasObject["style"]): CanvasObject {
+function icon(key: string, look: Record<string, unknown> = {}): Item {
   return {
     id: "a",
-    kind: "icon",
-    label: "",
+    type: "node",
+    stencil: "icon",
+    icon: key,
+    name: "",
+    subtitle: "",
     x: 0,
     y: 0,
     width: 64,
     height: 64,
-    parent: "",
-    source: "",
-    target: "",
-    points: "[]",
+    inside: "",
+    from: "",
+    to: "",
+    points: [],
     order: 0,
-    style,
+    style: "",
+    look: look as Look,
+    onLine: "",
   };
 }
 
@@ -37,12 +42,16 @@ it("accepts only hex colors in generated icon markup", () => {
   expect(decodeURIComponent(iconImage("lucide:Database", "#ff0000")!)).toContain("#ff0000");
 });
 
-it("never lets document style choose an image URL", () => {
-  const hostile = objectStyle(icon({ icon: "lucide:Database", image: "https://evil.example/x" }));
+it("never lets what a peer writes choose an image URL", () => {
+  const hostile = objectStyle(icon("lucide:Database", { image: "https://evil.example/x" }));
   expect(hostile.image).toContain("data:image/svg+xml");
-  expect(objectStyle(icon({ icon: "https://evil.example/x" })).image).toBeUndefined();
-  const shape = objectStyle({ ...icon({ image: "https://evil.example/x" }), kind: "rectangle" });
+  expect(objectStyle(icon("https://evil.example/x")).image).toBeUndefined();
+  const shape = objectStyle({
+    ...icon("", { image: "https://evil.example/x", shape: "image" }),
+    stencil: "rectangle",
+  });
   expect(shape.image).toBeUndefined();
+  expect(shape.shape).toBe("rectangle");
 });
 
 it("loads vendor sets containing no active content", async () => {
@@ -66,11 +75,11 @@ it("loads vendor sets containing no active content", async () => {
 });
 
 it("strips rotation from vendor icons whatever a peer writes", () => {
-  const style = objectStyle(icon({ icon: "aws:Arch_AWS-Lambda", rotation: 45 }));
+  const style = objectStyle(icon("aws:AWS-Lambda", { rotation: 45 }));
   expect(style.rotation).toBeUndefined();
   expect(style.aspect).toBe("fixed");
   expect(style.rotatable).toBe(false);
-  expect(objectStyle(icon({ icon: "lucide:Database", rotation: 45 })).rotation).toBe(45);
+  expect(objectStyle(icon("lucide:Database", { rotation: 45 })).rotation).toBe(45);
 });
 
 it("offers both icon sets for search", () => {

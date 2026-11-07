@@ -1,6 +1,6 @@
 # 0013 — Agents work through domain tools on the relay
 
-- Status: Accepted
+- Status: Accepted; amended by ADR-0014
 - Date: 2026-11-07
 - Amends: ADR-0009
 

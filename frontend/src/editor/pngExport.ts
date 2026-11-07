@@ -1,6 +1,6 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import { worldBounds } from "../document/relations";
-import type { CanvasObject } from "../document/types";
+import type { Item } from "../document/types";
 
 const MARGIN_PIXELS = 20;
 const HIDE_ATTRIBUTE = "data-export-hidden";
@@ -130,7 +130,7 @@ async function rasterize({ pane, width, height }: ReturnType<typeof renderSvg>) 
  * Draws the named objects as a PNG, or the whole canvas when `ids` is empty. Returns null when there
  * is nothing to draw.
  */
-export async function renderPng(graph: Graph, ids: string[], items: CanvasObject[]) {
+export async function renderPng(graph: Graph, ids: string[], items: Item[]) {
   const cells = shownCells(graph, new Set(ids));
   // Everything can be too small to draw at this zoom, while still being worth exporting.
   const chosen = new Set(ids);

@@ -8,11 +8,8 @@ import {
   setResolved,
   type CanvasComment,
 } from "../document/comments";
-import { anchorOf } from "../document/relations";
-import { isVertexKind } from "../document/geometry";
-import type { CanvasObject } from "../document/types";
+import type { Item } from "../document/types";
 import type { EditorController } from "../editor/controller";
-import { endpointFor } from "../editor/topics";
 import { Section } from "./ConnectionControls";
 
 function CommentBody({
@@ -67,18 +64,15 @@ function CommentBox({
   );
 }
 
-/** Threads on the selected object. A line's comments sit on its anchor, as its other links do. */
+/** Threads on the selected item, including lines. */
 export function CommentControls({
   editor,
   item,
   author,
-}: Readonly<{ editor: EditorController; item: CanvasObject; author: string }>) {
-  const items = editor.document.list();
-  const targetId = isVertexKind(item.kind) ? item.id : (anchorOf(items, item.id)?.id ?? "");
-  const threads = groupThreads(listComments(editor.document), targetId);
+}: Readonly<{ editor: EditorController; item: Item; author: string }>) {
+  const threads = groupThreads(listComments(editor.document), item.id);
   const add = (text: string, thread = "") => {
-    const objectId = thread ? targetId : endpointFor(editor, item);
-    if (objectId) addComment(editor.document, { objectId, author, text, thread });
+    addComment(editor.document, { on: item.id, author, text, thread });
     editor.emit();
   };
   return (

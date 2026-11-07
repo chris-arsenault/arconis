@@ -1,5 +1,6 @@
 import type { Graph } from "@maxgraph/core";
-import type { CanvasObject, ObjectKind, StyleValue } from "../document/types";
+import { isBox, type Item, type ItemType, type Stencil } from "../document/types";
+import { defaultSize } from "../document/canvasDocument";
 
 export const MIN_SCALE = 0.001;
 export const MAX_SCALE = 1000;
@@ -37,38 +38,20 @@ export function creationOffset(scale: number) {
   return creationFactor(scale);
 }
 
-const STYLE_DEFAULTS: Partial<Record<ObjectKind, Record<string, number>>> = {
-  sticky: { fontSize: 16, spacing: 20 },
-  text: { fontSize: 22, spacing: 14 },
-  connector: { fontSize: 14, strokeWidth: 2, startSize: 6, endSize: 6 },
-  stroke: { strokeWidth: 3 },
-  panel: { fontSize: 13, strokeWidth: 1, startSize: 28 },
-};
-const SHAPE_STYLE = { fontSize: 14, spacing: 14, strokeWidth: 1 };
-
-const DEFAULT_SIZES: Partial<Record<ObjectKind, [number, number]>> = {
-  sticky: [190, 170],
-  icon: [64, 64],
-  panel: [320, 220],
-};
-
-/** The world size of a new object at this zoom. */
-export function creationSize(kind: ObjectKind, scale: number) {
+/** The world size of a new item at this zoom. */
+export function creationSize(type: ItemType, scale: number, stencil?: Stencil) {
   const factor = creationFactor(scale);
-  const [width, height] = DEFAULT_SIZES[kind] ?? [160, 90];
+  const [width, height] = defaultSize(type, stencil);
   return { width: width * factor, height: height * factor };
 }
 
-/** Size and style for an object created at this zoom. Empty near 100%. */
-export function creationValues(kind: ObjectKind, scale: number): Partial<CanvasObject> {
+/** Size and scale for an item created at this zoom. Empty near 100%. */
+export function creationValues(type: ItemType, scale: number, stencil?: Stencil): Partial<Item> {
   const factor = creationFactor(scale);
   if (factor === 1) return {};
-  const style: Record<string, StyleValue> = {};
-  Object.entries(STYLE_DEFAULTS[kind] ?? SHAPE_STYLE).forEach(([key, value]) => {
-    style[key] = value * factor;
-  });
-  if (kind === "connector" || kind === "stroke") return { style };
-  return { ...creationSize(kind, scale), style };
+  const look = { scale: factor };
+  if (!isBox({ type })) return { look };
+  return { ...creationSize(type, scale, stencil), look };
 }
 
 /** Applies the parts of the view that follow zoom: the snapping grid and its visible lines. */

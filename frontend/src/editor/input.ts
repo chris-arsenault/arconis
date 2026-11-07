@@ -1,6 +1,6 @@
-import type { EditorController } from "./controller";
+import type { EditorController, Shape } from "./controller";
 import { PanningHandler } from "@maxgraph/core";
-import type { ObjectKind } from "../document/types";
+import type { PathPoint } from "../document/types";
 import { simplifyPath } from "../document/geometry";
 import { clampScale, creationValues, roundForScale } from "./zoom";
 import { addBranch, zoomIntoSelection, zoomOutOfSelection } from "./topics";
@@ -46,10 +46,10 @@ function keyboard(editor: EditorController, event: KeyboardEvent) {
     },
     v: () => editor.setTool("select"),
     h: () => editor.setTool("pan"),
-    n: () => editor.setTool("sticky"),
+    n: () => editor.setTool("note"),
     r: () => editor.setTool("rectangle"),
-    d: () => editor.setTool("diamond"),
-    p: () => editor.setTool("stroke"),
+    d: () => editor.setTool("decision"),
+    p: () => editor.setTool("draw"),
     "]": () => editor.stack("front"),
     "[": () => editor.stack("back"),
     enter: () => (event.altKey ? addBranch(editor, true) : editSelection(editor)),
@@ -91,7 +91,7 @@ function cellAt(editor: EditorController, event: MouseEvent) {
 }
 
 function bindPointerTools(editor: EditorController, options: { signal: AbortSignal }) {
-  let points: [number, number][] = [];
+  let points: PathPoint[] = [];
   let pendingEdit = "";
   const addSample = (event: { clientX: number; clientY: number }) => {
     const { x, y } = editor.worldPoint(event);
@@ -105,19 +105,19 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
       if (event.button !== 0 || ["select", "pan"].includes(editor.tool)) return;
       event.preventDefault();
       event.stopPropagation();
-      if (editor.tool === "stroke") {
+      if (editor.tool === "draw") {
         const { x, y } = editor.worldPoint(event);
         points = [[x, y]];
         editor.element.setPointerCapture(event.pointerId);
-      } else if (editor.tool === "connector") {
+      } else if (editor.tool === "connect") {
         const cell = cellAt(editor, event);
         if (cell?.isVertex())
           editor.connectionSource = connectClick(editor, editor.connectionSource, cell.id!);
       } else {
-        const kind = editor.tool as ObjectKind;
+        const shape = editor.tool as Shape;
         const point = editor.graph.getPointForEvent(event);
-        const id = editor.add(kind, point.x, point.y);
-        if (kind === "sticky" || kind === "text") pendingEdit = id;
+        const id = editor.add(shape, point.x, point.y);
+        if (shape === "note" || shape === "text") pendingEdit = id;
       }
     },
     { ...options, capture: true }
@@ -137,13 +137,13 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
     () => {
       if (points.length > 1) {
         const { scale } = editor.graph.view;
-        const path = simplifyPath(points, 0.5 / scale).map(([x, y]) => [
+        const path = simplifyPath(points, 0.5 / scale).map(([x, y]): PathPoint => [
           roundForScale(x, scale),
           roundForScale(y, scale),
         ]);
-        editor.document.create("stroke", 0, 0, {
-          points: JSON.stringify(path),
-          ...creationValues("stroke", scale),
+        editor.document.create("drawing", 0, 0, {
+          points: path,
+          ...creationValues("drawing", scale),
         });
       }
       points = [];
@@ -206,10 +206,10 @@ function connectClick(editor: EditorController, source: string, target: string) 
     editor.select(target);
     return target;
   }
-  editor.document.create("connector", 0, 0, {
-    source,
-    target,
-    ...creationValues("connector", editor.graph.view.scale),
+  editor.document.create("line", 0, 0, {
+    from: source,
+    to: target,
+    ...creationValues("line", editor.graph.view.scale),
   });
   editor.setTool("select");
   return "";
@@ -261,7 +261,7 @@ function wheelHandler(editor: EditorController, signal: AbortSignal) {
   };
 }
 
-function drawPreview(editor: EditorController, points: [number, number][]) {
+function drawPreview(editor: EditorController, points: PathPoint[]) {
   const ns = "http://www.w3.org/2000/svg";
   let svg = editor.element.querySelector<SVGSVGElement>(".stroke-preview");
   if (!svg) {

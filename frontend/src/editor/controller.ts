@@ -6,31 +6,26 @@ import {
   VertexHandlerConfig,
 } from "@maxgraph/core";
 import { CanvasDocument } from "../document/canvasDocument";
-import {
-  KIND_LABELS,
-  LOCAL,
-  type ObjectKind,
-  type SavedView,
-  type CanvasObject,
-} from "../document/types";
+import { LOCAL, isBox, isFrame, isLink, type Item, type View } from "../document/types";
+import { defaultName, newItemSize, shapeItem, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
 import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { configureConnectionPoints } from "./connectionPoints";
-import { clampScale, creationOffset, creationSize, creationValues, syncZoom } from "./zoom";
+import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
 import { configureCulling } from "./culling";
 import { LabelMarks } from "./marks";
 import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
 import { configureComposition, endpointFor, syncLineAnchors } from "./topics";
-import { LINE_ANCHOR } from "../document/relations";
 import type { ScreenSize } from "../document/screens";
 import { createView, fitContents, flyToView } from "./views";
 import { subscribeIcons } from "./icons";
 import { subscribePictures } from "./pictureSource";
 import { configurePanels, containerAt } from "./panels";
-import { compareStacking, isContainerKind, isVertexKind } from "../document/geometry";
+import { compareStacking } from "../document/geometry";
+import { newId } from "../document/ids";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 import { CanvasGrid } from "./grid";
 import { RateLimitedWrite } from "./rateLimitedWrite";
@@ -38,16 +33,7 @@ import { RateLimitedWrite } from "./rateLimitedWrite";
 /** How often a selection-frame gesture writes to the document, and so reaches peers. */
 const TRANSFORM_WRITE_MS = 100;
 
-export type Tool = ObjectKind | "select" | "pan";
-
-const defaultLabel = (kind: ObjectKind) =>
-  kind === "sticky" ? "Your idea here" : KIND_LABELS[kind];
-
-function newObjectSize(kind: ObjectKind, scale: number, screen: ScreenSize | null) {
-  if (!screen) return creationSize(kind, scale);
-  const factor = creationOffset(scale);
-  return { width: screen.width * factor, height: screen.height * factor };
-}
+export type { Shape, Tool } from "./shapes";
 
 export class EditorController {
   readonly graph: Graph;
@@ -83,7 +69,7 @@ export class EditorController {
     VertexHandlerConfig.rotationEnabled = true;
     this.graph = new Graph(element);
     this.grid = new CanvasGrid(this.graph, element);
-    this.graph.getDataModel().createId = () => crypto.randomUUID();
+    this.graph.getDataModel().createId = () => newId((id) => this.document.items.has(id));
     this.graph.setPanning(true);
     this.graph.setConnectable(true);
     this.graph.setAllowDanglingEdges(false);
@@ -205,7 +191,7 @@ export class EditorController {
     this.emit();
   }
   armScreen(screen: ScreenSize) {
-    this.setTool("panel");
+    this.setTool("frame");
     this.armedScreen = screen;
     this.emit();
   }
@@ -224,22 +210,23 @@ export class EditorController {
     this.emit();
   }
 
-  add(kind: ObjectKind, x?: number, y?: number, icon = this.armedIcon, screen = this.armedScreen) {
+  add(shape: Shape, x?: number, y?: number, icon = this.armedIcon, screen = this.armedScreen) {
     const view = this.graph.view;
     const centerX = this.element.clientWidth / 2 / view.scale - view.translate.x;
     const centerY = this.element.clientHeight / 2 / view.scale - view.translate.y;
     const size = creationOffset(view.scale);
-    const offset = (this.document.objects.size % 6) * 16 * size;
+    const offset = (this.document.items.size % 6) * 16 * size;
     const left = x ?? centerX + (offset - 80) * size;
     const top = y ?? centerY + (offset - 45) * size;
-    const zoomed = creationValues(kind, view.scale);
-    const dimensions = newObjectSize(kind, view.scale, screen);
-    const id = this.document.create(kind, left, top, {
-      label: screen?.name ?? icon?.title ?? defaultLabel(kind),
-      parent: containerAt(this.document, left, top, dimensions),
-      ...zoomed,
+    const { type, stencil } = shapeItem(shape);
+    const dimensions = newItemSize(shape, view.scale, screen);
+    const id = this.document.create(type, left, top, {
+      name: screen?.name ?? icon?.title ?? defaultName(shape),
+      inside: containerAt(this.document, left, top, dimensions),
+      stencil,
+      ...creationValues(type, view.scale, stencil),
       ...dimensions,
-      style: { ...zoomed.style, ...(icon ? { icon: icon.key } : {}) },
+      ...(icon ? { icon: icon.key } : {}),
     });
     this.select(id);
     this.setTool("select");
@@ -296,18 +283,17 @@ export class EditorController {
     this.document.undo.captureTimeout = Number.MAX_SAFE_INTEGER;
   }
   /** Writes at a bounded rate, because each write rewrites every point of every drawing moved. */
-  applyTransform(items: CanvasObject[], transform: SelectionTransform) {
+  applyTransform(items: Item[], transform: SelectionTransform) {
     this.transformWrites.schedule(() => this.writeTransform(items, transform));
   }
-  private writeTransform(items: CanvasObject[], transform: SelectionTransform) {
+  private writeTransform(items: Item[], transform: SelectionTransform) {
     const values = transformObjects(items, transform);
     this.document.doc.transact(() => {
-      this.document.freezeLegacyGeometry();
       items.forEach((item) => {
         const { rotation, ...geometry } = values.get(item.id)!;
         this.document.patch(item.id, geometry);
-        if (isVertexKind(item.kind) && !isContainerKind(item.kind) && transform.angle)
-          this.document.patchStyle(item.id, { rotation });
+        if (isBox(item) && !isFrame(item) && transform.angle)
+          this.document.patchLook(item.id, { rotation });
       });
     }, LOCAL);
   }
@@ -316,7 +302,7 @@ export class EditorController {
     this.document.undo.captureTimeout = 400;
     this.document.undo.stopCapturing();
   }
-  updateGeometry(id: string, values: Partial<Pick<CanvasObject, "x" | "y" | "width" | "height">>) {
+  updateGeometry(id: string, values: Partial<Pick<Item, "x" | "y" | "width" | "height">>) {
     const model = this.graph.getDataModel();
     const cell = model.getCell(id);
     if (!cell?.geometry) return;
@@ -335,14 +321,14 @@ export class EditorController {
     ungroupSelection(this);
   }
   connect() {
-    const selected = this.selected().filter((item) => item.kind !== "stroke");
+    const selected = this.selected().filter((item) => item.type !== "drawing");
     if (selected.length !== 2) return;
-    const [source, target] = selected.map((item) => endpointFor(this, item));
-    if (source && target)
-      this.document.create("connector", 0, 0, {
-        source,
-        target,
-        ...creationValues("connector", this.graph.view.scale),
+    const [from, to] = selected.map((item) => endpointFor(this, item));
+    if (from && to)
+      this.document.create("line", 0, 0, {
+        from,
+        to,
+        ...creationValues("line", this.graph.view.scale),
       });
   }
   duplicate() {
@@ -362,11 +348,11 @@ export class EditorController {
     while (previousSize !== ids.size) {
       previousSize = ids.size;
       objects
-        .filter((item) => ids.has(item.parent) || ids.has(String(item.style[LINE_ANCHOR])))
+        .filter((item) => ids.has(item.inside) || ids.has(item.onLine))
         .forEach((item) => ids.add(item.id));
     }
     objects
-      .filter((item) => item.kind === "connector" && ids.has(item.source) && ids.has(item.target))
+      .filter((item) => isLink(item) && ids.has(item.from) && ids.has(item.to))
       .forEach((item) => ids.add(item.id));
     return [...ids];
   }
@@ -379,21 +365,24 @@ export class EditorController {
     this.emit();
   }
   savedViews() {
-    return [...this.document.views.values()].map((value) => JSON.parse(value) as SavedView);
+    return [...this.document.views.values()];
   }
-  private writeView(view: SavedView) {
-    this.document.doc.transact(() => this.document.views.set(view.id, JSON.stringify(view)), LOCAL);
+  private writeView(view: View) {
+    this.document.doc.transact(() => this.document.views.set(view.id, view), LOCAL);
   }
   saveView(name: string) {
-    this.writeView(createView(this.graph, this.element, name));
+    this.writeView({
+      ...createView(this.graph, this.element, name),
+      id: newId((id) => this.document.views.has(id)),
+    });
   }
-  renameView(view: SavedView, name: string) {
+  renameView(view: View, name: string) {
     this.writeView({ ...view, name });
   }
   removeView(id: string) {
     this.document.doc.transact(() => this.document.views.delete(id), LOCAL);
   }
-  goToView(view: SavedView) {
+  goToView(view: View) {
     flyToView(this.graph, this.element, view);
   }
   destroy() {

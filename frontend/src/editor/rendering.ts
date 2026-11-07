@@ -23,6 +23,27 @@ function escapeLabel(value: unknown) {
     .replaceAll(">", "&gt;");
 }
 
+/** Keys `objectStyle` sets for the label alone: a subtitle and a badge's image. */
+export const LABEL_SUBTITLE = "labelSubtitle";
+export const LABEL_BADGE = "labelBadge";
+
+/**
+ * A label's markup: the name, bold over a subtitle when there is one, after a badge when there is
+ * one. Names and subtitles come from peers and are escaped; a badge is only ever a local icon's data
+ * address, which `objectStyle` resolves from the icon sets.
+ */
+function composeLabel(cell: Cell, marks: string) {
+  const style = cell.getStyle() as Record<string, unknown>;
+  const subtitle = typeof style[LABEL_SUBTITLE] === "string" ? style[LABEL_SUBTITLE] : "";
+  const badge = typeof style[LABEL_BADGE] === "string" ? style[LABEL_BADGE] : "";
+  let name = escapeLabel(cell.value);
+  if (subtitle)
+    name = `<b>${name}</b><br><span style="font-weight:normal;font-size:0.85em;opacity:0.85">${escapeLabel(subtitle)}</span>`;
+  if (badge.startsWith("data:image/"))
+    name = `<img src="${badge.replaceAll('"', "%22")}" alt="" style="width:1.3em;height:1.3em;vertical-align:middle;margin-right:0.4em">${name}`;
+  return [name, marks].filter(Boolean).join(" ");
+}
+
 /** `marks` adds signs to a label, such as that an object holds more than is drawn. */
 export function configureRendering(graph: Graph, marks: (cell: Cell) => string) {
   HandleConfig.fillColor = "#f4f2fd";
@@ -34,7 +55,7 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => string) 
   graph.setHtmlLabels(true);
   graph.getLabel = (cell) => {
     if (!cell || !labelIsLegible(cell, graph.view.scale)) return "";
-    return [escapeLabel(cell.value), marks(cell)].filter(Boolean).join(" ");
+    return composeLabel(cell, marks(cell));
   };
   // Measuring each shape with getBBox forces layout per cell and dominated zoom time.
   const renderer = graph.cellRenderer;

@@ -106,13 +106,13 @@ function ShapeStencil({
   return (
     <StencilButton
       label={stencil.label}
-      pressed={editor.tool === stencil.kind && !editor.armedScreen}
-      onArm={() => editor.setTool(stencil.kind)}
+      pressed={editor.tool === stencil.shape && !editor.armedScreen}
+      onArm={() => editor.setTool(stencil.shape)}
       onDrop={(event) => {
         const point = pointInCanvas(editor, event);
         if (!point) return;
-        const id = editor.add(stencil.kind, point.x, point.y);
-        if (stencil.kind === "sticky" || stencil.kind === "text") editor.edit(id, true);
+        const id = editor.add(stencil.shape, point.x, point.y);
+        if (stencil.shape === "note" || stencil.shape === "text") editor.edit(id, true);
       }}
     >
       <stencil.icon size={20} strokeWidth={1.5} />
@@ -132,7 +132,7 @@ function ScreenStencil({
       onArm={() => editor.armScreen(screen)}
       onDrop={(event) => {
         const point = pointInCanvas(editor, event);
-        if (point) editor.add("panel", point.x, point.y, null, screen);
+        if (point) editor.add("frame", point.x, point.y, null, screen);
       }}
     >
       <PanelTop size={20} strokeWidth={1.5} />
@@ -236,7 +236,7 @@ function SearchResults({
   return (
     <Group title="Results">
       {shapes.map((stencil) => (
-        <ShapeStencil key={stencil.kind} editor={editor} stencil={stencil} />
+        <ShapeStencil key={stencil.shape} editor={editor} stencil={stencil} />
       ))}
       <IconButtons editor={editor} entries={icons} armedKey={editor.armedIcon?.key ?? ""} />
     </Group>
@@ -280,7 +280,7 @@ export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }
             {STENCIL_GROUPS.map((group) => (
               <Group key={group.title} title={group.title}>
                 {group.stencils.map((stencil) => (
-                  <ShapeStencil key={stencil.kind} editor={editor} stencil={stencil} />
+                  <ShapeStencil key={stencil.shape} editor={editor} stencil={stencil} />
                 ))}
               </Group>
             ))}

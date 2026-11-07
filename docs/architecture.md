@@ -7,57 +7,55 @@ while they do.
 
 ## Document model
 
-Yjs holds the canonical document ([ADR-0001](adr/0001-yjs-canonical-maxgraph-projection.md)). Each
-object is a map keyed by a stable identifier, with properties for kind, geometry, parent, connector
-endpoints, stacking order and styles, plus a `Y.Text` label. Undo tracks local origins, so remote
-edits stay independent of a participant's undo history.
+Yjs holds the canonical document ([ADR-0001](adr/0001-yjs-canonical-maxgraph-projection.md)), and its
+items are the canvas language's items field for field ([ADR-0014](adr/0014-one-canvas-language.md)).
+`document/types.ts` declares them. Each item is a map keyed by a short id people can type, holding its
+type, a `Y.Text` name, a subtitle, its holder (`inside`), box, stacking order, a named style and a look
+in plain terms, and by type a stencil, icon, line ends and ports, points or a picture. Named styles,
+views and comments sit in maps beside the items. Undo tracks local origins, so remote edits stay
+independent of a participant's undo history. Records a peer writes in an unknown shape are ignored.
 
-- **Geometry.** Vertex positions and route and stroke points are world coordinates, and only
-  maxGraph uses parent-relative geometry ([ADR-0004](adr/0004-canonical-world-geometry.md)).
-  Connector `x` and `y` are relative label coordinates. Records written by older clients keep their
-  legacy fields, and a frozen compatibility baseline stays separate from per-axis movement fields.
-- **Files.** Exports are the domain read model written out (version 3, below); versions 1 and 2, which
-  stored these records directly, still import, and older geometry normalizes then. A PNG export
-  holds the same document in a compressed text chunk (`document/pngCopy.ts`), and its picture is the
-  graph's draw pane rendered offscreen at an export scale (`editor/pngExport.ts`).
-- **Stacking.** Each record's `order` sets its stacking position, with its identifier breaking ties,
-  because `Y.Map` iteration differs between peers. Records from older clients stack by identifier
-  until reordered.
-- **Connectors.** A connector identifies its endpoint objects, and its style map holds any chosen
-  connection points. A connector with a missing endpoint stays in Yjs, hidden from the graph, so
-  out-of-order updates can complete it.
-- **Containers.** Any object holds children through `parent`, and children keep world coordinates. A
-  group's frame follows its members; everything else keeps its size. Parent cycles break
-  deterministically during projection.
-- **Topics.** Branches and references are connectors marked in their style, and a line joins them
-  through an anchor object kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)).
-  `document/relations.ts` holds the tree, layout and alignment logic.
-- **Icons.** An icon stores a key from the local Lucide and Simple Icons sets, resolved to an image at
-  projection. Document styles can never supply an image, because peers write them.
+- **Geometry.** Box positions and line and drawing points are world coordinates, and only maxGraph
+  uses holder-relative geometry ([ADR-0004](adr/0004-canonical-world-geometry.md)). A line's `x` and
+  `y` place its label.
+- **Files.** A file is the whole canvas written in the canvas language, with picture bytes at the end.
+  A PNG export holds the same text in a compressed text chunk (`document/pngCopy.ts`), and its picture
+  is the graph's draw pane rendered offscreen at an export scale (`editor/pngExport.ts`). Opening a file
+  keeps its ids where they are free.
+- **Stacking.** Each item's `order` sets its stacking position, with its id breaking ties, because
+  `Y.Map` iteration differs between peers.
+- **Lines.** A line names the items at its ends and any ports where it attaches. A line with a missing
+  end stays in Yjs, hidden from the graph, so out-of-order updates can complete it.
+- **Holders.** Any item holds others through `inside`, and they keep world coordinates. A group's
+  frame follows its members; everything else keeps its size. Cycles break deterministically during
+  projection. A band marks a span behind the items it covers and holds nothing.
+- **Topics.** Branches and references are line types, and a line joins them through an anchor node
+  kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)). `document/relations.ts`
+  holds the tree, layout and alignment logic.
+- **Look.** `editor/styles.ts` is the one place an item's type, named style and look become maxGraph
+  styles. Icons, badges and pictures resolve to images there from local icon sets and validated hashes,
+  so nothing a peer writes becomes an image address. Items made at deep zoom carry a scale.
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
   so the selection frame scales and rotates them.
 
-## Domain layer
+## Canvas language
 
-`domain/` projects the document into the items people and agents reason about, by what each does rather
-than by stencil ([ADR-0013](adr/0013-agents-work-through-domain-tools-on-the-relay.md)): nodes, with a
-stencil or icon key; regions, which are panels or groups; text and sticky notes; pictures;
-connections; branches and references; and drawings. Holding is `inside`, discussions are threads on an
-item, and views are saved places. Renderer style keys become a `look` in plain terms, and the rest stay
-in an opaque `extra` so nothing is lost. `domain/schema.ts` declares all of it with zod, and the file
-format, the MCP tools and the published JSON Schema all come from those declarations.
+`language/` reads and writes the canvas as text ([ADR-0014](adr/0014-one-canvas-language.md)), and
+`language/reference.ts` is its reference, which agents receive as the MCP server's instructions.
 
-- **Operations.** `domain/operations.ts` adds, connects, branches, references, contains, relabels,
-  restyles, places, arranges and removes items, and comments, replies and resolves. Each works through
-  the document's own rules, so removing a holder removes what it holds and topics still move with their
-  parents. Placement is exact, relative or relational, and results say where items landed and what they
-  overlap.
-- **Sessions.** `domain/session.ts` applies a batch as one transaction after rehearsing it on a copy,
-  so a batch that fails partway never reaches the room. A session records each item's state as it last
-  showed it, refuses edits to items changed since by someone else with their current state, reports
-  others' changes on every call, and undoes only its own changes.
-- **Files.** `domain/format.ts` writes and reads version 3: items back to front, referring to each other
-  by id, with discussions, views and picture bytes. Opening a file assigns new ids.
+- **Parsing.** `lexer.ts`, `cursor.ts`, `attributes.ts` and `parser.ts` turn text into statements, and
+  report mistakes by line.
+- **Writing.** `writer.ts` applies statements to a draft copy of the canvas (`draft.ts`) and commits the
+  differences in one transaction, so a write that fails partway changes nothing. Items are placed in
+  statement order: relations name items placed earlier and measure gaps between items with their labels
+  (`layout.ts`, `placement.ts`); rows, columns and grids lay out their members (`arranging.ts`); frames
+  fit their contents; lines and bands are settled once every item exists (`connections.ts`). Placement
+  is applied once and stored as positions.
+- **Printing.** `printer.ts` writes items canonically, so an unchanged item always prints the same and
+  comparing printed items finds changes.
+- **Sessions.** `session.ts` is one agent's work: it records each item as it last showed it, refuses
+  writes that name items someone else changed since with their current state, reports others' changes
+  on every call, and undoes only its own writes.
 
 ## Editor
 
@@ -150,9 +148,10 @@ topic.
 discovery documents MCP clients need. Cognito is the authorization server: the relay accepts only access
 tokens issued to the agents' app client and bound to the endpoint. Opening a room adds a peer in the
 relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the canvas from someone there
-and carries a domain session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
+and carries a language session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
 opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
-close with their peers. `relay/mcp.ts` holds the tools and their descriptions.
+close with their peers. `relay/mcp.ts` holds the tools: open a room, describe, read and write in the
+canvas language, undo, and search icons.
 
 ## Accounts
 
@@ -174,3 +173,4 @@ cannot overwrite each other's work. `accounts/maintenance.ts` runs daily.
 - The relay is one process with no redundancy, so its failure stops collaboration until it returns.
   Local editing continues and merges afterward.
 - Clients already open during a release need to reload to read new document fields.
+- Moving an item does not move items that were placed beside it, because relations are not kept.

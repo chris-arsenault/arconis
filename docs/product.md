@@ -43,20 +43,24 @@ document and takes part in the same relationships.
 
 Creating a room generates an unguessable identifier in the browser. Joining accepts a shareable
 URL or room code. Participants may supply an ephemeral display name. Changes stay within their room.
+Rooms are sized for small groups of up to about fifteen people working on canvases of hundreds to
+thousands of items.
 
 ## Agents
 
 A signed-in person can connect an agent, such as Claude Code, through MCP. Given a room's link, the
-agent reads and changes the canvas in the same terms people use: nodes, regions, notes, connections,
-topic trees, references and discussions. People in the room see its changes as they happen, and it is
-told what they change. Agents work only in ordinary rooms someone has open.
+agent reads and writes the canvas in the Arconis canvas language: nodes, cards, frames, bands, notes,
+lines, topic trees, references, named styles and discussions, placed beside or aligned with one
+another. One write can lay out a whole architecture, frames within frames. People in the room see its
+changes as they happen, and it is told what they change. Agents work only in ordinary rooms someone has
+open.
 
 ## Boundaries
 
 Arconis is a small multi-user visual workspace. Rooms need no account, and the relay keeps no copy of
 a room. It focuses on the canvas rather than project management or facilitation tools such as voting,
-timers and templates. Its files are its own portable format rather than draw.io files, and agents read
-and write the same format. The [ADRs](adr/README.md) record why, and the
+timers and templates. Its files are the canvas written in its own language rather than draw.io files,
+and agents read and write the same text. The [ADRs](adr/README.md) record why, and the
 [backlog](backlog.md) holds planned additions.
 
 Rooms suit non-sensitive work: see [Limitations](architecture.md#limitations).

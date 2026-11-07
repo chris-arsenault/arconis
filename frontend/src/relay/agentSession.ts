@@ -1,11 +1,7 @@
-import { z } from "zod";
-import { DomainError } from "../domain/canvasIndex";
-import type { Operation } from "../domain/context";
-import { exportFile, fileSchema } from "../domain/format";
-import { STENCILS } from "../domain/model";
-import { operationSchema } from "../domain/schema";
-import { DomainSession, type ReadRequest } from "../domain/session";
+import { LanguageError } from "../language/lexer";
+import { LanguageSession, type ReadRequest } from "../language/session";
 import { ICON_VENDORS } from "../document/geometry";
+import { STENCILS } from "../document/types";
 import { loadAllVendors, loadIcons, searchIcons } from "../editor/icons";
 import type { Relay } from "./relay";
 import { ServerPeer, type PeerReadiness } from "./serverPeer";
@@ -21,14 +17,14 @@ export function parseRoomLink(value: string): string {
     /* Raw room codes need no URL parsing. */
   }
   if (candidate.startsWith("locked="))
-    throw new DomainError(
+    throw new LanguageError(
       "This is a password room. Its contents are encrypted, so agents cannot open it."
     );
   if (candidate.startsWith("local="))
-    throw new DomainError("This room exists only in one browser, so agents cannot reach it.");
+    throw new LanguageError("This room exists only in one browser, so agents cannot reach it.");
   candidate = candidate.replace(/^room=/, "");
   if (!ROOM_CODE.test(candidate))
-    throw new DomainError("That is not an Arconis room link or code.");
+    throw new LanguageError("That is not an Arconis room link or code.");
   return candidate;
 }
 
@@ -40,10 +36,10 @@ const REFUSALS: Record<Exclude<PeerReadiness, "ready">, string> = {
     "Nobody in the room answered. It may be a password room, which agents cannot open, or the people there may have just left.",
 };
 
-/** One agent's connection: the room it has open and its domain session there. */
+/** One agent's connection: the room it has open and its language session there. */
 export class AgentSession {
   private peer: ServerPeer | null = null;
-  private domain: DomainSession | null = null;
+  private domain: LanguageSession | null = null;
 
   constructor(
     private relay: () => Relay,
@@ -58,10 +54,10 @@ export class AgentSession {
     const readiness = await peer.start();
     if (readiness !== "ready") {
       peer.close();
-      throw new DomainError(REFUSALS[readiness]);
+      throw new LanguageError(REFUSALS[readiness]);
     }
     this.peer = peer;
-    this.domain = new DomainSession(peer.document, this.name);
+    this.domain = new LanguageSession(peer.document, this.name);
     return this.describe();
   }
 
@@ -75,29 +71,25 @@ export class AgentSession {
   }
 
   /** Edits only reach the canvas through people's browsers, so they need someone in the room. */
-  apply(operations: Operation[]) {
+  write(text: string) {
     const { domain, peer } = this.require();
     if (!peer.people)
-      throw new DomainError(
+      throw new LanguageError(
         "Everyone has left the room, so nothing would be kept. Ask someone to open it again."
       );
-    return domain.apply(operations);
+    return domain.write(text);
   }
 
   undo() {
     const { domain, peer } = this.require();
     if (!peer.people)
-      throw new DomainError("Everyone has left the room, so nothing would be kept.");
+      throw new LanguageError("Everyone has left the room, so nothing would be kept.");
     return domain.undoLast();
   }
 
-  exportFile() {
-    return exportFile(this.require().peer.document);
-  }
-
   private require() {
-    if (!this.domain || !this.peer) throw new DomainError("Open a room first with open_room.");
-    if (this.peer.locked) throw new DomainError(REFUSALS.locked);
+    if (!this.domain || !this.peer) throw new LanguageError("Open a room first with open_room.");
+    if (this.peer.locked) throw new LanguageError(REFUSALS.locked);
     return { domain: this.domain, peer: this.peer };
   }
 
@@ -143,11 +135,3 @@ export async function stencils(query: string | undefined) {
   };
 }
 const ICONS_PER_WORD = 12;
-
-/** The schemas an agent can read to write files or operations directly. */
-export function formatSchemas() {
-  return {
-    file: z.toJSONSchema(fileSchema, { io: "input" }),
-    operation: z.toJSONSchema(operationSchema, { io: "input" }),
-  };
-}

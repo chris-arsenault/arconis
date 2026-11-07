@@ -123,6 +123,6 @@ it("limits a drawing transform's writes, and peers reach the final shape", async
   const frames = updates(await sent(a));
   expect(frames.length).toBeLessThan(STEPS / 2);
   const final = (await exported(a)).objects[0].points;
-  await expect.poll(async () => (await exported(b)).objects[0].points).toBe(final);
+  await expect.poll(async () => (await exported(b)).objects[0].points).toEqual(final);
   expect(errors).toEqual([]);
 });

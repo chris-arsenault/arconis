@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pencil, Plus, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import type { SavedView } from "../document/types";
+import type { View } from "../document/types";
 import { StencilBrowser } from "./StencilBrowser";
 import { TOOLS } from "./stencils";
 
@@ -90,7 +90,7 @@ function RenameView({
   view,
   editor,
   onDone,
-}: Readonly<{ view: SavedView; editor: EditorController; onDone: () => void }>) {
+}: Readonly<{ view: View; editor: EditorController; onDone: () => void }>) {
   const [name, setName] = useState(view.name);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.select(), []);

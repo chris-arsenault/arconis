@@ -86,8 +86,8 @@ type FileProps = Readonly<Pick<Props, "session" | "editor" | "onMessage">>;
 
 async function loadFile({ session, editor, onMessage }: FileProps, file: File) {
   try {
-    const content = await session.prepareFile(await readDocumentFile(file));
-    const count = importDocument(session.document, content);
+    const content = await readDocumentFile(file);
+    const count = importDocument(session.document, content, await session.prepareFile(content));
     onMessage(`Imported ${count} objects.`);
     editor?.fit();
     void session.uploadPictures();

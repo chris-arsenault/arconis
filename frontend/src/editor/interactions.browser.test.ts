@@ -19,9 +19,9 @@ it("cancels an unfinished connector before starting another relationship", async
   await canvas.click({ position: { x: 510, y: 180 } });
   await expect.poll(() => objectCount(page)).toBe(4);
   const saved = await exported(page);
-  const edge = saved.objects.find((item) => item.kind === "connector")!;
-  expect(saved.objects.find((item) => item.id === edge.source)?.label).toBe("Source C");
-  expect(saved.objects.find((item) => item.id === edge.target)?.label).toBe("Target B");
+  const edge = saved.objects.find((item) => item.type === "line")!;
+  expect(saved.objects.find((item) => item.id === edge.from)?.name).toBe("Source C");
+  expect(saved.objects.find((item) => item.id === edge.to)?.name).toBe("Target B");
   expect(errors).toEqual([]);
   await context.close();
 });

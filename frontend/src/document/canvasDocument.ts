@@ -1,19 +1,49 @@
 import * as Y from "yjs";
-import { LOCAL, type CanvasObject, type ObjectKind, type StyleValue } from "./types";
-import { compareStacking, isVertexKind, readWorldObject, type StoredObject } from "./geometry";
-import { LINE_ANCHOR } from "./relations";
+import { LOCAL, isLink, type Item, type ItemType, type Look, type View } from "./types";
+import { compareStacking } from "./geometry";
+import { newId } from "./ids";
+
+/** Fields every item has, with the values an item starts from. */
+const BLANK: Omit<Item, "id" | "type"> = {
+  name: "",
+  subtitle: "",
+  inside: "",
+  x: 0,
+  y: 0,
+  width: 160,
+  height: 90,
+  order: 0,
+  style: "",
+  look: {},
+  stencil: "rectangle",
+  icon: "",
+  from: "",
+  to: "",
+  points: [],
+  onLine: "",
+};
+
+/** The size a new item of a type takes when none is given. */
+export function defaultSize(type: ItemType, stencil = "rectangle"): [number, number] {
+  if (type === "note") return [190, 170];
+  if (type === "frame") return [320, 220];
+  if (type === "card") return [260, 72];
+  if (type === "node" && stencil === "icon") return [64, 64];
+  return [160, 90];
+}
 
 export class CanvasDocument {
-  private listed: CanvasObject[] | null = null;
+  private listed: Item[] | null = null;
   private transacting = false;
   readonly doc = new Y.Doc();
-  readonly objects = this.doc.getMap<Y.Map<unknown>>("objects");
+  readonly items = this.doc.getMap<Y.Map<unknown>>("items");
   readonly meta = this.doc.getMap<string>("meta");
-  /** Saved views. The map keeps its original name so existing rooms keep theirs. */
-  readonly views = this.doc.getMap<string>("bookmarks");
+  /** Named looks that items refer to by name. */
+  readonly styles = this.doc.getMap<Look>("styles");
+  readonly views = this.doc.getMap<View>("views");
   /** A conversation, not an edit, so comments stay out of undo. */
   readonly comments = this.doc.getMap<string>("comments");
-  readonly undo = new Y.UndoManager([this.objects, this.meta, this.views], {
+  readonly undo = new Y.UndoManager([this.items, this.meta, this.styles, this.views], {
     trackedOrigins: new Set([LOCAL]),
     captureTimeout: 400,
   });
@@ -31,137 +61,113 @@ export class CanvasDocument {
 
   nextOrder() {
     let highest = -1;
-    this.objects.forEach((record) => {
+    this.items.forEach((record) => {
       const order = record.get("order");
       if (typeof order === "number" && order > highest) highest = order;
     });
     return highest + 1;
   }
 
-  create(kind: ObjectKind, x: number, y: number, extras: Partial<CanvasObject> = {}) {
+  /** An id no item in this canvas has. */
+  freshId() {
+    return newId((id) => this.items.has(id));
+  }
+
+  create(type: ItemType, x: number, y: number, extras: Partial<Item> = {}) {
     this.undo.stopCapturing();
-    const item = this.build(kind, x, y, extras);
+    const item = this.build(type, x, y, extras);
     this.doc.transact(() => this.insert(item), LOCAL);
     this.undo.stopCapturing();
     return item.id;
   }
 
-  /** A complete new record, not yet in the document, for inserting several in one undo step. */
-  build(kind: ObjectKind, x: number, y: number, extras: Partial<CanvasObject> = {}) {
-    const item: CanvasObject = {
-      id: crypto.randomUUID(),
-      kind,
-      label: "",
+  /** A complete new item, not yet in the document, for inserting several in one undo step. */
+  build(type: ItemType, x: number, y: number, extras: Partial<Item> = {}): Item {
+    const [width, height] = defaultSize(type, extras.stencil);
+    return {
+      ...BLANK,
+      id: this.freshId(),
+      type,
       x,
       y,
-      width: 160,
-      height: 90,
-      parent: "",
-      source: "",
-      target: "",
-      points: "[]",
+      width,
+      height,
       order: this.nextOrder(),
-      style: {},
       ...extras,
     };
-    if (kind === "icon") Object.assign(item, { width: 64, height: 64, ...extras });
-    if (kind === "panel") Object.assign(item, { width: 320, height: 220, ...extras });
-    if (kind === "sticky")
-      Object.assign(item, {
-        width: 190,
-        height: 170,
-        ...extras,
-        style: { fillColor: "#fff0ad", ...extras.style },
-      });
-    return item;
   }
 
-  insert(item: CanvasObject) {
+  insert(item: Item) {
     const record = new Y.Map<unknown>();
-    this.objects.set(item.id, record);
-    const { label, style, ...properties } = item;
-    Object.entries(properties).forEach(([key, value]) => record.set(key, value));
-    if (isVertexKind(item.kind)) {
-      record.set("worldX", item.x);
-      record.set("worldY", item.y);
-    }
-    record.set("worldPoints", item.points);
+    this.items.set(item.id, record);
+    const { name, look, ...fields } = item;
+    Object.entries(fields as Record<string, unknown>).forEach(([key, value]) => {
+      if (value !== undefined) record.set(key, value);
+    });
     const text = new Y.Text();
-    record.set("label", text);
-    text.insert(0, label);
-    const styles = new Y.Map<StyleValue>();
-    record.set("style", styles);
-    Object.entries(style).forEach(([key, value]) => styles.set(key, value));
-  }
-
-  get(id: string): CanvasObject | null {
-    return readWorldObject(id, (key) => {
-      const record = this.objects.get(key);
-      return record ? (record.toJSON() as StoredObject) : null;
+    record.set("name", text);
+    text.insert(0, name);
+    const looks = new Y.Map<unknown>();
+    record.set("look", looks);
+    Object.entries(look).forEach(([key, value]) => {
+      if (value !== undefined) looks.set(key, value);
     });
   }
 
-  freezeLegacyGeometry() {
-    const snapshots = [...this.objects.keys()].map((id) => this.get(id)!);
-    snapshots.forEach((item) => {
-      const record = this.objects.get(item.id)!;
-      if (record.has("legacyWorld")) return;
-      if (
-        record.has("worldPoints") &&
-        (!isVertexKind(item.kind) || (record.has("worldX") && record.has("worldY")))
-      )
-        return;
-      record.set("legacyWorld", { x: item.x, y: item.y, points: item.points });
-    });
+  get(id: string): Item | null {
+    const record = this.items.get(id);
+    if (!record) return null;
+    const stored = record.toJSON() as Partial<Item>;
+    // Peers write records, so one without a known shape is left out rather than trusted.
+    if (typeof stored.type !== "string") return null;
+    return { ...BLANK, ...stored, id } as Item;
   }
 
-  /** Visible objects in stacking order. Callers must not mutate the shared result. */
+  /** Visible items in stacking order. Callers must not mutate the shared result. */
   list() {
     if (this.listed) return this.listed;
-    const items = [...this.objects.keys()]
-      .map((id) => this.get(id)!)
-      .filter(
-        (item) =>
-          item.kind !== "connector" ||
-          (this.objects.has(item.source) && this.objects.has(item.target))
-      )
+    const items = [...this.items.keys()]
+      .map((id) => this.get(id))
+      .filter((item): item is Item => item !== null)
+      .filter((item) => !isLink(item) || (this.items.has(item.from) && this.items.has(item.to)))
       .sort(compareStacking);
     if (!this.transacting) this.listed = items;
     return items;
   }
 
-  patch(id: string, values: Partial<CanvasObject>) {
-    const record = this.objects.get(id);
+  /** Changes fields of an item. An undefined value clears an optional field. */
+  patch(id: string, values: Partial<Item>) {
+    const record = this.items.get(id);
     if (!record) return;
     const current = this.get(id)!;
     this.doc.transact(() => {
-      if ("parent" in values && values.parent !== current.parent) this.freezeLegacyGeometry();
-      Object.entries(values).forEach(([key, value]) => {
-        if (key === "label") this.editText(id, String(value));
-        else if (key === "style") this.patchStyle(id, value as CanvasObject["style"]);
-        else if (current[key as keyof CanvasObject] !== value) {
-          const field = geometryField(key, current.kind);
-          record.set(field, value);
-        }
+      Object.entries(values as Record<string, unknown>).forEach(([key, value]) => {
+        if (key === "id") return;
+        if (key === "name") this.editText(id, String(value));
+        else if (key === "look") this.patchLook(id, value as Look);
+        else if (value === undefined) record.delete(key);
+        else if (JSON.stringify(current[key as keyof Item]) !== JSON.stringify(value))
+          record.set(key, value);
       });
     }, LOCAL);
   }
 
-  clearStyle(id: string, key: string) {
-    const styles = this.objects.get(id)?.get("style") as Y.Map<StyleValue> | undefined;
-    this.doc.transact(() => styles?.delete(key), LOCAL);
-  }
-
-  patchStyle(id: string, values: Record<string, StyleValue>) {
-    const styles = this.objects.get(id)?.get("style") as Y.Map<StyleValue> | undefined;
+  /** Sets look properties; an undefined value returns that property to its default. */
+  patchLook(id: string, values: Look) {
+    const looks = this.items.get(id)?.get("look") as Y.Map<unknown> | undefined;
+    if (!looks) return;
     this.doc.transact(
-      () => Object.entries(values).forEach(([key, value]) => styles?.set(key, value)),
+      () =>
+        Object.entries(values).forEach(([key, value]) => {
+          if (value === undefined) looks.delete(key);
+          else if (looks.get(key) !== value) looks.set(key, value);
+        }),
       LOCAL
     );
   }
 
   text(id: string) {
-    return this.objects.get(id)?.get("label") as Y.Text | undefined;
+    return this.items.get(id)?.get("name") as Y.Text | undefined;
   }
 
   editText(id: string, value: string) {
@@ -184,30 +190,36 @@ export class CanvasDocument {
     }, LOCAL);
   }
 
+  /** Removes items with everything they hold, the nodes sitting on them and their links. */
   remove(ids: string[]) {
     this.undo.stopCapturing();
     const removed = new Set(ids);
-    const objects = this.list();
+    const items = this.list();
     let previousSize = -1;
     while (previousSize !== removed.size) {
       previousSize = removed.size;
-      objects
-        .filter((item) => removed.has(item.parent) || removed.has(String(item.style[LINE_ANCHOR])))
+      items
+        .filter(
+          (item) =>
+            removed.has(item.inside) ||
+            removed.has(item.onLine) ||
+            (isLink(item) && (removed.has(item.from) || removed.has(item.to)))
+        )
         .forEach((item) => removed.add(item.id));
     }
-    this.doc.transact(() => {
-      this.freezeLegacyGeometry();
-      this.list().forEach((item) => {
-        if (
-          removed.has(item.id) ||
-          removed.has(item.parent) ||
-          removed.has(item.source) ||
-          removed.has(item.target)
-        )
-          this.objects.delete(item.id);
-      });
-    }, LOCAL);
+    this.doc.transact(() => removed.forEach((id) => this.items.delete(id)), LOCAL);
     this.undo.stopCapturing();
+  }
+
+  /** The look a named style gives, or nothing for an unknown name. */
+  namedStyle(name: string): Look {
+    return (name && this.styles.get(name)) || {};
+  }
+  setStyle(name: string, look: Look | null) {
+    this.doc.transact(() => {
+      if (look) this.styles.set(name, look);
+      else this.styles.delete(name);
+    }, LOCAL);
   }
 
   rename(title: string) {
@@ -220,11 +232,4 @@ export class CanvasDocument {
     this.undo.destroy();
     this.doc.destroy();
   }
-}
-
-function geometryField(key: string, kind: ObjectKind) {
-  if (key === "points") return "worldPoints";
-  if (isVertexKind(kind) && key === "x") return "worldX";
-  if (isVertexKind(kind) && key === "y") return "worldY";
-  return key;
 }

@@ -18,16 +18,13 @@ import * as Y from "yjs";
 import type { WorkspaceContents } from "../account/workspaceFile";
 import type { SaveableRoom } from "../account/workspaceSaver";
 import {
-  PICTURE_STORED,
   decodePicture,
   encodePicture,
   pictureHashes,
-  renamePictures,
   sha256,
   type FilePictures,
 } from "../document/pictures";
-import type { CanvasObject } from "../document/types";
-import { renameFileItems, type ArconisFile } from "../domain/format";
+import { parse } from "../language/parser";
 import { notifyPictures, setPictureSource } from "../editor/pictureSource";
 
 export function createRoomId() {
@@ -161,7 +158,7 @@ export class RoomSession {
   }
   /** Pictures only this browser may hold, in stored form, since a saved copy must carry them. */
   private async unsharedPictures() {
-    const items = this.document.list().filter((item) => item.style[PICTURE_STORED] !== true);
+    const items = this.document.list().filter((item) => item.picture && !item.picture.stored);
     const found = await Promise.all(
       pictureHashes(items).map(async (hash) => {
         const picture = await this.pictures.read(hash);
@@ -240,19 +237,24 @@ export class RoomSession {
     );
     return { pictures: found.filter((picture) => picture !== null), renames };
   }
-  /** Keeps a file's pictures here, sealing them in a password room, and returns the file to import. */
+  /**
+   * Keeps a file's pictures here, sealing them in a password room, and returns the names they were
+   * kept under where those differ from the file's.
+   */
   async prepareFile(content: string) {
-    const file = JSON.parse(content) as { pictures: unknown; objects?: CanvasObject[] };
-    if (!Array.isArray(file.pictures)) return content;
-    const decoded = await Promise.all(file.pictures.map(decodePicture));
+    const data = parse(content).flatMap((statement) =>
+      statement.kind === "data"
+        ? [{ hash: statement.hash, type: statement.format, data: statement.data }]
+        : []
+    );
+    const decoded = await Promise.all(data.map(decodePicture));
     const renames = new Map<string, string>();
     for (const picture of decoded) {
       if (!picture) continue;
       const kept = await this.pictures.add(picture.bytes, picture.type);
       if (kept !== picture.hash) renames.set(picture.hash, kept);
     }
-    if (!file.objects) return JSON.stringify(renameFileItems(file as ArconisFile, renames));
-    return JSON.stringify({ ...file, objects: renamePictures(file.objects, renames) });
+    return renames;
   }
   /** Whether the relay is off and someone here can ask for it. */
   get canStartCollaboration() {

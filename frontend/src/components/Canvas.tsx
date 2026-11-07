@@ -64,7 +64,10 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
       top: `${state.y}px`,
       width: `${Math.max(120, state.width)}px`,
       height: `${Math.max(60, state.height)}px`,
-      backgroundColor: String(item.style.fillColor || "#ffffff"),
+      backgroundColor:
+        state.style.fillColor && state.style.fillColor !== "none"
+          ? String(state.style.fillColor)
+          : "#ffffff",
     });
   });
   useLayoutEffect(() => {

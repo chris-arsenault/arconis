@@ -19,13 +19,13 @@ several objects selected, it applies styles to all of them.
 Any object can hold others. Dragging an object onto a larger one, or placing one inside it, adds it,
 and dragging it out releases it. Moving an object moves what it holds, and resizing leaves them alone.
 
-A panel is a titled container from the stencil rail, and the Screens stencils are panels at common
+A frame is a titled container from the stencil rail, and the Screens stencils are frames at common
 device sizes, which the property panel can change. Select several objects to align or distribute
 them, and guides appear while dragging.
 
 ## Topics and depth
 
-Any object can be a topic, including a screen, a panel of notes or a line.
+Any object can be a topic, including a screen, a frame of notes or a line.
 
 - Tab grows a branch from the selection, and Alt Enter adds a sibling. Both also work while typing, so
   a tree can be written from the keyboard.
@@ -58,6 +58,9 @@ must have the room open. The agent appears in the room under its own name, its c
 anyone's, and its comments are signed with that name. Password rooms and rooms on this device stay
 closed to agents.
 
+Agents can use named styles, subtitles, cards and bands. Named styles show in the property panel's Style
+list, where anyone can apply one, and a subtitle field appears for nodes, cards and bands.
+
 ## Password rooms
 
 "Create a password room" on the welcome screen asks for a password, and everyone joining by link needs
@@ -76,7 +79,8 @@ it returns. In a device-only room, pictures never leave the browser. Exported fi
 
 ## Comments
 
-Select an object or line to comment on it in the property panel, reply, resolve or delete. Everyone in
+Select an object or line to comment on it in the property panel, reply, resolve or delete. A line's
+comments sit on the line itself. Everyone in
 the room sees comments, signed with the display name at the time. A label shows `💬` and a count of open
 threads. Comments stay out of undo, and return with their object if its deletion is undone.
 
@@ -127,8 +131,8 @@ plus button, click a view to fly there, and hover it to rename or remove it. Vie
 room and do not move other participants. Export downloads a
 portable `.arconis` document, and Import adds its contents to the current room.
 
-A document lists its items in plain terms, so a person or an agent can read or write one by hand;
-the agents' `format_schema` tool publishes its JSON Schema.
+A document is the canvas written in the Arconis canvas language, so a person or an agent can read or
+write one by hand. The language reference is in `frontend/src/language/reference.ts`.
 
 Export PNG downloads a picture of the selection, or of the whole canvas when nothing is selected. The
 file carries a copy of those objects, so Import loads it like a document, in any room.

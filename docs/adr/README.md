@@ -17,4 +17,5 @@ product brief, earlier implementations or owner decisions.
 | [0010](0010-topics-as-general-abilities.md) | Layout and mind maps are abilities of any object | Accepted | 2026-11-07 |
 | [0011](0011-relay-in-an-auto-scaling-group.md) | The relay runs in an Auto Scaling group | Accepted | 2026-11-07 |
 | [0012](0012-accounts-and-encrypted-workspaces.md) | Accounts, with workspaces encrypted before they are saved | Accepted | 2026-11-07 |
-| [0013](0013-agents-work-through-domain-tools-on-the-relay.md) | Agents work through domain tools on the relay | Accepted | 2026-11-07 |
+| [0013](0013-agents-work-through-domain-tools-on-the-relay.md) | Agents work through domain tools on the relay | Accepted; amended by ADR-0014 | 2026-11-07 |
+| [0014](0014-one-canvas-language.md) | One canvas language for the document, files and agents | Accepted | 2026-11-07 |

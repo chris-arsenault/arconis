@@ -9,10 +9,15 @@ All notable user-visible changes are recorded here.
 - Added accounts with email activation and a daily limit on new ones, whose name replaces the one
   typed into rooms.
 - Added saved workspaces, encrypted in the browser and available on any device.
-- Added agents: signed-in people connect Claude Code or another MCP client, which reads and changes
-  a room through domain tools while people work alongside it.
-- Changed exported documents to version 3, which describes items in plain terms that people and
-  agents can read and write; earlier files still import.
+- Added agents: signed-in people connect Claude Code or another MCP client, which reads and writes
+  a room in the canvas language while people work alongside it, building a whole architecture in one
+  write.
+- Added the canvas language: frames within frames, rows, columns and grids, placement beside or
+  aligned with other items, named styles, and lines with ports, labels, chains and fan-outs.
+- Changed files to the canvas written in that language; earlier files and rooms no longer open.
+- Added subtitles, cards, bands behind items across frames, frame badges, titles at the top or side,
+  vertical text and labels, and named styles in the property panel.
+- Changed the Panel stencil to Frame, and a line's comments now sit on the line itself.
 - Added pasted and dropped pictures in every room, uploaded once and carried in exported files.
 - Added threaded comments on any object or line, visible to everyone in the room.
 - Added nesting in any object, with children moving along with their parent.

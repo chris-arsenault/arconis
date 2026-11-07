@@ -9,8 +9,9 @@ import {
 } from "playwright";
 import { createServer, type ViteDevServer } from "vite";
 import { mkdir, readFile } from "node:fs/promises";
-import type { CanvasObject, SavedView } from "../document/types";
-import { fileObjects, parseFile, type ArconisFile } from "../domain/format";
+import type { Item, View } from "../document/types";
+import { CanvasDocument } from "../document/canvasDocument";
+import { importDocument } from "../document/files";
 import { startRelayFixture } from "../collaboration/relayFixture";
 
 export let browser: Browser;
@@ -164,26 +165,21 @@ export function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
 }
 
 export async function exported(page: Page): Promise<{
-  version: number;
-  objects: CanvasObject[];
-  bookmarks: SavedView[];
+  objects: Item[];
+  views: View[];
   /** The file as downloaded, for importing it again. */
-  file: ArconisFile;
+  text: string;
 }> {
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export document", exact: true }).click();
   const download = await pending;
-  const file = parseFile(JSON.parse(await readFile((await download.path())!, "utf8")));
-  // Journeys check the stored records the export describes, under their own ids.
-  const views = file.views.map((view): SavedView => ({
-    ...view,
-    centerX: view.center?.x,
-    centerY: view.center?.y,
-    x: 0,
-    y: 0,
-    scale: view.zoom,
-  }));
-  return { version: file.version, objects: fileObjects(file), bookmarks: views, file };
+  const text = await readFile((await download.path())!, "utf8");
+  // An empty canvas keeps the file's ids, so journeys see the items as the room has them.
+  const copy = new CanvasDocument();
+  importDocument(copy, text);
+  const result = { objects: copy.list(), views: [...copy.views.values()], text };
+  copy.destroy();
+  return result;
 }
 
 export async function drag(page: Page, x: number, y: number, dx: number, dy: number) {

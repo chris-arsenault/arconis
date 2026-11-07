@@ -180,8 +180,8 @@ it("keeps the drawn shape of a freehand stroke without per-point handles", async
   }
   await page.mouse.up();
   await expect.poll(() => objectCount(page)).toBe(1);
-  const stroke = (await exported(page)).objects.find((item) => item.kind === "stroke")!;
-  const points = JSON.parse(stroke.points) as [number, number][];
+  const stroke = (await exported(page)).objects.find((item) => item.type === "drawing")!;
+  const points = stroke.points;
   expect(points.length).toBeGreaterThan(12);
   expect(points.length).toBeLessThan(81);
   const xs = points.map(([x]) => x);
@@ -252,7 +252,7 @@ it("stacks objects identically across peers and reorders them", async () => {
   await first.setOffline(false);
   await row(a, "Over").waitFor({ timeout: 45000 });
   await row(b, "Under").waitFor({ timeout: 45000 });
-  const rows = async (page: Page) => (await exported(page)).objects.map((item) => item.label);
+  const rows = async (page: Page) => (await exported(page)).objects.map((item) => item.name);
   expect(await rows(a)).toEqual(await rows(b));
   const topAtOverlap = async (page: Page) => {
     await canvas(page).click({ position: emptySpot });
@@ -336,31 +336,25 @@ it("scales and rotates a mixed selection as one undoable step, and rotates one s
   await row(page, "Scaled shape").click();
   await selectDrawing(page, ["Shift"]);
   const before = await exported(page);
-  const shapeBefore = before.objects.find((item) => item.kind === "rectangle")!;
-  const pointsBefore = JSON.parse(
-    before.objects.find((item) => item.kind === "stroke")!.points
-  ) as [number, number][];
+  const shapeBefore = before.objects.find((item) => item.type === "node")!;
+  const pointsBefore = before.objects.find((item) => item.type === "drawing")!.points;
   await dragFrom(page, await center(page, "frame-se"), 100, 50);
   const scaled = await exported(page);
-  const shapeScaled = scaled.objects.find((item) => item.kind === "rectangle")!;
-  const pointsScaled = JSON.parse(
-    scaled.objects.find((item) => item.kind === "stroke")!.points
-  ) as [number, number][];
+  const shapeScaled = scaled.objects.find((item) => item.type === "node")!;
+  const pointsScaled = scaled.objects.find((item) => item.type === "drawing")!.points;
   expect(shapeScaled.width).toBeGreaterThan(shapeBefore.width);
   expect(pointsScaled[pointsScaled.length - 1][0]).toBeGreaterThan(
     pointsBefore[pointsBefore.length - 1][0]
   );
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect
-    .poll(
-      async () => (await exported(page)).objects.find((item) => item.kind === "rectangle")?.width
-    )
+    .poll(async () => (await exported(page)).objects.find((item) => item.type === "node")?.width)
     .toBe(shapeBefore.width);
   await row(page, "Scaled shape").click();
   await selectDrawing(page, ["Shift"]);
   await dragFrom(page, await center(page, "frame-rotate"), 160, 120);
   const rotated = await exported(page);
-  const angle = Number(rotated.objects.find((item) => item.kind === "rectangle")!.style.rotation);
+  const angle = Number(rotated.objects.find((item) => item.type === "node")!.look.rotation);
   expect(angle).toBeGreaterThan(10);
   await row(page, "Scaled shape").click();
   expect(await page.getByTestId("selection-frame").count()).toBe(0);

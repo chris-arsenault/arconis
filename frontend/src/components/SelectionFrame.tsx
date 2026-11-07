@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from 
 import type { Rectangle } from "@maxgraph/core";
 import type { EditorController } from "../editor/controller";
 import type { SelectionTransform } from "../document/transform";
-import { isContainerKind } from "../document/geometry";
+import { isFrame, isLink } from "../document/types";
 
 type Corner = "nw" | "ne" | "se" | "sw";
 type WorldBox = { x: number; y: number; width: number; height: number };
@@ -66,13 +66,14 @@ function rotating(world: WorldBox, start: { x: number; y: number }): TransformFo
  * objects and drawings, which have no resize handles of their own because they are paths.
  */
 export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }>) {
-  const cells = editor.graph
-    .getSelectionCells()
-    .filter((cell) => editor.document.get(cell.id!)?.kind !== "connector");
-  const kinds = cells.map((cell) => editor.document.get(cell.id!)?.kind);
-  const holdsOthers = isContainerKind(kinds[0]) || cells[0]?.children.length > 0;
-  const onlyGroup = kinds.length === 1 && holdsOthers;
-  if (kinds.length < 2 && !onlyGroup && kinds[0] !== "stroke") return null;
+  const cells = editor.graph.getSelectionCells().filter((cell) => {
+    const item = editor.document.get(cell.id!);
+    return item !== null && !isLink(item);
+  });
+  const first = cells.length ? editor.document.get(cells[0].id!) : null;
+  const onlyGroup =
+    cells.length === 1 && (isFrame(first ?? undefined) || cells[0].children.length > 0);
+  if (cells.length < 2 && !onlyGroup && first?.type !== "drawing") return null;
   const box = editor.graph.getBoundingBox(cells);
   return box && <Frame editor={editor} box={box} rotateOnly={onlyGroup} />;
 }

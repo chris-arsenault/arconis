@@ -1,17 +1,18 @@
 import type { CellStyle } from "@maxgraph/core";
-import type { CanvasObject, ObjectKind } from "../document/types";
+import type { Item, Look } from "../document/types";
 import { isLockedIcon } from "../document/geometry";
 import { iconImage, loadIconFor } from "./icons";
-import {
-  PICTURE_HASH,
-  PICTURE_STORED,
-  PICTURE_TYPE,
-  isPictureHash,
-  isPictureType,
-} from "../document/pictures";
+import { isPictureHash, isPictureType } from "../document/pictures";
 import { pictureImage } from "./pictureSource";
+import { LABEL_BADGE, LABEL_SUBTITLE } from "./rendering";
 
-const BASE_STYLE: CellStyle = {
+/**
+ * The one place an item's look becomes maxGraph styles. The model speaks in plain terms; everything
+ * here is how the renderer draws them.
+ */
+type Style = CellStyle & Record<string, unknown>;
+
+const BASE_STYLE: Style = {
   shape: "rectangle",
   fillColor: "#ffffff",
   strokeColor: "#9ca5b8",
@@ -23,15 +24,31 @@ const BASE_STYLE: CellStyle = {
   rounded: true,
   arcSize: 12,
   spacing: 14,
+  strokeWidth: 1,
 };
 
-const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown>>> = {
+const STENCIL_STYLES: Record<string, Style> = {
   ellipse: { shape: "ellipse" },
-  diamond: { shape: "rhombus" },
+  decision: { shape: "rhombus" },
   database: { shape: "cylinder" },
   person: { shape: "actor" },
   cloud: { shape: "cloud" },
-  sticky: {
+  icon: {
+    fillColor: "none",
+    strokeColor: "none",
+    rounded: false,
+    verticalLabelPosition: "bottom",
+    verticalAlign: "top",
+    whiteSpace: "nowrap",
+    overflow: "visible",
+    spacing: 2,
+    fontSize: 12,
+    imageAspect: true,
+  },
+};
+
+const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
+  note: {
     fillColor: "#fff0ad",
     strokeColor: "none",
     shadow: true,
@@ -52,7 +69,7 @@ const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown
     // A rotated frame would no longer contain its children; children rotate instead.
     rotatable: false,
   },
-  panel: {
+  frame: {
     shape: "swimlane",
     startSize: 28,
     fillColor: "#eef0f5",
@@ -65,7 +82,25 @@ const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown
     rounded: false,
     rotatable: false,
   },
-  connector: {
+  card: {
+    shape: "label",
+    align: "left",
+    spacingLeft: 76,
+    imageAlign: "left",
+    imageVerticalAlign: "middle",
+    imageWidth: 52,
+    imageHeight: 52,
+    rounded: false,
+  },
+  band: {
+    fillColor: "#e6f6f7",
+    strokeColor: "none",
+    rounded: false,
+    verticalAlign: "top",
+    fontSize: 13,
+    rotatable: false,
+  },
+  line: {
     shape: "connector",
     edgeStyle: "orthogonalEdgeStyle",
     rounded: true,
@@ -75,8 +110,11 @@ const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown
     labelBackgroundColor: "#f7f8fc",
     whiteSpace: "nowrap",
     overflow: "visible",
+    fontSize: 14,
+    startSize: 6,
+    endSize: 6,
   },
-  stroke: {
+  drawing: {
     shape: "connector",
     edgeStyle: "none",
     endArrow: "none",
@@ -84,7 +122,7 @@ const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown
     strokeColor: "#6554c0",
     strokeWidth: 3,
     curved: true,
-    // A drawing moves and transforms as one object, not as hundreds of waypoints.
+    // A drawing moves and transforms as one item, not as hundreds of waypoints.
     bendable: false,
   },
   // Shows as a plain frame until its bytes arrive.
@@ -100,44 +138,151 @@ const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown
     fontSize: 12,
     spacing: 2,
   },
-  icon: {
-    fillColor: "none",
-    strokeColor: "none",
-    rounded: false,
-    verticalLabelPosition: "bottom",
-    verticalAlign: "top",
-    whiteSpace: "nowrap",
-    overflow: "visible",
-    spacing: 2,
-    fontSize: 12,
-    imageAspect: true,
-  },
 };
 
-export function objectStyle(item: CanvasObject): CellStyle {
-  // Peers write styles, so an image only ever comes from a local icon key resolved here.
-  const style = { ...BASE_STYLE, ...KIND_STYLES[item.kind], ...item.style } as CellStyle &
-    Record<string, unknown>;
-  delete style.image;
-  if (item.kind === "icon") {
-    if (isLockedIcon(style)) {
-      delete style.rotation;
-      Object.assign(style, { aspect: "fixed", rotatable: false });
-    }
-    const image = iconImage(style.icon, style.iconColor);
-    if (image) Object.assign(style, { shape: "image", image });
-    else void loadIconFor(style.icon);
-  }
-  if (item.kind === "picture") applyPicture(style);
+/** Frame titles that are not a header bar: plain text at the top left, or down one side. */
+const TITLE_STYLES: Record<string, Style> = {
+  top: {
+    shape: "rectangle",
+    fillColor: "none",
+    align: "left",
+    verticalAlign: "top",
+    fontStyle: 1,
+    spacing: 8,
+    spacingLeft: 10,
+  },
+  side: { horizontal: false },
+};
+
+const REFERENCE_STYLE: Style = {
+  // Lets the view hide references without asking the document about every cell it draws.
+  reference: true,
+  dashed: true,
+  edgeStyle: "none",
+  endArrow: "open",
+  strokeColor: "#a797cc",
+};
+/** The small handle a line grows when it takes part in a topic tree or a reference. */
+const LINE_ANCHOR_STYLE: Style = {
+  shape: "ellipse",
+  fillColor: "#7863d4",
+  strokeColor: "#ffffff",
+  movable: false,
+  resizable: false,
+  rotatable: false,
+  spacing: 0,
+};
+
+const ROUTES = { orthogonal: "orthogonalEdgeStyle", elbow: "elbowEdgeStyle", straight: "none" };
+const ARROWS = { arrow: "block", open: "open", none: "none" };
+const BOLD = 1;
+const ITALIC = 2;
+/** Style values that follow an item's scale, so deep-zoom items keep familiar proportions. */
+const SCALED = ["fontSize", "strokeWidth", "spacing", "spacingLeft", "startSize", "endSize"];
+
+function typeStyle(item: Item): Style {
+  if (item.onLine) return LINE_ANCHOR_STYLE;
+  if (item.type === "node") return STENCIL_STYLES[item.stencil] ?? {};
+  if (item.type === "branch") return { ...TYPE_STYLES.line, endArrow: "none" };
+  if (item.type === "reference") return { ...TYPE_STYLES.line, ...REFERENCE_STYLE };
+  return TYPE_STYLES[item.type] ?? {};
+}
+
+/** Look properties that map one to one onto a maxGraph style key. */
+const DIRECT: [keyof Look, string][] = [
+  ["fill", "fillColor"],
+  ["line", "strokeColor"],
+  ["lineWidth", "strokeWidth"],
+  ["textColor", "fontColor"],
+  ["textSize", "fontSize"],
+  ["align", "align"],
+  ["rotation", "rotation"],
+  ["dashed", "dashed"],
+  ["opacity", "fillOpacity"],
+];
+
+/** Bold and italic are bits of one font style value, so each changes only its own bit. */
+function fontStyle(look: Look, base: Style) {
+  const bit = (font: number, on: boolean | undefined, mask: number) => {
+    if (on === undefined) return font;
+    return on ? font | mask : font & ~mask;
+  };
+  return bit(bit(Number(base.fontStyle ?? 0), look.bold, BOLD), look.italic, ITALIC);
+}
+
+function lookStyle(look: Look, base: Style): Style {
+  const result: Style = {};
+  for (const [key, styleKey] of DIRECT) if (look[key] !== undefined) result[styleKey] = look[key];
+  if (look.route) result.edgeStyle = ROUTES[look.route];
+  if (look.arrow) result.endArrow = ARROWS[look.arrow];
+  if (look.vertical) result.horizontal = false;
+  if (look.bold !== undefined || look.italic !== undefined)
+    result.fontStyle = fontStyle(look, base);
+  return result;
+}
+
+/** An item's look: its named style, then its own properties over it. */
+export function resolvedLook(item: Item, named: Look = {}): Look {
+  return { ...named, ...item.look };
+}
+
+/** Size-dependent values grow or shrink with an item's scale. */
+function applyScale(style: Style, scale: number | undefined) {
+  if (!scale || scale === 1) return;
+  for (const key of SCALED) if (typeof style[key] === "number") style[key] *= scale;
+}
+
+function applyPorts(item: Item, style: Style) {
+  if (item.fromPort) Object.assign(style, { exitX: item.fromPort[0], exitY: item.fromPort[1] });
+  if (item.toPort) Object.assign(style, { entryX: item.toPort[0], entryY: item.toPort[1] });
+}
+
+/** What the label draws besides the name: a subtitle under it, a badge before it. */
+function applyLabel(item: Item, style: Style, look: Look) {
+  if (item.subtitle) style[LABEL_SUBTITLE] = item.subtitle;
+  if (!look.badge) return;
+  const badge = iconImage(look.badge);
+  if (badge) style[LABEL_BADGE] = badge;
+  else void loadIconFor(look.badge);
+}
+
+function baseStyle(item: Item, look: Look): Style {
+  const base = { ...BASE_STYLE, ...typeStyle(item) };
+  if (item.type === "frame" && look.title && look.title !== "header")
+    Object.assign(base, TITLE_STYLES[look.title]);
+  return base;
+}
+
+export function objectStyle(item: Item, named: Look = {}): CellStyle {
+  const look = resolvedLook(item, named);
+  const base = baseStyle(item, look);
+  const style: Style = { ...base, ...lookStyle(look, base) };
+  applyScale(style, look.scale);
+  applyPorts(item, style);
+  if (isLockedIcon(item)) delete style.rotation;
+  if (item.icon && (item.type === "node" || item.type === "card")) applyIcon(item, style, look);
+  if (item.type === "picture") applyPicture(item, style);
+  applyLabel(item, style, look);
   return style;
 }
 
+/** Peers write items, so an image only ever comes from a local icon key resolved here. */
+function applyIcon(item: Item, style: Style, look: Look) {
+  if (isLockedIcon(item)) Object.assign(style, { aspect: "fixed", rotatable: false });
+  const image = iconImage(item.icon, look.iconColor);
+  if (!image) {
+    void loadIconFor(item.icon);
+    return;
+  }
+  if (item.type === "card") style.image = image;
+  else Object.assign(style, { shape: "image", image });
+}
+
 /** Resolves only a validated hash through the room's pictures, so peers can never supply a URL. */
-function applyPicture(style: Record<string, unknown>) {
-  const hash = style[PICTURE_HASH];
-  const type = style[PICTURE_TYPE];
-  if (!isPictureHash(hash) || !isPictureType(type)) return;
-  const image = pictureImage(hash, type, style[PICTURE_STORED] === true);
+function applyPicture(item: Item, style: Style) {
+  const picture = item.picture;
+  if (!picture || !isPictureHash(picture.hash) || !isPictureType(picture.format)) return;
+  const image = pictureImage(picture.hash, picture.format, picture.stored);
   if (image)
     Object.assign(style, { shape: "image", image, fillColor: "none", strokeColor: "none" });
 }

@@ -1,66 +1,52 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { DomainError } from "../domain/canvasIndex";
-import type { Operation } from "../domain/context";
-import { operationSchema } from "../domain/schema";
-import { AgentSession, formatSchemas, stencils } from "./agentSession";
+import { LanguageError } from "../language/lexer";
+import { LANGUAGE_REFERENCE } from "../language/reference";
+import { AgentSession, stencils } from "./agentSession";
 
-/** Most operations one `apply` call may carry. */
-export const MAX_BATCH = 200;
+/** The most text one write may carry. */
+export const MAX_WRITE = 200_000;
 
 const INSTRUCTIONS = `Arconis is a shared canvas for architecture diagrams, mind maps, screen layouts and notes. You work in a room someone has open in a browser; they see your changes as you make them.
 
-The canvas holds items:
-- node: a shape in a diagram or a topic in a mind map. Its stencil says what it is (rectangle, ellipse, decision, service, database, cloud, person, or icon with an icon key).
-- region: a panel or group that holds other items; a screen layout is a region sized like a screen.
-- text: plain text, or a sticky note.
-- picture: an image people added.
-- connection: a line from one item to another, with a route and an arrow.
-- branch: one step of a topic tree, from a parent topic to a child. Any node can grow branches.
-- reference: a dashed pointer from one item to another that implies no structure.
-- drawing: freehand marks, which you can read and move.
-Items can hold other items (\`inside\`), have discussions (threads of comments) and a look (fill, line, text).
+You read and change the canvas in the Arconis canvas language below. What you read is written in it, a saved file is the whole canvas in it, and write takes it: one call can build a whole section, with frames, arrangements, styles and lines.
 
-Coordinates are canvas units, with x to the right and y downward; x and y are an item's top-left corner.
+Start with open_room, read what you need, then write. Use list_stencils to find icon keys. Others may edit while you work: every result ends with what they changed since your last call. If you change an item someone changed since you last saw it, nothing is changed and you get its current state: decide again and resend. undo reverts only your own last write.
 
-Start with open_room, then read what you need. Refer to items by id, or by a name only one item has. Change things with apply, which takes a batch of operations and makes all of them or none. Placement can be exact (x, y), relative (by dx, dy) or relational (beside, inside, alignWith).
+${LANGUAGE_REFERENCE}`;
 
-Others may edit while you work. Every result lists what they changed since your last call, with the current state of those items. If you act on an item someone changed since you last saw it, nothing is changed and you get its current state: decide again and resend. undo reverts only your own last change.`;
-
-type Json = Record<string, unknown>;
-
-function reply(value: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(value) }] };
+function text(value: string) {
+  return { content: [{ type: "text" as const, text: value }] };
 }
 
-/** Domain refusals are answers for the agent; anything else is a fault in the server. */
+/** Language refusals are answers for the agent; anything else is a fault in the server. */
 async function answer(work: () => unknown) {
   try {
-    return reply(await work());
+    const value = await work();
+    return text(typeof value === "string" ? value : JSON.stringify(value));
   } catch (error) {
-    if (error instanceof DomainError) return reply({ status: "failed", reason: error.message });
+    if (error instanceof LanguageError) return text(`// Nothing was changed. ${error.message}`);
     throw error;
   }
 }
 
 const readShape = {
-  items: z.array(z.string()).optional().describe("Ids or unique names of the items to read"),
+  items: z.array(z.string()).optional().describe("Ids of the items to read, with what they hold"),
   inside: z.string().optional().describe("Read a holder and everything it holds"),
   area: z
     .object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() })
     .optional()
-    .describe("Read every box overlapping this area"),
+    .describe("Read every item overlapping this area"),
 };
 
 /** The tools for one agent connection. */
 export function createMcpServer(session: AgentSession) {
   const server = new McpServer(
-    { name: "arconis", version: "1.0.0" },
+    { name: "arconis", version: "2.0.0" },
     { instructions: INSTRUCTIONS }
   );
   registerReading(server, session);
-  registerEditing(server, session);
-  registerReference(server, session);
+  registerWriting(server, session);
   return server;
 }
 
@@ -84,7 +70,7 @@ function registerReading(server: McpServer, session: AgentSession) {
     {
       title: "Describe the canvas",
       description:
-        "Orientation: title, who is present, counts by type, bounds, an outline of every item (id, type, name, holder), open discussions and saved views.",
+        "Orientation: title, who is here, counts, bounds, styles, an outline of every item and line by id and name, open discussions and saved views.",
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },
@@ -93,9 +79,9 @@ function registerReading(server: McpServer, session: AgentSession) {
   server.registerTool(
     "read",
     {
-      title: "Read items",
+      title: "Read the canvas",
       description:
-        "Full state of items with what they hold (holds), their links and the boxes they overlap (overlaps), each listed only when there are any, plus their discussions. Name items, a holder or an area; with none, reads the whole canvas.",
+        "Items in the canvas language, with what they hold, the lines among them and their discussions. Name items, a holder or an area; with none, the whole canvas as a file.",
       inputSchema: readShape,
       annotations: { readOnlyHint: true },
     },
@@ -103,34 +89,34 @@ function registerReading(server: McpServer, session: AgentSession) {
   );
 }
 
-function registerEditing(server: McpServer, session: AgentSession) {
+function registerWriting(server: McpServer, session: AgentSession) {
   server.registerTool(
-    "apply",
+    "write",
     {
-      title: "Change the canvas",
-      description: `Applies a batch of up to ${MAX_BATCH} operations as one change: all of them, or none if any fails or targets an item someone else changed since you saw it. Give a new item \`as\` to refer to it later in the same batch. Each result says what happened, including where items landed and what they overlap.`,
-      inputSchema: { operations: z.array(operationSchema).min(1).max(MAX_BATCH) },
+      title: "Write to the canvas",
+      description:
+        "Applies statements in the canvas language as one change: all of them, or none if any fails or changes an item someone else changed since you saw it. Returns the statements of what was created and changed, with where items landed and any overlaps.",
+      inputSchema: {
+        statements: z.string().min(1).max(MAX_WRITE).describe("Statements in the canvas language"),
+      },
     },
-    ({ operations }) => answer(() => session.apply(operations as Operation[]))
+    ({ statements }) => answer(() => session.write(statements))
   );
   server.registerTool(
     "undo",
     {
       title: "Undo",
-      description: "Reverts your own most recent change, leaving everyone else's work alone.",
+      description: "Reverts your own most recent write, leaving everyone else's work alone.",
       inputSchema: {},
     },
     () => answer(() => session.undo())
   );
-}
-
-function registerReference(server: McpServer, session: AgentSession) {
   server.registerTool(
     "list_stencils",
     {
       title: "List stencils",
       description:
-        "With no query, the node stencils and icon sets. With a query, icon keys for the icon stencil: each word is searched separately and returns its best matches, marked when more exist. Lucide covers generic ideas (lock, server, users); brand, aws, azure and gcp cover products.",
+        "With no query, the node stencils and icon sets. With a query, icon keys: each word is searched separately and returns its best matches, marked when more exist. Lucide covers generic ideas (lock, server, users); brand, aws, azure and gcp cover products.",
       inputSchema: {
         query: z
           .string()
@@ -140,26 +126,5 @@ function registerReference(server: McpServer, session: AgentSession) {
       annotations: { readOnlyHint: true },
     },
     ({ query }) => answer(() => stencils(query))
-  );
-  server.registerTool(
-    "export_file",
-    {
-      title: "Export the canvas",
-      description:
-        "The canvas as an Arconis file: the same items you read, with discussions and views. Pictures are referred to by hash; their bytes stay in the room's storage.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true },
-    },
-    () => answer(() => JSON.parse(session.exportFile()) as Json)
-  );
-  server.registerTool(
-    "format_schema",
-    {
-      title: "Format schema",
-      description: "JSON Schemas for the Arconis file and for apply's operations.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true },
-    },
-    () => answer(() => formatSchemas())
   );
 }

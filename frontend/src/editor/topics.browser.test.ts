@@ -20,9 +20,9 @@ const emptySpot = { x: 880, y: 800 };
 
 const objects = async (page: Page) => (await exported(page)).objects;
 const named = async (page: Page, label: string) =>
-  (await objects(page)).find((item) => item.label === label)!;
+  (await objects(page)).find((item) => item.name === label)!;
 const branches = (items: Awaited<ReturnType<typeof objects>>) =>
-  items.filter((item) => item.style.relation === "branch");
+  items.filter((item) => item.type === "branch");
 const action = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 
 /** Whether a label is drawn on the canvas right now. */
@@ -65,7 +65,7 @@ it("culls small objects by zoom, reveals held detail on zooming in, and still fi
   await page.keyboard.press("Escape");
   const detail = await named(page, "Token rotation");
   const host = await named(page, "Auth service");
-  expect(detail.parent).toBe(host.id);
+  expect(detail.inside).toBe(host.id);
   expect(detail.width).toBeLessThan(host.width);
   expect(await drawn(page, "Token rotation")).toBe(true);
 
@@ -101,7 +101,7 @@ it("nests by dropping onto any larger object, and moving the parent moves childr
 
   await canvas(page).click({ position: emptySpot });
   await drag(page, 180, 145, 460, 60);
-  await expect.poll(async () => (await named(page, "Child")).parent).toBe(phone.id);
+  await expect.poll(async () => (await named(page, "Child")).inside).toBe(phone.id);
 
   const before = await named(page, "Child");
   await drag(page, 690, 135, 100, 40);
@@ -152,8 +152,8 @@ it("builds a tree from the keyboard alone, which peers see the same way", async 
   await expect.poll(() => objectCount(page)).toBe(7);
 
   const items = await objects(page);
-  const id = (label: string) => items.find((item) => item.label === label)!.id;
-  const edges = branches(items).map((edge) => [edge.source, edge.target]);
+  const id = (label: string) => items.find((item) => item.name === label)!.id;
+  const edges = branches(items).map((edge) => [edge.from, edge.to]);
   expect(edges).toEqual(
     expect.arrayContaining([
       [id("Root"), id("First")],
@@ -263,10 +263,10 @@ it("lets a line be a topic, whose anchor and branches follow the line", async ()
   await expect.poll(() => objectCount(page)).toBe(6);
 
   const items = await objects(page);
-  const line = items.find((item) => item.kind === "connector" && !item.style.relation)!;
-  const anchor = items.find((item) => item.style.lineAnchor === line.id)!;
-  const notes = items.find((item) => item.label === "Protocol notes")!;
-  expect(branches(items)[0]).toMatchObject({ source: anchor.id, target: notes.id });
+  const line = items.find((item) => item.type === "line")!;
+  const anchor = items.find((item) => item.onLine === line.id)!;
+  const notes = items.find((item) => item.name === "Protocol notes")!;
+  expect(branches(items)[0]).toMatchObject({ from: anchor.id, to: notes.id });
 
   await canvas(page).click({ position: emptySpot });
   const server = await named(page, "Server");
@@ -279,7 +279,7 @@ it("lets a line be a topic, whose anchor and branches follow the line", async ()
   };
   await expect.poll(anchorAt).not.toBe(anchor.x + anchor.y);
   const moved = (await objects(page)).find((item) => item.id === anchor.id)!;
-  expect(notes.style.lineAnchor).toBeUndefined();
+  expect(notes.onLine).toBe("");
   expect(notes.width).toBeGreaterThan(anchor.width);
   const expectedX = notes.x + moved.x - anchor.x;
   await expect.poll(async () => (await named(page, "Protocol notes")).x).toBe(expectedX);
@@ -304,8 +304,8 @@ it("composes everything: a screen as a topic, with a diagram inside and a refere
   await page.keyboard.press("Escape");
   await expect.poll(() => objectCount(page)).toBe(3);
   const items = await objects(page);
-  const tablet = items.find((item) => item.kind === "panel")!;
-  expect(branches(items)[0].source).toBe(tablet.id);
+  const tablet = items.find((item) => item.type === "frame")!;
+  expect(branches(items)[0].from).toBe(tablet.id);
   await mkdir("test-results/review", { recursive: true });
   await page.screenshot({ path: "test-results/review/topics-screen.png" });
   expect(errors).toEqual([]);

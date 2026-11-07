@@ -8,21 +8,8 @@ import {
   type Graph,
 } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import type { StyleValue } from "../document/types";
+import type { Port } from "../document/types";
 import { creationValues } from "./zoom";
-
-export const ANCHOR_STYLE_KEYS = [
-  "exitX",
-  "exitY",
-  "exitDx",
-  "exitDy",
-  "exitPerimeter",
-  "entryX",
-  "entryY",
-  "entryDx",
-  "entryDy",
-  "entryPerimeter",
-] as const;
 
 const POINT_IMAGE = new ImageBox("/connection-point.svg", 11, 11);
 const POINT_COLOR = "#2f7de1";
@@ -62,14 +49,8 @@ function pointsFor(shape: unknown) {
   return BOX_POINTS;
 }
 
-function constraintStyle(constraint: ConnectionConstraint | null, source: boolean) {
-  if (!constraint?.point) return {};
-  const prefix = source ? "exit" : "entry";
-  return {
-    [`${prefix}X`]: constraint.point.x,
-    [`${prefix}Y`]: constraint.point.y,
-    [`${prefix}Perimeter`]: constraint.perimeter,
-  } as Record<string, StyleValue>;
+function portOf(constraint: ConnectionConstraint | null): Port | undefined {
+  return constraint?.point ? [constraint.point.x, constraint.point.y] : undefined;
 }
 
 /**
@@ -98,15 +79,12 @@ export function configureConnectionPoints(graph: Graph, document: CanvasDocument
     connection.isConnecting() ? markerColor(event, state, valid) : "none";
   connection.connect = (source, target) => {
     if (!source?.id || !target?.id || source === target) return;
-    const zoomed = creationValues("connector", graph.view.scale);
-    document.create("connector", 0, 0, {
-      source: source.id,
-      target: target.id,
-      style: {
-        ...zoomed.style,
-        ...constraintStyle(connection.sourceConstraint, true),
-        ...constraintStyle(connection.constraintHandler.currentConstraint, false),
-      },
+    document.create("line", 0, 0, {
+      ...creationValues("line", graph.view.scale),
+      from: source.id,
+      to: target.id,
+      fromPort: portOf(connection.sourceConstraint),
+      toPort: portOf(connection.constraintHandler.currentConstraint),
     });
   };
 }

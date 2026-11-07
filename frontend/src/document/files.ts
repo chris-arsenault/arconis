@@ -1,22 +1,27 @@
-import { CanvasDocument } from "./canvasDocument";
-import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
-import { normalizeLegacyObjects } from "./geometry";
-import { importComments } from "./comments";
+import type { CanvasDocument } from "./canvasDocument";
+import { LOCAL } from "./types";
 import { NO_PICTURES, type FilePictures } from "./pictures";
-import { FORMAT_VERSION, exportFile, importFile, parseFile } from "../domain/format";
 import { isPng, readCopy } from "./pngCopy";
-import { remapStyle } from "./relations";
+import { parse } from "../language/parser";
+import { printCanvas } from "../language/printer";
+import { writeStatements } from "../language/writer";
 
 /**
- * The portable form of a document, or of just the named objects without its saved views. It is the
- * domain read model written out, so people and agents read and write the same file.
+ * A file is the canvas written in the canvas language, the same text agents read and write. Picture
+ * bytes ride along at the end so the file opens anywhere.
  */
 export function serializeDocument(
   document: CanvasDocument,
   ids: string[] = [],
   pictures: FilePictures = NO_PICTURES
 ) {
-  return exportFile(document, ids, pictures);
+  let text = printCanvas(document, {
+    ids,
+    data: pictures.pictures.map(({ hash, type, data }) => ({ hash, type, data })),
+  });
+  // A password room names pictures by their sealed bytes; a file names them by their plain bytes.
+  pictures.renames.forEach((plain, sealed) => (text = text.replaceAll(sealed, plain)));
+  return text;
 }
 
 export function downloadFile(
@@ -34,10 +39,10 @@ export function downloadFile(
 }
 
 export function downloadDocument(document: CanvasDocument, pictures: FilePictures) {
-  downloadFile(document, serializeDocument(document, [], pictures), "application/json", "arconis");
+  downloadFile(document, serializeDocument(document, [], pictures), "text/plain", "arconis");
 }
 
-/** Reads a chosen file as document text, whether it is a document or a picture carrying one. */
+/** Reads a chosen file as canvas text, whether it is a canvas file or a picture carrying one. */
 export async function readDocumentFile(file: File) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!isPng(bytes)) return new TextDecoder().decode(bytes);
@@ -46,122 +51,36 @@ export async function readDocumentFile(file: File) {
   return copy;
 }
 
-export function importDocument(document: CanvasDocument, content: string) {
-  const raw: unknown = JSON.parse(content);
-  if (raw && typeof raw === "object" && "version" in raw && raw.version === FORMAT_VERSION)
-    return importFile(document, parseFile(raw));
-  const parsed = parseLegacyFile(raw);
-  if (!parsed.objects.every(validObject))
-    throw new Error("This document contains invalid canvas objects.");
-  const objects = parsed.version === 1 ? normalizeLegacyObjects(parsed.objects) : parsed.objects;
-  const bookmarks = parsed.bookmarks;
-  if (!Array.isArray(bookmarks) || !bookmarks.every(validView))
-    throw new Error("This document contains invalid saved views.");
-  const ids = new Map(objects.map((item) => [item.id, crypto.randomUUID()]));
-  const base = document.nextOrder();
-  const stacked = objects
-    .map((item, index) => ({ item, index }))
-    .sort((left, right) => fileOrder(left.item) - fileOrder(right.item) || left.index - right.index)
-    .map(({ item }) => item);
+/**
+ * Adds a file's canvas to this one as one undoable change, keeping the file's ids where they are
+ * free. `renames` points pictures at the names they were kept under here.
+ */
+export function importDocument(
+  document: CanvasDocument,
+  content: string,
+  renames: Map<string, string> = new Map()
+) {
+  let text = content;
+  renames.forEach((kept, original) => (text = text.replaceAll(original, kept)));
+  const statements = parse(text);
+  if (!statements.some((statement) => statement.kind === "header"))
+    throw new Error("Choose an Arconis canvas file (.arconis).");
   document.undo.stopCapturing();
+  let created = 0;
   document.doc.transact(() => {
-    stacked.forEach((item, index) =>
-      document.insert({
-        ...item,
-        order: base + index,
-        id: ids.get(item.id)!,
-        parent: ids.get(item.parent) || "",
-        source: ids.get(item.source) || "",
-        target: ids.get(item.target) || "",
-        style: remapStyle(item.style, ids),
-      })
-    );
-    importComments(document, parsed.comments, ids);
-    if (typeof parsed.title === "string") document.rename(parsed.title);
-    bookmarks.forEach((view: SavedView) => {
-      const id = crypto.randomUUID();
-      document.views.set(id, JSON.stringify({ ...view, id }));
-    });
+    const result = writeStatements(document, statements, { author: "", importing: true });
+    created = result.created.length;
+    if (renames.size) unstorePictures(document, result.created, new Set(renames.values()));
   }, LOCAL);
   document.undo.stopCapturing();
-  return objects.length;
+  return created;
 }
 
-function fileOrder(item: CanvasObject) {
-  return Number.isFinite(item.order) ? item.order : 0;
-}
-
-/** Versions 1 and 2 stored the editor's own records. */
-function parseLegacyFile(parsed: unknown): {
-  objects: CanvasObject[];
-  bookmarks: unknown;
-  comments: unknown;
-  title: unknown;
-  version: number;
-} {
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    !("format" in parsed) ||
-    parsed.format !== "arconis" ||
-    !("objects" in parsed) ||
-    !Array.isArray(parsed.objects)
-  )
-    throw new Error("Choose an Arconis document (.arconis).");
-  return {
-    objects: parsed.objects as CanvasObject[],
-    bookmarks: "bookmarks" in parsed ? parsed.bookmarks : [],
-    comments: "comments" in parsed ? parsed.comments : [],
-    title: "title" in parsed ? parsed.title : null,
-    version: fileVersion(parsed),
-  };
-}
-
-function fileVersion(parsed: object) {
-  const version = "version" in parsed ? parsed.version : 1;
-  if (version !== 1 && version !== 2)
-    throw new Error("This Arconis file version is not supported.");
-  return version;
-}
-
-function validView(value: unknown): value is SavedView {
-  if (!value || typeof value !== "object") return false;
-  const view = value as SavedView;
-  return (
-    typeof view.name === "string" &&
-    [view.x, view.y, view.scale].every((n) => typeof n === "number" && Number.isFinite(n)) &&
-    [view.centerX, view.centerY].every((n) => n === undefined || Number.isFinite(n)) &&
-    view.scale > 0
-  );
-}
-
-function validObject(item: CanvasObject) {
-  if (!item || !(item.kind in KIND_LABELS)) return false;
-  if (
-    ![item.id, item.label, item.parent, item.source, item.target, item.points].every(
-      (value) => typeof value === "string"
-    )
-  )
-    return false;
-  if (
-    ![item.x, item.y, item.width, item.height].every(
-      (value) => typeof value === "number" && Number.isFinite(value)
-    )
-  )
-    return false;
-  if (!item.style || typeof item.style !== "object") return false;
-  try {
-    const points: unknown = JSON.parse(item.points);
-    return (
-      Array.isArray(points) &&
-      points.every(
-        (point: unknown) =>
-          Array.isArray(point) &&
-          point.length === 2 &&
-          point.every((n: unknown) => typeof n === "number" && Number.isFinite(n))
-      )
-    );
-  } catch {
-    return false;
+/** Pictures kept under a new name have not reached shared storage under it yet. */
+function unstorePictures(document: CanvasDocument, ids: string[], renamed: Set<string>) {
+  for (const id of ids) {
+    const picture = document.get(id)?.picture;
+    if (picture && renamed.has(picture.hash))
+      document.patch(id, { picture: { ...picture, stored: false } });
   }
 }

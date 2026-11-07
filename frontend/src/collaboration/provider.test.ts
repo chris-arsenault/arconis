@@ -32,12 +32,12 @@ it("late joins and resynchronizes offline edits in both directions", () => {
   const peers: Bus[] = [];
   const a = new CanvasDocument();
   const b = new CanvasDocument();
-  const id = a.create("sticky", 0, 0, { label: "hello" });
+  const id = a.create("note", 0, 0, { name: "hello" });
   const first = new CollaborationProvider(a.doc, new Bus(peers), () => {});
   const second = new CollaborationProvider(b.doc, new Bus(peers), () => {});
   first.connect();
   second.connect();
-  expect(b.get(id)?.label).toBe("hello");
+  expect(b.get(id)?.name).toBe("hello");
   second.transport.close();
   a.patch(id, { x: 100 });
   b.patch(id, { y: 200 });
@@ -56,7 +56,7 @@ it("reports searching, then alone, then synced once a peer answers", () => {
     const peers: Bus[] = [];
     const a = new CanvasDocument();
     const b = new CanvasDocument();
-    const id = a.create("sticky", 0, 0, { label: "held by first" });
+    const id = a.create("note", 0, 0, { name: "held by first" });
     const first = new CollaborationProvider(a.doc, new Bus(peers), () => {});
     first.connect();
     expect(first.sync).toBe("searching");
@@ -66,7 +66,7 @@ it("reports searching, then alone, then synced once a peer answers", () => {
     second.connect();
     expect(second.sync).toBe("synced");
     expect(first.sync).toBe("synced");
-    expect(b.get(id)?.label).toBe("held by first");
+    expect(b.get(id)?.name).toBe("held by first");
     second.disconnected();
     expect(second.sync).toBe("idle");
     first.destroy();
@@ -84,7 +84,7 @@ it("repeats an unanswered join request so a lost message cannot strand a late jo
     const peers: Bus[] = [];
     const a = new CanvasDocument();
     const b = new CanvasDocument();
-    const id = a.create("sticky", 0, 0, { label: "survives a lost hello" });
+    const id = a.create("note", 0, 0, { name: "survives a lost hello" });
     const first = new CollaborationProvider(a.doc, new Bus(peers), () => {});
     first.connect();
     const dropping = new Bus(peers);
@@ -97,7 +97,7 @@ it("repeats an unanswered join request so a lost message cannot strand a late jo
     second.connect();
     expect(b.get(id)).toBeNull();
     vi.advanceTimersByTime(2500);
-    expect(b.get(id)?.label).toBe("survives a lost hello");
+    expect(b.get(id)?.name).toBe("survives a lost hello");
     expect(second.sync).toBe("synced");
     first.destroy();
     second.destroy();
@@ -114,7 +114,7 @@ it("repairs a lost deletion, which leaves state vectors equal, at the periodic e
     const peers: Bus[] = [];
     const a = new CanvasDocument();
     const b = new CanvasDocument();
-    const id = a.create("sticky", 0, 0, { label: "doomed" });
+    const id = a.create("note", 0, 0, { name: "doomed" });
     const busA = new Bus(peers);
     const first = new CollaborationProvider(a.doc, busA, () => {});
     const second = new CollaborationProvider(b.doc, new Bus(peers), () => {});
@@ -144,9 +144,9 @@ it("exchanges only vectors once peers match, however much history they hold", ()
     const peers: Bus[] = [];
     const a = new CanvasDocument();
     const b = new CanvasDocument();
-    const id = a.create("sticky", 0, 0, { label: "edited" });
+    const id = a.create("note", 0, 0, { name: "edited" });
     a.patch(id, { x: 5 });
-    a.remove([a.create("sticky", 0, 0, {})]);
+    a.remove([a.create("note", 0, 0, {})]);
     const busA = new Bus(peers);
     const busB = new Bus(peers);
     const first = new CollaborationProvider(a.doc, busA, () => {});

@@ -64,9 +64,9 @@ it("finds, places, connects and syncs icons from the stencil rail", async () => 
   await search.fill("");
   await a.getByRole("button", { name: "Icon: Docker", exact: true }).waitFor();
   const saved = await exported(a);
-  const icons = saved.objects.filter((item) => item.kind === "icon");
-  expect(icons.map((item) => item.style.icon)).toEqual(["brand:kubernetes", "lucide:HardDrive"]);
-  expect(icons.map((item) => item.label)).toEqual(["Kubernetes", "Hard Drive"]);
+  const icons = saved.objects.filter((item) => item.stencil === "icon" && item.type === "node");
+  expect(icons.map((item) => item.icon)).toEqual(["brand:kubernetes", "lucide:HardDrive"]);
+  expect(icons.map((item) => item.name)).toEqual(["Kubernetes", "Hard Drive"]);
   expect(icons[0].width).toBe(64);
   await canvas(a).click({ position: emptySpot });
   const images = canvas(a).locator('image[*|href^="data:image/svg+xml"]');
@@ -84,7 +84,7 @@ it("finds, places, connects and syncs icons from the stencil rail", async () => 
   const b = await open(second, room);
   await expect.poll(() => objectCount(b), { timeout: 15000 }).toBe(3);
   await expect.poll(() => canvas(b).locator('image[*|href^="data:image/svg+xml"]').count()).toBe(2);
-  expect((await exported(b)).objects.find((item) => item.label === "Kubernetes")?.width).toBe(120);
+  expect((await exported(b)).objects.find((item) => item.name === "Kubernetes")?.width).toBe(120);
   expect(errors).toEqual([]);
   await first.close();
   await second.close();
@@ -128,7 +128,7 @@ it("offers cloud provider icons that scale evenly and never rotate, for every pe
   await a.mouse.up();
   await expect
     .poll(async () => {
-      const item = (await exported(a)).objects.find((value) => value.label === "AWS Lambda")!;
+      const item = (await exported(a)).objects.find((value) => value.name === "AWS Lambda")!;
       return item.width === item.height && item.width > 128;
     })
     .toBe(true);
@@ -141,8 +141,8 @@ it("offers cloud provider icons that scale evenly and never rotate, for every pe
   await a.mouse.down();
   await a.mouse.move(handle.x + 160, handle.y + 120, { steps: 8 });
   await a.mouse.up();
-  const turned = (await exported(a)).objects.find((value) => value.label === "AWS Lambda")!;
-  expect(Number(turned.style.rotation || 0)).toBe(0);
+  const turned = (await exported(a)).objects.find((value) => value.name === "AWS Lambda")!;
+  expect(Number(turned.look.rotation || 0)).toBe(0);
 
   const b = await open(second, room);
   await expect.poll(() => objectCount(b), { timeout: 15000 }).toBe(2);
@@ -227,7 +227,7 @@ it("saves a place, lists it, returns to it on another window size and syncs it",
   await a.getByRole("button", { name: "Far corner", exact: true }).hover();
   await a.getByRole("button", { name: "Remove view Far corner", exact: true }).click();
   await expect.poll(() => named.count(), { timeout: 15000 }).toBe(0);
-  expect((await exported(a)).bookmarks).toHaveLength(0);
+  expect((await exported(a)).views).toHaveLength(0);
   expect(errors).toEqual([]);
   await first.close();
   await second.close();

@@ -2,6 +2,7 @@ import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { writeFile } from "node:fs/promises";
 import { CanvasDocument } from "../document/canvasDocument";
+import { serializeDocument } from "../document/files";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
@@ -136,27 +137,27 @@ it("drags and resizes attached objects, changes routing and preserves portable v
     .poll(() => page.getByLabel("Object width", { exact: true }).inputValue())
     .toBe("240");
   await selectConnector(page);
-  await page.getByLabel("Connector routing").selectOption("none");
+  await page.getByLabel("Connector routing").selectOption("straight");
   await page.getByLabel("Object text", { exact: true }).fill("Relationship");
   await page.getByLabel("View name", { exact: true }).fill("Portable view");
   await page.getByRole("button", { name: "Save current view", exact: true }).click();
   const saved = await exported(page);
-  const edge = saved.objects.find((item) => item.kind === "connector")!;
-  expect(saved.objects.find((item) => item.id === edge.source)).toMatchObject({
-    label: "Move me",
+  const edge = saved.objects.find((item) => item.type === "line")!;
+  expect(saved.objects.find((item) => item.id === edge.from)).toMatchObject({
+    name: "Move me",
     x: oldX + 100,
     width: 240,
   });
-  expect(saved.objects.find((item) => item.id === edge.target)?.label).toBe("Attached note");
-  expect(edge.style.edgeStyle).toBe("none");
-  expect(saved.bookmarks[0].name).toBe("Portable view");
+  expect(saved.objects.find((item) => item.id === edge.to)?.name).toBe("Attached note");
+  expect(edge.look.route).toBe("straight");
+  expect(saved.views[0].name).toBe("Portable view");
   await page.getByLabel("Import file").setInputFiles({
     name: "copy.arconis",
-    mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify(saved.file)),
+    mimeType: "text/plain",
+    buffer: Buffer.from(saved.text),
   });
   await expect.poll(() => objectCount(page)).toBe(6);
-  expect((await exported(page)).bookmarks).toHaveLength(2);
+  expect((await exported(page)).views).toHaveLength(2);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(3);
   expect(errors).toEqual([]);
@@ -173,16 +174,12 @@ it("uses shapes, notes, connectors and drawing tools together on one canvas", as
   await drag(page, 200, 750, 200, -70);
   await expect.poll(() => objectCount(page)).toBe(8);
   const beforeMove = await exported(page);
-  const beforePoints = JSON.parse(
-    beforeMove.objects.find((item) => item.kind === "stroke")!.points
-  ) as [number, number][];
+  const beforePoints = beforeMove.objects.find((item) => item.type === "drawing")!.points;
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
   await selectDrawing(page);
   await drag(page, 300, 715, 50, 20);
   const afterMove = await exported(page);
-  const afterPoints = JSON.parse(
-    afterMove.objects.find((item) => item.kind === "stroke")!.points
-  ) as [number, number][];
+  const afterPoints = afterMove.objects.find((item) => item.type === "drawing")!.points;
   expect(afterPoints[0]).toEqual([beforePoints[0][0] + 50, beforePoints[0][1] + 20]);
   expect(await objectCount(page)).toBe(8);
   await add(page, "Sticky note (N)", "Still one document", 650, 700);
@@ -191,9 +188,9 @@ it("uses shapes, notes, connectors and drawing tools together on one canvas", as
   await page.getByTestId("canvas").click({ position: { x: 490, y: 195 } });
   await expect.poll(() => objectCount(page)).toBe(10);
   const saved = await exported(page);
-  expect(saved.objects.filter((item) => item.kind === "stroke")).toHaveLength(1);
+  expect(saved.objects.filter((item) => item.type === "drawing")).toHaveLength(1);
   expect(
-    JSON.parse(saved.objects.find((item) => item.kind === "stroke")!.points).length
+    saved.objects.find((item) => item.type === "drawing")!.points.length
   ).toBeGreaterThanOrEqual(2);
   expect(errors).toEqual([]);
   await context.close();
@@ -201,21 +198,17 @@ it("uses shapes, notes, connectors and drawing tools together on one canvas", as
 
 function representativeCanvas() {
   const document = new CanvasDocument();
+  document.rename("System overview");
   for (let i = 0; i < 150; i++) {
     const x = (i % 10) * 480;
     const y = Math.floor(i / 10) * 260;
-    const source = document.create("service", x, y, { label: `Service ${i}` });
-    const target = document.create("sticky", x + 220, y, {
-      label: `Design note ${i}: ${"A shared thought. ".repeat(20)}`,
+    const from = document.create("node", x, y, { stencil: "service", name: `Service ${i}` });
+    const to = document.create("note", x + 220, y, {
+      name: `Design note ${i}: ${"A shared thought. ".repeat(20)}`,
     });
-    document.create("connector", 0, 0, { source, target });
+    document.create("line", 0, 0, { from, to });
   }
-  const result = JSON.stringify({
-    format: "arconis",
-    version: 1,
-    title: "System overview",
-    objects: document.list(),
-  });
+  const result = serializeDocument(document);
   document.destroy();
   return result;
 }
@@ -228,7 +221,7 @@ it("renders a representative diagram and synchronizes its chunked state to a new
   const start = performance.now();
   await a.getByLabel("Import file").setInputFiles({
     name: "system.arconis",
-    mimeType: "application/json",
+    mimeType: "text/plain",
     buffer: Buffer.from(representativeCanvas()),
   });
   await expect.poll(() => objectCount(a)).toBe(450);

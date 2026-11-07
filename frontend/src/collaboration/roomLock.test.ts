@@ -147,14 +147,14 @@ describe("a password room", () => {
     await a.lock.whenSynced;
     expect(a.lock.state).toBe("choose");
     await a.lock.choose("hunter2 is fine");
-    const id = a.document.create("rectangle", 0, 0, { label: SECRET });
+    const id = a.document.create("node", 0, 0, { name: SECRET });
 
     const b = person(wire);
     await vi.waitFor(() => expect(b.lock.state).toBe("enter"));
     await b.lock.enter("hunter2 is fine");
-    await vi.waitFor(() => expect(b.document.get(id)?.label).toBe(SECRET));
-    a.document.patch(id, { label: `${SECRET} two` });
-    await vi.waitFor(() => expect(b.document.get(id)?.label).toBe(`${SECRET} two`));
+    await vi.waitFor(() => expect(b.document.get(id)?.name).toBe(SECRET));
+    a.document.patch(id, { name: `${SECRET} two` });
+    await vi.waitFor(() => expect(b.document.get(id)?.name).toBe(`${SECRET} two`));
 
     expect(wire.seen.length).toBeGreaterThan(0);
     const secretBytes = (bytes: string) => bytes.includes("Quarterly") || bytes.includes("secret");
@@ -173,7 +173,7 @@ describe("a password room", () => {
     const a = person(wire, true);
     await a.lock.whenSynced;
     await a.lock.choose("right");
-    a.document.create("rectangle", 0, 0, { label: SECRET });
+    a.document.create("node", 0, 0, { name: SECRET });
     const b = person(wire);
     await vi.waitFor(() => expect(b.lock.state).toBe("enter"));
     await b.lock.enter("wrong");
@@ -198,7 +198,7 @@ describe("a password room over time", () => {
     const a = person(network(), true, storage);
     await a.lock.whenSynced;
     await a.lock.choose("right");
-    const id = a.document.create("rectangle", 0, 0, { label: SECRET });
+    const id = a.document.create("node", 0, 0, { name: SECRET });
     await vi.waitFor(() => expect(storage.saved.length).toBeGreaterThan(0));
     await new Promise((resolve) => setTimeout(resolve, 20));
 
@@ -207,7 +207,7 @@ describe("a password room over time", () => {
     expect(again.lock.state).toBe("enter");
     expect(again.document.list()).toEqual([]);
     await again.lock.enter("right");
-    expect(again.document.get(id)?.label).toBe(SECRET);
+    expect(again.document.get(id)?.name).toBe(SECRET);
   });
 
   it("changes the password and keeps the document, for peers and for later joiners", async () => {
@@ -215,7 +215,7 @@ describe("a password room over time", () => {
     const a = person(wire, true);
     await a.lock.whenSynced;
     await a.lock.choose("old");
-    const id = a.document.create("rectangle", 0, 0, { label: SECRET });
+    const id = a.document.create("node", 0, 0, { name: SECRET });
     const b = person(wire);
     await vi.waitFor(() => expect(b.lock.state).toBe("enter"));
     await b.lock.enter("old");
@@ -229,7 +229,7 @@ describe("a password room over time", () => {
     await c.lock.enter("old");
     expect(c.lock.state).toBe("enter");
     await c.lock.enter("new");
-    await vi.waitFor(() => expect(c.document.get(id)?.label).toBe(SECRET));
+    await vi.waitFor(() => expect(c.document.get(id)?.name).toBe(SECRET));
   });
 });
 
@@ -274,7 +274,7 @@ describe("what a password room refuses or seals", () => {
     const a = person(network(), true, storage);
     await a.lock.whenSynced;
     await a.lock.choose("right");
-    const id = a.document.create("rectangle", 0, 0);
+    const id = a.document.create("node", 0, 0);
     for (let x = 0; x < 120; x++) a.document.patch(id, { x });
     await vi.waitFor(() => expect(storage.saved.length).toBeGreaterThan(100));
     await new Promise((resolve) => setTimeout(resolve, 30));

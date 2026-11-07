@@ -1,15 +1,15 @@
 import { Fragment, type ReactNode } from "react";
 import type { EditorController } from "../editor/controller";
-import type { CanvasObject, StyleValue } from "../document/types";
-import { objectStyle } from "../editor/styles";
+import type { Arrow, Item, Route } from "../document/types";
+import { resolvedLook } from "../editor/styles";
 
 const ROUTES = [
-  { value: "orthogonalEdgeStyle", label: "Orthogonal" },
-  { value: "elbowEdgeStyle", label: "Elbow" },
-  { value: "none", label: "Straight" },
+  { value: "orthogonal", label: "Orthogonal" },
+  { value: "elbow", label: "Elbow" },
+  { value: "straight", label: "Straight" },
 ];
 const ARROWS = [
-  { value: "block", label: "Arrow" },
+  { value: "arrow", label: "Arrow" },
   { value: "open", label: "Open arrow" },
   { value: "none", label: "None" },
 ];
@@ -53,26 +53,24 @@ function SelectRow({
 export function ConnectionControls({
   editor,
   item,
-}: Readonly<{ editor: EditorController; item: CanvasObject }>) {
-  const style = objectStyle(item) as Record<string, StyleValue | undefined>;
-  const patchStyle = (key: string) => (value: string) =>
-    editor.document.patchStyle(item.id, { [key]: value });
+}: Readonly<{ editor: EditorController; item: Item }>) {
+  const look = resolvedLook(item, editor.document.namedStyle(item.style));
   return (
     <Section title="Connection">
       <div className="select-grid">
         <SelectRow
           title="Route"
           label="Connector routing"
-          value={String(style.edgeStyle || "orthogonalEdgeStyle")}
+          value={look.route ?? "orthogonal"}
           options={ROUTES}
-          onChange={patchStyle("edgeStyle")}
+          onChange={(route) => editor.document.patchLook(item.id, { route: route as Route })}
         />
         <SelectRow
           title="End"
           label="Connector arrow"
-          value={String(style.endArrow || "block")}
+          value={look.arrow ?? "arrow"}
           options={ARROWS}
-          onChange={patchStyle("endArrow")}
+          onChange={(arrow) => editor.document.patchLook(item.id, { arrow: arrow as Arrow })}
         />
       </div>
     </Section>

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
-import { PICTURE_HASH, PICTURE_STORED } from "../document/pictures";
 import { PLAIN_CODEC, PictureStore, type StoredPicture } from "./pictureStore";
 import { uploadWaitingPictures, type PutBytes } from "./pictureUploads";
 import type { UploadReply, UploadRequest } from "./transport";
@@ -27,7 +26,7 @@ async function setup(reply: UploadReply | ((hash: string) => UploadReply)) {
   });
   const hash = await store.add(BYTES, "image/webp");
   const id = document.create("picture", 0, 0, {
-    style: { [PICTURE_HASH]: hash, pictureType: "image/webp", [PICTURE_STORED]: false },
+    picture: { hash, format: "image/webp", stored: false },
   });
   const request = vi.fn((upload: UploadRequest) =>
     Promise.resolve(typeof reply === "function" ? reply(upload.hash) : reply)
@@ -41,7 +40,7 @@ async function setup(reply: UploadReply | ((hash: string) => UploadReply)) {
       put,
       contentType: (type) => type,
     });
-  const stored = () => document.get(id)!.style[PICTURE_STORED];
+  const stored = () => document.get(id)!.picture?.stored;
   return { hash, id, request, put, run, stored };
 }
 
@@ -60,11 +59,11 @@ describe("uploading", () => {
   it("sends each picture once, even when several objects show it", async () => {
     const context = await setup((hash) => ({ status: "upload", hash, url: "u" }));
     document.create("picture", 0, 0, {
-      style: { [PICTURE_HASH]: context.hash, [PICTURE_STORED]: false },
+      picture: { hash: context.hash, format: "image/webp", stored: false },
     });
     await context.run();
     expect(context.put).toHaveBeenCalledOnce();
-    expect(document.list().every((item) => item.style[PICTURE_STORED] === true)).toBe(true);
+    expect(document.list().every((item) => item.picture?.stored === true)).toBe(true);
     await context.run();
     expect(context.request).toHaveBeenCalledOnce();
   });
@@ -91,7 +90,9 @@ describe("uploading", () => {
 
   it("leaves pictures it does not hold to the browser that does", async () => {
     const context = await setup((hash) => ({ status: "upload", hash, url: "u" }));
-    document.patchStyle(context.id, { [PICTURE_HASH]: "d".repeat(64) });
+    document.patch(context.id, {
+      picture: { hash: "d".repeat(64), format: "image/webp", stored: false },
+    });
     await context.run();
     expect(context.request).not.toHaveBeenCalled();
   });
