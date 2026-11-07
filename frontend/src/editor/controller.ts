@@ -22,6 +22,7 @@ import { configureRendering } from "./rendering";
 import { configureConnectionPoints } from "./connectionPoints";
 import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
 import { createView, flyToView } from "./views";
+import { subscribeIcons } from "./icons";
 import { compareStacking, isVertexKind, offsetPoints } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 
@@ -32,6 +33,7 @@ export class EditorController {
   tool: Tool = "select";
   editId: string | null = null;
   selectOnEdit = false;
+  armedIcon: { key: string; title: string } | null = null;
   connectionSource = "";
   version = 0;
   /** Receives in-progress move and resize boxes so peers can see a drag before it lands. */
@@ -44,6 +46,7 @@ export class EditorController {
   private lastPreview = 0;
   private listeners = new Set<() => void>();
   private cleanupInput: () => void;
+  private cleanupIcons: () => void;
   private band: RubberBandHandler;
 
   constructor(
@@ -80,6 +83,7 @@ export class EditorController {
     this.document.undo.on("stack-item-added", this.emit);
     this.document.undo.on("stack-item-popped", this.emit);
     this.cleanupInput = bindCanvasInput(this);
+    this.cleanupIcons = subscribeIcons(() => this.project());
     this.project();
     this.graph.view.setTranslate(60, 60);
   }
@@ -155,7 +159,13 @@ export class EditorController {
     }
   }
 
+  armIcon(icon: { key: string; title: string }) {
+    this.setTool("icon");
+    this.armedIcon = icon;
+    this.emit();
+  }
   setTool(tool: Tool) {
+    this.armedIcon = null;
     this.connectionSource = "";
     this.tool = tool;
     const pan = this.graph.getPlugin<PanningHandler>("PanningHandler");
@@ -168,7 +178,7 @@ export class EditorController {
     this.emit();
   }
 
-  add(kind: ObjectKind, x?: number, y?: number) {
+  add(kind: ObjectKind, x?: number, y?: number, icon = this.armedIcon) {
     const view = this.graph.view;
     const centerX = this.element.clientWidth / 2 / view.scale - view.translate.x;
     const centerY = this.element.clientHeight / 2 / view.scale - view.translate.y;
@@ -176,9 +186,11 @@ export class EditorController {
     const offset = (this.document.objects.size % 6) * 16 * size;
     const left = x ?? centerX + (offset - 80) * size;
     const top = y ?? centerY + (offset - 45) * size;
+    const zoomed = creationValues(kind, view.scale);
     const id = this.document.create(kind, left, top, {
-      label: kind === "sticky" ? "Your idea here" : KIND_LABELS[kind],
-      ...creationValues(kind, view.scale),
+      label: icon?.title ?? (kind === "sticky" ? "Your idea here" : KIND_LABELS[kind]),
+      ...zoomed,
+      style: { ...zoomed.style, ...(icon ? { icon: icon.key } : {}) },
     });
     this.select(id);
     this.setTool("select");
@@ -386,6 +398,7 @@ export class EditorController {
   }
   destroy() {
     this.destroyed = true;
+    this.cleanupIcons();
     this.cleanupInput();
     this.band.onDestroy();
     this.document.doc.off("update", this.onDocumentChange);

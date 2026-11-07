@@ -46,6 +46,50 @@ it("adds objects from a left rail of stencils, with nothing hovering over the ca
   await context.close();
 });
 
+it("finds, places, connects and syncs icons from the stencil rail", async () => {
+  const first = await browser.newContext(VIEWPORT);
+  const second = await browser.newContext(VIEWPORT);
+  const room = createRoomId();
+  const a = await open(first, room);
+  const search = a.getByLabel("Search stencils", { exact: true });
+  await search.fill("kubern");
+  await a.getByRole("button", { name: "Icon: Kubernetes", exact: true }).click();
+  await canvas(a).click({ position: { x: 200, y: 180 } });
+  await expect.poll(() => objectCount(a)).toBe(1);
+  await search.fill("hard drive");
+  await dragStencil(a, "Icon: Hard Drive", 460, 180);
+  await expect.poll(() => objectCount(a)).toBe(2);
+  await search.fill("zzzzzz");
+  await a.getByText("No stencils match.", { exact: true }).waitFor();
+  await search.fill("");
+  await a.getByRole("button", { name: "Icon: Docker", exact: true }).waitFor();
+  const saved = await exported(a);
+  const icons = saved.objects.filter((item) => item.kind === "icon");
+  expect(icons.map((item) => item.style.icon)).toEqual(["brand:kubernetes", "lucide:HardDrive"]);
+  expect(icons.map((item) => item.label)).toEqual(["Kubernetes", "Hard Drive"]);
+  expect(icons[0].width).toBe(64);
+  await canvas(a).click({ position: emptySpot });
+  const images = canvas(a).locator('image[*|href^="data:image/svg+xml"]');
+  await expect.poll(() => images.count()).toBe(2);
+  const bounds = (await canvas(a).boundingBox())!;
+  await a.mouse.move(bounds.x + 240, bounds.y + 212);
+  await a.mouse.move(bounds.x + 264, bounds.y + 212, { steps: 6 });
+  await a.mouse.down();
+  await a.mouse.move(bounds.x + 450, bounds.y + 212, { steps: 8 });
+  await a.mouse.move(bounds.x + 460, bounds.y + 212, { steps: 2 });
+  await a.mouse.up();
+  await expect.poll(() => objectCount(a)).toBe(3);
+  await canvas(a).click({ position: { x: 232, y: 212 } });
+  await a.getByLabel("Object width", { exact: true }).fill("120");
+  const b = await open(second, room);
+  await expect.poll(() => objectCount(b), { timeout: 15000 }).toBe(3);
+  await expect.poll(() => canvas(b).locator('image[*|href^="data:image/svg+xml"]').count()).toBe(2);
+  expect((await exported(b)).objects.find((item) => item.label === "Kubernetes")?.width).toBe(120);
+  expect(errors).toEqual([]);
+  await first.close();
+  await second.close();
+});
+
 it("shows a compact property panel only for a selection, with controls that apply", async () => {
   const context = await browser.newContext({ viewport: { width: 1366, height: 768 } });
   const page = await open(context, createRoomId());

@@ -13,6 +13,9 @@ importers:
       lib0:
         specifier: ^0.2.114
         version: 0.2.119
+      lucide:
+        specifier: ^1.70.0
+        version: 1.70.0
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.3.1)
@@ -22,6 +25,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.3.1(react@19.3.1)
+      simple-icons:
+        specifier: ^16.36.0
+        version: 16.36.0
       y-indexeddb:
         specifier: ^9.0.12
         version: 9.0.12(yjs@13.6.33)
@@ -2343,6 +2349,12 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
 
+  lucide@1.70.0:
+    resolution:
+      {
+        integrity: sha512-LxPqUjt8e5PT7JuvmnKc8ECAqgkbnLG3hIi/FV2JpqWdPWLbLCoI5P3jje/Lq84uNU2kCpe2webgyFFJJ9zPAA==,
+      }
+
   magic-string@0.30.21:
     resolution:
       {
@@ -2815,6 +2827,13 @@ packages:
       {
         integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==,
       }
+
+  simple-icons@16.36.0:
+    resolution:
+      {
+        integrity: sha512-+VNPPkqSOLidFeSgBKUWX4n50WPpDC09hav+BgS26anIF1oQOlGBb8LvwGR+6fYRjo+B6CiKzNBceMPkSVXANQ==,
+      }
+    engines: { node: ">=0.12.18" }
 
   source-map-js@1.2.2:
     resolution:
@@ -4664,6 +4683,8 @@ snapshots:
     dependencies:
       react: 19.3.1
 
+  lucide@1.70.0: {}
+
   magic-string@0.30.21:
     dependencies:
       "@jridgewell/sourcemap-codec": 1.6.0
@@ -4984,6 +5005,8 @@ snapshots:
       side-channel-weakmap: 1.0.2
 
   siginfo@2.0.0: {}
+
+  simple-icons@16.36.0: {}
 
   source-map-js@1.2.2: {}
 

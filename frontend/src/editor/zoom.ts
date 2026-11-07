@@ -52,7 +52,11 @@ export function creationValues(kind: ObjectKind, scale: number): Partial<CanvasO
     style[key] = value * factor;
   });
   if (kind === "connector" || kind === "stroke") return { style };
-  const [width, height] = kind === "sticky" ? [190, 170] : [160, 90];
+  const sizes: Partial<Record<ObjectKind, [number, number]>> = {
+    sticky: [190, 170],
+    icon: [64, 64],
+  };
+  const [width, height] = sizes[kind] ?? [160, 90];
   return { width: width * factor, height: height * factor, style };
 }
 

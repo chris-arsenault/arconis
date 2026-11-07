@@ -29,6 +29,34 @@ export interface Stencil {
   icon: LucideIcon;
 }
 
+/** Lucide icons shown without searching, by the set's own names. */
+export const INFRASTRUCTURE_ICONS = [
+  "Server",
+  "HardDrive",
+  "Database",
+  "Cloud",
+  "Network",
+  "Router",
+  "Container",
+  "Cpu",
+  "Globe",
+  "Shield",
+  "Lock",
+  "Key",
+  "Users",
+  "Laptop",
+  "Smartphone",
+  "Monitor",
+  "Mail",
+  "MessageSquare",
+  "File",
+  "Folder",
+  "Layers",
+  "GitBranch",
+  "Activity",
+  "Bell",
+].map((name) => `lucide:${name}`);
+
 export const TOOLS: ToolEntry[] = [
   { id: "select", label: "Select (V)", icon: MousePointer2 },
   { id: "pan", label: "Pan (H / Space)", icon: Hand },

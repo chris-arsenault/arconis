@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pencil, Plus, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import type { SavedView } from "../document/types";
-import { STENCIL_GROUPS, TOOLS, type Stencil } from "./stencils";
-
-const DRAG_THRESHOLD = 4;
+import { StencilBrowser } from "./StencilBrowser";
+import { TOOLS } from "./stencils";
 
 export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
   return (
@@ -23,85 +22,10 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
           </button>
         ))}
       </div>
-      <div className="stencil-groups">
-        {STENCIL_GROUPS.map((group) => (
-          <section key={group.title} aria-label={group.title}>
-            <h3>{group.title}</h3>
-            <div className="stencil-grid">
-              {group.stencils.map((stencil) => (
-                <StencilButton key={stencil.kind} editor={editor} stencil={stencil} />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+      <StencilBrowser editor={editor} />
       <SavedViews editor={editor} />
     </aside>
   );
-}
-
-function StencilButton({
-  editor,
-  stencil,
-}: Readonly<{ editor: EditorController; stencil: Stencil }>) {
-  const dragged = useRef(false);
-  const startDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return;
-    const { clientX: startX, clientY: startY } = event;
-    const button = event.currentTarget;
-    dragged.current = false;
-    let ghost: HTMLElement | null = null;
-    const move = (moveEvent: PointerEvent) => {
-      const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
-      if (!ghost && distance < DRAG_THRESHOLD) return;
-      dragged.current = true;
-      ghost ??= createGhost(button);
-      ghost.style.transform = `translate(${moveEvent.clientX}px, ${moveEvent.clientY}px)`;
-    };
-    const finish = (upEvent: PointerEvent) => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", finish);
-      ghost?.remove();
-      if (ghost) dropStencil(editor, stencil, upEvent);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", finish);
-  };
-  return (
-    <button
-      className="tool stencil"
-      title={stencil.label}
-      aria-label={stencil.label}
-      aria-pressed={editor.tool === stencil.kind}
-      onPointerDown={startDrag}
-      onClick={() => {
-        if (!dragged.current) editor.setTool(stencil.kind);
-      }}
-    >
-      <stencil.icon size={20} strokeWidth={1.5} />
-      <span>{stencil.name}</span>
-    </button>
-  );
-}
-
-function createGhost(button: HTMLElement) {
-  const ghost = button.cloneNode(true) as HTMLElement;
-  ghost.classList.add("stencil-ghost");
-  document.body.append(ghost);
-  return ghost;
-}
-
-function dropStencil(editor: EditorController, stencil: Stencil, event: PointerEvent) {
-  const bounds = editor.element.getBoundingClientRect();
-  const inside =
-    event.clientX >= bounds.left &&
-    event.clientX <= bounds.right &&
-    event.clientY >= bounds.top &&
-    event.clientY <= bounds.bottom;
-  if (!inside) return;
-  const point = editor.graph.getPointForEvent(event);
-  const id = editor.add(stencil.kind, point.x, point.y);
-  if (stencil.kind === "sticky" || stencil.kind === "text") editor.edit(id, true);
 }
 
 function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
