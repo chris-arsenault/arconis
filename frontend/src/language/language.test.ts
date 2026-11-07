@@ -195,7 +195,7 @@ describe("files", () => {
       note n "Remember \\"quotes\\"" below s3
     }
     band span "Shared" / "two\\nlines" over s3, bus
-    s3.right -> bus "Async Write" via 300,40 route straight
+    s3.right -> bus "Async Write" via 300,40 path diagonal
     comment on s3 "Why S3?"
     view overview "Overview" center 100,100 zoom 1.5
   `;

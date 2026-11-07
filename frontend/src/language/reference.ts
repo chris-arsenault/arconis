@@ -42,7 +42,8 @@ Placement is worked out once, in order. Changing an item later does not move ite
 
   row [id] [top|middle|bottom] [gap N] { items }      column [id] [left|center|right] [gap N] { ... }      grid N [gap N] { ... }
 
-An arrangement lays out the items in its block side by side, one above another, or in N columns. Without a frame it draws nothing; its id names the block's span for later placement (right of myrow). A frame can arrange its own contents: frame f "Layer" row gap 30 { ... }
+An arrangement lays out the items in its block side by side, one above another, or in N columns. Without a frame it draws nothing and is applied once; its id names the block's span for later placement (right of myrow).
+A frame or group can keep its contents arranged: frame f "Layer" row gap 30 { ... }. It stays arranged as anyone edits: a new member joins at the end, a removed one leaves no gap, a member moved elsewhere takes the slot there, and the frame sizes itself to its members. To reorder, move a member (edit a at x,y); to stop arranging, edit f free.
 
 ## Lines
 
@@ -50,12 +51,15 @@ An arrangement lays out the items in its block side by side, one above another, 
   a -- b              line without one
   a => b              branch: b is a topic under a in a mind map
   a ..> b             reference: a dashed pointer that implies no structure
+  a <-> b             line with an arrow at each end
   a.right -> b.left   attach at a side: top, bottom, left, right, top-left, top-right, bottom-left, bottom-right, or .(fx,fy) as fractions of the box
   a -> b "label"      a label on the line
   a -> b -> c         a chain
   a -> b "x", c "y"   a fan-out from a
   a -> b as w1        the line's id, to change it later
-Attributes after the ends apply to every line in the statement: a style, look properties, route orthogonal|elbow|straight, arrow arrow|open|none, via x,y x,y (bend points), label-at x,y, and vertical to run the label from bottom to top.
+Attributes after the ends apply to every line in the statement: a style, look properties, path cornered|diagonal|curved (the line's type; cornered by default), arrow arrow|open|none, start-arrow arrow|open|none, via x,y x,y (points the line passes through), label-at x,y, and vertical to run the label from bottom to top.
+around places a line's points so it goes around the items and labels between its ends: a -> b around. It is placement, worked out once like below or right of; afterwards the line is an ordinary line whose points anyone can move. Use it for lines through busy areas, and write it again after moving things to route afresh.
+shared after a fan-out runs one trunk from the start to a junction, a small dot, and splits there: api -> bus "Async", logic "Sync" shared. A junction is a node with stencil junction, and you can declare and join one yourself.
 Any item can be a line's end, including a frame or a band.
 
 An end can be declared in place, which builds chains in one statement:

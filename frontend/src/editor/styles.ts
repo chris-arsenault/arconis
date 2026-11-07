@@ -1,5 +1,5 @@
 import type { CellStyle } from "@maxgraph/core";
-import type { Item, Look } from "../document/types";
+import type { Item, LinePath, Look } from "../document/types";
 import { isLockedIcon } from "../document/geometry";
 import { iconImage, loadIconFor } from "./icons";
 import { isPictureHash, isPictureType } from "../document/pictures";
@@ -33,6 +33,15 @@ const STENCIL_STYLES: Record<string, Style> = {
   database: { shape: "cylinder" },
   person: { shape: "actor" },
   cloud: { shape: "cloud" },
+  // A point where lines meet, drawn as a dot in the lines' color.
+  junction: {
+    shape: "ellipse",
+    fillColor: "#7f8aa3",
+    strokeColor: "none",
+    resizable: false,
+    rotatable: false,
+    noLabel: true,
+  },
   icon: {
     fillColor: "none",
     strokeColor: "none",
@@ -173,7 +182,15 @@ const LINE_ANCHOR_STYLE: Style = {
   spacing: 0,
 };
 
-const ROUTES = { orthogonal: "orthogonalEdgeStyle", elbow: "elbowEdgeStyle", straight: "none" };
+/**
+ * How each line type draws through its points. Cornered lines take maxGraph's segment routing, whose
+ * segments people drag; diagonal and curved lines run through points people drag.
+ */
+const PATHS: Record<LinePath, Style> = {
+  cornered: { edgeStyle: "orthogonalEdgeStyle", curved: false },
+  diagonal: { edgeStyle: "none", curved: false },
+  curved: { edgeStyle: "none", curved: true },
+};
 const ARROWS = { arrow: "block", open: "open", none: "none" };
 const BOLD = 1;
 const ITALIC = 2;
@@ -213,8 +230,9 @@ function fontStyle(look: Look, base: Style) {
 function lookStyle(look: Look, base: Style): Style {
   const result: Style = {};
   for (const [key, styleKey] of DIRECT) if (look[key] !== undefined) result[styleKey] = look[key];
-  if (look.route) result.edgeStyle = ROUTES[look.route];
+  if (look.path) Object.assign(result, PATHS[look.path]);
   if (look.arrow) result.endArrow = ARROWS[look.arrow];
+  if (look.startArrow) result.startArrow = ARROWS[look.startArrow];
   if (look.vertical) result.horizontal = false;
   if (look.bold !== undefined || look.italic !== undefined)
     result.fontStyle = fontStyle(look, base);

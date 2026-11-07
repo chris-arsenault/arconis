@@ -130,10 +130,17 @@ describe("the reference architecture", () => {
 
   it("joins lines at the ports and with the labels written", () => {
     const lines = document.list().filter((item) => item.type === "line");
-    expect(lines).toHaveLength(19);
-    expect(lines.find((line) => line.from === "api1" && line.to === "logic")?.name).toBe(
+    // The shared fan-out from api1 adds a trunk to its junction.
+    expect(lines).toHaveLength(20);
+    const trunk = lines.find(
+      (line) => line.from === "api1" && get(line.to).stencil === "junction"
+    )!;
+    expect(lines.find((line) => line.from === trunk.to && line.to === "logic")?.name).toBe(
       "Sync Write"
     );
+    const write = lines.find((line) => line.name === "Write")!;
+    expect(write.look).toMatchObject({ startArrow: "arrow" });
+    expect(write.points.length).toBeGreaterThan(0);
     expect(lines.find((line) => line.from === "kin")).toMatchObject({
       fromPort: [1, 0.5],
       toPort: [0.5, 1],

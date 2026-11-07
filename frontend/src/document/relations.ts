@@ -80,7 +80,12 @@ const COPIED_TYPES = new Set<ItemType>(["node", "card", "note"]);
  * container are not what the next topic should look like, so those branch into a plain rectangle.
  */
 export function branchCopiesParent(parent: Item) {
-  return COPIED_TYPES.has(parent.type) && parent.stencil !== "icon" && !parent.onLine;
+  return (
+    COPIED_TYPES.has(parent.type) &&
+    parent.stencil !== "icon" &&
+    parent.stencil !== "junction" &&
+    !parent.onLine
+  );
 }
 
 /** An item under new ids, with its references to other renamed items following them. */

@@ -63,11 +63,11 @@ s3in -> bus
 users -> cdn -> r53 -> api1
 r53.bottom -> api2
 api1 -> q1 -> data
-api1 -> bus "Async Write", logic "Sync Write"
+api1 -> bus "Async Write", logic "Sync Write" shared around
 api2.top -> api1.bottom "CQRS Write"
 api2 -> q2 -> rep1
 logic.bottom -> data.top
-logic.top -> sor2 "Write"
+logic.top <-> sor2 "Write" around
 logic.right -> bus.right "Logic Events" vertical
-sor.top -> cloud.top "Application Events" route orthogonal
+sor.top -> cloud.top "Application Events" around
 `;

@@ -52,9 +52,10 @@ only if you still know the old one; otherwise they are lost.
 
 ## Agents
 
-The account panel's Connect an agent section shows the command that adds Arconis to Claude Code. Run
-it, sign in with your Arconis account when the agent asks, then give the agent a room's link. Someone
-must have the room open. The agent appears in the room under its own name, its changes merge like
+The account panel's Connect Claude or ChatGPT section gives the server address and client ID. In
+claude.ai or ChatGPT, add a custom connector with that address, enter the client ID in its OAuth
+settings with the secret left empty, sign in with your Arconis account when asked, then give the
+assistant a room's link. Someone must have the room open. The agent appears in the room under its own name, its changes merge like
 anyone's, and its comments are signed with that name. Password rooms and rooms on this device stay
 closed to agents.
 
@@ -98,6 +99,13 @@ Connect objects in any of three ways:
 - Hover an object to see its connection points, then drag from a point to a point on another object.
   Dropping on an object's body leaves that end free to follow its outline.
 - Select two objects and choose Connect.
+
+A line's property panel sets its type, cornered, diagonal or curved, and the arrows at its start and
+end. Route around items places the line's points so it goes around everything between its ends;
+afterwards drag its segments or points like any line's, and route it again after moving things.
+
+A frame an agent arranged as a row, column or grid stays arranged: drag an item to a new place in it
+to reorder, and adding or removing items closes up the arrangement.
 
 ## Shortcuts
 

@@ -14,7 +14,8 @@ result into a structured diagram, all in one document with no conversion between
 
 - Rectangles, ellipses, diamonds and basic architectural components.
 - Editable labels and shape properties.
-- Connectors attached to objects, with orthogonal routing, that stay attached when objects move.
+- Connectors attached to objects, cornered, diagonal or curved, that stay attached when objects move
+  and can be routed around everything between their ends.
 - Grouping and ungrouping.
 
 ## Sticky notes and drawing
@@ -48,7 +49,7 @@ thousands of items.
 
 ## Agents
 
-A signed-in person can connect an agent, such as Claude Code, through MCP. Given a room's link, the
+A signed-in person can connect Claude or ChatGPT on the web through MCP, as a custom connector. Given a room's link, the
 agent reads and writes the canvas in the Arconis canvas language: nodes, cards, frames, bands, notes,
 lines, topic trees, references, named styles and discussions, placed beside or aligned with one
 another. One write can lay out a whole architecture, frames within frames. People in the room see its

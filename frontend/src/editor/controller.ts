@@ -13,6 +13,7 @@ import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
 import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
+import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
 import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
 import { configureCulling } from "./culling";
@@ -102,12 +103,12 @@ export class EditorController {
     this.document.undo.on("stack-item-added", this.emit);
     this.document.undo.on("stack-item-popped", this.emit);
     this.cleanupInput = bindCanvasInput(this);
-    const stopIcons = subscribeIcons(() => this.project());
-    const stopPictures = subscribePictures(() => this.project());
-    this.cleanupIcons = () => {
-      stopIcons();
-      stopPictures();
-    };
+    const stops = [
+      subscribeIcons(() => this.project()),
+      subscribePictures(() => this.project()),
+      keepArranged(this.document),
+    ];
+    this.cleanupIcons = () => stops.forEach((stop) => stop());
     this.project();
     this.graph.view.setTranslate(60, 60);
   }

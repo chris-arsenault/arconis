@@ -787,6 +787,14 @@ h1 em {
 .object-text {
   resize: vertical;
 }
+.text-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 8px;
+  font-size: 12px;
+}
 .inspector-section {
   display: flex;
   flex-direction: column;

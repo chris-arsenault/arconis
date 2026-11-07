@@ -35,7 +35,8 @@ const ITEM_TYPES = new Set<string>([
   "picture",
   "drawing",
 ]);
-const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean }> = {
+const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both?: boolean }> = {
+  "<->": { type: "line", arrow: true, both: true },
   "->": { type: "line", arrow: true },
   "--": { type: "line", arrow: false },
   "=>": { type: "branch", arrow: false },
@@ -276,12 +277,12 @@ function endpoint(cursor: Cursor): Endpoint {
 
 /** The ends after one arrow: one, or several separated by commas for a fan-out. */
 function targets(cursor: Cursor, from: Endpoint, segments: Segment[]) {
-  const { type, arrow } = LINKS[cursor.next().text as ArrowText];
+  const { type, arrow, both } = LINKS[cursor.next().text as ArrowText];
   let to = from;
   do {
     if (cursor.isPunct(",")) cursor.next();
     to = endpoint(cursor);
-    const segment: Segment = { from, to, type, arrow };
+    const segment: Segment = { from, to, type, arrow, both };
     if (cursor.kindIs("string")) segment.label = cursor.next().text;
     segments.push(segment);
   } while (cursor.isPunct(","));

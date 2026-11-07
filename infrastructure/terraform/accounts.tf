@@ -51,10 +51,9 @@ resource "aws_cognito_user_pool" "accounts" {
 
 locals {
   mcp_resource = "https://${local.relay_hostname}/mcp"
-  # Claude Code listens here when added with `--callback-port 8742`; claude.ai's connectors use the
-  # second. Cognito matches redirect addresses exactly, ports included.
+  # Where claude.ai and ChatGPT connectors return after sign-in. ChatGPT gives each connector its own
+  # callback, shown when the connector is created; add each one here. Cognito matches exactly.
   agent_callback_urls = [
-    "http://localhost:8742/callback",
     "https://claude.ai/api/mcp/auth_callback",
   ]
 }

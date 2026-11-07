@@ -1,12 +1,14 @@
 import { Fragment, type ReactNode } from "react";
+import { Route } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import type { Arrow, Item, Route } from "../document/types";
+import type { Arrow, Item, LinePath } from "../document/types";
 import { resolvedLook } from "../editor/styles";
+import { routeLineAround } from "../language/routes";
 
-const ROUTES = [
-  { value: "orthogonal", label: "Orthogonal" },
-  { value: "elbow", label: "Elbow" },
-  { value: "straight", label: "Straight" },
+const PATHS = [
+  { value: "cornered", label: "Cornered" },
+  { value: "diagonal", label: "Diagonal" },
+  { value: "curved", label: "Curved" },
 ];
 const ARROWS = [
   { value: "arrow", label: "Arrow" },
@@ -50,20 +52,39 @@ function SelectRow({
   );
 }
 
+/** Places a line's points around the items between its ends, as one undoable change. */
+function routeAround(editor: EditorController, item: Item) {
+  const { document } = editor;
+  const lookOf = (other: Item) => resolvedLook(other, document.namedStyle(other.style));
+  const route = routeLineAround(document.list(), item, lookOf);
+  if (!route) return;
+  document.undo.stopCapturing();
+  document.patch(item.id, route);
+  document.undo.stopCapturing();
+}
+
 export function ConnectionControls({
   editor,
   item,
 }: Readonly<{ editor: EditorController; item: Item }>) {
   const look = resolvedLook(item, editor.document.namedStyle(item.style));
+  const defaultPath = item.type === "reference" ? "diagonal" : "cornered";
   return (
     <Section title="Connection">
       <div className="select-grid">
         <SelectRow
-          title="Route"
-          label="Connector routing"
-          value={look.route ?? "orthogonal"}
-          options={ROUTES}
-          onChange={(route) => editor.document.patchLook(item.id, { route: route as Route })}
+          title="Type"
+          label="Line type"
+          value={look.path ?? defaultPath}
+          options={PATHS}
+          onChange={(path) => editor.document.patchLook(item.id, { path: path as LinePath })}
+        />
+        <SelectRow
+          title="Start"
+          label="Connector start arrow"
+          value={look.startArrow ?? "none"}
+          options={ARROWS}
+          onChange={(arrow) => editor.document.patchLook(item.id, { startArrow: arrow as Arrow })}
         />
         <SelectRow
           title="End"
@@ -73,6 +94,9 @@ export function ConnectionControls({
           onChange={(arrow) => editor.document.patchLook(item.id, { arrow: arrow as Arrow })}
         />
       </div>
+      <button className="text-action" onClick={() => routeAround(editor, item)}>
+        <Route size={14} /> Route around items
+      </button>
     </Section>
   );
 }

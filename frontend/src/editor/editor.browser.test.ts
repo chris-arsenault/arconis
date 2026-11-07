@@ -137,7 +137,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
     .poll(() => page.getByLabel("Object width", { exact: true }).inputValue())
     .toBe("240");
   await selectConnector(page);
-  await page.getByLabel("Connector routing").selectOption("straight");
+  await page.getByLabel("Line type").selectOption("diagonal");
   await page.getByLabel("Object text", { exact: true }).fill("Relationship");
   await page.getByLabel("View name", { exact: true }).fill("Portable view");
   await page.getByRole("button", { name: "Save current view", exact: true }).click();
@@ -149,7 +149,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
     width: 240,
   });
   expect(saved.objects.find((item) => item.id === edge.to)?.name).toBe("Attached note");
-  expect(edge.look.route).toBe("straight");
+  expect(edge.look.path).toBe("diagonal");
   expect(saved.views[0].name).toBe("Portable view");
   await page.getByLabel("Import file").setInputFiles({
     name: "copy.arconis",

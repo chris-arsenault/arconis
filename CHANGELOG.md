@@ -18,6 +18,11 @@ All notable user-visible changes are recorded here.
 - Added subtitles, cards, bands behind items across frames, frame badges, titles at the top or side,
   vertical text and labels, and named styles in the property panel.
 - Changed the Panel stencil to Frame, and a line's comments now sit on the line itself.
+- Added frames that keep their row, column or grid arranged as anyone adds, removes or drags items.
+- Added routing a line around the items between its ends, which places its points for people to
+  drag afterwards; lines with an arrow at each end; and lines that share a trunk and split at a
+  junction.
+- Changed line types to cornered, diagonal and curved.
 - Added pasted and dropped pictures in every room, uploaded once and carried in exported files.
 - Added threaded comments on any object or line, visible to everyone in the room.
 - Added nesting in any object, with children moving along with their parent.

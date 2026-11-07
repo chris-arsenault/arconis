@@ -1,10 +1,11 @@
 import { expect, it } from "vitest";
-import { agentCommand } from "./ConnectAgent";
+import { agentSettings } from "./ConnectAgent";
 
-it("builds Claude Code's command from the deployment's agent settings", () => {
-  expect(agentCommand({ mcpUrl: "https://relay.example/mcp", mcpClientId: "abc123" })).toBe(
-    "claude mcp add --transport http --client-id abc123 --callback-port 8742 arconis https://relay.example/mcp"
-  );
-  expect(agentCommand({ mcpUrl: "https://relay.example/mcp" })).toBeNull();
-  expect(agentCommand(undefined)).toBeNull();
+it("offers the connector settings only where the deployment configures agents", () => {
+  expect(agentSettings({ mcpUrl: "https://relay.example/mcp", mcpClientId: "abc123" })).toEqual({
+    url: "https://relay.example/mcp",
+    clientId: "abc123",
+  });
+  expect(agentSettings({ mcpUrl: "https://relay.example/mcp" })).toBeNull();
+  expect(agentSettings(undefined)).toBeNull();
 });

@@ -15,6 +15,7 @@ export const STENCIL_WORDS = new Set([
   "database",
   "cloud",
   "person",
+  "junction",
 ]);
 
 const NUMERIC = new Set<keyof Look>(["lineWidth", "textSize", "rotation", "opacity", "scale"]);
@@ -22,8 +23,9 @@ const COLORED = new Set<keyof Look>(["fill", "line", "textColor", "iconColor"]);
 const CHOICES: Partial<Record<keyof Look, string[]>> = {
   align: ["left", "center", "right"],
   title: ["header", "top", "side"],
-  route: ["orthogonal", "elbow", "straight"],
+  path: ["cornered", "diagonal", "curved"],
   arrow: ["arrow", "open", "none"],
+  startArrow: ["arrow", "open", "none"],
 };
 
 function beside(cursor: Cursor, side: Side): Attribute {
@@ -86,6 +88,7 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   hash: picture,
   points: (cursor) => ({ kind: "points", points: cursor.points("the drawing's points") }),
   via: (cursor) => ({ kind: "via", points: cursor.points("bend points") }),
+  free: () => ({ kind: "free" }),
   "label-at": (cursor) => {
     const [x, y] = cursor.point("the label's position");
     return { kind: "label", x, y };

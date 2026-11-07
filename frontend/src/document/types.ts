@@ -26,12 +26,17 @@ export const STENCILS = [
   "cloud",
   "person",
   "icon",
+  "junction",
 ] as const;
 export type Stencil = (typeof STENCILS)[number];
 
-export type Route = "orthogonal" | "elbow" | "straight";
+/**
+ * A line's type: right-angled corners, straight diagonal segments or curves, each through the line's
+ * points. Where the points come from, such as routing around items, is placement, not type.
+ */
+export type LinePath = "cornered" | "diagonal" | "curved";
 export type Arrow = "arrow" | "open" | "none";
-export const ROUTES: Route[] = ["orthogonal", "elbow", "straight"];
+export const LINE_PATHS: LinePath[] = ["cornered", "diagonal", "curved"];
 export const ARROWS: Arrow[] = ["arrow", "open", "none"];
 /** Where a frame shows its title: a header bar, plain text at the top left, or a vertical side. */
 export type TitlePlace = "header" | "top" | "side";
@@ -58,8 +63,10 @@ export interface Look {
   title?: TitlePlace;
   /** Text, or a line's label, reads from bottom to top. */
   vertical?: boolean;
-  route?: Route;
+  path?: LinePath;
+  /** The arrow where a line ends, and where it starts; a line starts with none by default. */
   arrow?: Arrow;
+  startArrow?: Arrow;
   /**
    * How large text, lines and padding are relative to their defaults. Items made at deep zoom carry
    * a factor so they look familiar on screen at that zoom.
@@ -71,6 +78,17 @@ export type LookKey = keyof Look;
 /** A point on an item's box as fractions of its width and height, where a line attaches. */
 export type Port = [number, number];
 export type PathPoint = [number, number];
+
+/**
+ * How a frame keeps what it holds: in a row, a column or a grid of `columns`, `gap` apart, lined up
+ * by `align`. Members keep their order by where they sit, so dragging one reorders it.
+ */
+export interface Arrangement {
+  how: "row" | "column" | "grid";
+  columns?: number;
+  gap?: number;
+  align?: "top" | "middle" | "bottom" | "left" | "center" | "right";
+}
 
 export interface PictureRef {
   hash: string;
@@ -112,6 +130,8 @@ export interface Item {
   /** The line a node sits on, which lets a line act as a topic. */
   onLine: string;
   picture?: PictureRef;
+  /** For frames and groups that keep their contents arranged. */
+  arrange?: Arrangement;
 }
 
 export interface View {
@@ -157,6 +177,7 @@ const STENCIL_LABELS: Record<Stencil, string> = {
   cloud: "Cloud",
   person: "Person",
   icon: "Icon",
+  junction: "Junction",
 };
 const TYPE_LABELS: Record<ItemType, string> = {
   node: "Node",

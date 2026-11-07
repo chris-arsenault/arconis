@@ -24,7 +24,8 @@ export type Attribute =
   | { kind: "picture"; hash: string; format: string; stored: boolean }
   | { kind: "points"; points: PathPoint[] }
   | { kind: "via"; points: PathPoint[] }
-  | { kind: "label"; x: number; y: number };
+  | { kind: "label"; x: number; y: number }
+  | { kind: "free" };
 
 export interface Located {
   line: number;
@@ -68,6 +69,8 @@ export interface Segment {
   to: Endpoint;
   type: LinkType;
   arrow: boolean;
+  /** An arrow at the start too, from `<->`. */
+  both?: boolean;
   label?: string;
 }
 export interface LinkStatement extends Located {
@@ -137,8 +140,9 @@ export const LOOK_WORDS = {
   "icon-color": "iconColor",
   badge: "badge",
   title: "title",
-  route: "route",
+  path: "path",
   arrow: "arrow",
+  "start-arrow": "startArrow",
   scale: "scale",
 } as const satisfies Record<string, keyof Look>;
 /** Look properties that are on or off: the word alone turns one on, `off` turns it off. */

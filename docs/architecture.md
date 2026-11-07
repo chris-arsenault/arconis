@@ -29,6 +29,12 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Holders.** Any item holds others through `inside`, and they keep world coordinates. A group's
   frame follows its members; everything else keeps its size. Cycles break deterministically during
   projection. A band marks a span behind the items it covers and holds nothing.
+- **Arranged frames.** A frame or group with an `arrange` keeps its members in a row, column or grid,
+  in the order they sit, and sizes itself to them. Whoever edits rearranges: the writer after each
+  write, and `editor/arrangements.ts` after each of a person's own edits. Arranging is deterministic
+  and settles in one pass, so peers' results agree.
+- **Junctions.** A junction is a node with the `junction` stencil where lines meet, which lets several
+  lines share a trunk.
 - **Topics.** Branches and references are line types, and a line joins them through an anchor node
   kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)). `document/relations.ts`
   holds the tree, layout and alignment logic.
@@ -49,8 +55,9 @@ independent of a participant's undo history. Records a peer writes in an unknown
   differences in one transaction, so a write that fails partway changes nothing. Items are placed in
   statement order: relations name items placed earlier and measure gaps between items with their labels
   (`layout.ts`, `placement.ts`); rows, columns and grids lay out their members (`arranging.ts`); frames
-  fit their contents; lines and bands are settled once every item exists (`connections.ts`). Placement
-  is applied once and stored as positions.
+  fit their contents; arranged frames reflow; shared fan-outs gain a junction (`junctions.ts`); lines
+  and bands are settled once every item exists (`connections.ts`). Placement is applied once and
+  stored as positions.
 - **Printing.** `printer.ts` writes items canonically, so an unchanged item always prints the same and
   comparing printed items finds changes.
 - **Sessions.** `session.ts` is one agent's work: it records each item as it last showed it, refuses
@@ -69,6 +76,11 @@ maxGraph is an editing and rendering projection of the document.
 - `editor/rendering.ts` renders labels as escaped HTML, the maxGraph mode that wraps text, laid out in
   screen pixels so they render at any zoom, and computes shape bounds from geometry instead of measuring
   each shape. Labels come from peers, so the escaping is a security boundary.
+- A line's type, cornered, diagonal or curved, sets how it draws through its points; cornered lines use
+  maxGraph's segment routing, whose segments people drag. Routing around items is placement:
+  `document/routing.ts` finds right-angled corners around the boxes and labels between a line's ends,
+  preferring fewer bends, and `language/routes.ts` stores them once as the line's points and ports,
+  from an `around` statement or the property panel's Route around items.
 - `editor/culling.ts` leaves objects too small to see out of the view, and with them anything they hold
   and connectors reaching them.
 - `editor/zoom.ts` holds the zoom range and everything that follows it: the snapping grid, background

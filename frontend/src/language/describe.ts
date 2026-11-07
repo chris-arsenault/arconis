@@ -82,6 +82,17 @@ const DESCRIBE: { [K in Attribute["kind"]]?: Describer<K> } = {
   },
   via: lineOnly("via"),
   label: lineOnly("label-at"),
+  // A frame or group keeps its arrangement; anything else is arranged once.
+  arrange: (item, { how, columns, gap, align }) => {
+    if (item.type !== "frame" && item.type !== "group") return;
+    item.arrange = { how };
+    if (columns !== undefined) item.arrange.columns = columns;
+    if (gap !== undefined) item.arrange.gap = gap;
+    if (align !== undefined) item.arrange.align = align;
+  },
+  free: (item) => {
+    delete item.arrange;
+  },
 };
 
 export function describeItem(item: Item, attributes: Attribute[], context: Describing) {

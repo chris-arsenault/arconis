@@ -20,7 +20,7 @@ export class LanguageError extends Error {
   }
 }
 
-export const ARROWS = ["..>", "->", "--", "=>"] as const;
+export const ARROWS = ["<->", "..>", "->", "--", "=>"] as const;
 export type ArrowText = (typeof ARROWS)[number];
 const PUNCTUATION = new Set(["{", "}", ",", "/", ".", "(", ")"]);
 const NUMBER = /^-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?/i;

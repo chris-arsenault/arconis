@@ -2,12 +2,22 @@ import { defaultSize, type CanvasDocument } from "../document/canvasDocument";
 import { branchPlacement, tidyBranch } from "../document/relations";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
 import { declareStyle, describeItem, matchSizes } from "./describe";
-import { BLANK, Draft, type DraftResult } from "./draft";
+import { routeLineAround } from "./routes";
+import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
+import { BLANK, Draft } from "./draft";
 import { LanguageError } from "./lexer";
 import { LANGUAGE_VERSION } from "./printer";
 import { DEFAULT_GAP, paddingOf } from "./layout";
-import { combineRules, type Extent, type Rules } from "./placement";
-import { arrangeMembers, canvasStart, fitFrame, spotInside, type Arrange } from "./arranging";
+import { combineRules, type Rules } from "./placement";
+import type { Follow, PictureData, Scope, WriteOptions, WriteResult } from "./writing";
+import {
+  arrangeMembers,
+  canvasStart,
+  fitFrame,
+  reflowDraft,
+  spotInside,
+  type Arrange,
+} from "./arranging";
 import {
   converse,
   describeLink,
@@ -26,33 +36,8 @@ import type {
   Statement,
 } from "./syntax";
 
-export interface WriteOptions {
-  /** Who comments come from. */
-  author: string;
-  /** A file brings its own ids and renames those already taken; otherwise an id names an item. */
-  importing?: boolean;
-  now?: number;
-}
-export interface PictureData {
-  hash: string;
-  format: string;
-  data: string;
-}
-export interface WriteResult extends DraftResult {
-  pictures: PictureData[];
-}
+export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
-interface Scope {
-  holder: string;
-  /** The item placed just before, which the next follows when it has no place of its own. */
-  previous: string;
-  /** Inside a block, items named there move into its holder. */
-  nested: boolean;
-  /** Inside an arrangement, which places its members itself. */
-  members?: string[];
-}
-/** Where an item declared at a line's far end goes when it has no place of its own. */
-type Follow = (own: Extent) => { x: number; y: number };
 type Handler<K extends Statement["kind"]> = (
   writer: Writer,
   statement: Extract<Statement, { kind: K }>,
@@ -97,6 +82,7 @@ class Writer {
   readonly pictures: PictureData[] = [];
   private readonly links: PendingLink[] = [];
   private readonly bands: PendingBand[] = [];
+  private readonly junctions: PendingJunction[] = [];
   private start: { x: number; y: number } | null = null;
   private arrangements = 0;
 
@@ -111,12 +97,21 @@ class Writer {
     const scope: Scope = { holder: "", previous: "", nested: false };
     statements.forEach((statement) => this.statement(statement, scope));
     const { draft } = this;
-    finishLinks(draft, this.links, Boolean(this.options.importing));
+    // A file says exactly where everything is; anything else keeps arranged frames arranged.
+    if (!this.options.importing) reflowDraft(draft);
+    placeJunctions(draft, this.junctions);
+    const around = finishLinks(draft, this.links, Boolean(this.options.importing));
     for (const { id, ref, line } of draft.anchors)
       draft.items.get(id)!.onLine = draft.resolve(ref, line);
     finishBands(draft, this.bands);
     // A file says exactly where everything is, even a child left outside its frame.
     if (!this.options.importing) this.growHolders();
+    // Routing around items comes last, once every item it avoids is where it will be.
+    const all = [...draft.items.values()];
+    for (const id of around) {
+      const line = draft.items.get(id)!;
+      Object.assign(line, routeLineAround(all, line, (item) => draft.lookOf(item)) ?? {});
+    }
     return { ...draft.commit(), pictures: this.pictures };
   }
 
@@ -271,7 +266,8 @@ class Writer {
       (attribute): attribute is Arrange => attribute.kind === "arrange"
     );
     const inner: Scope = { holder: item.id, previous: "", nested: true };
-    if (arrange) inner.members = [];
+    // A file says where each member is; it is not arranged again on the way in.
+    if (arrange && !this.options.importing) inner.members = [];
     body.forEach((statement) => this.statement(statement, inner));
     if (arrange && inner.members) {
       const padding = paddingOf(item, draft.lookOf(item));
@@ -355,11 +351,14 @@ class Writer {
         ends.set(endpoint, this.endpoint(endpoint, statement.line, scope, from, branch));
       return ends.get(endpoint)!;
     };
-    for (const segment of statement.segments) {
+    const links: PendingLink[] = statement.segments.map((segment) => {
       const from = idOf(segment.from);
       const to = idOf(segment.to, from, segment.type === "branch");
-      this.links.push({ from, to, segment, statement });
-    }
+      return { from, to, segment, statement };
+    });
+    this.links.push(
+      ...(isShared(statement) ? shareTrunks(this.draft, links, this.junctions) : links)
+    );
   }
 
   private endpoint(endpoint: Endpoint, line: number, scope: Scope, from?: string, branch = false) {

@@ -21,6 +21,8 @@ export interface PendingBand {
 /** Applies a line's attributes: style, look, bend points and where its label sits. */
 export function describeLink(draft: Draft, item: Item, attributes: Attribute[], line: number) {
   for (const attribute of attributes) {
+    // `around` places a line's points once every item is placed; the writer does that.
+    if (attribute.kind === "word" && attribute.word === "around") continue;
     if (attribute.kind === "word") {
       if (!draft.styles.has(attribute.word))
         throw new LanguageError(
@@ -78,27 +80,46 @@ function lineFor(draft: Draft, { segment, statement }: PendingLink, importing: b
   return item;
 }
 
-/** `--` takes the arrow off a line; `->` restores a line's default arrow. */
+/**
+ * `--` takes the arrow off a line, `->` restores the default arrow at its end, and `<->` adds one at
+ * its start. A start-arrow attribute after the ends still applies over these.
+ */
 function applyArrow(item: Item, segment: Segment) {
   if (segment.type !== "line") return;
-  if (!segment.arrow) item.look = { ...item.look, arrow: "none" };
-  else if (item.look.arrow === "none") delete item.look.arrow;
+  const look = { ...item.look };
+  if (!segment.arrow) look.arrow = "none";
+  else if (look.arrow === "none") delete look.arrow;
+  if (segment.both) look.startArrow = "arrow";
+  else delete look.startArrow;
+  item.look = look;
 }
 
-/** Creates or updates the lines a write declared, once every item they join exists. */
+/**
+ * Creates or updates the lines a write declared, once every item they join exists. Returns the ids
+ * of lines to route around items.
+ */
 export function finishLinks(draft: Draft, links: PendingLink[], importing: boolean) {
+  const around: string[] = [];
   for (const pending of links) {
-    const { from, to, segment, statement } = pending;
+    const { segment, statement } = pending;
     const item = lineFor(draft, pending, importing);
-    const isNew = draft.createdHere.has(item.id);
-    Object.assign(item, { type: segment.type, from, to });
-    if (segment.label !== undefined) item.name = segment.label;
-    if (segment.from.port || isNew) item.fromPort = segment.from.port;
-    if (segment.to.port || isNew) item.toPort = segment.to.port;
+    joinEnds(draft, item, pending);
     applyArrow(item, segment);
-    if (segment.type === "branch" && !item.fromPort && !item.toPort) branchPorts(draft, item);
     describeLink(draft, item, statement.attributes, statement.line);
+    if (statement.attributes.some((a) => a.kind === "word" && a.word === "around"))
+      around.push(item.id);
   }
+  return around;
+}
+
+/** A line's ends, ports and label. Ports a restatement leaves out stay as they were. */
+function joinEnds(draft: Draft, item: Item, { from, to, segment }: PendingLink) {
+  const isNew = draft.createdHere.has(item.id);
+  Object.assign(item, { type: segment.type, from, to });
+  if (segment.label !== undefined) item.name = segment.label;
+  if (segment.from.port || isNew) item.fromPort = segment.from.port;
+  if (segment.to.port || isNew) item.toPort = segment.to.port;
+  if (segment.type === "branch" && !item.fromPort && !item.toPort) branchPorts(draft, item);
 }
 
 /**

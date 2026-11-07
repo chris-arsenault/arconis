@@ -1,6 +1,13 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments, type CanvasComment } from "../document/comments";
-import { isLink, type Item, type Look, type Port, type View } from "../document/types";
+import {
+  isLink,
+  type Arrangement,
+  type Item,
+  type Look,
+  type Port,
+  type View,
+} from "../document/types";
 import { LOOK_FLAGS, LOOK_WORDS, SIDES } from "./syntax";
 
 /**
@@ -44,8 +51,9 @@ const LOOK_ORDER: (keyof Look)[] = [
   "iconColor",
   "badge",
   "title",
-  "route",
+  "path",
   "arrow",
+  "startArrow",
   "scale",
 ];
 const WORD_FOR = new Map<keyof Look, string>([
@@ -83,10 +91,22 @@ function portText(port: Port | undefined) {
   return side ? `.${side[0]}` : `.(${pair(port[0], port[1])})`;
 }
 
+/** Whether a line is `<->`: the default arrow at its end and an arrow at its start. */
+function bothEnds(item: Item) {
+  return item.type === "line" && item.look.startArrow === "arrow" && item.look.arrow === undefined;
+}
+
 function arrowOf(item: Item) {
   if (item.type === "branch") return "=>";
   if (item.type === "reference") return "..>";
+  if (bothEnds(item)) return "<->";
   return item.look.arrow === "none" ? "--" : "->";
+}
+
+/** Look properties the line's arrow already says. */
+function arrowSkips(item: Item): (keyof Look)[] {
+  if (bothEnds(item)) return ["startArrow"];
+  return item.type === "line" && item.look.arrow === "none" ? ["arrow"] : [];
 }
 
 /** A line's statement. `present` limits its holder to items printed with it. */
@@ -99,8 +119,7 @@ export function linkStatement(item: Item, present?: Set<string>) {
   if (item.name) parts.push(quote(item.name));
   parts.push("as", item.id);
   if (item.style) parts.push(item.style);
-  const skip: (keyof Look)[] = item.type === "line" && item.look.arrow === "none" ? ["arrow"] : [];
-  parts.push(...lookWords(item.look, skip), ...route(item, present));
+  parts.push(...lookWords(item.look, arrowSkips(item)), ...route(item, present));
   return parts.join(" ");
 }
 
@@ -126,10 +145,19 @@ function identity(item: Item) {
   return parts;
 }
 
+/** A kept arrangement: `row`, `column` or `grid N`, then how members line up and their gap. */
+function arrangeWords({ how, columns, align, gap }: Arrangement) {
+  const parts: string[] = how === "grid" ? [how, number(columns ?? 1)] : [how];
+  if (align) parts.push(align);
+  if (gap !== undefined) parts.push("gap", number(gap));
+  return parts;
+}
+
 /** One item's statement, without what it holds. `standalone` names its holder with `in`. */
 export function itemStatement(item: Item, standalone = false) {
   if (isLink(item)) return linkStatement(item);
   const parts: string[] = [item.type, item.id, ...names(item), ...identity(item)];
+  if (item.arrange) parts.push(...arrangeWords(item.arrange));
   parts.push(...lookWords(item.look));
   if (item.type === "drawing") parts.push("points", ...item.points.map(([x, y]) => pair(x, y)));
   else parts.push("at", pair(item.x, item.y), "size", pair(item.width, item.height));
