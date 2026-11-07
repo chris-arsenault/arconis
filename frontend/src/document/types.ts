@@ -8,6 +8,7 @@ export type ObjectKind =
   | "cloud"
   | "person"
   | "icon"
+  | "picture"
   | "sticky"
   | "text"
   | "group"
@@ -53,6 +54,7 @@ export const KIND_LABELS: Record<ObjectKind, string> = {
   cloud: "Cloud",
   person: "Person",
   icon: "Icon",
+  picture: "Picture",
   sticky: "Sticky note",
   text: "Text",
   group: "Group",

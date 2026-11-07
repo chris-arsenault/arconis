@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
+import type { UploadReply, UploadRequest } from "../collaboration/transport";
 import { attachRelay } from "./attach";
 import {
   BUDGET_CHECK_MS,
@@ -41,8 +42,14 @@ class Socket implements RelaySocket {
 function setup(withinBudget: () => Promise<boolean> = () => Promise.resolve(true)) {
   let time = 1_000_000;
   const stop = vi.fn();
-  const relay = new Relay({ now: () => time, stop, withinBudget });
+  const uploads = {
+    prepare: vi.fn((request: UploadRequest) =>
+      Promise.resolve<UploadReply>({ status: "stored", hash: request.hash })
+    ),
+  };
+  const relay = new Relay({ now: () => time, stop, withinBudget, uploads });
   return {
+    uploads,
     relay,
     stop,
     advance: (ms: number) => {
@@ -122,6 +129,58 @@ describe("forwarding", () => {
     a.connection.receive("null");
     a.connection.receive(frame("a", "surprise"));
     expect(b.socket.sent).toEqual([]);
+  });
+});
+
+describe("picture uploads", () => {
+  const ask = (hash = "a".repeat(64)) =>
+    JSON.stringify({
+      relay: "upload",
+      request: { hash, type: "image/webp", size: 1, checksum: "x" },
+    });
+
+  it("answers only the asker, and tells nobody else", async () => {
+    const { person, uploads } = setup();
+    const [a, b] = [person("a"), person("b")];
+    a.connection.receive(ask());
+    await vi.waitFor(() => expect(a.socket.sent).toHaveLength(1));
+    expect(JSON.parse(a.socket.sent[0])).toMatchObject({
+      relay: "upload-reply",
+      reply: { status: "stored" },
+    });
+    expect(uploads.prepare).toHaveBeenCalledOnce();
+    expect(b.socket.sent).toEqual([]);
+  });
+
+  it("does not count as activity", () => {
+    const { relay, person, advance, stop } = setup();
+    const a = person("a");
+    advance(IDLE_NO_CONTENT_MS - 1000);
+    a.connection.receive(ask());
+    a.connection.pong();
+    advance(1000);
+    relay.tick();
+    expect(stop).toHaveBeenCalledWith("idle");
+  });
+
+  it("refuses rather than failing silently when deciding throws", async () => {
+    const { person, uploads } = setup();
+    uploads.prepare.mockRejectedValueOnce(new Error("storage unreachable"));
+    const a = person("a");
+    a.connection.receive(ask());
+    await vi.waitFor(() => expect(a.socket.sent).toHaveLength(1));
+    expect(JSON.parse(a.socket.sent[0]).reply).toMatchObject({
+      status: "refused",
+      reason: "unavailable",
+    });
+  });
+
+  it("ignores malformed requests", () => {
+    const { person, uploads } = setup();
+    const a = person("a");
+    a.connection.receive('{"relay":"upload"}');
+    a.connection.receive('{"relay":');
+    expect(uploads.prepare).not.toHaveBeenCalled();
   });
 });
 
@@ -307,6 +366,7 @@ describe("over real sockets", () => {
       now: Date.now,
       stop: () => {},
       withinBudget: () => Promise.resolve(true),
+      uploads: null,
     });
     server = createServer();
     attachRelay(server, () => relay, { allowedOrigin, accepting: () => true });

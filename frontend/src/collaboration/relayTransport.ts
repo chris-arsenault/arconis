@@ -1,4 +1,10 @@
-import type { ConnectionState, RelayStatus, Transport } from "./transport";
+import type {
+  ConnectionState,
+  RelayStatus,
+  Transport,
+  UploadReply,
+  UploadRequest,
+} from "./transport";
 
 /** How long to wait for a relay that said it is starting before reporting it off. */
 export const START_DEADLINE_MS = 3 * 60_000;
@@ -13,13 +19,19 @@ const OFF_DETAIL = "Collaboration is off; edits are saved on this device.";
 const LIMIT_DETAIL = "Collaboration is off until next month; edits are saved on this device.";
 const STARTING_DETAIL = "Collaboration is starting; edits are saved on this device.";
 
-type ControlMessage = { relay: "ka" } | { relay: "closing"; reason: string };
+const UPLOAD_REPLY_MS = 15_000;
+
+type ControlMessage =
+  | { relay: "ka" }
+  | { relay: "closing"; reason: string }
+  | { relay: "upload-reply"; reply: UploadReply };
 
 export class RelayTransport implements Transport {
   onMessage: (message: string) => void = () => {};
   onReady = () => {};
   onStatus: (state: ConnectionState, detail?: string) => void = () => {};
   private socket: WebSocket | null = null;
+  private uploads = new Map<string, (reply: UploadReply) => void>();
   private ready = false;
   private stopped = true;
   private retry = 0;
@@ -101,6 +113,29 @@ export class RelayTransport implements Transport {
     }
     const notice = JSON.parse(message) as ControlMessage;
     if (notice.relay === "closing") this.knownOff = notice.reason === "limit" ? "limit" : "stopped";
+    if (notice.relay === "upload-reply") {
+      this.uploads.get(notice.reply.hash)?.(notice.reply);
+      this.uploads.delete(notice.reply.hash);
+    }
+  }
+
+  /** Asks over the open socket. Fails when not connected, and the upload retries on reconnecting. */
+  requestUpload(request: UploadRequest) {
+    return new Promise<UploadReply>((resolve, reject) => {
+      if (!this.ready) {
+        reject(new Error("Not connected"));
+        return;
+      }
+      const timer = setTimeout(() => {
+        this.uploads.delete(request.hash);
+        reject(new Error("No reply"));
+      }, UPLOAD_REPLY_MS);
+      this.uploads.set(request.hash, (reply) => {
+        clearTimeout(timer);
+        resolve(reply);
+      });
+      this.send(JSON.stringify({ relay: "upload", request }));
+    });
   }
 
   /** Marks this arrival as activity: a room being created, or a local copy being loaded. */

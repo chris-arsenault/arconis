@@ -47,10 +47,16 @@ importers:
       "@aws-sdk/client-ec2":
         specifier: ^3.1164.0
         version: 3.1164.0
+      "@aws-sdk/client-s3":
+        specifier: ^3.1164.0
+        version: 3.1164.0
       "@aws-sdk/client-sns":
         specifier: ^3.1164.0
         version: 3.1164.0
       "@aws-sdk/client-ssm":
+        specifier: ^3.1164.0
+        version: 3.1164.0
+      "@aws-sdk/s3-request-presigner":
         specifier: ^3.1164.0
         version: 3.1164.0
       "@eslint/js":
@@ -134,6 +140,13 @@ packages:
       }
     version: 0.1.0
 
+  "@aws-sdk/checksums@3.1002.3":
+    resolution:
+      {
+        integrity: sha512-lBwLpni4uWNIH0UxgP8hR3XiGSunn9C7DrhzQzte/uc4chFpghMpf4GkiBrvvygs3NTp1VI5QdD9ZbRA0hM0OQ==,
+      }
+    engines: { node: ">=20.0.0" }
+
   "@aws-sdk/client-cloudwatch@3.1164.0":
     resolution:
       {
@@ -145,6 +158,13 @@ packages:
     resolution:
       {
         integrity: sha512-2NLpGtiQ0tpESLkFTTiHLkHo5q07ssG7OA+T+tiTZxarH6biBlvmF8mZylUUvONDM5ERWp/jqIws3iGVwWwBZA==,
+      }
+    engines: { node: ">=20.0.0" }
+
+  "@aws-sdk/client-s3@3.1164.0":
+    resolution:
+      {
+        integrity: sha512-RCzGDlPFT0vH+rTIW+ukSsdeTC4RuFPDDvTracNW40CES6twgv7OXBXR1oVkhO3u7qY4UECbjF/kJmTSNx7eWQ==,
       }
     engines: { node: ">=20.0.0" }
 
@@ -232,10 +252,24 @@ packages:
       }
     engines: { node: ">=20.0.0" }
 
+  "@aws-sdk/middleware-sdk-s3@3.972.87":
+    resolution:
+      {
+        integrity: sha512-LO1E63hw8wFLOTWgS2xpMQGGAI5DUbA9OcZC9x4ADDwYwU3oqMl3jumxQq/m/5g4Pri2SN8tLaumHtynA5gU9A==,
+      }
+    engines: { node: ">=20.0.0" }
+
   "@aws-sdk/nested-clients@3.998.1":
     resolution:
       {
         integrity: sha512-KPw5W6LN3waUskfDCRXRcyBEHAev5PVlMOjMq74OIivFYbgPvq39QeFege7IOFPncO425/AQK0qxdfaoeGejYQ==,
+      }
+    engines: { node: ">=20.0.0" }
+
+  "@aws-sdk/s3-request-presigner@3.1164.0":
+    resolution:
+      {
+        integrity: sha512-4zxMzbE9/NEHRLs3QMNaFryHwzYQHC8YzbOpF+JTvscJD+HXvh/7f8W6bDeTg5l5khAGziRTMY58S14Eb6oa/w==,
       }
     engines: { node: ">=20.0.0" }
 
@@ -3472,6 +3506,14 @@ snapshots:
   "@ahara/standards@https://codeload.github.com/chris-arsenault/ahara-standards/tar.gz/30e038a09b01c8f72e509e3fb1e7aa76003cda3a":
     {}
 
+  "@aws-sdk/checksums@3.1002.3":
+    dependencies:
+      "@aws-sdk/core": 3.980.1
+      "@aws-sdk/types": 3.975.0
+      "@smithy/core": 3.39.0
+      "@smithy/types": 4.20.0
+      tslib: 2.9.1
+
   "@aws-sdk/client-cloudwatch@3.1164.0":
     dependencies:
       "@aws-sdk/core": 3.980.1
@@ -3489,6 +3531,20 @@ snapshots:
       "@aws-sdk/core": 3.980.1
       "@aws-sdk/credential-provider-node": 3.972.94
       "@aws-sdk/middleware-sdk-ec2": 3.972.70
+      "@aws-sdk/types": 3.975.0
+      "@smithy/core": 3.39.0
+      "@smithy/fetch-http-handler": 5.8.1
+      "@smithy/node-http-handler": 4.14.2
+      "@smithy/types": 4.20.0
+      tslib: 2.9.1
+
+  "@aws-sdk/client-s3@3.1164.0":
+    dependencies:
+      "@aws-sdk/checksums": 3.1002.3
+      "@aws-sdk/core": 3.980.1
+      "@aws-sdk/credential-provider-node": 3.972.94
+      "@aws-sdk/middleware-sdk-s3": 3.972.87
+      "@aws-sdk/signature-v4-multi-region": 3.996.51
       "@aws-sdk/types": 3.975.0
       "@smithy/core": 3.39.0
       "@smithy/fetch-http-handler": 5.8.1
@@ -3622,6 +3678,15 @@ snapshots:
       "@smithy/types": 4.20.0
       tslib: 2.9.1
 
+  "@aws-sdk/middleware-sdk-s3@3.972.87":
+    dependencies:
+      "@aws-sdk/core": 3.980.1
+      "@aws-sdk/signature-v4-multi-region": 3.996.51
+      "@aws-sdk/types": 3.975.0
+      "@smithy/core": 3.39.0
+      "@smithy/types": 4.20.0
+      tslib: 2.9.1
+
   "@aws-sdk/nested-clients@3.998.1":
     dependencies:
       "@aws-sdk/core": 3.980.1
@@ -3630,6 +3695,15 @@ snapshots:
       "@smithy/core": 3.39.0
       "@smithy/fetch-http-handler": 5.8.1
       "@smithy/node-http-handler": 4.14.2
+      "@smithy/types": 4.20.0
+      tslib: 2.9.1
+
+  "@aws-sdk/s3-request-presigner@3.1164.0":
+    dependencies:
+      "@aws-sdk/core": 3.980.1
+      "@aws-sdk/signature-v4-multi-region": 3.996.51
+      "@aws-sdk/types": 3.975.0
+      "@smithy/core": 3.39.0
       "@smithy/types": 4.20.0
       tslib: 2.9.1
 

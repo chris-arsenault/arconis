@@ -6,6 +6,17 @@ export type ConnectionState =
   "connecting" | "online" | "offline" | "error" | "starting" | "stopped" | "limit";
 /** What the relay's control service reports. */
 export type RelayStatus = "running" | "starting" | "stopped" | "stopping" | "limit";
+/** Asks for permission to put a picture's bytes in shared storage. */
+export interface UploadRequest {
+  hash: string;
+  type: string;
+  size: number;
+  checksum: string;
+}
+export type UploadReply =
+  | { status: "upload"; hash: string; url: string }
+  | { status: "stored"; hash: string }
+  | { status: "refused"; hash: string; reason: "limit" | "invalid" | "unavailable" };
 export interface Transport {
   onMessage: (message: string) => void;
   onReady: () => void;
@@ -17,6 +28,8 @@ export interface Transport {
   start?(): void;
   /** Counts this arrival as activity once connected. */
   markFresh?(): void;
+  /** Present when the room has shared picture storage. */
+  requestUpload?(request: UploadRequest): Promise<UploadReply>;
 }
 
 export class LocalTransport implements Transport {

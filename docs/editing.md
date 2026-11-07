@@ -40,6 +40,12 @@ Any object can be a topic, including a screen, a panel of notes or a line.
 A group ties a selection together with a frame that fits its members. Select several objects and
 choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a group.
 
+## Pictures
+
+Paste a picture to place it at the pointer, or drop an image file on the canvas. Pictures keep their
+proportions when resized. While collaboration is off, a picture stays on this device and uploads when
+it returns. In a device-only room, pictures never leave the browser. Exported files carry their pictures.
+
 ## Comments
 
 Select an object or line to comment on it in the property panel, reply, resolve or delete. Everyone in

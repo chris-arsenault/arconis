@@ -207,7 +207,7 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
           Start collaboration
         </button>
       )}
-      <span data-testid="sync-status">{syncDescription(session)}</span>
+      <span data-testid="sync-status">{session.notice || syncDescription(session)}</span>
       <span className="local-status">
         {session.stored ? "Local copy enabled" : "Opening local copy"} ·{" "}
         <span data-testid="object-count">{session.document.list().length}</span> objects

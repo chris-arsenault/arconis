@@ -76,11 +76,29 @@ function renderSvg(graph: Graph, cells: Cell[], box: WorldBox) {
   view.scaleAndTranslate(scale, margin - box.x, margin - box.y);
   const pane = cloneDrawPane(graph, new Set(cells));
   view.scaleAndTranslate(viewScale, viewX, viewY);
-  const body = new XMLSerializer().serializeToString(pane);
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
-    `<rect width="100%" height="100%" fill="#ffffff"/>${body}</svg>`;
-  return { svg, width, height };
+  return { pane, width, height };
+}
+
+function readDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("A picture could not be drawn."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** An SVG drawn as an image cannot load anything else, so pictures go inline. */
+async function inlinePictures(pane: Element) {
+  const attributes = ["href", "xlink:href"];
+  for (const image of pane.querySelectorAll("image")) {
+    for (const attribute of attributes) {
+      const url = image.getAttribute(attribute);
+      if (!url?.startsWith("blob:")) continue;
+      const blob = await (await fetch(url)).blob();
+      image.setAttribute(attribute, await readDataUrl(blob));
+    }
+  }
 }
 
 function loadImage(url: string) {
@@ -92,7 +110,12 @@ function loadImage(url: string) {
   });
 }
 
-async function rasterize({ svg, width, height }: ReturnType<typeof renderSvg>) {
+async function rasterize({ pane, width, height }: ReturnType<typeof renderSvg>) {
+  await inlinePictures(pane);
+  const body = new XMLSerializer().serializeToString(pane);
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+    `<rect width="100%" height="100%" fill="#ffffff"/>${body}</svg>`;
   const image = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
   const canvas = document.createElement("canvas");
   canvas.width = width;

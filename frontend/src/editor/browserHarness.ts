@@ -59,6 +59,15 @@ export async function open(context: BrowserContext, room = "", join = false, sta
       body: `window.__APP_CONFIG__ = ${JSON.stringify(fixture.config)};`,
     })
   );
+  // CloudFront in miniature: a missing key serves the app with a 200, as the website does.
+  await context.route("**/pictures/*", (route) => {
+    const picture = fixture.picture(route.request().url().split("/").pop()!);
+    return route.fulfill(
+      picture
+        ? { body: picture.bytes, contentType: picture.type }
+        : { body: "<!doctype html>", contentType: "text/html" }
+    );
+  });
   const page = await context.newPage();
   page.on("pageerror", (error) => {
     errors.push(error.message);

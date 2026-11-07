@@ -99,6 +99,12 @@ contentful update. A broadcast Yjs update is contentful, and so is a connection 
 and targeted replies are not. Stopping tells clients why, then exits cleanly, which shuts the
 instance down. A crash restarts the process instead, and a maximum runtime catches a hung one.
 
+**Pictures.** Picture bytes stay outside the document. The browser re-encodes a picture through a canvas
+and names it by its hash, the relay checks the storage limit and signs a link fixing the key, type, size
+and checksum, and the browser uploads straight to the website's bucket under `pictures/`. Objects hold
+only the validated hash, marked once the bytes have reached storage, so a peer's data never becomes a
+URL. Peers fetch through the website's CloudFront, verify the hash and keep the bytes in IndexedDB.
+
 **Limit.** `relay/control.ts` computes the month's spend from the instance's CloudWatch metrics, so
 no client or relay report can change it. `relay/budget.ts` declares the rates and limit. At the limit
 the Lambda refuses to start the instance and stops a running one, and the relay checks periodically

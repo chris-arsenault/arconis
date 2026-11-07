@@ -4,6 +4,7 @@ import { EditorController } from "../editor/controller";
 import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "../document/useCollaborativeText";
 import { addBranch } from "../editor/topics";
+import { bindPictureInput } from "../editor/pictureInput";
 
 export function Canvas({
   session,
@@ -27,7 +28,9 @@ export function Canvas({
     const leave = () => session.provider.awareness.setLocalStateField("cursor", null);
     element.addEventListener("mouseleave", leave);
     editor.onPreview = (boxes) => session.provider.awareness.setLocalStateField("preview", boxes);
+    const unbindPictures = bindPictureInput(editor, session);
     return () => {
+      unbindPictures();
       element.removeEventListener("mousemove", updateCursor);
       element.removeEventListener("mouseleave", leave);
       editor.destroy();

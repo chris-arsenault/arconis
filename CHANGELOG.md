@@ -6,6 +6,7 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added pasted and dropped pictures in every room, uploaded once and carried in exported files.
 - Added threaded comments on any object or line, visible to everyone in the room.
 - Added nesting in any object, with children moving along with their parent.
 - Added alignment, distribution, drag guides and common screen sizes.

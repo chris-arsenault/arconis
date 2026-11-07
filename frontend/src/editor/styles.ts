@@ -2,6 +2,14 @@ import type { CellStyle } from "@maxgraph/core";
 import type { CanvasObject, ObjectKind } from "../document/types";
 import { isLockedIcon } from "../document/geometry";
 import { iconImage, loadIconFor } from "./icons";
+import {
+  PICTURE_HASH,
+  PICTURE_STORED,
+  PICTURE_TYPE,
+  isPictureHash,
+  isPictureType,
+} from "../document/pictures";
+import { pictureImage } from "./pictureSource";
 
 const BASE_STYLE: CellStyle = {
   shape: "rectangle",
@@ -79,6 +87,19 @@ const KIND_STYLES: Partial<Record<ObjectKind, CellStyle & Record<string, unknown
     // A drawing moves and transforms as one object, not as hundreds of waypoints.
     bendable: false,
   },
+  // Shows as a plain frame until its bytes arrive.
+  picture: {
+    fillColor: "#eef0f5",
+    strokeColor: "#d5daea",
+    rounded: false,
+    aspect: "fixed",
+    verticalLabelPosition: "bottom",
+    verticalAlign: "top",
+    whiteSpace: "nowrap",
+    overflow: "visible",
+    fontSize: 12,
+    spacing: 2,
+  },
   icon: {
     fillColor: "none",
     strokeColor: "none",
@@ -107,5 +128,16 @@ export function objectStyle(item: CanvasObject): CellStyle {
     if (image) Object.assign(style, { shape: "image", image });
     else void loadIconFor(style.icon);
   }
+  if (item.kind === "picture") applyPicture(style);
   return style;
+}
+
+/** Resolves only a validated hash through the room's pictures, so peers can never supply a URL. */
+function applyPicture(style: Record<string, unknown>) {
+  const hash = style[PICTURE_HASH];
+  const type = style[PICTURE_TYPE];
+  if (!isPictureHash(hash) || !isPictureType(type)) return;
+  const image = pictureImage(hash, type, style[PICTURE_STORED] === true);
+  if (image)
+    Object.assign(style, { shape: "image", image, fillColor: "none", strokeColor: "none" });
 }

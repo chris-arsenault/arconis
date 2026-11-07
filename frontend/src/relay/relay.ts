@@ -1,3 +1,6 @@
+import type { UploadReply, UploadRequest } from "../collaboration/transport";
+import type { Uploads } from "./uploads";
+
 /** Rooms and their sockets. The relay forwards frames between them and stores nothing. */
 
 export const IDLE_NO_CONNECTIONS_MS = 10 * 60_000;
@@ -34,6 +37,8 @@ export interface RelayOptions {
   stop: (reason: StopReason) => void;
   /** Resolves false when the monthly limit has been reached. */
   withinBudget: () => Promise<boolean>;
+  /** Decides picture uploads; null where there is no shared storage. */
+  uploads: Pick<Uploads, "prepare"> | null;
 }
 
 class TokenBucket {
@@ -74,6 +79,8 @@ interface Header {
   target: string;
 }
 
+/** Messages for the relay itself, rather than for other people in the room. */
+const RELAY_REQUEST = '{"relay"';
 const FORWARDED_KINDS = new Set(["hello", "vector", "update", "awareness"]);
 
 function readHeader(message: string): Header | null {
@@ -157,6 +164,10 @@ export class Relay {
   private receive(room: Room, peer: Peer, message: string) {
     const now = this.options.now();
     if (!peer.messages.take(1, now)) return;
+    if (message.startsWith(RELAY_REQUEST)) {
+      this.answerUpload(peer, message);
+      return;
+    }
     const header = readHeader(message);
     if (!header) return;
     // A socket keeps the identity it first claimed, so it cannot speak as another peer.
@@ -169,6 +180,22 @@ export class Relay {
     recipients.forEach((other) => this.deliver(other, message));
     this.sessionBytes += bytes;
     if (this.sessionBytes > MAX_SESSION_BYTES) this.shutdown("limit");
+  }
+
+  /** Replies only to the asker. Picture bytes never pass through the relay. */
+  private answerUpload(peer: Peer, message: string) {
+    let request: UploadRequest;
+    try {
+      ({ request } = JSON.parse(message) as { request: UploadRequest });
+      if (!request || typeof request !== "object") return;
+    } catch {
+      return;
+    }
+    const refused: UploadReply = { status: "refused", hash: request.hash, reason: "unavailable" };
+    const pending = this.options.uploads?.prepare(request) ?? Promise.resolve(refused);
+    void pending
+      .catch(() => refused)
+      .then((reply) => peer.socket.send(JSON.stringify({ relay: "upload-reply", reply })));
   }
 
   private recipients(room: Room, peer: Peer, header: Header) {

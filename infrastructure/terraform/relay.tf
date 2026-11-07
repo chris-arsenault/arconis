@@ -92,10 +92,40 @@ resource "aws_iam_role_policy_attachment" "relay_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+locals {
+  website_bucket_arn = "arn:aws:s3:::${module.frontend.bucket_name}"
+}
+
 data "aws_iam_policy_document" "relay" {
   statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.relay.arn}/*"]
+  }
+  # The relay signs picture uploads, which act with these permissions, and totals what is stored.
+  statement {
+    actions   = ["s3:PutObject"]
+    resources = ["${local.website_bucket_arn}/pictures/*"]
+  }
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = [local.website_bucket_arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["pictures/*"]
+    }
+  }
+}
+
+# Browsers upload pictures straight to the website's bucket, under links the relay signs.
+resource "aws_s3_bucket_cors_configuration" "pictures" {
+  bucket = module.frontend.bucket_name
+
+  cors_rule {
+    allowed_origins = [local.site_origin]
+    allowed_methods = ["PUT"]
+    allowed_headers = ["content-type", "x-amz-checksum-sha256"]
+    max_age_seconds = 3000
   }
 }
 
@@ -158,6 +188,7 @@ resource "aws_instance" "relay" {
     port               = local.relay_port
     control_url        = "https://${local.relay_hostname}"
     allowed_origin     = local.site_origin
+    picture_bucket     = module.frontend.bucket_name
     max_uptime_minutes = local.max_uptime_minutes
   }))
 

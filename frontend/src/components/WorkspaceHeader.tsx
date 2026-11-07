@@ -70,43 +70,53 @@ export function WorkspaceHeader(props: Readonly<Props>) {
   );
 }
 
-function DocumentActions({
-  session,
-  editor,
-  onMessage,
-}: Readonly<Pick<Props, "session" | "editor" | "onMessage">>) {
+type FileProps = Readonly<Pick<Props, "session" | "editor" | "onMessage">>;
+
+async function loadFile({ session, editor, onMessage }: FileProps, file: File) {
+  try {
+    const content = await readDocumentFile(file);
+    await session.keepFilePictures(content);
+    const count = importDocument(session.document, content);
+    onMessage(`Imported ${count} objects.`);
+    editor?.fit();
+    void session.uploadPictures();
+  } catch (error) {
+    onMessage(String(error));
+  }
+}
+
+async function exportPng({ session, editor, onMessage }: FileProps) {
+  if (!editor) return;
+  try {
+    const ids = editor.selectionClosure();
+    const png = await renderPng(editor.graph, ids, session.document.list());
+    if (!png) {
+      onMessage("Add something to the canvas first.");
+      return;
+    }
+    const copy = serializeDocument(session.document, ids, await session.portablePictures(ids));
+    downloadFile(session.document, await embedCopy(png, copy), "image/png", "png");
+  } catch (error) {
+    onMessage(String(error));
+  }
+}
+
+function DocumentActions(props: FileProps) {
+  const { session } = props;
   const input = useRef<HTMLInputElement>(null);
-  const load = async (file: File) => {
-    try {
-      const count = importDocument(session.document, await readDocumentFile(file));
-      onMessage(`Imported ${count} objects.`);
-      editor?.fit();
-    } catch (error) {
-      onMessage(String(error));
-    }
-  };
-  const exportPicture = async () => {
-    if (!editor) return;
-    try {
-      const ids = editor.selectionClosure();
-      const png = await renderPng(editor.graph, ids, session.document.list());
-      if (!png) {
-        onMessage("Add something to the canvas first.");
-        return;
-      }
-      const copy = serializeDocument(session.document, ids);
-      downloadFile(session.document, await embedCopy(png, copy), "image/png", "png");
-    } catch (error) {
-      onMessage(String(error));
-    }
-  };
+  const load = (file: File) => loadFile(props, file);
+  const exportPicture = () => exportPng(props);
   return (
     <>
       <button
         className="icon-button"
         title="Export document"
         aria-label="Export document"
-        onClick={() => downloadDocument(session.document)}
+        onClick={() => {
+          void session
+            .portablePictures()
+            .then((pictures) => downloadDocument(session.document, pictures));
+        }}
       >
         <Download size={18} />
       </button>

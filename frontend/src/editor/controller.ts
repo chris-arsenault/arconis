@@ -28,6 +28,7 @@ import { LINE_ANCHOR } from "../document/relations";
 import type { ScreenSize } from "../document/screens";
 import { createView, fitContents, flyToView } from "./views";
 import { subscribeIcons } from "./icons";
+import { subscribePictures } from "./pictureSource";
 import { configurePanels, containerAt } from "./panels";
 import { compareStacking, isContainerKind, isVertexKind } from "../document/geometry";
 import { transformObjects, type SelectionTransform } from "../document/transform";
@@ -115,7 +116,12 @@ export class EditorController {
     this.document.undo.on("stack-item-added", this.emit);
     this.document.undo.on("stack-item-popped", this.emit);
     this.cleanupInput = bindCanvasInput(this);
-    this.cleanupIcons = subscribeIcons(() => this.project());
+    const stopIcons = subscribeIcons(() => this.project());
+    const stopPictures = subscribePictures(() => this.project());
+    this.cleanupIcons = () => {
+      stopIcons();
+      stopPictures();
+    };
     this.project();
     this.graph.view.setTranslate(60, 60);
   }

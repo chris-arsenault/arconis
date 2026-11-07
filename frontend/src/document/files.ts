@@ -2,11 +2,16 @@ import { CanvasDocument } from "./canvasDocument";
 import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
 import { normalizeLegacyObjects } from "./geometry";
 import { exportComments, importComments } from "./comments";
+import type { PortablePicture } from "./pictures";
 import { isPng, readCopy } from "./pngCopy";
 import { remapStyle } from "./relations";
 
 /** The portable form of a document, or of just the named objects, without its saved views. */
-export function serializeDocument(document: CanvasDocument, ids: string[] = []) {
+export function serializeDocument(
+  document: CanvasDocument,
+  ids: string[] = [],
+  pictures: PortablePicture[] = []
+) {
   const chosen = new Set(ids);
   return JSON.stringify(
     {
@@ -15,6 +20,7 @@ export function serializeDocument(document: CanvasDocument, ids: string[] = []) 
       title: document.title(),
       objects: ids.length ? document.list().filter((item) => chosen.has(item.id)) : document.list(),
       comments: exportComments(document, ids),
+      pictures,
       bookmarks: ids.length
         ? []
         : [...document.views.values()].map((value) => JSON.parse(value) as unknown),
@@ -38,8 +44,8 @@ export function downloadFile(
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function downloadDocument(document: CanvasDocument) {
-  downloadFile(document, serializeDocument(document), "application/json", "arconis");
+export function downloadDocument(document: CanvasDocument, pictures: PortablePicture[]) {
+  downloadFile(document, serializeDocument(document, [], pictures), "application/json", "arconis");
 }
 
 /** Reads a chosen file as document text, whether it is a document or a picture carrying one. */

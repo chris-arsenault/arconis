@@ -62,8 +62,9 @@ function transformObject(
   if (!isVertexKind(item.kind)) return { ...item, points, rotation };
   const locked = isLockedIcon(item.style);
   const evenScale = Math.min(scaleX, scaleY);
-  const width = Math.max(MINIMUM_SIZE, round(item.width * (locked ? evenScale : scaleX)));
-  const height = Math.max(MINIMUM_SIZE, round(item.height * (locked ? evenScale : scaleY)));
+  const even = locked || item.kind === "picture";
+  const width = Math.max(MINIMUM_SIZE, round(item.width * (even ? evenScale : scaleX)));
+  const height = Math.max(MINIMUM_SIZE, round(item.height * (even ? evenScale : scaleY)));
   const [centerX, centerY] = apply([item.x + item.width / 2, item.y + item.height / 2]);
   return {
     x: round(centerX - width / 2),

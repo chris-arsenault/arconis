@@ -2,10 +2,17 @@ import {
   EdgeHandlerConfig,
   HandleConfig,
   VertexHandlerConfig,
+  UrlConverter,
   type Cell,
   type Graph,
 } from "@maxgraph/core";
 import { labelIsLegible } from "./culling";
+
+// maxGraph treats anything but http and data addresses as relative, which would prefix a picture's
+// object URL with the site's address and leave it unable to load.
+const isRelativeUrl = UrlConverter.prototype.isRelativeUrl.bind(UrlConverter.prototype);
+UrlConverter.prototype.isRelativeUrl = (url: string) =>
+  !url.startsWith("blob:") && isRelativeUrl(url);
 
 const SELECTION_COLOR = "#5443b3";
 

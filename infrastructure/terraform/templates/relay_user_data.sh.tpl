@@ -41,6 +41,7 @@ User=arconis-relay
 Environment=PORT=${port}
 Environment=CONTROL_URL=${control_url}
 Environment=ALLOWED_ORIGIN=${allowed_origin}
+Environment=PICTURE_BUCKET=${picture_bucket}
 ExecStartPre=+/usr/bin/aws s3 cp s3://${bucket}/${key} /opt/arconis/server.cjs
 ExecStart=/usr/bin/node-24 /opt/arconis/server.cjs
 ExecStopPost=+/bin/sh -c 'if [ "\$\$EXIT_CODE" = exited ] && [ "\$\$EXIT_STATUS" = 0 ]; then /usr/sbin/shutdown -h now; fi'

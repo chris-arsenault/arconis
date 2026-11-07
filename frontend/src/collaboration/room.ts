@@ -4,6 +4,16 @@ import { CollaborationProvider } from "./provider";
 import { LocalTransport, readConfig, type ConnectionState, type Transport } from "./transport";
 import { RelayTransport } from "./relayTransport";
 import { EditCounter } from "./relayStart";
+import {
+  PLAIN_CODEC,
+  PictureStore,
+  browserPictureUrls,
+  downloadPicture,
+  indexedDbShelf,
+} from "./pictureStore";
+import { putToStorage, uploadWaitingPictures } from "./pictureUploads";
+import { decodePicture, encodePicture, pictureHashes } from "../document/pictures";
+import { notifyPictures, setPictureSource } from "../editor/pictureSource";
 
 export function createRoomId() {
   return [...crypto.getRandomValues(new Uint8Array(24))]
@@ -46,6 +56,10 @@ export class RoomSession {
   private disposed = false;
   private edits = new EditCounter();
   private transport: Transport;
+  readonly pictures: PictureStore;
+  /** A message about pictures for the status bar. */
+  notice = "";
+  private uploading = false;
 
   constructor(
     readonly id: string,
@@ -54,17 +68,26 @@ export class RoomSession {
     private created = false
   ) {
     const config = readConfig();
-    const transport =
+    const transport: Transport =
       config.transport === "local" || isLocalRoom(id)
         ? new LocalTransport(id)
         : new RelayTransport(config.relayUrl, id);
     this.transport = transport;
+    this.pictures = new PictureStore({
+      shelf: indexedDbShelf(),
+      codec: PLAIN_CODEC,
+      download: transport.requestUpload ? downloadPicture : null,
+      ...browserPictureUrls(),
+    });
+    this.pictures.subscribe(notifyPictures);
+    setPictureSource((hash, type, shared) => this.pictures.url(hash, type, shared));
     this.persistence = new IndexeddbPersistence(`arconis:${id}`, this.document.doc);
     this.provider = new CollaborationProvider(this.document.doc, transport, this.emit);
     transport.onStatus = (state, detail = "") => {
       this.state = state;
       this.detail = detail;
       if (state !== "online") this.provider.disconnected();
+      else void this.uploadPictures();
       this.emit();
     };
     this.provider.awareness.setLocalStateField("user", {
@@ -88,6 +111,54 @@ export class RoomSession {
       this.provider.connect();
       this.emit();
     }
+  }
+  setNotice(notice: string) {
+    this.notice = notice;
+    this.emit();
+  }
+  /** Uploads what this browser holds and storage lacks. Failures retry on reconnecting. */
+  uploadPictures = async () => {
+    const request = this.transport.requestUpload?.bind(this.transport);
+    if (!request || this.uploading || this.state !== "online") return;
+    this.uploading = true;
+    try {
+      this.setNotice(
+        await uploadWaitingPictures({
+          document: this.document,
+          store: this.pictures,
+          request,
+          put: putToStorage,
+          contentType: (type) => type,
+        })
+      );
+    } catch {
+      // The picture stays on this device, and shows to others after the next attempt.
+    } finally {
+      this.uploading = false;
+    }
+  };
+  /** The pictures a file needs, in the form they are stored. */
+  async portablePictures(ids: string[] = []) {
+    const chosen = new Set(ids);
+    const items = this.document.list().filter((item) => !ids.length || chosen.has(item.id));
+    const found = await Promise.all(
+      pictureHashes(items).map(async (hash) => {
+        const picture = await this.pictures.read(hash);
+        return picture ? encodePicture(hash, picture.type, picture.bytes) : null;
+      })
+    );
+    return found.filter((picture) => picture !== null);
+  }
+  /** Keeps the pictures in a file's text, before its objects are imported. */
+  async keepFilePictures(content: string) {
+    const { pictures } = JSON.parse(content) as { pictures: unknown };
+    if (!Array.isArray(pictures)) return;
+    const decoded = await Promise.all(pictures.map(decodePicture));
+    await Promise.all(
+      decoded
+        .filter((picture) => picture !== null)
+        .map(({ hash, type, bytes }) => this.pictures.keep(hash, { bytes, type }))
+    );
   }
   /** Whether the relay is off and someone here can ask for it. */
   get canStartCollaboration() {
@@ -115,6 +186,8 @@ export class RoomSession {
   }
   destroy() {
     this.disposed = true;
+    setPictureSource(null);
+    this.pictures.close();
     this.provider.destroy();
     void this.persistence.destroy();
     this.document.destroy();
