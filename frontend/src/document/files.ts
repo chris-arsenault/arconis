@@ -1,6 +1,7 @@
 import { CanvasDocument } from "./canvasDocument";
 import { KIND_LABELS, LOCAL, type CanvasObject, type SavedView } from "./types";
 import { normalizeLegacyObjects } from "./geometry";
+import { exportComments, importComments } from "./comments";
 import { isPng, readCopy } from "./pngCopy";
 import { remapStyle } from "./relations";
 
@@ -13,6 +14,7 @@ export function serializeDocument(document: CanvasDocument, ids: string[] = []) 
       version: 2,
       title: document.title(),
       objects: ids.length ? document.list().filter((item) => chosen.has(item.id)) : document.list(),
+      comments: exportComments(document, ids),
       bookmarks: ids.length
         ? []
         : [...document.views.values()].map((value) => JSON.parse(value) as unknown),
@@ -76,6 +78,7 @@ export function importDocument(document: CanvasDocument, content: string) {
         style: remapStyle(item.style, ids),
       })
     );
+    importComments(document, parsed.comments, ids);
     if (typeof parsed.title === "string") document.rename(parsed.title);
     bookmarks.forEach((view: SavedView) => {
       const id = crypto.randomUUID();
@@ -93,6 +96,7 @@ function fileOrder(item: CanvasObject) {
 function parseFile(content: string): {
   objects: CanvasObject[];
   bookmarks: unknown;
+  comments: unknown;
   title: unknown;
   version: number;
 } {
@@ -109,6 +113,7 @@ function parseFile(content: string): {
   return {
     objects: parsed.objects as CanvasObject[],
     bookmarks: "bookmarks" in parsed ? parsed.bookmarks : [],
+    comments: "comments" in parsed ? parsed.comments : [],
     title: "title" in parsed ? parsed.title : null,
     version: fileVersion(parsed),
   };

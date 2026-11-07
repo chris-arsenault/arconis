@@ -6,6 +6,7 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added threaded comments on any object or line, visible to everyone in the room.
 - Added nesting in any object, with children moving along with their parent.
 - Added alignment, distribution, drag guides and common screen sizes.
 - Added branching topics built from the keyboard, references between them, and tidy layout, on any object or line.

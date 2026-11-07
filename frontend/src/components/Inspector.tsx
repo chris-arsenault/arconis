@@ -20,6 +20,7 @@ import { isContainerKind, isLockedIcon } from "../document/geometry";
 import { objectStyle } from "../editor/styles";
 import { ConnectionControls, Section } from "./ConnectionControls";
 import { AlignControls, ScreenSizeControl, TopicControls } from "./TopicControls";
+import { CommentControls } from "./CommentControls";
 
 type ItemProps = Readonly<{ editor: EditorController; item: CanvasObject }>;
 type ChangeStyle = (key: string, value: StyleValue) => void;
@@ -41,7 +42,10 @@ function number(value: number) {
   return Number(value.toPrecision(6));
 }
 
-export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
+export function Inspector({
+  editor,
+  author,
+}: Readonly<{ editor: EditorController; author: string }>) {
   const selected = editor.selected();
   const item = selected[0];
   const several = selected.length > 1;
@@ -64,6 +68,7 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       <StyleControls editor={editor} item={item} />
       {!several && <PositionControls editor={editor} item={item} />}
       {!several && <ScreenSizeControl editor={editor} item={item} />}
+      {!several && <CommentControls editor={editor} item={item} author={author} />}
     </aside>
   );
 }

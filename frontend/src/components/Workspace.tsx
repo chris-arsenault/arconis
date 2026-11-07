@@ -56,7 +56,7 @@ export function Workspace(props: Readonly<Props>) {
         <CanvasArea session={session} editor={editor} newRoom={newRoom} onEditor={setEditor}>
           {namePrompt && <NamePrompt name={name} onName={onName} onClose={closeNamePrompt} />}
         </CanvasArea>
-        {editor && <Inspector editor={editor} />}
+        {editor && <Inspector editor={editor} author={props.name} />}
       </div>
       <ConnectionStatus session={session} />
       {message && (

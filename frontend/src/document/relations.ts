@@ -60,6 +60,17 @@ export function containedDescendants(items: CanvasObject[], id: string) {
   return [...found];
 }
 
+/** How many references touch each object, in one pass over the document. */
+export function referenceCounts(items: CanvasObject[]) {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    if (!isRelation(item, RELATION_REFERENCE)) continue;
+    counts.set(item.source, (counts.get(item.source) ?? 0) + 1);
+    counts.set(item.target, (counts.get(item.target) ?? 0) + 1);
+  }
+  return counts;
+}
+
 export function referencesOf(items: CanvasObject[], id: string) {
   return items
     .filter(

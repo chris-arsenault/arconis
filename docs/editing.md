@@ -40,6 +40,12 @@ Any object can be a topic, including a screen, a panel of notes or a line.
 A group ties a selection together with a frame that fits its members. Select several objects and
 choose Group in the property panel, or press Ctrl/Command G. Ungroup dissolves a group.
 
+## Comments
+
+Select an object or line to comment on it in the property panel, reply, resolve or delete. Everyone in
+the room sees comments, signed with the display name at the time. A label shows `💬` and a count of open
+threads. Comments stay out of undo, and return with their object if its deletion is undone.
+
 ## Icons
 
 Search the stencil rail for shapes and icons, or browse its sets, including AWS, Azure and Google Cloud.

@@ -11,6 +11,8 @@ export class CanvasDocument {
   readonly meta = this.doc.getMap<string>("meta");
   /** Saved views. The map keeps its original name so existing rooms keep theirs. */
   readonly views = this.doc.getMap<string>("bookmarks");
+  /** A conversation, not an edit, so comments stay out of undo. */
+  readonly comments = this.doc.getMap<string>("comments");
   readonly undo = new Y.UndoManager([this.objects, this.meta, this.views], {
     trackedOrigins: new Set([LOCAL]),
     captureTimeout: 400,

@@ -1,5 +1,4 @@
 import {
-  type Cell,
   Graph,
   InternalEvent,
   RubberBandHandler,
@@ -21,10 +20,11 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { configureConnectionPoints } from "./connectionPoints";
 import { clampScale, creationOffset, creationSize, creationValues, syncZoom } from "./zoom";
-import { configureCulling, hasHiddenDetail } from "./culling";
+import { configureCulling } from "./culling";
+import { LabelMarks } from "./marks";
 import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
 import { configureComposition, endpointFor, syncLineAnchors } from "./topics";
-import { LINE_ANCHOR, referencesOf } from "../document/relations";
+import { LINE_ANCHOR } from "../document/relations";
 import type { ScreenSize } from "../document/screens";
 import { createView, fitContents, flyToView } from "./views";
 import { subscribeIcons } from "./icons";
@@ -73,6 +73,7 @@ export class EditorController {
   private band: RubberBandHandler;
 
   readonly grid: CanvasGrid;
+  private marks: LabelMarks;
   constructor(
     readonly element: HTMLDivElement,
     readonly document: CanvasDocument
@@ -86,7 +87,8 @@ export class EditorController {
     this.graph.setConnectable(true);
     this.graph.setAllowDanglingEdges(false);
     this.graph.setCellsEditable(false);
-    configureRendering(this.graph, (cell) => this.labelMarks(cell));
+    this.marks = new LabelMarks(this.graph, this.document);
+    configureRendering(this.graph, (cell) => this.marks.text(cell));
     configureCulling(this.graph, () => this.referencesVisible);
     this.graph.isToggleEvent = (event) => event.shiftKey || event.ctrlKey || event.metaKey;
     this.graph.setDisconnectOnMove(false);
@@ -127,16 +129,6 @@ export class EditorController {
     this.version++;
     this.listeners.forEach((listener) => listener());
   };
-  /** Signs that an object holds hidden detail or refers elsewhere. */
-  private labelMarks(cell: Cell) {
-    const references = referencesOf(this.document.list(), cell.id ?? "").length;
-    return [
-      hasHiddenDetail(cell, this.graph.view.scale) ? "⊕" : "",
-      references ? `↗${references}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-  }
   private onView = () => {
     syncZoom(this.graph, this.element);
     this.emit();
@@ -198,6 +190,7 @@ export class EditorController {
     } finally {
       this.projecting = false;
     }
+    this.marks.refresh();
   }
 
   armIcon(icon: { key: string; title: string }) {

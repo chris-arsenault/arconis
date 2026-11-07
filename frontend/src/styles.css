@@ -197,6 +197,41 @@ h1 em {
   padding: 13px;
   justify-content: space-between;
 }
+.comment-thread {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.comment-thread.resolved {
+  opacity: 0.55;
+}
+.comment p {
+  margin: 2px 0 6px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.comment-meta time {
+  flex: 1;
+  color: #9ca3b3;
+  font-size: 10px;
+}
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.comment-box {
+  flex: 1;
+}
+.comment-box input {
+  width: 100%;
+}
 .reference-list {
   list-style: none;
   margin: 8px 0 0;
