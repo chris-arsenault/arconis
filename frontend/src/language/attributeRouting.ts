@@ -17,6 +17,9 @@ interface Routing {
  * applies those attributes to a stored item; an arrangement is a virtual extent, not an Item.
  */
 const ROUTING = {
+  markup: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
+  ink: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
+  target: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
   word: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
   look: { item: "describe", link: "link", style: "style", arrangement: "ignore" },
   icon: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },

@@ -3,6 +3,42 @@
 Create a room, then click a stencil in the left rail and click the canvas, or drag a stencil onto the
 canvas. New notes and text open ready for typing; double-click edits any object directly.
 
+## Drawing and markup
+
+Draw (P) opens the drawing palette in the left rail. Choose Pen or Highlighter, a width and
+color, then drag across the canvas. Each instrument remembers its own width and color. The
+three Favorite buttons recall brushes; Shift-click saves the current brush in that favorite.
+
+Geometry offers freehand, lines, arrows, double arrows, boxes, circles, polygons, brackets,
+braces and revision clouds. Drag arrows from tail to tip. Hold Shift for constrained angles,
+squares and circles. Click polygon corners, then its start or Enter to close it; Escape cancels.
+
+Highlight object adds an outline to a sticky, shape, picture or Drawing. Click again to remove
+it. The outline follows its target without changing its styles. Pen and highlighter marks stay
+where you drew them. Markup is shared and saved; it never expires automatically.
+
+Lasso selects whole strokes and shapes. Drag around them, then move the selection or use its
+corner and rotation handles. Shift adds to the selection. Recolor selection changes its ink.
+Normal selection reaches workspace objects. Eraser removes whole strokes; Precision eraser
+cuts the parts it crosses. Clear markup removes annotations in one undoable operation.
+
+Make Drawing promotes selected markup into one workspace object. New Drawing creates an empty
+surface. Double-click a Drawing to edit its contents with the same tools; Finish Drawing or
+Escape returns to the workspace. Its bounds clip the view, and Fit bounds to drawing removes
+unused space. Drawings can be named, moved, resized, rotated, connected and commented on. Return
+to markup releases their contents, and Undo restores the Drawing.
+
+Fill and gradient holds shape-fill controls, a second gradient color and direction. Use Fill to
+click a closed path, or Fill selection after lassoing it. The first fill color is the current ink
+color. Close or open selected path lets a freehand loop receive a fill. Select a filled gradient
+path and drag its direction handle; Shift snaps the angle. Eyedropper picks a drawing or object
+color. The bucket fills closed shapes; it does not discover regions between separate strokes.
+
+Show markup affects your view only, including during presentation. Drawings remain visible.
+Include markup beside the export buttons controls document and PNG export independently of
+your view. A clean PNG omits annotations from both its pixels and its embedded editable copy.
+Ordinary saved workspaces retain everything.
+
 ## Selecting and transforming
 
 - Shift-click, Ctrl-click or Command-click toggles an object in the selection.

@@ -1,9 +1,8 @@
 import type { EditorController, Shape } from "./controller";
 import { PanningHandler, type CellState } from "@maxgraph/core";
-import type { PathPoint } from "../document/types";
 import { isUnderlay } from "./templates";
-import { simplifyPath } from "../document/geometry";
-import { clampScale, creationValues, roundForScale } from "./zoom";
+import { clampScale, creationValues } from "./zoom";
+import { bindDrawingInput } from "./drawingInput";
 import { addBranch, zoomIntoSelection, zoomOutOfSelection } from "./topics";
 
 function isTyping(target: EventTarget | null) {
@@ -86,22 +85,26 @@ function modifiedKey(editor: EditorController, event: KeyboardEvent) {
 
 /** The object under the pointer, looking through templates' underlays to what lies beneath. */
 function cellAt(editor: EditorController, event: MouseEvent) {
+  if (event.target instanceof Node) {
+    for (const [cell, state] of editor.graph.view.states)
+      if (!isUnderlay(cell) && state.text?.node?.contains(event.target)) return cell;
+  }
   const bounds = editor.element.getBoundingClientRect();
   const x = event.clientX - bounds.left;
   const y = event.clientY - bounds.top;
-  return editor.graph.getCellAt(x, y, null, true, true, (state: CellState) =>
-    isUnderlay(state.cell)
+  return editor.graph.getCellAt(
+    x,
+    y,
+    null,
+    true,
+    true,
+    (state: CellState) =>
+      isUnderlay(state.cell) || editor.document.get(state.cell.id ?? "")?.type === "highlight"
   );
 }
 
 function bindPointerTools(editor: EditorController, options: { signal: AbortSignal }) {
-  let points: PathPoint[] = [];
   let pendingEdit = "";
-  const addSample = (event: { clientX: number; clientY: number }) => {
-    const { x, y } = editor.worldPoint(event);
-    const [lastX, lastY] = points[points.length - 1];
-    if (x !== lastX || y !== lastY) points.push([x, y]);
-  };
   editor.element.addEventListener(
     "pointerdown",
     (event) => {
@@ -109,11 +112,8 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
       if (event.button !== 0 || ["select", "pan"].includes(editor.tool)) return;
       event.preventDefault();
       event.stopPropagation();
-      if (editor.tool === "draw") {
-        const { x, y } = editor.worldPoint(event);
-        points = [[x, y]];
-        editor.element.setPointerCapture(event.pointerId);
-      } else if (editor.tool === "connect") {
+      if (editor.tool === "draw") return;
+      if (editor.tool === "connect") {
         const cell = cellAt(editor, event);
         if (cell?.isVertex())
           editor.connectionSource = connectClick(editor, editor.connectionSource, cell.id!);
@@ -126,32 +126,9 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
     },
     { ...options, capture: true }
   );
-  editor.element.addEventListener(
-    "pointermove",
-    (event) => {
-      if (!points.length) return;
-      const samples = event.getCoalescedEvents();
-      (samples.length ? samples : [event]).forEach(addSample);
-      drawPreview(editor, points);
-    },
-    options
-  );
   window.addEventListener(
     "pointerup",
     () => {
-      if (points.length > 1) {
-        const { scale } = editor.graph.view;
-        const path = simplifyPath(points, 0.5 / scale).map(([x, y]): PathPoint => [
-          roundForScale(x, scale),
-          roundForScale(y, scale),
-        ]);
-        editor.document.create("drawing", 0, 0, {
-          points: path,
-          ...creationValues("drawing", scale),
-        });
-      }
-      points = [];
-      editor.element.querySelector(".stroke-preview")?.remove();
       // Opening on pointerup keeps the browser's mousedown focus from closing the editor.
       if (pendingEdit) editor.edit(pendingEdit, true);
       pendingEdit = "";
@@ -163,6 +140,7 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
 export function bindCanvasInput(editor: EditorController) {
   const abort = new AbortController();
   const options = { signal: abort.signal };
+  bindDrawingInput(editor, abort.signal);
   bindPointerTools(editor, options);
   window.addEventListener(
     "click",
@@ -263,24 +241,4 @@ function wheelHandler(editor: EditorController, signal: AbortSignal) {
       requestAnimationFrame(apply);
     }
   };
-}
-
-function drawPreview(editor: EditorController, points: PathPoint[]) {
-  const ns = "http://www.w3.org/2000/svg";
-  let svg = editor.element.querySelector<SVGSVGElement>(".stroke-preview");
-  if (!svg) {
-    svg = document.createElementNS(ns, "svg");
-    svg.classList.add("stroke-preview");
-    svg.append(document.createElementNS(ns, "polyline"));
-    editor.element.append(svg);
-  }
-  const view = editor.graph.view;
-  svg.firstElementChild!.setAttribute(
-    "points",
-    points
-      .map(
-        ([x, y]) => `${(x + view.translate.x) * view.scale},${(y + view.translate.y) * view.scale}`
-      )
-      .join(" ")
-  );
 }

@@ -1,7 +1,9 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import { worldBounds } from "../document/relations";
 import type { Item } from "../document/types";
+import { exportItems } from "../document/exportItems";
 import { exportTextCss } from "./exportText";
+import { exportMarkup } from "./culling";
 
 const MARGIN_PIXELS = 20;
 const HIDE_ATTRIBUTE = "data-export-hidden";
@@ -76,6 +78,8 @@ function renderSvg(graph: Graph, cells: Cell[], box: WorldBox) {
   const height = Math.ceil((box.height + margin * 2) * scale);
   view.scaleAndTranslate(scale, margin - box.x, margin - box.y);
   const pane = cloneDrawPane(graph, new Set(cells));
+  const defs = graph.view.getDrawPane()?.closest("svg")?.querySelectorAll(":scope > defs");
+  defs?.forEach((definition) => pane.prepend(definition.cloneNode(true)));
   view.scaleAndTranslate(viewScale, viewX, viewY);
   return { pane, width, height };
 }
@@ -135,14 +139,26 @@ async function rasterize({ pane, width, height }: ReturnType<typeof renderSvg>) 
  * Draws the named objects as a PNG, or the whole canvas when `ids` is empty. Returns null when there
  * is nothing to draw.
  */
-export async function renderPng(graph: Graph, ids: string[], items: Item[]) {
+export async function renderPng(graph: Graph, ids: string[], items: Item[], includeMarkup = true) {
   await document.fonts.ready;
-  const cells = shownCells(graph, new Set(ids));
+  exportMarkup(graph, includeMarkup);
+  try {
+    return await renderChosen(graph, ids, items, includeMarkup);
+  } finally {
+    exportMarkup(graph, null);
+  }
+}
+
+function renderChosen(graph: Graph, ids: string[], items: Item[], includeMarkup: boolean) {
+  const chosen = exportItems(items, ids, includeMarkup);
+  if (!chosen.length) return null;
+  const allowed = new Set(chosen.map((item) => item.id));
+  const cells = shownCells(graph, ids.length ? allowed : new Set()).filter(
+    (cell) => allowed.has(cell.id ?? "") || (cell.getStyle() as Record<string, unknown>).underlay
+  );
   // Everything can be too small to draw at this zoom, while still being worth exporting.
-  const chosen = new Set(ids);
   const box =
-    drawnBounds(graph, cells) ??
-    worldBounds(ids.length ? items.filter((item) => chosen.has(item.id)) : items);
+    drawnBounds(graph, cells) ?? worldBounds(chosen.filter((item) => item.type !== "highlight"));
   if (!box || !cells.length) return null;
   return rasterize(renderSvg(graph, cells, box));
 }

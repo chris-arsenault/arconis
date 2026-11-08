@@ -38,6 +38,7 @@ export class Draft {
   readonly views: View[] = [];
   /** Nodes sitting on lines, whose lines are found once every line exists. */
   readonly anchors: { id: string; ref: string; line: number }[] = [];
+  readonly highlights: { id: string; ref: string; line: number }[] = [];
   title: string | null = null;
   private readonly original = new Map<string, string>();
   private order: number;

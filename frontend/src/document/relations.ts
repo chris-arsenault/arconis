@@ -58,15 +58,16 @@ export function removalClosure(items: Item[], ids: Iterable<string>) {
   let previousSize = -1;
   while (previousSize !== removed.size) {
     previousSize = removed.size;
-    for (const item of items)
-      if (
-        removed.has(item.inside) ||
-        removed.has(item.onLine) ||
-        (isLink(item) && (removed.has(item.from) || removed.has(item.to)))
-      )
-        removed.add(item.id);
+    for (const item of items) if (removedWith(item, removed)) removed.add(item.id);
   }
   return removed;
+}
+
+function removedWith(item: Item, removed: Set<string>) {
+  const related = [item.inside, item.onLine];
+  if (isLink(item)) related.push(item.from, item.to);
+  if (item.type === "highlight") related.push(item.target ?? "");
+  return related.some((id) => removed.has(id));
 }
 
 /** How many references touch each item, in one pass over the document. */
@@ -115,7 +116,24 @@ export function renameItem(item: Item, ids: Map<string, string>): Item {
     from: rename(item.from),
     to: rename(item.to),
     onLine: rename(item.onLine),
+    ...(item.target ? { target: rename(item.target) } : {}),
   };
+}
+
+/** Selection with descendants, anchors and internal links; empty IDs mean the whole canvas for files. */
+export function selectedItems(all: Item[], ids: string[]) {
+  if (!ids.length) return all;
+  const chosen = new Set(ids);
+  let size = -1;
+  while (size !== chosen.size) {
+    size = chosen.size;
+    all
+      .filter((item) => chosen.has(item.inside) || chosen.has(item.onLine))
+      .forEach((item) => chosen.add(item.id));
+  }
+  return all.filter(
+    (item) => chosen.has(item.id) || (isLink(item) && chosen.has(item.from) && chosen.has(item.to))
+  );
 }
 
 export function anchorOf(items: Item[], lineId: string) {

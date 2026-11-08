@@ -10,8 +10,6 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 
 ## Agents
 
-- Design freehand drawing as a domain of its own, with tools that go beyond today's strokes, then
-  let agents author drawings.
 - Let agents see the rendered canvas, to judge layout as people do.
 - Keep lines routed around items from crossing or overlapping one another where they can run apart.
 - Let agents add pictures.

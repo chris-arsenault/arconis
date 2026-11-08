@@ -9,8 +9,10 @@ import {
   type Port,
   type View,
 } from "../document/types";
-import { SIDES } from "./syntax";
+import { SIDES, DRAWING_WORDS } from "./syntax";
 import { lookEntries } from "./look";
+import { exportItems } from "../document/exportItems";
+import { selectedItems } from "../document/relations";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -62,7 +64,7 @@ export function lookWords(look: Look, skip: (keyof Look)[] = []) {
 
 function names(item: Item) {
   const parts: string[] = [];
-  if (item.name || item.subtitle) parts.push(quote(item.name));
+  if (item.name || item.subtitle || DRAWING_WORDS.has(item.id)) parts.push(quote(item.name));
   if (item.subtitle) parts.push("/", quote(item.subtitle));
   return parts;
 }
@@ -118,7 +120,7 @@ function route(item: Item, present?: Set<string>) {
 
 /** What an item is beyond its type: stencil, style, icon, the line it sits on, its picture. */
 function identity(item: Item) {
-  const parts: string[] = [];
+  const parts = inkWords(item);
   if (item.type === "node" && item.stencil !== "rectangle" && item.stencil !== "icon")
     parts.push(item.stencil);
   if (item.style) parts.push(item.style);
@@ -127,6 +129,14 @@ function identity(item: Item) {
   if (item.picture) parts.push("hash", item.picture.hash, "format", item.picture.format);
   if (item.picture?.stored) parts.push("stored");
   return [...parts, ...deckWords(item)];
+}
+
+function inkWords(item: Item) {
+  const parts: string[] = [];
+  if (item.markup !== undefined) parts.push(item.markup ? "markup" : "workspace");
+  if (item.ink) parts.push("ink", item.ink);
+  if (item.target) parts.push("target", item.target);
+  return parts;
 }
 
 /** A slide's deck and number; nothing for other items. */
@@ -209,6 +219,7 @@ export function printItems(items: Item[]) {
 }
 
 export interface PrintOptions {
+  includeMarkup?: boolean;
   /** Only these items, with what they hold; everything when empty. */
   ids?: string[];
   /** Picture bytes to carry, for a file that must open anywhere. */
@@ -218,7 +229,7 @@ export interface PrintOptions {
 /** The canvas, or part of it, as a complete text: the saved file and what agents read. */
 export function printCanvas(document: CanvasDocument, options: PrintOptions = {}) {
   const all = document.list();
-  const chosen = chosenItems(all, options.ids ?? []);
+  const chosen = exportItems(all, options.ids ?? [], options.includeMarkup !== false);
   const ids = new Set(chosen.map((item) => item.id));
   const used = new Set(chosen.map((item) => item.style).filter(Boolean));
   const whole = !options.ids?.length;
@@ -234,16 +245,5 @@ export function printCanvas(document: CanvasDocument, options: PrintOptions = {}
 
 /** The named items with everything they hold, and the links among them. */
 export function chosenItems(all: Item[], ids: string[]) {
-  if (!ids.length) return all;
-  const chosen = new Set(ids);
-  let size = -1;
-  while (size !== chosen.size) {
-    size = chosen.size;
-    all
-      .filter((item) => chosen.has(item.inside) || chosen.has(item.onLine))
-      .forEach((item) => chosen.add(item.id));
-  }
-  return all.filter(
-    (item) => chosen.has(item.id) || (isLink(item) && chosen.has(item.from) && chosen.has(item.to))
-  );
+  return selectedItems(all, ids);
 }

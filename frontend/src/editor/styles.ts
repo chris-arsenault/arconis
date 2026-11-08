@@ -7,6 +7,8 @@ import { isPictureHash, isPictureType } from "../document/pictures";
 import { pictureImage } from "./pictureSource";
 import { LABEL_BADGE, LABEL_SUBTITLE } from "./rendering";
 import { TEXT_FONTS } from "../text/typography";
+import "./inkShape";
+import { isMarkup } from "../document/ink";
 
 /**
  * The one place an item's look becomes maxGraph styles. The model speaks in plain terms; everything
@@ -87,11 +89,30 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     endSize: 6,
   },
   drawing: {
-    shape: "connector",
+    shape: "ink",
     edgeStyle: "none",
     curved: true,
     // A drawing moves and transforms as one item, not as hundreds of waypoints.
     bendable: false,
+    startSize: 6,
+    endSize: 6,
+  },
+  sketch: {
+    rounded: false,
+    verticalLabelPosition: "bottom",
+    whiteSpace: "nowrap",
+    overflow: "visible",
+    rotatable: false,
+    resizable: false,
+  },
+  highlight: {
+    rounded: true,
+    noLabel: true,
+    pointerEvents: false,
+    movable: false,
+    resizable: false,
+    rotatable: false,
+    connectable: false,
   },
   // A viewport over the canvas: an outline that covers nothing, labelled above itself so a
   // presentation masking everything outside the box shows neither.
@@ -172,6 +193,10 @@ const DIRECT: [keyof Look, string][] = [
   ["rotation", "rotation"],
   ["dashed", "dashed"],
   ["opacity", "fillOpacity"],
+  ["strokeOpacity", "strokeOpacity"],
+  ["gradient", "gradientColor"],
+  ["closed", "inkClosed"],
+  ["gradientAngle", "inkGradientAngle"],
 ];
 
 function lookStyle(item: Item, look: Appearance): Style {
@@ -225,7 +250,7 @@ function baseStyle(item: Item, look: Look): Style {
 export function objectStyle(item: Item, named: Look = {}, presenting = false): CellStyle {
   const look = effectiveAppearance(item, named);
   const base = baseStyle(item, look);
-  const style: Style = { ...base, ...lookStyle(item, look) };
+  const style: Style = { ...base, ...lookStyle(item, look), markup: isMarkup(item) };
   // Mutation capture reads rotation from the model style. A default must not become an authored edit.
   if (authoredLook(item, named).rotation === undefined) delete style.rotation;
   applyScale(style, look.scale);

@@ -19,6 +19,7 @@ import { Inspector } from "./Inspector";
 import { PasswordGate } from "./PasswordGate";
 import { LeftRail } from "./LeftRail";
 import { SelectionFrame } from "./SelectionFrame";
+import { GradientDirection } from "./GradientDirection";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import { PresenterNotes, PresenterStage } from "./Presenter";
 import type { AccountStore } from "../account/accountStore";
@@ -183,6 +184,7 @@ function CanvasArea({
         <>
           <InlineEditor editor={editor} />
           <SelectionFrame editor={editor} />
+          <GradientDirection editor={editor} />
           <Cursors editor={editor} session={session} />
           <CanvasHUD editor={editor} />
         </>

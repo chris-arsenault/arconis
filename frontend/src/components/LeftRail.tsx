@@ -7,8 +7,16 @@ import { goToSlide } from "../editor/topics";
 import { flyToView, removeView, renameView, saveCurrentView, savedViews } from "../editor/views";
 import { StencilBrowser } from "./StencilBrowser";
 import { TOOLS } from "./stencils";
+import { DrawingTools, type DrawingActions } from "./DrawingTools";
+import { isMarkup } from "../document/ink";
 
 export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
+  const selected = editor.selected();
+  const selection = {
+    canPromote: selected.some((item) => item.type === "drawing" && isMarkup(item)),
+    hasDrawing: !!editor.drawing.activeSketch || selected.some((item) => item.type === "sketch"),
+  };
+  const actions = drawingActions(editor);
   return (
     <aside className="left-rail" aria-label="Tools and stencils">
       <div className="tool-row" role="toolbar" aria-label="Canvas tools">
@@ -26,6 +34,17 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
         ))}
       </div>
       <StencilBrowser editor={editor} />
+      {(editor.tool === "draw" || editor.drawing.settings.mode === "lasso") && (
+        <DrawingTools
+          activeSketch={editor.drawing.activeSketch}
+          settings={editor.drawing.settings}
+          visible={editor.drawing.visible}
+          favorites={editor.drawing.favorites}
+          recent={editor.drawing.recent}
+          selection={selection}
+          actions={actions}
+        />
+      )}
       <Decks
         all={decks(editor.document.list())}
         onPresent={(deck) => editor.presenter.start(deck)}
@@ -40,6 +59,27 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
       />
     </aside>
   );
+}
+
+function drawingActions(editor: EditorController): DrawingActions {
+  const drawing = editor.drawing;
+  return {
+    change: (settings) => drawing.update(settings),
+    favorite: (index, save) => drawing.favorite(index, save),
+    toggle: () => drawing.toggle(),
+    clear: () => drawing.clear(),
+    recolor: () => drawing.recolor(),
+    make: () => drawing.make(),
+    blank: () => drawing.make(true),
+    fit: () => drawing.fit(),
+    demote: () => drawing.demote(),
+    leave: () => {
+      drawing.leave();
+      editor.setTool("select");
+    },
+    fill: () => drawing.fill(),
+    close: () => drawing.close(),
+  };
 }
 
 /** A slide's line in the rail: its number, or Template, then its name. */

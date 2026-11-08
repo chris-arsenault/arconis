@@ -6,6 +6,11 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added shared markup with pen widths, highlighter, attached object outlines, drag-oriented
+  arrows and common shapes, lasso selection and whole/partial erasing. Promote markup into
+  editable Drawing objects, use closed fills and gradients, and export with or without markup.
+  Drawings use the same canonical model and canvas language through MCP, files and the browser.
+
 - Unify shared domain and appearance rules across editor and agent operations; give controls
   focused editing interfaces and separate messaging, relay controls and picture services.
   File and saved-copy operations now have application owners, and accounts share HTTP contracts.

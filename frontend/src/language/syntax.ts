@@ -1,4 +1,7 @@
-import type { ItemType, Look, PathPoint, Port } from "../document/types";
+import type { InkKind, ItemType, Look, PathPoint, Port } from "../document/types";
+
+/** These new attributes may also occur as IDs in existing documents. A quoted name disambiguates them. */
+export const DRAWING_WORDS = new Set(["ink", "target", "markup", "workspace"]);
 
 /** The statements of the canvas language, as parsed. */
 
@@ -26,7 +29,10 @@ export type Attribute =
   | { kind: "via"; points: PathPoint[] }
   | { kind: "label"; x: number; y: number }
   | { kind: "deck"; deck: string; slide?: number }
-  | { kind: "free" };
+  | { kind: "free" }
+  | { kind: "markup"; value: boolean }
+  | { kind: "ink"; ink: InkKind }
+  | { kind: "target"; ref: string };
 
 export interface Located {
   line: number;

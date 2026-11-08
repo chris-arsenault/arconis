@@ -7,7 +7,7 @@ import {
   type ConnectionHandler,
 } from "@maxgraph/core";
 import { CanvasDocument } from "../document/canvasDocument";
-import { LOCAL, isBox, isFrame, isLink, type Item, type ItemType } from "../document/types";
+import { LOCAL, isBox, isFrame, type Item, type ItemType } from "../document/types";
 import { defaultName, newItemSize, shapeItem, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
@@ -34,6 +34,8 @@ import { CanvasGrid } from "./grid";
 import { editorStage, Presenter } from "./presenter";
 import { RateLimitedWrite } from "./rateLimitedWrite";
 import { authoredLook } from "../document/appearance";
+import { DrawingEditor } from "./drawingEditor";
+import { selectedItems } from "../document/relations";
 
 /** How often a selection-frame gesture writes to the document, and so reaches peers. */
 const TRANSFORM_WRITE_MS = 100;
@@ -42,6 +44,7 @@ export type { Shape, Tool } from "./shapes";
 
 export class EditorController {
   readonly graph: Graph;
+  readonly drawing: DrawingEditor;
   tool: Tool = "select";
   editId: string | null = null;
   selectOnEdit = false;
@@ -93,7 +96,11 @@ export class EditorController {
     this.graph.setCellsEditable(false);
     this.marks = new LabelMarks(this.graph, this.document);
     configureRendering(this.graph, (cell) => this.marks.text(cell));
-    configureCulling(this.graph, () => this.referencesVisible);
+    configureCulling(
+      this.graph,
+      () => this.referencesVisible,
+      () => this.drawing.visible
+    );
     this.graph.isToggleEvent = (event) => event.shiftKey || event.ctrlKey || event.metaKey;
     this.graph.setDisconnectOnMove(false);
     this.graph.setDropEnabled(true);
@@ -101,6 +108,10 @@ export class EditorController {
     configureConnectionPoints(this.graph, this.document);
     configurePanels(this.graph, this.document);
     configureComposition(this.graph, this.document);
+    this.drawing = new DrawingEditor(this, () => {
+      this.project();
+      this.emit();
+    });
     this.graph.addMouseListener({
       mouseDown: () => {},
       mouseMove: () => this.publishPreview(),
@@ -140,6 +151,7 @@ export class EditorController {
   };
   private onView = () => {
     syncZoom(this.graph, this.element);
+    this.drawing.refresh();
     this.emit();
   };
   private onDocumentChange = () => {
@@ -200,6 +212,7 @@ export class EditorController {
       this.projecting = false;
     }
     this.marks.refresh();
+    this.drawing.refresh();
   }
 
   armIcon(icon: { key: string; title: string }) {
@@ -224,6 +237,7 @@ export class EditorController {
     }
     this.graph.setCellsMovable(tool === "select");
     this.element.dataset.tool = tool;
+    this.drawing.refresh();
     this.emit();
   }
 
@@ -280,6 +294,8 @@ export class EditorController {
     this.emit();
   }
   edit(id: string, selectText = false) {
+    if (this.drawing.enter(id)) return;
+    if (this.document.get(id)?.type === "drawing") return;
     this.editId = id;
     this.selectOnEdit = selectText;
     this.emit();
@@ -290,6 +306,7 @@ export class EditorController {
   }
   /** Leaves selection, inline editing and any armed tool behind, as Escape does. */
   clearEditing() {
+    this.drawing.leave();
     this.editId = null;
     this.graph.clearSelection();
     this.graph.getPlugin<ConnectionHandler>("ConnectionHandler")?.constraintHandler.reset();
@@ -327,8 +344,9 @@ export class EditorController {
     );
     this.document.doc.transact(() => {
       items.forEach((item) => {
-        const { rotation, ...geometry } = values.get(item.id)!;
+        const { rotation, gradientAngle, ...geometry } = values.get(item.id)!;
         this.document.patch(item.id, geometry);
+        if (gradientAngle !== undefined) this.document.patchLook(item.id, { gradientAngle });
         if (isBox(item) && !isFrame(item) && transform.angle)
           this.document.patchLook(item.id, { rotation });
       });
@@ -373,19 +391,8 @@ export class EditorController {
     this.emit();
   }
   selectionClosure() {
-    const ids = new Set(this.selected().map((item) => item.id));
-    const objects = this.document.list();
-    let previousSize = -1;
-    while (previousSize !== ids.size) {
-      previousSize = ids.size;
-      objects
-        .filter((item) => ids.has(item.inside) || ids.has(item.onLine))
-        .forEach((item) => ids.add(item.id));
-    }
-    objects
-      .filter((item) => isLink(item) && ids.has(item.from) && ids.has(item.to))
-      .forEach((item) => ids.add(item.id));
-    return [...ids];
+    const ids = this.selected().map((item) => item.id);
+    return ids.length ? selectedItems(this.document.list(), ids).map((item) => item.id) : [];
   }
   zoom(factor: number) {
     this.graph.zoomTo(clampScale(this.graph.view.scale * factor), true);

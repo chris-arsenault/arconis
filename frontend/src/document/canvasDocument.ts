@@ -27,13 +27,16 @@ export const BLANK: Omit<Item, "id" | "type"> = {
 
 /** The size a new item of a type takes when none is given. */
 export function defaultSize(type: ItemType, stencil = "rectangle"): [number, number] {
-  if (type === "note") return [190, 170];
-  if (type === "frame") return [320, 220];
-  if (type === "slide") return [1280, 720];
-  if (type === "card") return [260, 72];
+  const sizes: Partial<Record<ItemType, [number, number]>> = {
+    note: [190, 170],
+    frame: [320, 220],
+    slide: [1280, 720],
+    sketch: [400, 300],
+    card: [260, 72],
+  };
   if (type === "node" && stencil === "icon") return [64, 64];
   if (type === "node" && stencil === "junction") return [10, 10];
-  return [160, 90];
+  return sizes[type] ?? [160, 90];
 }
 
 export class CanvasDocument {

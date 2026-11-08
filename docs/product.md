@@ -25,7 +25,11 @@ result into a structured diagram, all in one document with no conversion between
 
 - Create notes anywhere, edit their text directly, move and resize them, and choose from a small
   color palette.
-- Draw freehand on the same canvas, with drawings moving and transforming like other objects.
+- Mark up the workspace with pen, highlighter, object outlines and quick shapes without moving
+  its objects. Select markup with a lasso, erase it, and hide it locally or omit it from exports.
+- Promote sketches into editable Drawing objects that move, transform and connect in the
+  workspace. Closed fills, linear gradients and precision erasing use the same editable paths.
+- Agents author and revise drawings through the same canvas language used by files and the UI.
 - Save named viewport positions.
 
 ## Slides

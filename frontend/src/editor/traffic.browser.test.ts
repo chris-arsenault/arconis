@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { BrowserContext, Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, objectCount, open } from "./browserHarness";
+import { add, browser, errors, exported, objectCount, open, selectDrawing } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const EMPTY_UPDATE = "AAA=";
@@ -109,7 +109,7 @@ it("limits a drawing transform's writes, and peers reach the final shape", async
   await clearSent(a);
 
   await a.getByRole("button", { name: "Select (V)", exact: true }).click();
-  await a.mouse.click(bounds.x + 300 + 6, bounds.y + 215);
+  await selectDrawing(a);
   const corner = a.getByTestId("frame-se");
   await corner.waitFor();
   const box = (await corner.boundingBox())!;

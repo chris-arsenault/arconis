@@ -7,7 +7,7 @@ import { AgentSession, stencils } from "./agentSession";
 /** The most text one write may carry. */
 export const MAX_WRITE = 200_000;
 
-const INSTRUCTIONS = `Arconis is a shared canvas for architecture diagrams, mind maps, screen layouts and notes. You work in a room someone has open in a browser; they see your changes as you make them.
+const INSTRUCTIONS = `Arconis is a shared canvas for architecture diagrams, mind maps, screen layouts, notes, editable drawings and markup. You work in a room someone has open in a browser; they see your changes as you make them.
 
 You read and change the canvas in the Arconis canvas language below. What you read is written in it, a saved file is the whole canvas in it, and write takes it: one call can build a whole section, with frames, arrangements, styles and lines.
 

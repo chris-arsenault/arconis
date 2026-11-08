@@ -13,10 +13,12 @@ import { writeStatements } from "../language/writer";
 export function serializeDocument(
   document: CanvasDocument,
   ids: string[] = [],
-  pictures: FilePictures = NO_PICTURES
+  pictures: FilePictures = NO_PICTURES,
+  includeMarkup = true
 ) {
   let text = printCanvas(document, {
     ids,
+    includeMarkup,
     data: pictures.pictures.map(({ hash, type, data }) => ({ hash, type, data })),
   });
   // A password room names pictures by their sealed bytes; a file names them by their plain bytes.

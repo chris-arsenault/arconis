@@ -30,6 +30,10 @@ const FULL_LOOK: Required<Look> = {
   rotation: 35,
   dashed: false,
   opacity: 65,
+  strokeOpacity: 40,
+  closed: true,
+  gradient: "#abcdef",
+  gradientAngle: 45,
   iconColor: "#112233",
   badge: "lucide:star",
   title: "side",
@@ -40,6 +44,7 @@ const FULL_LOOK: Required<Look> = {
   scale: 1.25,
 };
 const ALL_LOOK_WORDS = `fill #123456 line none line-width 2.5 text-color #654321 text-size 18
+  stroke-opacity 40 closed gradient #abcdef gradient-angle 45
   font serif valign bottom text-highlight #ffeeaa line-height 1.6 paragraph-gap 0.8 padding 11
   text-fit height bold off italic underline strike off align right rotate 35 dashed off opacity 65
   icon-color #112233 badge lucide:star title side vertical path curved arrow open start-arrow none scale 1.25`.replaceAll(

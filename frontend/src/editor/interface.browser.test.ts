@@ -1,7 +1,17 @@
 import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, row, exported, drag, objectCount } from "./browserHarness";
+import {
+  browser,
+  errors,
+  open,
+  add,
+  row,
+  exported,
+  drag,
+  objectCount,
+  selectDrawing,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
@@ -184,7 +194,7 @@ it("shows a compact property panel only for a selection, with controls that appl
   await page.mouse.move(bounds.x + 350, bounds.y + 450, { steps: 5 });
   await page.mouse.up();
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
-  await canvas(page).click({ position: { x: 275, y: 425 } });
+  await selectDrawing(page);
   await panel.waitFor();
   expect(await page.getByLabel("Object text", { exact: true }).count()).toBe(0);
   expect(await page.getByLabel("Font size", { exact: true }).count()).toBe(0);

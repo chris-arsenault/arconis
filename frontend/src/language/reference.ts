@@ -24,7 +24,7 @@ Types:
 - frame: a container with a title. group: a light dashed container.
 - band: a highlight behind items, spanning across frames: band <id> "name" / "subtitle" over a, b, c. It is sized to cover them once everything is placed.
 - text: free text. note: a sticky note. picture: an image people added (agents do not add pictures).
-Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up.
+Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up. For an id matching a new drawing attribute (ink, target, markup or workspace), follow the id with a quoted name, which may be empty; canonical files do this automatically.
 The name and subtitle are both optional: node r2 / "Amazon Aurora" has only a subtitle. Write \\n in text for a line break.
 
 Example:
@@ -92,6 +92,22 @@ An item's own look applies over its style. Restating a style replaces it everywh
 - delete a, b removes items with everything they hold and their lines.
 - tidy <id> lays out a mind map's topics under the given topic.
 - title "Canvas name" renames the canvas.
+
+## Drawings and markup
+
+Use drawing for an editable world-coordinate path, sketch for a boxed Drawing object, and highlight for an outline attached to a workspace object:
+
+  drawing mark markup ink arrow points 10,20 180,90 line #e64980 line-width 4 arrow arrow
+  highlight attention target api line #ffcc00 line-width 4
+  sketch diagram "Sketch" at 200,100 size 400,300 {
+    drawing box ink rectangle points 220,120 360,120 360,220 220,220 220,120 closed fill #ffeeaa
+  }
+
+markup places a drawing above the workspace; workspace makes it ordinary content. Existing drawings without markup remain ordinary content. A sketch holds editable drawing paths; its contents use the same world coordinates as every other item, and in <id> changes their holder (in none returns to the canvas). To promote marks, declare a sketch and move the marks into its block with workspace; to return them, use edit <id> markup in none. Highlights always belong to markup, follow target movement/size/rotation, and disappear with their target. They change no target style.
+
+ink freehand|line|arrow|double-arrow|rectangle|ellipse|polygon|bracket|brace|cloud names a drawing's geometry convention. points explicitly supplies its path, including shape paths; ink alone does not generate points. closed closes a path for filling; closed off opens it. arrow and start-arrow control arrowheads. stroke-opacity N (0-100) controls ink transparency independently of fill opacity; highlighter strokes use a broad line-width and stroke-opacity around 30. gradient <color|none> sets the second fill color, gradient-angle N sets its clockwise direction in degrees. Gradient and solid fills require a closed drawing path. All new look terms also work in named styles and support default clearing.
+
+Markup is shared, saved and undoable, with no expiration. Visibility and the currently edited Drawing are personal editor state, not shared language fields. Drawing edits use the existing atomic write and agent-local undo. A saved file and MCP read return these exact records.
 
 ## Slides
 

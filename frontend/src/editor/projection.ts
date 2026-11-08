@@ -4,6 +4,8 @@ import { isBox, isLink, type Item } from "../document/types";
 import { objectStyle, underlayStyle } from "./styles";
 import { offsetPoints } from "../document/geometry";
 import { underlays } from "./templates";
+import { highlighted, isMarkup } from "../document/ink";
+import { effectiveAppearance } from "../document/appearance";
 
 /** How the document is drawn: as a presentation or not, with these ids drawn as underlays. */
 interface Drawing {
@@ -29,7 +31,27 @@ export function projectDocument(graph: Graph, document: CanvasDocument, presenti
   const items = document.list();
   // Underlays come first, so within a slide they stack under what the slide holds itself.
   const underlaid = underlays(items);
-  const all = new Map([...underlaid, ...items].map((item) => [item.id, item]));
+  const targetIds = new Set(
+    items.filter((item) => item.type === "highlight").map((item) => item.target)
+  );
+  const targets = new Map(
+    items
+      .filter((item) => targetIds.has(item.id))
+      .map((item) => [
+        item.id,
+        { ...item, look: effectiveAppearance(item, document.namedStyle(item.style)) },
+      ])
+  );
+  const ordered = [...underlaid, ...items].sort(
+    (a, b) => Number(isMarkup(a)) - Number(isMarkup(b))
+  );
+  const seenHighlights = new Set<string>();
+  const all = new Map(
+    ordered.map((item) => [
+      item.id,
+      highlighted(item, targets, seenHighlights, document.namedStyle(item.style)),
+    ])
+  );
   const drawing: Drawing = { presenting, underlaid: new Set(underlaid.map((item) => item.id)) };
   const parent = graph.getDefaultParent();
   model.beginUpdate();

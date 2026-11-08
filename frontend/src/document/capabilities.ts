@@ -1,11 +1,12 @@
 import { isLockedIcon } from "./geometry";
 import { isBox, isFrame, type Item } from "./types";
+import { isMarkup } from "./ink";
 
-export const hasText = (item: Item) => item.type !== "drawing";
+export const hasText = (item: Item) => item.type !== "drawing" && item.type !== "highlight";
 export const hasSubtitle = (item: Item) =>
   ["node", "card", "band"].includes(item.type) && !item.onLine;
 export const hasFill = (item: Item) =>
-  isBox(item) &&
+  (isBox(item) || (item.type === "drawing" && item.look.closed === true)) &&
   item.type !== "text" &&
   item.type !== "picture" &&
   !(item.type === "node" && item.stencil === "icon");
@@ -24,3 +25,10 @@ export const canRotate = (item: Item) =>
 export const keepsAspectOnResize = (item: Item) => isLockedIcon(item) || item.type === "slide";
 /** Collective transforms historically preserve picture dimensions as well as vendor icons. */
 export const keepsAspectOnTransform = (item: Item) => isLockedIcon(item) || item.type === "picture";
+
+/** Ordinary placement excludes annotations and the Drawing's focused ink surface. */
+export const canHoldWorkspace = (item: Item) =>
+  isBox(item) && !item.markup && !["band", "highlight", "sketch"].includes(item.type);
+
+export const canConnect = (item: Item, holder?: Item) =>
+  !isMarkup(item) && holder?.type !== "sketch";

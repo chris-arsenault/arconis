@@ -67,6 +67,19 @@ independent of a participant's undo history. Records a peer writes in an unknown
   carry raw multiline names in the same language, and Copy Markdown returns the exact source.
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
   so the selection frame scales and rotates them.
+  The `drawing` item remains a world-coordinate path, with optional ink geometry and markup
+  membership. `sketch` is a boxed Drawing holder; its editable contents are ordinary paths,
+  not an embedded document. `highlight` references a target, and shared removal policy follows
+  that relation. Semantic appearance resolves closed fills, stroke opacity and gradient terms.
+  Language attributes, files and MCP read/write carry the same fields.
+  `editor/inkCommands.ts` and `drawingCommands.ts` own drawing mutations and Undo/action
+  boundaries. `drawingInput.ts` supplies local previews and completes each pointer gesture;
+  `drawingEditor.ts` composes focused controls and graph selection. Visibility and the active
+  Drawing are local application state. `inkShape.ts` and the ink view adapters render editable
+  paths, gradients, target outlines and derived clipping, including template underlays.
+  Hiding annotations never deletes their graph records. CanvasFiles filters clean exports
+  before printing and picture preparation; the PNG adapter applies the same choice to pixels
+  and bounds, and carries SVG definitions into rasterization.
 
 ## Canvas language
 

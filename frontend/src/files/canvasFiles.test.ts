@@ -111,6 +111,45 @@ it("embeds only the selected source in a rendered PNG and imports its exact text
   expect(whole.document.list()).toHaveLength(2);
 });
 
+it("omits annotations from clean file and embedded PNG copies, including an all-markup selection", async () => {
+  const source = workspace();
+  source.document.create("note", 0, 0, { id: "note", name: "Workspace" });
+  source.document.create("drawing", 0, 0, {
+    id: "ink",
+    markup: true,
+    points: [
+      [0, 0],
+      [20, 20],
+    ],
+  });
+  source.document.create("highlight", 0, 0, { id: "outline", target: "note", markup: true });
+  const restored = workspace();
+  importDocument(restored.document, await source.files.canvas([], false));
+  expect(restored.document.list().map((item) => item.id)).toEqual(["note"]);
+  const png = await source.files.png(["ink"], () => Promise.resolve(PIXEL), false);
+  const empty = workspace();
+  importDocument(empty.document, (await readCopy(png!))!);
+  expect(empty.document.list()).toEqual([]);
+  expect(await source.files.canvas()).toContain("drawing ink");
+});
+
+it("exports a selected highlight and its target as a self-contained editable file", async () => {
+  const source = workspace();
+  source.document.create("note", 500, 500, { id: "target", name: "Target" });
+  source.document.create("highlight", 0, 0, { id: "outline", target: "target", markup: true });
+  const target = workspace();
+  importDocument(target.document, await source.files.canvas(["outline"]));
+  expect(
+    target.document
+      .list()
+      .map((item) => item.id)
+      .sort((left, right) => left.localeCompare(right))
+  ).toEqual(["outline", "target"]);
+  const selected = await source.files.canvas(["target"]);
+  expect(selected).toContain("highlight outline");
+  expect(await source.files.canvas(["target"], false)).not.toContain("highlight outline");
+});
+
 it("does not mutate a departed room when a file read finishes later", async () => {
   const target = workspace();
   let finish!: (bytes: ArrayBuffer) => void;

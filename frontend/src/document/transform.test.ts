@@ -23,6 +23,36 @@ it("scales shapes, drawings and inner routes around the anchor", () => {
   document.destroy();
 });
 
+it("rotates a drawing's gradient with its path and keeps unrelated source fields out of geometry writes", () => {
+  const document = new CanvasDocument();
+  const id = document.create("drawing", 0, 0, {
+    name: "Human label",
+    points: [
+      [0, 0],
+      [100, 0],
+      [100, 50],
+    ],
+    look: { closed: true, fill: "#ff0000", gradient: "#0000ff", gradientAngle: 20 },
+  });
+  const transformed = transformObjects(document.list(), {
+    anchor,
+    scaleX: 1,
+    scaleY: 1,
+    angle: 90,
+  }).get(id)!;
+  expect(transformed).toMatchObject({
+    gradientAngle: 110,
+    points: [
+      [0, 0],
+      [0, 100],
+      [-50, 100],
+    ],
+  });
+  expect(transformed).not.toHaveProperty("name");
+  expect(transformed).not.toHaveProperty("look");
+  document.destroy();
+});
+
 it("rotates shape centers, adds to their angle and refits group frames", () => {
   const document = new CanvasDocument();
   const group = document.create("group", 0, 0, { width: 300, height: 300 });

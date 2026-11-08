@@ -109,6 +109,7 @@ export default ts.config(
       "src/components/TopicControls.tsx",
       "src/components/SlideControls.tsx",
       "src/components/CommentControls.tsx",
+      "src/components/DrawingTools.tsx",
     ],
     rules: {
       "no-restricted-imports": [

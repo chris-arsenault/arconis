@@ -23,7 +23,8 @@ export function commitGraph(graph: Graph, document: CanvasDocument) {
   document.doc.transact(() => {
     removed.forEach((id) => document.items.delete(id));
     changes.forEach(({ cell, values }) => {
-      if (!removed.has(cell.id!)) commitCell(cell, values, document);
+      if (!removed.has(cell.id!) && document.get(cell.id!)?.type !== "highlight")
+        commitCell(cell, values, document);
     });
   }, LOCAL);
 }

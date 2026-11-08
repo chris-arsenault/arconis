@@ -128,6 +128,8 @@ export async function startRelayFixture() {
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return {
     config: fixtureConfig(base),
+    /** Tests attach real MCP sessions to this same relay without an external service. */
+    relay: () => relay,
     savedObjects: () => [...accounts.objects.values()],
     get starts() {
       return starts;

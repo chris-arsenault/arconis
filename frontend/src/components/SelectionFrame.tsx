@@ -67,7 +67,7 @@ function rotating(world: WorldBox, start: { x: number; y: number }): TransformFo
  * Collective transforms. Native maxGraph handles cover one shape; this frame covers several
  * objects and drawings, which have no resize handles of their own because they are paths.
  */
-export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }>) {
+function frameSelection(editor: EditorController) {
   const cells = editor.graph.getSelectionCells().filter((cell) => {
     const item = editor.document.get(cell.id!);
     return item !== null && !isLink(item);
@@ -75,9 +75,17 @@ export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }
   const first = cells.length ? editor.document.get(cells[0].id!) : null;
   const onlyGroup =
     cells.length === 1 && (isFrame(first ?? undefined) || cells[0].children.length > 0);
-  if (cells.length < 2 && !onlyGroup && first?.type !== "drawing") return null;
+  const drawn = ["drawing", "sketch"].includes(first?.type ?? "");
+  return { cells, first, onlyGroup, drawn };
+}
+
+export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }>) {
+  const { cells, first, onlyGroup, drawn } = frameSelection(editor);
+  if (cells.length < 2 && !onlyGroup && !drawn) return null;
   const box = editor.graph.getBoundingBox(cells);
-  return box && <Frame editor={editor} box={box} rotateOnly={onlyGroup} />;
+  return (
+    box && <Frame editor={editor} box={box} rotateOnly={onlyGroup && first?.type !== "sketch"} />
+  );
 }
 
 function Frame({

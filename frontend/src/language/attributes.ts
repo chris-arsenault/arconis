@@ -1,6 +1,7 @@
 import { describe, type Cursor } from "./cursor";
 import type { Arrangement, Attribute, Edge } from "./syntax";
 import { lookAttribute, type LookDefinition } from "./look";
+import { INK_KINDS } from "../document/ink";
 
 /** Parsing of the attributes that follow an item, a line or a style. */
 
@@ -51,6 +52,15 @@ function picture(cursor: Cursor): Attribute {
 }
 
 const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
+  markup: () => ({ kind: "markup", value: true }),
+  workspace: () => ({ kind: "markup", value: false }),
+  target: (cursor) => ({ kind: "target", ref: cursor.ref() }),
+  ink: (cursor) => {
+    const ink = cursor.expectWord("a drawing geometry");
+    const found = INK_KINDS.find((kind) => kind === ink);
+    if (!found) return cursor.fail(`Choose ink ${INK_KINDS.join("|")}.`);
+    return { kind: "ink", ink: found };
+  },
   at: (cursor) => {
     const [x, y] = cursor.point("a position");
     return { kind: "at", x, y };

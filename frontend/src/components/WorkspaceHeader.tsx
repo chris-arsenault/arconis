@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Download, ImageDown, Upload, Shapes } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -98,12 +98,14 @@ async function loadFile({ session, editor, onMessage }: FileProps, file: File) {
   }
 }
 
-async function exportPng({ session, editor, onMessage }: FileProps) {
+async function exportPng({ session, editor, onMessage }: FileProps, includeMarkup: boolean) {
   if (!editor) return;
   try {
     const ids = editor.selectionClosure();
-    const png = await session.files.png(ids, () =>
-      renderPng(editor.graph, ids, session.document.list())
+    const png = await session.files.png(
+      ids,
+      () => renderPng(editor.graph, ids, session.document.list(), includeMarkup),
+      includeMarkup
     );
     if (!png) {
       onMessage("Add something to the canvas first.");
@@ -120,25 +122,31 @@ function fileFailure(error: unknown, onMessage: (text: string) => void) {
   onMessage(String(error));
 }
 
-async function exportCanvas({ session, onMessage }: FileProps) {
+async function exportCanvas({ session, onMessage }: FileProps, includeMarkup: boolean) {
   try {
-    downloadFile(session.document, await session.files.canvas(), "text/plain", "arconis");
+    downloadFile(
+      session.document,
+      await session.files.canvas([], includeMarkup),
+      "text/plain",
+      "arconis"
+    );
   } catch (error) {
     fileFailure(error, onMessage);
   }
 }
 
 function DocumentActions(props: FileProps) {
+  const [includeMarkup, setIncludeMarkup] = useState(true);
   const input = useRef<HTMLInputElement>(null);
   const load = (file: File) => loadFile(props, file);
-  const exportPicture = () => exportPng(props);
+  const exportPicture = () => exportPng(props, includeMarkup);
   return (
     <>
       <button
         className="icon-button"
         title="Export document"
         aria-label="Export document"
-        onClick={() => void exportCanvas(props)}
+        onClick={() => void exportCanvas(props, includeMarkup)}
       >
         <Download size={18} />
       </button>
@@ -170,6 +178,14 @@ function DocumentActions(props: FileProps) {
           event.target.value = "";
         }}
       />
+      <label className="export-markup">
+        <input
+          type="checkbox"
+          checked={includeMarkup}
+          onChange={(event) => setIncludeMarkup(event.target.checked)}
+        />
+        Include markup
+      </label>
     </>
   );
 }

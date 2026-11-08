@@ -9,6 +9,7 @@ import {
 import { embedCopy } from "../document/pngCopy";
 import { parse } from "../language/parser";
 import { importDocument, readDocumentFile, serializeDocument } from "./canvasFile";
+import { exportItems } from "../document/exportItems";
 
 interface FilePictureStore {
   add(bytes: Uint8Array, type: string): Promise<string>;
@@ -36,27 +37,26 @@ export class CanvasFiles {
   }
 
   /** Whole-document canvas files and selected PNG copies share the same portable representation. */
-  async canvas(ids: string[] = []) {
+  async canvas(ids: string[] = [], includeMarkup = true) {
     this.signal.throwIfAborted();
-    const pictures = await this.portablePictures(ids);
+    const pictures = await this.portablePictures(ids, includeMarkup);
     this.signal.throwIfAborted();
-    return serializeDocument(this.document, ids, pictures);
+    return serializeDocument(this.document, ids, pictures, includeMarkup);
   }
 
-  async png(ids: string[], render: () => Promise<Uint8Array | null>) {
+  async png(ids: string[], render: () => Promise<Uint8Array | null>, includeMarkup = true) {
     this.signal.throwIfAborted();
     const png = await render();
     this.signal.throwIfAborted();
     if (!png) return null;
-    const result = await embedCopy(png, await this.canvas(ids));
+    const result = await embedCopy(png, await this.canvas(ids, includeMarkup));
     this.signal.throwIfAborted();
     return result;
   }
 
   /** A file names pictures by their plain bytes, even when their stored form is encrypted. */
-  private async portablePictures(ids: string[]): Promise<FilePictures> {
-    const chosen = new Set(ids);
-    const items = this.document.list().filter((item) => !ids.length || chosen.has(item.id));
+  private async portablePictures(ids: string[], includeMarkup: boolean): Promise<FilePictures> {
+    const items = exportItems(this.document.list(), ids, includeMarkup);
     const renames = new Map<string, string>();
     const found = await Promise.all(
       pictureHashes(items).map(async (hash) => {

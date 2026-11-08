@@ -511,6 +511,7 @@ h1 em {
   min-height: 0;
 }
 .left-rail {
+  overflow-y: auto;
   width: 232px;
   flex-shrink: 0;
   display: flex;
@@ -553,7 +554,8 @@ h1 em {
 }
 .stencil-browser {
   flex: 1;
-  min-height: 0;
+  min-height: 180px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
 }
@@ -1300,8 +1302,6 @@ h1 em {
   pointer-events: none;
 }
 .stroke-preview polyline {
-  stroke: #6554c0;
-  stroke-width: 3;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1503,4 +1503,81 @@ h1 em {
   h1 {
     letter-spacing: -2px;
   }
+}
+
+.ink-pass-through,
+.ink-pass-through * {
+  pointer-events: none !important;
+}
+
+.drawing-tools {
+  flex-shrink: 0;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border-block: 1px solid var(--border, #e2e3e9);
+}
+
+.gradient-direction {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #6554c0;
+  color: #6554c0;
+  cursor: crosshair;
+  touch-action: none;
+}
+.drawing-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.drawing-tools button {
+  padding: 5px 7px;
+  border: 1px solid #d7d5e2;
+  border-radius: 5px;
+  background: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+.drawing-tools button[aria-pressed="true"] {
+  background: #e9e3ff;
+  border-color: #6554c0;
+}
+.drawing-tools label {
+  flex-direction: row;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+}
+.drawing-tools input[type="number"] {
+  width: 65px;
+}
+.drawing-tools select {
+  min-width: 100px;
+}
+.drawing-tools input[type="color"] {
+  width: 28px;
+  height: 26px;
+  padding: 1px;
+  border: 0;
+}
+.drawing-hint {
+  margin: 0;
+  font-size: 11px;
+  color: #62637a;
+  line-height: 1.4;
+}
+.export-markup {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  white-space: nowrap;
 }

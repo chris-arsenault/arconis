@@ -46,6 +46,21 @@ function word(item: Item, text: string, { draft, line }: Describing) {
 }
 
 const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
+  markup: (item, attribute, { line }) => {
+    if (item.type === "highlight" && !attribute.value)
+      throw new LanguageError("Highlights always belong to markup.", line);
+    if (item.type !== "drawing" && item.type !== "highlight")
+      throw new LanguageError("Only drawings and highlights belong to markup.", line);
+    item.markup = attribute.value;
+  },
+  ink: (item, attribute, { line }) => {
+    if (item.type !== "drawing") throw new LanguageError("Only a drawing has ink geometry.", line);
+    item.ink = attribute.ink;
+  },
+  target: (item, attribute, { draft, line }) => {
+    if (item.type !== "highlight") throw new LanguageError("Only a highlight has a target.", line);
+    draft.highlights.push({ id: item.id, ref: attribute.ref, line });
+  },
   word: (item, attribute, context) => word(item, attribute.word, context),
   look: (item, attribute) => {
     item.look = { ...item.look, ...attribute.look };

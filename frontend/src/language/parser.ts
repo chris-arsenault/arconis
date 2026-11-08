@@ -11,6 +11,7 @@ import {
 } from "./attributes";
 import {
   SIDES,
+  DRAWING_WORDS,
   type ArrangeStatement,
   type Arrangement,
   type CommentText,
@@ -35,6 +36,8 @@ const ITEM_TYPES = new Set<string>([
   "picture",
   "slide",
   "drawing",
+  "sketch",
+  "highlight",
 ]);
 const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both?: boolean }> = {
   "<->": { type: "line", arrow: true, both: true },
@@ -220,7 +223,9 @@ function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
   const word = cursor.token.text;
   const stencilAsId =
     STENCIL_WORDS.has(word) && (type !== "node" || cursor.peek().kind === "string");
-  if (cursor.isWord() && (!isAttributeWord(word) || stencilAsId)) statement.id = cursor.next().text;
+  const drawingId = DRAWING_WORDS.has(word) && cursor.peek().kind === "string";
+  if (cursor.isWord() && (!isAttributeWord(word) || stencilAsId || drawingId))
+    statement.id = cursor.next().text;
   names(cursor, statement);
   statement.attributes = attributes(cursor, inLink || linkAhead(cursor));
   return statement;

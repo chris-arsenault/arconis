@@ -11,6 +11,7 @@ export interface SelectionTransform {
 }
 export type TransformedObject = Pick<Item, "x" | "y" | "width" | "height" | "points"> & {
   rotation: number;
+  gradientAngle?: number;
 };
 interface Box {
   left: number;
@@ -63,7 +64,7 @@ function transformObject(
 ): TransformedObject {
   const rotation = look.rotation ?? 0;
   const points = item.points.map((point) => apply(point).map(round) as PathPoint);
-  if (!isBox(item)) return { ...item, points, rotation };
+  if (!isBox(item)) return transformPath(item, points, rotation, angle, look);
   const locked = isLockedIcon(item);
   const evenScale = Math.min(scaleX, scaleY);
   const even = keepsAspectOnTransform(item);
@@ -78,6 +79,21 @@ function transformObject(
     points,
     rotation: locked ? 0 : (((rotation + angle) % 360) + 360) % 360,
   };
+}
+
+function transformPath(
+  item: Item,
+  points: PathPoint[],
+  rotation: number,
+  angle: number,
+  look: Look
+): TransformedObject {
+  const { x, y, width, height } = item;
+  const paint =
+    angle && item.type === "drawing" && look.gradient && look.gradient !== "none"
+      ? { gradientAngle: ((((look.gradientAngle ?? 0) + angle) % 360) + 360) % 360 }
+      : {};
+  return { x, y, width, height, points, rotation, ...paint };
 }
 
 function transformGroup(

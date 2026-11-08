@@ -31,6 +31,8 @@ import type {
 } from "./syntax";
 import { isConversation, type Conversation } from "./effects";
 import { attributesFor } from "./attributeRouting";
+import { drawingIssue } from "../document/ink";
+import { canConnect } from "../document/capabilities";
 
 export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
@@ -97,6 +99,12 @@ class Writer {
     const around = finishLinks(draft, this.links, Boolean(this.options.importing));
     for (const { id, ref, line } of draft.anchors)
       draft.items.get(id)!.onLine = draft.resolve(ref, line);
+    for (const { id, ref, line } of draft.highlights) {
+      const target = draft.item(ref, line);
+      if (!isBox(target) || target.type === "highlight")
+        throw new LanguageError("Highlight a workspace object with a box.", line);
+      Object.assign(draft.items.get(id)!, { target: target.id, markup: true, inside: "" });
+    }
     finishBands(draft, this.bands);
     // A file says exactly where everything is, even a child left outside its frame.
     if (!this.options.importing) this.growHolders();
@@ -106,7 +114,15 @@ class Writer {
       const line = draft.items.get(id)!;
       Object.assign(line, routeLineAround(all, line, (item) => draft.lookOf(item)) ?? {});
     }
+    this.checkDrawings();
     return { ...draft.commit(), pictures: this.pictures };
+  }
+
+  private checkDrawings() {
+    for (const item of this.draft.items.values()) {
+      const problem = drawingIssue(item, this.draft.items.get(item.inside));
+      if (problem) throw new LanguageError(`${item.id}: ${problem}`, 1);
+    }
   }
 
   statement(statement: Statement, scope: Scope) {
@@ -155,6 +171,7 @@ class Writer {
       subtitle: statement.subtitle ?? "",
     };
     draft.add(item, statement.id);
+    if (item.type === "highlight") item.markup = true;
     this.describe(item, statement.attributes, statement.line);
     if (item.type === "slide") this.placeInDeck(item);
     this.defaultSize(item);
@@ -164,9 +181,15 @@ class Writer {
     if (item.type === "band" && over)
       this.bands.push({ id: item.id, refs: over.refs, line: statement.line });
     // A drawing's points are where it is; it takes no placement.
-    else if (item.type !== "drawing")
+    else if (item.type !== "drawing" && item.type !== "highlight")
       this.place(item, statement.attributes, scope, statement, true, follow);
+    else this.pathHolder(item, statement.attributes, statement.line);
     return item.id;
+  }
+
+  private pathHolder(item: Item, attributes: Attribute[], line: number) {
+    const holder = attributesFor(attributes, "item", "holder")[0];
+    if (holder) item.inside = holder.ref === "none" ? "" : this.draft.resolve(holder.ref, line);
   }
 
   private given(item: Item) {
@@ -249,7 +272,7 @@ class Writer {
   ) {
     const { draft } = this;
     const inside = attributesFor(attributes, "item", "holder")[0];
-    if (inside) item.inside = draft.resolve(inside.ref, line);
+    if (inside) item.inside = inside.ref === "none" ? "" : draft.resolve(inside.ref, line);
     const rules = this.rules(attributes, line, body !== undefined);
     if (scope.members) scope.members.push(item.id);
     else this.placeFirst(item, rules, scope, fresh, follow);
@@ -350,8 +373,12 @@ class Writer {
     if (movesIn) item.inside = scope.holder;
     if (movesIn || attributesFor(statement.attributes, "item", "holder").length)
       draft.moved.add(item.id);
+    this.placeEdited(item, statement, scope, movesIn);
+  }
+
+  private placeEdited(item: Item, statement: EditStatement, scope: Scope, movesIn: boolean) {
     const placed = attributesFor(statement.attributes, "item", ["rules", "offset"]).length > 0;
-    this.place(item, statement.attributes, scope, statement, movesIn && !placed);
+    this.place(item, statement.attributes, scope, statement, movesIn && !placed && isBox(item));
   }
 
   tidy(ref: string, line: number) {
@@ -381,9 +408,16 @@ class Writer {
   }
 
   private endpoint(endpoint: Endpoint, line: number, scope: Scope, from?: string, branch = false) {
-    if (endpoint.ref) return this.draft.resolve(endpoint.ref, line);
+    if (endpoint.ref) return this.checkedEndpoint(this.draft.resolve(endpoint.ref, line), line);
     const follow = from ? this.follower(from, branch) : undefined;
-    return this.newItem(endpoint.item!, scope, follow);
+    return this.checkedEndpoint(this.newItem(endpoint.item!, scope, follow), line);
+  }
+
+  private checkedEndpoint(id: string, line: number) {
+    const item = this.draft.items.get(id)!;
+    if (!canConnect(item, this.draft.items.get(item.inside)))
+      throw new LanguageError("Connect a workspace object or a promoted Drawing.", line);
+    return id;
   }
 
   /** An item declared at a line's far end goes to the right of its start, or as a topic's branch. */

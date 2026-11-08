@@ -72,6 +72,9 @@ export function PresenterStage({
           <NotebookText size={17} />
         </button>
         <FullscreenButton />
+        <button aria-pressed={editor.drawing.visible} onClick={() => editor.drawing.toggle()}>
+          Show markup
+        </button>
         <button
           aria-label="Leave presentation"
           title="Leave presentation (Escape)"

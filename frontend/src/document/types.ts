@@ -16,7 +16,20 @@ export type ItemType =
   | "line"
   | "branch"
   | "reference"
+  | "sketch"
+  | "highlight"
   | "drawing";
+export type InkKind =
+  | "freehand"
+  | "line"
+  | "arrow"
+  | "double-arrow"
+  | "rectangle"
+  | "ellipse"
+  | "polygon"
+  | "bracket"
+  | "brace"
+  | "cloud";
 
 export const STENCILS = [
   "rectangle",
@@ -72,6 +85,12 @@ export interface Look {
   dashed?: boolean;
   /** Fill opacity, 0 to 100. */
   opacity?: number;
+  /** Stroke transparency, independently of fill opacity. */
+  strokeOpacity?: number;
+  closed?: boolean;
+  /** Second color and clockwise direction of a linear fill gradient. */
+  gradient?: string;
+  gradientAngle?: number;
   iconColor?: string;
   /** An icon key shown in a frame's corner. */
   badge?: string;
@@ -150,6 +169,12 @@ export interface Item {
   /** For slides: the deck this slide belongs to, and its number in that deck. */
   deck?: string;
   slide?: number;
+  /** Shared annotation above the workspace, rather than workspace content. */
+  markup?: boolean;
+  /** Geometry convention for an editable drawing path. */
+  ink?: InkKind;
+  /** A highlight follows this item's geometry without changing its style. */
+  target?: string;
 }
 
 export interface View {
@@ -172,6 +197,8 @@ const BOX_TYPES = [
   "note",
   "picture",
   "slide",
+  "sketch",
+  "highlight",
 ] as const;
 const LINK_TYPES = ["line", "branch", "reference"] as const;
 export type BoxItem = Item & { type: (typeof BOX_TYPES)[number] };
@@ -216,6 +243,8 @@ const TYPE_LABELS: Record<ItemType, string> = {
   branch: "Branch",
   reference: "Reference",
   drawing: "Drawing",
+  sketch: "Drawing",
+  highlight: "Object highlight",
 };
 
 /** What a person calls this item when it has no name. */

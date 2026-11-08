@@ -161,8 +161,27 @@ export function groupLabel(page: Page) {
 export function selectConnector(page: Page, modifiers: "Shift"[] = []) {
   return clickPath(page, "#7f8aa3", modifiers);
 }
-export function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
-  return clickPath(page, "#6554c0", modifiers);
+export async function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
+  const box = await page
+    .getByTestId("canvas")
+    .locator('path[stroke="#6554c0"]')
+    .first()
+    .boundingBox();
+  if (!box) throw new Error("No visible ink path to lasso.");
+  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  await page.getByRole("button", { name: "Lasso", exact: true }).click();
+  if (modifiers.length) await page.keyboard.down("Shift");
+  await page.mouse.move(box.x - 12, box.y - 12);
+  await page.mouse.down();
+  for (const [x, y] of [
+    [box.x + box.width + 12, box.y - 12],
+    [box.x + box.width + 12, box.y + box.height + 12],
+    [box.x - 12, box.y + box.height + 12],
+    [box.x - 12, box.y - 12],
+  ])
+    await page.mouse.move(x, y, { steps: 4 });
+  await page.mouse.up();
+  if (modifiers.length) await page.keyboard.up("Shift");
 }
 
 export async function exported(page: Page): Promise<{

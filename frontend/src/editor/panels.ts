@@ -1,6 +1,6 @@
 import type { Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { isBox } from "../document/types";
+import { canHoldWorkspace } from "../document/capabilities";
 
 /**
  * The smallest object at a world point that is larger than something being placed there, so a new
@@ -19,9 +19,7 @@ export function containerAt(
   for (const item of document.list()) {
     const area = item.width * item.height;
     if (
-      isBox(item) &&
-      // A band marks out a span of the canvas without holding what lies on it.
-      item.type !== "band" &&
+      canHoldWorkspace(item) &&
       area > newArea &&
       area < bestArea &&
       x >= item.x &&

@@ -1,4 +1,5 @@
 import type { Cell, Graph, SelectionHandler } from "@maxgraph/core";
+import { canHoldWorkspace, canConnect } from "../document/capabilities";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { isUnderlay } from "./templates";
 import {
@@ -47,6 +48,7 @@ interface EndpointPlan {
 
 /** Resolve geometry before a topology command mutates anything. New anchors are still drafts. */
 function planEndpoint(editor: EditorController, item: Item): EndpointPlan | null {
+  if (!canConnect(item, editor.document.get(item.inside) ?? undefined)) return null;
   if (!isLine(item)) return { item, insert: false };
   const { document, graph } = editor;
   const existing = anchorOf(document.list(), item.id);
@@ -266,6 +268,9 @@ export function configureComposition(graph: Graph, document: CanvasDocument) {
   graph.isCellSelectable = (cell) => !isUnderlay(cell) && selectable(cell);
   graph.isValidDropTarget = (target: Cell, cells?: Cell[]) => {
     if (!target.isVertex() || !target.geometry || isUnderlay(target)) return false;
+    const item = document.get(target.id ?? "");
+    if (item && !canHoldWorkspace(item)) return false;
+    if ((cells ?? []).some((cell) => document.get(cell.id ?? "")?.markup)) return false;
     const area = target.geometry.width * target.geometry.height;
     return (cells ?? []).every(
       (cell) =>

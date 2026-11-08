@@ -5,6 +5,14 @@ export const CULL_PIXELS = 4;
 /** Text smaller than this cannot be read, and each label is costly to draw. */
 const MIN_LABEL_PIXELS = 4;
 const DEFAULT_FONT_SIZE = 14;
+const exporting = new WeakMap<Graph, boolean>();
+
+/** Export chooses annotation visibility independently of the person's current view. */
+export function exportMarkup(graph: Graph, visible: boolean | null) {
+  if (visible === null) exporting.delete(graph);
+  else exporting.set(graph, visible);
+  graph.view.revalidate();
+}
 
 const pathSizes = new WeakMap<Geometry, number>();
 
@@ -49,13 +57,20 @@ export function labelIsLegible(cell: Cell, scale: number) {
 }
 
 /** Leaves culled cells out of the view, along with reference lines unless they are switched on. */
-export function configureCulling(graph: Graph, showReferences: () => boolean) {
+export function configureCulling(
+  graph: Graph,
+  showReferences: () => boolean,
+  showMarkup = () => true
+) {
   const { view } = graph;
   const validateCell = view.validateCell.bind(view);
   view.validateCell = (cell: Cell, visible = true) => {
     const style = cell.getStyle() as Record<string, unknown>;
     const reference = style.reference === true;
-    const shown = !(reference && !showReferences()) && !tooSmall(cell, view.scale);
+    const shown =
+      !(reference && !showReferences()) &&
+      !(style.markup && !(exporting.get(graph) ?? showMarkup())) &&
+      !tooSmall(cell, view.scale);
     return validateCell(cell, visible && shown);
   };
 }
