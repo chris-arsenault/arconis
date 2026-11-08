@@ -1,5 +1,5 @@
 import type { CanvasDocument } from "../document/canvasDocument";
-import { movedWithContents } from "../document/relations";
+import { hiddenIds, movedWithContents } from "../document/relations";
 import { LOCAL, isBox, type Item } from "../document/types";
 import { arrangedLayout } from "../document/arrangement";
 import { authoredLook } from "../document/appearance";
@@ -43,8 +43,9 @@ export function reflowArrangements(document: CanvasDocument) {
     for (const { id } of frames) {
       const current = document.list();
       const frame = document.get(id)!;
+      const hidden = hiddenIds(current);
       const members = current.filter(
-        (item) => item.inside === id && isBox(item) && item.type !== "band"
+        (item) => item.inside === id && isBox(item) && item.type !== "band" && !hidden.has(item.id)
       );
       if (!members.length) continue;
       const { moves, size } = arrangedLayout(frame, members, lookOf);

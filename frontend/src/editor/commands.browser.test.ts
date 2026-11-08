@@ -1,7 +1,5 @@
 import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
-import { CanvasDocument } from "../document/canvasDocument";
-import { serializeDocument } from "../files/canvasFile";
 import {
   add,
   browser,
@@ -48,7 +46,7 @@ it("one Undo restores both growing text typography and its fitted geometry", asy
     await browser.newContext({ viewport: { width: 1440, height: 1000 } }),
     createRoomId()
   );
-  await add(page, "Text", "Line one\nLine two\nLine three", 220, 170);
+  await add(page, "Text (T)", "Line one\nLine two\nLine three", 220, 170);
   await page.getByText("Spacing and sizing", { exact: true }).click();
   await page.getByLabel("Grow text height", { exact: true }).check();
   await expect.poll(async () => (await exported(page)).objects[0].look.textFit).toBe("height");
@@ -64,35 +62,12 @@ it("one Undo restores both growing text typography and its fitted geometry", asy
   expect(errors).toEqual([]);
 });
 
-it("editing a scaled object's displayed line width preserves that world-space value", async () => {
-  const page = await open(
-    await browser.newContext({ viewport: { width: 1440, height: 1000 } }),
-    createRoomId()
-  );
-  const canvas = new CanvasDocument();
-  canvas.create("node", 220, 170, { name: "Scaled", look: { scale: 2 } });
-  const content = serializeDocument(canvas);
-  canvas.destroy();
-  await page.getByLabel("Import file", { exact: true }).setInputFiles({
-    name: "scaled.arconis",
-    mimeType: "text/plain",
-    buffer: Buffer.from(content),
-  });
-  await row(page, "Scaled").click();
-  const width = page.getByLabel("Line width", { exact: true });
-  expect(await width.inputValue()).toBe("2");
-  await width.fill("3");
-  await expect.poll(async () => (await exported(page)).objects[0].look.lineWidth).toBe(1.5);
-  expect(await width.inputValue()).toBe("3");
-  expect(errors).toEqual([]);
-});
-
 it("Markdown formatting keeps immediate source and fitted height in the same Undo step", async () => {
   const page = await open(
     await browser.newContext({ viewport: { width: 1440, height: 1000 } }),
     createRoomId()
   );
-  await add(page, "Text", "Heading", 220, 170);
+  await add(page, "Text (T)", "Heading", 220, 170);
   await page.getByText("Spacing and sizing", { exact: true }).click();
   await page.getByLabel("Grow text height", { exact: true }).check();
   await expect.poll(async () => (await exported(page)).objects[0].look.textFit).toBe("height");

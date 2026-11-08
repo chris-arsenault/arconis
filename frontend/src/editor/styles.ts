@@ -5,7 +5,7 @@ import { isLockedIcon } from "../document/geometry";
 import { iconImage, loadIconFor } from "../assets/icons/catalog";
 import { isPictureHash, isPictureType } from "../document/pictures";
 import { pictureImage } from "./pictureSource";
-import { LABEL_BADGE, LABEL_SUBTITLE } from "./rendering";
+import { LABEL_BADGE, LABEL_PROPERTIES, LABEL_SUBTITLE } from "./rendering";
 import { TEXT_FONTS } from "../text/typography";
 import "./inkShape";
 import { isMarkup } from "../document/ink";
@@ -15,6 +15,9 @@ import { isMarkup } from "../document/ink";
  * here is how the renderer draws them.
  */
 type Style = CellStyle & Record<string, unknown>;
+
+/** The height of a frame's title bar, which is all a collapsed frame shows. */
+const FRAME_TITLE_HEIGHT = 28;
 
 const BASE_STYLE: Style = {
   shape: "rectangle",
@@ -58,7 +61,8 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
   },
   frame: {
     shape: "swimlane",
-    startSize: 28,
+    keepTitle: true,
+    startSize: FRAME_TITLE_HEIGHT,
     swimlaneFillColor: "#ffffff",
     whiteSpace: "nowrap",
     overflow: "visible",
@@ -120,6 +124,7 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     rounded: false,
     aspect: "fixed",
     rotatable: false,
+    keepTitle: true,
     verticalLabelPosition: "top",
     whiteSpace: "nowrap",
     overflow: "visible",
@@ -230,9 +235,10 @@ function applyPorts(item: Item, style: Style) {
   if (item.toPort) Object.assign(style, { entryX: item.toPort[0], entryY: item.toPort[1] });
 }
 
-/** What the label draws besides the name: a subtitle under it, a badge before it. */
+/** What the label draws besides the name: a subtitle under it, a badge before it, its properties. */
 function applyLabel(item: Item, style: Style, look: Look) {
   if (item.subtitle) style[LABEL_SUBTITLE] = item.subtitle;
+  if (item.properties) style[LABEL_PROPERTIES] = JSON.stringify(item.properties);
   if (!look.badge) return;
   const badge = iconImage(look.badge);
   if (badge) style[LABEL_BADGE] = badge;
@@ -246,11 +252,49 @@ function baseStyle(item: Item, look: Look): Style {
   return base;
 }
 
-/** `presenting` draws slides as nothing at all: a presentation shows only what lies on them. */
-export function objectStyle(item: Item, named: Look = {}, presenting = false): CellStyle {
+/** The height a collapsed item is drawn at, or null for one drawn at its own height. */
+export function collapsedHeight(item: Item, named: Look = {}) {
+  if (!item.collapsed || item.type !== "frame") return null;
+  return FRAME_TITLE_HEIGHT * (effectiveAppearance(item, named).scale || 1);
+}
+
+/** A locked item's handles stay away: nothing moves, sizes, turns, bends, edits or deletes it. */
+const LOCKED_STYLE: Style = {
+  movable: false,
+  resizable: false,
+  rotatable: false,
+  bendable: false,
+  editable: false,
+  deletable: false,
+};
+
+/** How faint everything outside a focus is drawn, and how a finished task recedes. */
+const DIMMED_OPACITY = 18;
+const DONE_OPACITY = 55;
+
+/** A locked item keeps its handles away; a done task and anything outside a focus recede. */
+function applyState(item: Item, style: Style, dimmed: boolean) {
+  if (item.locked) Object.assign(style, LOCKED_STYLE);
+  let opacity: number | null = null;
+  if (item.task === "done") opacity = DONE_OPACITY;
+  if (dimmed) opacity = DIMMED_OPACITY;
+  if (opacity !== null) Object.assign(style, { opacity, textOpacity: opacity });
+}
+
+/**
+ * `presenting` draws slides as nothing at all: a presentation shows only what lies on them.
+ * `dimmed` fades an item outside the focus while it stays where it is.
+ */
+export function objectStyle(
+  item: Item,
+  named: Look = {},
+  presenting = false,
+  dimmed = false
+): CellStyle {
   const look = effectiveAppearance(item, named);
   const base = baseStyle(item, look);
   const style: Style = { ...base, ...lookStyle(item, look), markup: isMarkup(item) };
+  applyState(item, style, dimmed);
   // Mutation capture reads rotation from the model style. A default must not become an authored edit.
   if (authoredLook(item, named).rotation === undefined) delete style.rotation;
   applyScale(style, look.scale);

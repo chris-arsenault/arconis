@@ -4,14 +4,48 @@ import { EditorController } from "../editor/controller";
 import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "./useCollaborativeText";
 import { notifyPictures, setPictureSource } from "../editor/pictureSource";
-import { addBranch } from "../editor/topics";
+import { addBranch, jumpTo } from "../editor/topics";
+import { splitAtCaret } from "../editor/structureCommands";
+import { bindPresence, itemInHash } from "../editor/presence";
+import { bindLaser } from "../editor/laserInput";
+import { addTaskAfter, taskListOf } from "../editor/stencils";
+import { labelHistory } from "../editor/history";
+import { bindTouchInput } from "../editor/touchInput";
+import { LaserTrail } from "./Presence";
 import { bindPictureInput } from "../editor/pictureInput";
+import { bindClipboardInput } from "../editor/clipboardInput";
 import { MarkdownTools } from "./MarkdownTools";
 import { markdownKey } from "../text/sourceKeys";
 import { fitText } from "../editor/textLayout";
 import { positionTextEditor } from "../editor/textEditorPosition";
 import { effectiveAppearance } from "../document/appearance";
 import { editSource } from "../editor/commands";
+
+/** How long a deep link waits for its item to arrive from peers before giving up. */
+const DEEP_LINK_WAIT_MS = 30000;
+
+/** Flies to the item a link names once it is in the document, selecting and ringing it. */
+function openDeepLink(editor: EditorController, hash: string) {
+  const id = itemInHash(hash);
+  if (!id) return () => undefined;
+  let done = false;
+  const attempt = () => {
+    if (done || !editor.document.get(id)) return;
+    done = true;
+    jumpTo(editor, id);
+    editor.ui.pulse = id;
+    editor.emit();
+    stop();
+  };
+  const stop = () => {
+    editor.document.doc.off("update", attempt);
+    clearTimeout(timer);
+  };
+  const timer = setTimeout(stop, DEEP_LINK_WAIT_MS);
+  editor.document.doc.on("update", attempt);
+  attempt();
+  return stop;
+}
 
 export function Canvas({
   session,
@@ -25,6 +59,7 @@ export function Canvas({
     setPictureSource((hash, type, shared) => session.pictures.url(hash, type, shared));
     const stopPictures = session.pictures.subscribe(notifyPictures);
     const editor = new EditorController(ref.current!, session.document);
+    editor.room = session;
     onEditor(editor);
     let lastCursor = 0;
     const updateCursor = (event: MouseEvent) => {
@@ -38,10 +73,23 @@ export function Canvas({
     element.addEventListener("mouseleave", leave);
     editor.onPreview = (boxes) => session.provider.awareness.setLocalStateField("preview", boxes);
     const unbindPictures = bindPictureInput(editor, session);
+    const unbindClipboard = bindClipboardInput(editor, session);
+    const unbindPresence = bindPresence(editor, session);
+    const unbindLaser = bindLaser(editor, session);
+    const stopDeepLink = openDeepLink(editor, location.hash);
+    const stopLabels = labelHistory(session.document);
+    const touch = new AbortController();
+    bindTouchInput(editor, session, touch.signal);
     return () => {
+      touch.abort();
+      stopLabels();
       stopPictures();
       setPictureSource(null);
       unbindPictures();
+      unbindClipboard();
+      unbindPresence();
+      unbindLaser();
+      stopDeepLink();
       element.removeEventListener("mousemove", updateCursor);
       element.removeEventListener("mouseleave", leave);
       editor.destroy();
@@ -58,6 +106,35 @@ export function Canvas({
       aria-label="Shared canvas"
     />
   );
+}
+
+function finishesEditing(event: React.KeyboardEvent) {
+  return event.key === "Escape" || ((event.ctrlKey || event.metaKey) && event.key === "Enter");
+}
+
+/**
+ * The same keys as on the canvas, so a tree can be typed: Tab grows a branch, and Alt Enter adds
+ * a sibling, splitting the text at the caret when the caret is in the middle. Plain Enter stays
+ * a new line.
+ */
+function treeKey(
+  editor: EditorController,
+  id: string,
+  event: React.KeyboardEvent<HTMLTextAreaElement>
+) {
+  const sibling = event.key === "Enter" && event.altKey;
+  if (event.key !== "Tab" && !sibling) return;
+  event.preventDefault();
+  const item = editor.document.get(id);
+  if (sibling && item && taskListOf(editor.document.list(), item)) {
+    // In a task list, the next item is the next task.
+    const next = addTaskAfter(editor.document, id);
+    if (next) {
+      editor.select(next);
+      editor.edit(next, true);
+    }
+  } else if (sibling) splitAtCaret(editor, id, event.currentTarget);
+  else addBranch(editor, false);
 }
 
 export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>) {
@@ -103,18 +180,8 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
           )
             return;
           if (event.nativeEvent.isComposing) return;
-          if (
-            event.key === "Escape" ||
-            ((event.ctrlKey || event.metaKey) && event.key === "Enter")
-          ) {
-            close();
-            return;
-          }
-          // The same keys as on the canvas, so a tree can be typed. Plain Enter stays a new line.
-          const sibling = event.key === "Enter" && event.altKey;
-          if (event.key !== "Tab" && !sibling) return;
-          event.preventDefault();
-          addBranch(editor, sibling);
+          if (finishesEditing(event)) close();
+          else treeKey(editor, item.id, event);
         }}
       />
       <div ref={panel} className="inline-markdown-panel" data-text-tools="true">
@@ -134,6 +201,8 @@ type Peer = Partial<{
   user: { name: string; color: string };
   cursor: { x: number; y: number };
   preview: PreviewBox[] | null;
+  chat: string | null;
+  laser: { x: number; y: number; at: number }[] | null;
 }>;
 export function Cursors({
   editor,
@@ -146,6 +215,11 @@ export function Cursors({
         .map(([id, state]) => (
           <Fragment key={id}>
             <PeerPreview peer={state as Peer} editor={editor} />
+            <LaserTrail
+              editor={editor}
+              points={(state as Peer).laser ?? []}
+              color={(state as Peer).user?.color ?? "#7863d4"}
+            />
             <PeerCursor peer={state as Peer} editor={editor} />
           </Fragment>
         ))}
@@ -191,7 +265,14 @@ function PeerCursor({ peer, editor }: Readonly<{ peer: Peer; editor: EditorContr
       <svg width="18" height="22" viewBox="0 0 18 22">
         <path d="M1 1 L16 12 L8 13 L5 21 Z" fill="currentColor" stroke="white" />
       </svg>
-      <span>{peer.user?.name || "Guest"}</span>
+      <span>
+        {peer.user?.name || "Guest"}
+        {peer.chat && (
+          <span className="peer-chat" data-testid="peer-chat">
+            {peer.chat}
+          </span>
+        )}
+      </span>
     </div>
   );
 }

@@ -56,6 +56,14 @@ async function changeFittedLook(canvas: CanvasDocument, items: Item[], look: Loo
   commitLook(canvas, current, look, heights);
 }
 
+/** Sets fields such as lock, tags or a task on each item, as one undoable operation. */
+export function changeFields(canvas: CanvasDocument, ids: string[], values: Partial<Item>) {
+  if (!ids.length) return;
+  canvas.undo.stopCapturing();
+  canvas.doc.transact(() => ids.forEach((id) => canvas.patch(id, values)), LOCAL);
+  canvas.undo.stopCapturing();
+}
+
 export function changeSelectionStyle(canvas: CanvasDocument, items: Item[], style: string) {
   canvas.undo.stopCapturing();
   canvas.doc.transact(() => items.forEach((item) => canvas.patch(item.id, { style })), LOCAL);

@@ -115,16 +115,23 @@ function loadImage(url: string) {
   });
 }
 
-async function rasterize({ pane, width, height }: ReturnType<typeof renderSvg>) {
+/** The rendered pane as one self-contained SVG document, pictures and text styles inline. */
+async function svgDocument({ pane, width, height }: ReturnType<typeof renderSvg>, extra = "") {
   await inlinePictures(pane);
   const css = await exportTextCss(pane);
   const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
   style.textContent = css;
   pane.prepend(style);
   const body = new XMLSerializer().serializeToString(pane);
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
-    `<rect width="100%" height="100%" fill="#ffffff"/>${body}</svg>`;
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${extra}` +
+    `<rect width="100%" height="100%" fill="#ffffff"/>${body}</svg>`
+  );
+}
+
+async function rasterize(rendered: ReturnType<typeof renderSvg>) {
+  const { width, height } = rendered;
+  const svg = await svgDocument(rendered);
   const image = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -149,7 +156,8 @@ export async function renderPng(graph: Graph, ids: string[], items: Item[], incl
   }
 }
 
-function renderChosen(graph: Graph, ids: string[], items: Item[], includeMarkup: boolean) {
+/** The cells and box an export of these items covers, or null when there is nothing to draw. */
+function chosenScene(graph: Graph, ids: string[], items: Item[], includeMarkup: boolean) {
   const chosen = exportItems(items, ids, includeMarkup);
   if (!chosen.length) return null;
   const allowed = new Set(chosen.map((item) => item.id));
@@ -160,5 +168,33 @@ function renderChosen(graph: Graph, ids: string[], items: Item[], includeMarkup:
   const box =
     drawnBounds(graph, cells) ?? worldBounds(chosen.filter((item) => item.type !== "highlight"));
   if (!box || !cells.length) return null;
-  return rasterize(renderSvg(graph, cells, box));
+  return { cells, box };
+}
+
+function renderChosen(graph: Graph, ids: string[], items: Item[], includeMarkup: boolean) {
+  const scene = chosenScene(graph, ids, items, includeMarkup);
+  return scene ? rasterize(renderSvg(graph, scene.cells, scene.box)) : null;
+}
+
+/**
+ * Draws the named objects as an SVG document, or the whole canvas when `ids` is empty, with the
+ * canvas text carried in a `desc` so the file opens again as a canvas. Null when nothing draws.
+ */
+export async function renderSvgFile(
+  graph: Graph,
+  ids: string[],
+  items: Item[],
+  copy: string,
+  includeMarkup = true
+) {
+  await document.fonts.ready;
+  exportMarkup(graph, includeMarkup);
+  try {
+    const scene = chosenScene(graph, ids, items, includeMarkup);
+    if (!scene) return null;
+    const desc = `<desc>${copy.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</desc>`;
+    return await svgDocument(renderSvg(graph, scene.cells, scene.box), desc);
+  } finally {
+    exportMarkup(graph, null);
+  }
 }

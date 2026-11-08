@@ -17,7 +17,10 @@ items are the canvas language's items field for field ([ADR-0014](adr/0014-one-c
 `document/types.ts` declares them. Each item is a map keyed by a short id people can type, holding its
 type, a `Y.Text` name, a subtitle, its holder (`inside`), box, stacking order, a named style and a look
 in plain terms, and by type a stencil, icon, line ends and ports, points, a picture or a deck and slide
-number. Named styles,
+number. Every item, lines included, also carries the fields in `language/fields.ts`: `locked`,
+`hidden`, `collapsed`, `tags`, `marker`, `task`, `link` and who last edited it. `CanvasDocument`
+names its `author` as the editor on every write that changes an item, an agent session names
+itself after each write, and opening a file keeps the editors the file names. Named styles,
 views and comments sit in maps beside the items. Undo tracks local origins, so remote edits stay
 independent of a participant's undo history. Records a peer writes in an unknown shape are ignored.
 
@@ -136,8 +139,52 @@ maxGraph is an editing and rendering projection of the document.
   callbacks. `editor/commands.ts` owns selection formatting, Undo/transaction boundaries and source
   editing follow-up. Topology commands plan endpoints before inserting anchors and relationships
   together; viewport navigation reads geometry without creating document items.
+- `editor/history.ts` labels each undo step from the records its transaction changed and lists
+  the stacks for `components/HistoryPanel.tsx`; there is no history beyond the undo stack and
+  each item's last editor. `editor/touchInput.ts` chooses a tool for fingers and pens on the
+  window's capture phase, before the drawing gesture sees the press. Properties travel in the
+  cell style as JSON for tooltips and `{name}` placeholders (`editor/rendering.ts`). Exports in
+  `editor/exportCommands.ts` reuse the PNG renderer's scene for SVG files.
+- `editor/pointerButtons.ts` owns the middle and right buttons at the pointer-event level, so
+  maxGraph only ever sees the left: the middle button pans, and the right button opens
+  `editor/ui.ts`'s menu state, which `components/ContextMenu.tsx` draws as a ring and a list
+  from `editor/contextMenu.ts`, itself read from the command table. A right drag past the dead
+  zone picks a wedge by angle. Comments open through `showComments` into
+  `components/CommentModal.tsx`, anchored to the cell's state above the object. Swapping kinds,
+  swapping positions and the line and frame verbs live in `editor/swap.ts`; stencils made of
+  ordinary items (tables of docked frames, task lists) in `editor/stencils.ts`; docked edges in
+  `document/docking.ts`, applied by mutation capture; and connectors ending in space create
+  their target through `editor/createTarget.ts`, whose cell carries `cloneOf` for capture.
+- Trees are edited from the keyboard through `editor/walking.ts` (where an arrow goes),
+  `editor/treeEdits.ts` (promote, reorder, insert a parent, delete keeping branches, connected
+  copies, levels) and `editor/outline.ts` with `components/OutlinePanel.tsx`. Layout verbs live
+  in `document/treeLayout.ts` (direction, compact, sorted, balanced), `editor/graphLayout.ts`
+  (a layered flow through `@dagrejs/dagre`) and `editor/layoutCommands.ts`; the language's
+  `tidy` takes the same words. The writer sees the lines a write has declared but not yet
+  settled when it places and tidies branches, so a tree written in one go lays out as written.
+- Views dim through `editor/highlighting.ts`: a focused item's closure (`focusClosure`) or the
+  filter's matches (`editor/filter.ts`) stay bright, the rest draw faint. `document/shorthand.ts`
+  turns `#tag`, `[]` and `:p1` typed into a label into fields when the edit finishes, and
+  `editor/gather.ts` moves matching objects into a grid frame.
+- `editor/viewHistory.ts` records the view before each flight in `editor/views.ts`, so Back and
+  Forward retrace jumps without recording themselves. `editor/find.ts` matches items by their
+  words and comments in reading order; `components/FindBar.tsx` steps through them.
+- `editor/clipboard.ts` copies the selection as the canvas language with its pictures through
+  the browser's copy, cut and paste events (`editor/clipboardInput.ts`), pastes language through
+  the file importer with the new items centred where asked, and turns plain text into notes, a
+  tree or a text block by writing language (`editor/pasteAs.ts`).
+- `editor/commandTable.ts` is the one table of commands, each with a label, a group, its
+  shortcuts and the rule for when it applies to the selection. `editor/registry.ts` reads it for
+  key dispatch (`editor/input.ts`), the property panel's header actions, the stencil rail's
+  labels and the command palette (`components/CommandPalette.tsx`, ranked by
+  `editor/paletteSearch.ts`). A shortcut keeps one meaning: the dispatcher runs the first
+  available command whose shortcut matches exactly, and the registry's test refuses two
+  commands with the same key.
 - `editor/projection.ts` applies the document to the graph behind a guard, so remote changes do not
-  feed back into Yjs.
+  feed back into Yjs. It projects `visibleItems`: hidden items, what collapsed items fold away and
+  lines into either stay in the document and out of the graph, and a collapsed frame is drawn at
+  its title bar's height while the document keeps its size. `editor/marks.ts` adds the fields'
+  signs to labels, and `editor/styles.ts` makes locked items immovable.
 - `editor/graphChanges.ts` turns graph edits into Yjs transactions with a local origin. The resulting
   projection runs after maxGraph's model update ends, because edits made during its change
   notification are queued and never redrawn.
@@ -220,8 +267,11 @@ reaching retired consumers.
   stands in for y-indexeddb. The relay still sees each frame's sender, kind and target, plus sizes and
   timing. Nothing authenticates who a keyholder is, and removing someone requires a new room, because
   changing the password does not change the key.
-- **Presence.** Names, cursors and native move and resize previews travel on Yjs awareness, adding no
-  document history; the document changes on drop. Presence coalesces to a bounded rate, and hidden
+- **Presence.** Names, cursors, native move and resize previews, each person's viewport, laser
+  trails, cursor chat and calls to follow travel on Yjs awareness (`editor/presence.ts`,
+  `editor/laserInput.ts`, `components/Presence.tsx`), adding no document history; the document
+  changes on drop. Following flies through the view history's `travel`, so it records no jumps,
+  and ends on the follower's own pointer, wheel or key. Presence coalesces to a bounded rate, and hidden
   tabs send none, so peers time them out until they are shown again. Selection-frame transforms write
   locally at a bounded rate during the gesture, with Undo merged into one step, and publish on release.
 - **Persistence.** y-indexeddb stores each room's document on the device and restores it before

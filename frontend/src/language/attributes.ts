@@ -2,6 +2,8 @@ import { describe, type Cursor } from "./cursor";
 import type { Arrangement, Attribute, Edge } from "./syntax";
 import { lookAttribute, type LookDefinition } from "./look";
 import { INK_KINDS } from "../document/ink";
+import { FLAGS, MARKERS, TASK_STATES, type Flag } from "../document/types";
+import { isId } from "../document/ids";
 
 /** Parsing of the attributes that follow an item, a line or a style. */
 
@@ -51,7 +53,68 @@ function picture(cursor: Cursor): Attribute {
   return { kind: "picture", hash, format, stored: cursor.word("stored") };
 }
 
+/** `locked`, `hidden` or `collapsed`, each turned off with `off`. */
+function flag(flag: Flag) {
+  return (cursor: Cursor): Attribute => {
+    const on = !cursor.word("off");
+    cursor.word("on");
+    return { kind: "flag", flag, value: on };
+  };
+}
+
+/** `tags a, b, c`: words people choose, id-like so they stay bare; `tags none` clears them. */
+function tags(cursor: Cursor): Attribute {
+  if (cursor.word("none")) return { kind: "tags", tags: [] };
+  const tags = cursor.refList();
+  for (const tag of tags)
+    if (!isId(tag)) cursor.fail(`"${tag}" cannot be a tag: use letters, digits, _ and -.`);
+  return { kind: "tags", tags: [...new Set(tags)] };
+}
+
+/** One of a fixed set of words, or `none` to clear the field. */
+function choice<Value extends string>(
+  kind: "marker" | "task",
+  values: readonly Value[],
+  what: string
+) {
+  return (cursor: Cursor): Attribute => {
+    if (cursor.word("none")) return { kind };
+    const value = cursor.expectWord(`${what} after ${kind}`);
+    const found = values.find((candidate) => candidate === value);
+    if (!found) return cursor.fail(`Choose ${kind} ${values.join("|")} or none.`);
+    return { kind, [kind]: found } as Attribute;
+  };
+}
+
+/** A web address in quotes, or the bare id of an item, slide or view; `none` clears it. */
+function link(cursor: Cursor): Attribute {
+  if (cursor.word("none")) return { kind: "link" };
+  if (cursor.kindIs("string")) return { kind: "link", link: cursor.next().text };
+  return { kind: "link", link: cursor.expectWord("a web address in quotes or an item's id") };
+}
+
+/** `property owner "Ada"` sets a named value; `property owner none` removes it. */
+function property(cursor: Cursor): Attribute {
+  const key = cursor.expectWord("the property's name");
+  if (!isId(key)) cursor.fail(`"${key}" cannot name a property: use letters, digits, _ and -.`);
+  if (cursor.word("none")) return { kind: "property", key };
+  return { kind: "property", key, value: cursor.expectString("the property's value") };
+}
+
+function edited(cursor: Cursor): Attribute {
+  const by = cursor.expectString("the editor's name");
+  cursor.keyword("at");
+  return { kind: "edited", by, at: cursor.number("the time of the edit in milliseconds") };
+}
+
 const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
+  ...Object.fromEntries(FLAGS.map((name) => [name, flag(name)])),
+  tags,
+  marker: choice("marker", MARKERS, "a marker"),
+  task: choice("task", TASK_STATES, "open or done"),
+  link,
+  edited,
+  property,
   markup: () => ({ kind: "markup", value: true }),
   workspace: () => ({ kind: "markup", value: false }),
   target: (cursor) => ({ kind: "target", ref: cursor.ref() }),
@@ -193,6 +256,8 @@ function attribute(cursor: Cursor, previous: Attribute[]): Attribute {
 export function attributes(cursor: Cursor, stopAtComma: boolean, leading: Attribute[] = []) {
   const result: Attribute[] = [...leading];
   while (!cursor.atStatementEnd() && !cursor.kindIs("arrow") && !cursor.kindIs("string")) {
+    // At a line's end, `as` names the line rather than describing the item declared there.
+    if (stopAtComma && cursor.isWord("as")) break;
     if (!cursor.isPunct(",")) result.push(attribute(cursor, result));
     else if (stopAtComma) break;
     else cursor.next();

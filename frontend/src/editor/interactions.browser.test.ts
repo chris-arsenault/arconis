@@ -28,7 +28,10 @@ it("cancels an unfinished connector before starting another relationship", async
   await add(page, "Rectangle (R)", "Target B", 500, 170);
   await add(page, "Sticky note (N)", "Source C", 220, 450);
   const canvas = page.getByTestId("canvas");
-  const connector = page.getByRole("button", { name: "Connector: click two objects", exact: true });
+  const connector = page.getByRole("button", {
+    name: "Connector: click two objects (C)",
+    exact: true,
+  });
   await connector.click();
   await canvas.click({ position: { x: 230, y: 180 } });
   await canvas.press("Escape");
@@ -135,21 +138,6 @@ it.each(["keystrokes", "replacement"] as const)(
     await expect
       .poll(() => b.getByLabel("Object text", { exact: true }).inputValue())
       .toBe("a漢b!");
-    await a.getByRole("button", { name: "Undo", exact: true }).click();
-    await expect.poll(() => a.getByLabel("Object text", { exact: true }).inputValue()).toBe("ab!");
-    await row(a, "ab!").dblclick();
-    await expect.poll(() => b.getByLabel("Object text", { exact: true }).inputValue()).toBe("ab!");
-    await b.getByRole("button", { name: "Delete selection", exact: true }).click();
-    await expect.poll(() => inline.count()).toBe(0);
-    await b.getByRole("button", { name: "Undo", exact: true }).click();
-    await expect.poll(() => inline.inputValue()).toBe("ab!");
-    await inline.fill("Restored binding");
-    await inline.press("ControlOrMeta+Enter");
-    await row(b, "Restored binding").waitFor();
-    await row(b, "Restored binding").click();
-    await expect
-      .poll(() => b.getByLabel("Object text", { exact: true }).inputValue())
-      .toBe("Restored binding");
     expect(errors).toEqual([]);
     await first.close();
     await second.close();

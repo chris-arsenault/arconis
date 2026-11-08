@@ -31,6 +31,24 @@ describe("arrows at both ends", () => {
   });
 });
 
+describe("trees written in one go", () => {
+  it("places each branch under the one before it and tidies the tree it is building", () => {
+    const document = canvas(`
+      node root "Root" at 0,300
+      root => node a "A"
+      a => node a1 "A1"
+      a => node a2 "A2"
+      root => node b "B"
+      tidy root
+    `);
+    const [a, a1, a2, b] = ["a", "a1", "a2", "b"].map((id) => get(document, id));
+    expect(a1.y).toBeLessThan(a2.y);
+    expect(a.y).toBeLessThan(b.y);
+    expect(a1.x).toBeGreaterThan(a.x + a.width);
+    expect(b.x).toBe(a.x);
+  });
+});
+
 describe("shared trunks", () => {
   it("runs a fan-out through a junction placed between its start and ends", () => {
     const document = canvas(`

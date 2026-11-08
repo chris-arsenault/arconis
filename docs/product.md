@@ -70,4 +70,4 @@ works; durable room data lives in browsers, portable files or account-saved copi
 
 [User guides](README.md) explain supported workflows. [Architecture](architecture.md) describes
 the model and its operational limitations; [ADRs](adr/README.md) record decisions and rationale.
-The [backlog](backlog.md) and [open interaction design](INTERACTION-PLAN.md) contain future work.
+The [backlog](backlog.md) contains future work.

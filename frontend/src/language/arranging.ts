@@ -1,8 +1,9 @@
-import { isBox, type Arrangement, type Item } from "../document/types";
+import { isBox, isFrame, type Arrangement, type Item } from "../document/types";
 import type { Draft } from "./draft";
 import { DEFAULT_GAP, paddingOf, union, type Box } from "../document/layout";
 import { slots, arrangedLayout } from "../document/arrangement";
 import type { Attribute } from "./syntax";
+import { hiddenIds } from "../document/relations";
 
 /** Arranging and fitting items within a draft. */
 
@@ -39,13 +40,20 @@ function within(inner: Box, outer: Box) {
  * Puts every arranged frame's members back in arrangement, innermost frames first, with members
  * created in this write after the rest in the order they were written.
  */
+/** Boxes a holder lays out: what it holds, other than bands and hidden items. */
+function laidOut(draft: Draft, holder: Item) {
+  const hidden = hiddenIds([...draft.items.values()]);
+  return [...draft.items.values()].filter(
+    (other) =>
+      other.inside === holder.id && isBox(other) && other.type !== "band" && !hidden.has(other.id)
+  );
+}
+
 export function reflowDraft(draft: Draft) {
   const frames = [...draft.items.values()].filter((item) => item.arrange);
   frames.sort((a, b) => draft.ancestors(b).length - draft.ancestors(a).length);
   for (const frame of frames) {
-    const members = [...draft.items.values()].filter(
-      (other) => other.inside === frame.id && isBox(other) && other.type !== "band"
-    );
+    const members = laidOut(draft, frame);
     if (!members.length) continue;
     const ids = new Set(members.map((member) => member.id));
     const last = draft.created.filter((id) => ids.has(id));
@@ -69,9 +77,7 @@ export interface Given {
  * given; otherwise it only grows, and only when contents cross its edge.
  */
 export function fitFrame(draft: Draft, frame: Item, wrap: boolean, given: Given) {
-  const held = [...draft.items.values()].filter(
-    (other) => other.inside === frame.id && isBox(other) && other.type !== "band"
-  );
+  const held = laidOut(draft, frame);
   const contents = union(held.map((other) => draft.extentOf(other).space));
   if (!contents || (!wrap && within(contents, frame))) return;
   const padding = paddingOf(frame, draft.lookOf(frame));
@@ -85,6 +91,18 @@ export function fitFrame(draft: Draft, frame: Item, wrap: boolean, given: Given)
   frame.height = Math.max(bottom, keepHeight ? frame.y + frame.height : bottom) - top;
   frame.x = left;
   frame.y = top;
+}
+
+/** Frames grow to hold whatever was added or moved into them during the write, innermost first. */
+export function growHolders(draft: Draft) {
+  const holders = new Set<string>();
+  for (const id of [...draft.created, ...draft.moved]) {
+    const item = draft.items.get(id);
+    if (item) draft.ancestors(item).forEach((holder) => holders.add(holder));
+  }
+  const frames = [...holders].map((id) => draft.items.get(id)!).filter(isFrame);
+  frames.sort((a, b) => draft.ancestors(b).length - draft.ancestors(a).length);
+  frames.forEach((frame) => fitFrame(draft, frame, false, { width: true, height: true }));
 }
 
 /** Below whatever a holder already holds, or at its top-left inside its padding. */

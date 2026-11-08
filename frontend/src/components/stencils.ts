@@ -17,6 +17,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { Shape, Tool } from "../editor/controller";
+import { findCommand } from "../editor/registry";
+import { shortcutLabel } from "../editor/shortcuts";
 
 export interface ToolEntry {
   id: Tool;
@@ -58,33 +60,48 @@ export const INFRASTRUCTURE_ICONS = [
   "Bell",
 ].map((name) => `lucide:${name}`);
 
+/** A tool's label with the shortcut the command table gives it, as "Select (V)". */
+function withShortcut(label: string, tool: Tool, extra = "") {
+  const shortcut = findCommand(`tool.${tool}`).shortcuts?.[0];
+  const keys = [shortcut ? shortcutLabel(shortcut) : "", extra].filter(Boolean).join(" / ");
+  return keys ? `${label} (${keys})` : label;
+}
+
+function toolEntry(id: Tool, label: string, icon: LucideIcon, extra = ""): ToolEntry {
+  return { id, label: withShortcut(label, id, extra), icon };
+}
+
+function stencil(shape: Shape, name: string, icon: LucideIcon, label = name): Stencil {
+  return { shape, name, label: withShortcut(label, shape), icon };
+}
+
 export const TOOLS: ToolEntry[] = [
-  { id: "select", label: "Select (V)", icon: MousePointer2 },
-  { id: "pan", label: "Pan (H / Space)", icon: Hand },
-  { id: "connect", label: "Connector: click two objects", icon: MoveUpRight },
-  { id: "draw", label: "Draw (P)", icon: Pencil },
+  toolEntry("select", "Select", MousePointer2),
+  toolEntry("pan", "Pan", Hand, "Space"),
+  toolEntry("connect", "Connector: click two objects", MoveUpRight),
+  toolEntry("draw", "Draw", Pencil),
 ];
 
 export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [
   {
     title: "Basics",
     stencils: [
-      { shape: "note", name: "Note", label: "Sticky note (N)", icon: StickyNote },
-      { shape: "text", name: "Text", label: "Text", icon: Type },
-      { shape: "rectangle", name: "Rectangle", label: "Rectangle (R)", icon: Square },
-      { shape: "ellipse", name: "Ellipse", label: "Ellipse", icon: Circle },
-      { shape: "decision", name: "Decision", label: "Decision (D)", icon: Diamond },
-      { shape: "frame", name: "Frame", label: "Frame", icon: PanelTop },
-      { shape: "slide", name: "Slide", label: "Slide", icon: Presentation },
+      stencil("note", "Note", StickyNote, "Sticky note"),
+      stencil("text", "Text", Type),
+      stencil("rectangle", "Rectangle", Square),
+      stencil("ellipse", "Ellipse", Circle),
+      stencil("decision", "Decision", Diamond),
+      stencil("frame", "Frame", PanelTop),
+      stencil("slide", "Slide", Presentation),
     ],
   },
   {
     title: "Architecture",
     stencils: [
-      { shape: "service", name: "Service", label: "Service", icon: Server },
-      { shape: "database", name: "Database", label: "Database", icon: Database },
-      { shape: "cloud", name: "Cloud", label: "Cloud", icon: Cloud },
-      { shape: "person", name: "Person", label: "Person", icon: UserRound },
+      stencil("service", "Service", Server),
+      stencil("database", "Database", Database),
+      stencil("cloud", "Cloud", Cloud),
+      stencil("person", "Person", UserRound),
     ],
   },
 ];

@@ -1,7 +1,35 @@
-import type { InkKind, ItemType, Look, PathPoint, Port } from "../document/types";
+import type {
+  Flag,
+  InkKind,
+  ItemType,
+  Look,
+  Marker,
+  PathPoint,
+  Port,
+  TaskState,
+} from "../document/types";
+import type { TreeDirection } from "../document/treeLayout";
 
-/** These new attributes may also occur as IDs in existing documents. A quoted name disambiguates them. */
-export const DRAWING_WORDS = new Set(["ink", "target", "markup", "workspace"]);
+/**
+ * Attribute words that may also be ids in documents written before the words existed. A quoted name
+ * after such an id tells it apart from the attribute, and canonical files write one.
+ */
+export const DRAWING_WORDS = new Set([
+  "ink",
+  "target",
+  "markup",
+  "workspace",
+  "locked",
+  "hidden",
+  "collapsed",
+  "numbered",
+  "tags",
+  "marker",
+  "task",
+  "link",
+  "edited",
+  "property",
+]);
 
 /** The statements of the canvas language, as parsed. */
 
@@ -32,7 +60,16 @@ export type Attribute =
   | { kind: "free" }
   | { kind: "markup"; value: boolean }
   | { kind: "ink"; ink: InkKind }
-  | { kind: "target"; ref: string };
+  | { kind: "target"; ref: string }
+  | { kind: "flag"; flag: Flag; value: boolean }
+  /** An empty list clears the tags. */
+  | { kind: "tags"; tags: string[] }
+  | { kind: "marker"; marker?: Marker }
+  | { kind: "task"; task?: TaskState }
+  | { kind: "link"; link?: string }
+  | { kind: "edited"; by: string; at: number }
+  /** A property's value, or none to remove it. */
+  | { kind: "property"; key: string; value?: string };
 
 export interface Located {
   line: number;
@@ -119,7 +156,13 @@ export type Statement =
   | ({ kind: "comment"; on: string; text: string } & Located)
   | ({ kind: "reply"; to: string; text: string } & Located)
   | ({ kind: "resolve"; id: string; resolved: boolean } & Located)
-  | ({ kind: "tidy"; ref: string } & Located)
+  | ({
+      kind: "tidy";
+      ref: string;
+      direction?: TreeDirection;
+      compact?: boolean;
+      sorted?: boolean;
+    } & Located)
   | ({ kind: "data"; hash: string; format: string; data: string } & Located);
 
 /** Ports by name, as fractions of an item's box. */

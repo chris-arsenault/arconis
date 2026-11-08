@@ -12,7 +12,7 @@ const find = async (page: Page, label: string) =>
 
 /** Places a panel at (160, 140) on the canvas, 320 wide and 220 tall. */
 async function addPanel(page: Page, title: string, x = 160, y = 140) {
-  await add(page, "Frame", title, x, y);
+  await add(page, "Frame (F)", title, x, y);
   await canvas(page).click({ position: emptySpot });
 }
 
@@ -59,7 +59,7 @@ it("keeps a panel's size and children when resizing, and accepts connectors and 
   const inside = await find(page, "Inside");
   const outer = await find(page, "Outer");
   expect(inside.inside).toBe(outer.id);
-  await add(page, "Text", "Placed in panel", 220, 300);
+  await add(page, "Text (T)", "Placed in panel", 220, 300);
   expect((await find(page, "Placed in panel")).inside).toBe(outer.id);
 
   // Moving a child toward the edge leaves the panel at the size it was given.
@@ -81,7 +81,7 @@ it("keeps a panel's size and children when resizing, and accepts connectors and 
 
   await canvas(page).click({ position: emptySpot });
   await add(page, "Rectangle (R)", "Client", 700, 500);
-  await page.getByRole("button", { name: "Connector: click two objects", exact: true }).click();
+  await page.getByRole("button", { name: "Connector: click two objects (C)", exact: true }).click();
   await canvas(page).click({ position: { x: 780, y: 545 } });
   await canvas(page).click({ position: { x: 200, y: 134 } });
   await expect.poll(() => objectCount(page)).toBe(5);

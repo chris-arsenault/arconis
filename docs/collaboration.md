@@ -29,6 +29,23 @@ Use **Join another room** or **Create another room** in the header to switch. Ea
 copy remains associated with its room identifier. The participant badge changes a guest's display
 name; a signed-in participant uses their account name.
 
+## See where others are
+
+The participant badge in the header opens the list of who is here. **Follow** beside a name
+makes their view yours: as they pan and zoom, so do you, until you move the view, scroll or
+press a key of your own, or choose **Stop following** in the pill at the bottom. **Bring
+everyone to me** shows the others a banner with your name; each decides whether to follow or
+let it pass. Nothing moves anyone's view without their choice.
+
+Hold **K** to point with a laser: a trail in your colour follows your pointer on everyone's
+screen and fades when you let go. Press **/** to say something beside your cursor; the words
+show under your name until you press Escape or send an empty line. Lasers and cursor chat are
+presence, not document edits: nothing is saved and Undo never sees them.
+
+**Copy a link to this object**, in the command palette with an object selected, copies a room
+link that opens at that object, selected and ringed. Each object's **Last edited by** in the
+property panel names who changed it most recently.
+
 ## Understand what is shared
 
 Object edits, relationships, comments, slides, named styles, saved views and markup are shared.

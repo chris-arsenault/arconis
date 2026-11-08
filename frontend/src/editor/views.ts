@@ -4,6 +4,7 @@ import { newId } from "../document/ids";
 import { worldBounds } from "../document/relations";
 import { LOCAL, type Item, type View } from "../document/types";
 import { clampScale } from "./zoom";
+import { viewHistoryOf } from "./viewHistory";
 
 const FLY_MS = 350;
 
@@ -18,7 +19,29 @@ export function fitContents(graph: Graph, element: HTMLElement, items: Item[]) {
       (element.clientHeight - 120) / bounds.height
     )
   );
+  viewHistoryOf(graph)?.record();
   graph.view.scaleAndTranslate(scale, 60 / scale - bounds.x, 60 / scale - bounds.y);
+}
+
+/** Whether any of these items would show in the window as it is. */
+export function anythingInView(graph: Graph, element: HTMLElement, items: Item[]) {
+  const { scale, translate } = graph.view;
+  const window = {
+    x: -translate.x,
+    y: -translate.y,
+    width: element.clientWidth / scale,
+    height: element.clientHeight / scale,
+  };
+  return items.some((item) => {
+    const box = worldBounds([item]);
+    return (
+      box !== null &&
+      box.x < window.x + window.width &&
+      box.x + box.width > window.x &&
+      box.y < window.y + window.height &&
+      box.y + box.height > window.y
+    );
+  });
 }
 
 function viewportCenter(graph: Graph, element: HTMLElement) {
@@ -82,6 +105,7 @@ let flight = 0;
 
 /** Animates to a saved view, centered in the current window whatever its size. */
 export function flyToView(graph: Graph, element: HTMLElement, view: View, animate = true) {
+  viewHistoryOf(graph)?.record();
   const id = ++flight;
   const start = viewportCenter(graph, element);
   const target = view.center;

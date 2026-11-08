@@ -70,6 +70,108 @@ function removedWith(item: Item, removed: Set<string>) {
   return related.some((id) => removed.has(id));
 }
 
+/** Hidden items with everything that goes with them: contents, anchors and lines touching them. */
+export function hiddenIds(items: Item[]) {
+  const hidden = items.filter((item) => item.hidden).map((item) => item.id);
+  return hidden.length ? removalClosure(items, hidden) : new Set<string>();
+}
+
+/** What one collapsed item folds away: what it holds, its branches, and lines into any of them. */
+export function foldedBy(items: Item[], id: string) {
+  const inner = [...containedDescendants(items, id), ...branchDescendants(items, id)];
+  return inner.length ? removalClosure(items, inner) : new Set<string>();
+}
+
+/** Everything any collapsed item folds away. */
+export function foldedIds(items: Item[]) {
+  const folded = new Set<string>();
+  for (const item of items)
+    if (item.collapsed) foldedBy(items, item.id).forEach((id) => folded.add(id));
+  return folded;
+}
+
+/** Items that are drawn: neither hidden nor folded away, with lines whose both ends are drawn. */
+export function visibleItems(items: Item[]) {
+  const hidden = hiddenIds(items);
+  const folded = foldedIds(items);
+  if (!hidden.size && !folded.size) return items;
+  return items.filter((item) => !hidden.has(item.id) && !folded.has(item.id));
+}
+
+/**
+ * What stays bright when focusing on an item: itself, what it holds, its tree beneath, whatever
+ * those reference, and the lines among all of them.
+ */
+export function focusClosure(items: Item[], id: string) {
+  const bright = new Set([id, ...containedDescendants(items, id), ...branchDescendants(items, id)]);
+  const touches = (link: Item) => bright.has(link.from) || bright.has(link.to);
+  for (const item of items.filter((link) => link.type === "reference" && touches(link))) {
+    bright.add(item.from);
+    bright.add(item.to);
+  }
+  const within = (link: Item) => bright.has(link.from) && bright.has(link.to);
+  items.filter((item) => isLink(item) && within(item)).forEach((link) => bright.add(link.id));
+  items.filter((item) => bright.has(item.onLine)).forEach((anchor) => bright.add(anchor.id));
+  return bright;
+}
+
+/** Tiered numbers for the branches under every numbered topic: 1, 1.1, 1.2, 2, in the order they sit. */
+export function branchNumbers(items: Item[]) {
+  const numbers = new Map<string, string>();
+  const visit = (id: string, prefix: string, seen: Set<string>) => {
+    branchChildren(items, id).forEach((child, index) => {
+      if (seen.has(child.id)) return;
+      seen.add(child.id);
+      const number = prefix ? `${prefix}.${index + 1}` : String(index + 1);
+      numbers.set(child.id, number);
+      visit(child.id, number, seen);
+    });
+  };
+  for (const item of items) if (item.numbered) visit(item.id, "", new Set([item.id]));
+  return numbers;
+}
+
+/** Whether an item holds or heads others, so collapsing it would fold something away. */
+export function holdsOthers(items: Item[], id: string) {
+  return items.some(
+    (item) => item.inside === id || (item.type === "branch" && item.from === id && item.to !== id)
+  );
+}
+
+/** Every holder and topic above an item, through holders and branches, each once. */
+function aboveTask(items: Item[], id: string) {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const parents = new Map<string, string>();
+  for (const item of [...items].sort(compareStacking))
+    if (item.type === "branch" && !parents.has(item.to)) parents.set(item.to, item.from);
+  const upward = (of: string) =>
+    [byId.get(of)?.inside, parents.get(of)].filter(Boolean) as string[];
+  const seen = new Set([id]);
+  const pending = upward(id);
+  while (pending.length) {
+    const next = pending.pop()!;
+    if (seen.has(next) || !byId.has(next)) continue;
+    seen.add(next);
+    pending.push(...upward(next));
+  }
+  seen.delete(id);
+  return [...seen];
+}
+
+/** How many of the tasks each item holds or heads are done, and how many there are. */
+export function taskCounts(items: Item[]) {
+  const counts = new Map<string, { done: number; total: number }>();
+  for (const task of items.filter((item) => item.task)) {
+    for (const id of aboveTask(items, task.id)) {
+      const count = counts.get(id) ?? { done: 0, total: 0 };
+      count.total++;
+      if (task.task === "done") count.done++;
+      counts.set(id, count);
+    }
+  }
+  return counts;
+}
+
 /** How many references touch each item, in one pass over the document. */
 export function referenceCounts(items: Item[]) {
   const counts = new Map<string, number>();
@@ -117,6 +219,7 @@ export function renameItem(item: Item, ids: Map<string, string>): Item {
     to: rename(item.to),
     onLine: rename(item.onLine),
     ...(item.target ? { target: rename(item.target) } : {}),
+    ...(item.link && ids.has(item.link) ? { link: rename(item.link) } : {}),
   };
 }
 

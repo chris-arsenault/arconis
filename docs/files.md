@@ -43,6 +43,14 @@ Include markup.
 An Arconis PNG contains source as well as pixels. Its editable copy includes the exported
 objects' text and associated document data, rather than acting as a flattened-only image.
 
+## Copy a picture, export an SVG, copy a tree
+
+**Copy canvas as PNG**, or **Copy selection as PNG** with something selected, puts a picture on
+the clipboard for a chat or a document. **Export canvas as SVG** downloads a vector picture that
+carries the canvas text in its description, so it opens again as a canvas. **Copy tree as
+Markdown** copies the selected tree as an indented list, which pastes back as a tree. All three
+are in the command palette.
+
 ## Import into a room
 
 Choose **Import document**, then a `.arconis` file or an Arconis-exported PNG. Import adds the

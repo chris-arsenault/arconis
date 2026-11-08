@@ -43,7 +43,11 @@ pnpm test:browser src/editor/drawingReview.browser.test.ts
 ```
 
 Tests live beside their owners. Domain/application tests establish canonical values and
-transaction behavior; browser journeys establish actual rendering, input and collaboration.
+transaction behavior; browser journeys establish actual rendering, input and collaboration. A
+browser journey earns its place only where a unit test cannot reach: several browsers converging
+on one room, real pointer and keyboard semantics, the clipboard, pictures and what the canvas
+draws. A feature's logic, including each command's behavior on a document, is unit-tested
+beside its module, and the browser suite does not repeat it.
 
 ## Browser setup and lifecycle
 

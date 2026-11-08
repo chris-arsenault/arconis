@@ -1,6 +1,7 @@
 import { facing, routeAround, sideOf, type Box, type RouteEnd } from "./routing";
 import { isBox, type Item, type Look, type PathPoint, type Port } from "./types";
 import { footprint, intersects } from "./layout";
+import { hiddenIds } from "./relations";
 
 /**
  * Routing a line around items is a way of placing its points, done once: the line keeps its type,
@@ -23,10 +24,10 @@ function portOf(box: Box, end: RouteEnd): Port {
   return [round((end.x - box.x) / box.width), round((end.y - box.y) / box.height)];
 }
 
-/** Every box near the line with its labels, except its ends, what holds them and bands. */
+/** Every box near the line with its labels, except its ends, what holds them, bands and hidden items. */
 function obstacles(items: Item[], ends: Item[], area: Box, lookOf: (item: Item) => Look) {
   const byId = new Map(items.map((item) => [item.id, item]));
-  const excluded = new Set<string>();
+  const excluded = hiddenIds(items);
   for (const end of ends)
     for (let id = end.id; id && !excluded.has(id); id = byId.get(id)?.inside ?? "")
       excluded.add(id);

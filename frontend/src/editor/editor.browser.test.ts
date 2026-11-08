@@ -24,7 +24,10 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   const page = await open(context);
   await add(page, "Rectangle (R)", "API service", 220, 170);
   await add(page, "Sticky note (N)", "A connected idea", 500, 300);
-  await page.getByRole("button", { name: "Fill #ffd9da", exact: true }).click();
+  await page
+    .getByLabel("Object properties")
+    .getByRole("button", { name: "Fill #ffd9da", exact: true })
+    .click();
   await row(page, "API service").click();
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
   await page.getByRole("button", { name: "Connect", exact: true }).click();
@@ -169,7 +172,15 @@ it("drags and resizes attached objects, changes routing and preserves portable v
 it("uses shapes, notes, connectors and drawing tools together on one canvas", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
-  const tools = ["Ellipse", "Decision (D)", "Service", "Database", "Cloud", "Person", "Text"];
+  const tools = [
+    "Ellipse (E)",
+    "Decision (D)",
+    "Service",
+    "Database",
+    "Cloud",
+    "Person",
+    "Text (T)",
+  ];
   for (let i = 0; i < tools.length; i++)
     await add(page, tools[i], `Component ${i}`, 190 + (i % 3) * 220, 150 + Math.floor(i / 3) * 200);
   await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
@@ -185,7 +196,7 @@ it("uses shapes, notes, connectors and drawing tools together on one canvas", as
   expect(afterPoints[0]).toEqual([beforePoints[0][0] + 50, beforePoints[0][1] + 20]);
   expect(await objectCount(page)).toBe(8);
   await add(page, "Sticky note (N)", "Still one document", 650, 700);
-  await page.getByRole("button", { name: "Connector: click two objects", exact: true }).click();
+  await page.getByRole("button", { name: "Connector: click two objects (C)", exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x: 270, y: 195 } });
   await page.getByTestId("canvas").click({ position: { x: 490, y: 195 } });
   await expect.poll(() => objectCount(page)).toBe(10);

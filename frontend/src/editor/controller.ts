@@ -6,8 +6,10 @@ import {
   VertexHandlerConfig,
   type ConnectionHandler,
 } from "@maxgraph/core";
+import { configureLocking } from "./locking";
+import type { RoomSession } from "../collaboration/room";
 import { CanvasDocument } from "../document/canvasDocument";
-import { LOCAL, isBox, isFrame, type Item, type ItemType } from "../document/types";
+import type { Item, ItemType } from "../document/types";
 import { defaultName, newItemSize, shapeItem, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
@@ -27,20 +29,23 @@ import { fitContents } from "./views";
 import { subscribeIcons } from "../assets/icons/catalog";
 import { subscribePictures } from "./pictureSource";
 import { configurePanels, containerAt } from "./panels";
-import { compareStacking } from "../document/geometry";
 import { newId } from "../document/ids";
-import { transformObjects, type SelectionTransform } from "../document/transform";
+import { stackSelection } from "./stacking";
+import { trackViewHistory, type ViewHistory } from "./viewHistory";
+import { initialUi, type EditorUi } from "./ui";
+import { defaultFields } from "./styleClipboard";
+import { updateCellGeometry } from "./geometryEdits";
+import { EMPTY_FILTER, type Filter } from "./filter";
+import { brightSet } from "./highlighting";
+import type { SelectionTransform } from "../document/transform";
 import { CanvasGrid } from "./grid";
 import { editorStage, Presenter } from "./presenter";
-import { RateLimitedWrite } from "./rateLimitedWrite";
-import { authoredLook } from "../document/appearance";
+import { TransformSession } from "./transformSession";
 import { DrawingEditor } from "./drawingEditor";
 import { selectedItems } from "../document/relations";
 
-/** How often a selection-frame gesture writes to the document, and so reaches peers. */
-const TRANSFORM_WRITE_MS = 100;
-
 export type { Shape, Tool } from "./shapes";
+export type { EditorUi } from "./ui";
 
 export class EditorController {
   readonly graph: Graph;
@@ -54,6 +59,15 @@ export class EditorController {
   connectionSource = "";
   /** The deck the last slide placed here joined, which the next one joins too. */
   lastDeck = "";
+  readonly ui: EditorUi = initialUi();
+  /** Where the pointer last was over the canvas, in screen coordinates, if it is there. */
+  pointer: { clientX: number; clientY: number } | null = null;
+  /** The room this editor works in, for commands that reach its files and pictures. */
+  room: RoomSession | null = null;
+  /** The item whose tree, contents and references stay bright while all else dims, if any. */
+  focus: string | null = null;
+  /** The tags, markers, tasks and editors this person is filtering by; empty filters nothing. */
+  filter: Filter = EMPTY_FILTER;
   version = 0;
   /** Receives in-progress move and resize boxes so peers can see a drag before it lands. */
   onPreview: (boxes: PreviewBox[] | null) => void = () => {};
@@ -62,15 +76,16 @@ export class EditorController {
   private committed = false;
   private destroyed = false;
   private previewing = false;
-  private transformWrites = new RateLimitedWrite(TRANSFORM_WRITE_MS);
-  private finishTransform: (() => void) | null = null;
+  private transforms: TransformSession;
   private lastPreview = 0;
   private listeners = new Set<() => void>();
   private cleanupInput: () => void;
   private cleanupIcons: () => void;
-  private band: RubberBandHandler;
+  readonly band: RubberBandHandler;
 
   readonly grid: CanvasGrid;
+  /** Where this person's view was before each jump. */
+  readonly history: ViewHistory;
   /** This person's presentation of a deck, when one is running. */
   readonly presenter: Presenter;
   private marks: LabelMarks;
@@ -121,6 +136,7 @@ export class EditorController {
     this.band = new RubberBandHandler(this.graph);
     // Alt moves a topic without its branches, so it cannot also force a marquee.
     this.band.isForceRubberbandEvent = () => false;
+    configureLocking(this.graph, this.document);
     this.graph.getDataModel().addListener(InternalEvent.CHANGE, this.onGraphChange);
     this.graph.getSelectionModel().addListener(InternalEvent.CHANGE, this.emit);
     this.graph.view.addListener(InternalEvent.SCALE_AND_TRANSLATE, this.onView);
@@ -129,6 +145,8 @@ export class EditorController {
     this.document.doc.on("update", this.onDocumentChange);
     this.document.undo.on("stack-item-added", this.emit);
     this.document.undo.on("stack-item-popped", this.emit);
+    this.history = trackViewHistory(this.graph, element);
+    this.transforms = new TransformSession(document);
     this.cleanupInput = bindCanvasInput(this);
     const stops = [
       subscribeIcons(() => this.project()),
@@ -197,17 +215,31 @@ export class EditorController {
     if (!boxes.length) return;
     this.lastPreview = performance.now();
     this.previewing = true;
+    this.ui.dragging = true;
     this.onPreview(boxes);
   }
   private clearPreview() {
     if (!this.previewing) return;
     this.previewing = false;
+    this.ui.dragging = false;
     this.onPreview(null);
+    this.emit();
+  }
+  setFocus(id: string | null) {
+    this.focus = id;
+    this.project();
+    this.emit();
+  }
+  setFilter(filter: Filter) {
+    this.filter = filter;
+    this.project();
+    this.emit();
   }
   private project() {
     this.projecting = true;
     try {
-      projectDocument(this.graph, this.document, this.presenter.active);
+      const bright = brightSet(this.document.list(), this.focus, this.filter);
+      projectDocument(this.graph, this.document, this.presenter.active, bright);
     } finally {
       this.projecting = false;
     }
@@ -218,12 +250,10 @@ export class EditorController {
   armIcon(icon: { key: string; title: string }) {
     this.setTool("icon");
     this.armedIcon = icon;
-    this.emit();
   }
   armScreen(screen: ScreenSize) {
     this.setTool("frame");
     this.armedScreen = screen;
-    this.emit();
   }
   setTool(tool: Tool) {
     this.armedIcon = null;
@@ -256,6 +286,7 @@ export class EditorController {
       name: screen?.name ?? icon?.title ?? defaultName(shape),
       inside: containerAt(this.document, left, top, dimensions),
       stencil,
+      ...defaultFields(type, stencil),
       ...creationValues(type, view.scale, stencil),
       ...slide,
       ...dimensions,
@@ -294,8 +325,10 @@ export class EditorController {
     this.emit();
   }
   edit(id: string, selectText = false) {
+    const item = this.document.get(id);
+    if (item?.locked) return;
     if (this.drawing.enter(id)) return;
-    if (this.document.get(id)?.type === "drawing") return;
+    if (item?.type === "drawing") return;
     this.editId = id;
     this.selectOnEdit = selectText;
     this.emit();
@@ -304,72 +337,33 @@ export class EditorController {
     this.editId = null;
     this.emit();
   }
-  /** Leaves selection, inline editing and any armed tool behind, as Escape does. */
+  /** Leaves selection, inline editing, focus and any armed tool behind, as Escape does. */
   clearEditing() {
     this.drawing.leave();
+    if (this.focus) this.setFocus(null);
     this.editId = null;
     this.graph.clearSelection();
     this.graph.getPlugin<ConnectionHandler>("ConnectionHandler")?.constraintHandler.reset();
     this.setTool("select");
   }
-  /** Moves the selection above or below everything else in the room. */
   stack(direction: "front" | "back") {
-    const selected = [...this.selected()].sort(compareStacking);
-    if (!selected.length) return;
-    const orders = this.document.list().map((item) => item.order);
-    const base =
-      direction === "front" ? Math.max(...orders) + 1 : Math.min(...orders) - selected.length;
-    this.document.undo.stopCapturing();
-    this.document.doc.transact(() => {
-      selected.forEach((item, index) => this.document.patch(item.id, { order: base + index }));
-    }, LOCAL);
-    this.document.undo.stopCapturing();
+    stackSelection(this, direction);
   }
   /** Objects a collective transform changes: the selection, descendants and inner routes. */
   transformSnapshot() {
     return this.selectionClosure().map((id) => this.document.get(id)!);
   }
   beginTransform() {
-    this.finishTransform = this.document.actions.begin();
-    this.document.undo.stopCapturing();
-    this.document.undo.captureTimeout = Number.MAX_SAFE_INTEGER;
+    this.transforms.begin();
   }
-  /** Writes at a bounded rate, because each write rewrites every point of every drawing moved. */
   applyTransform(items: Item[], transform: SelectionTransform) {
-    this.transformWrites.schedule(() => this.writeTransform(items, transform));
-  }
-  private writeTransform(items: Item[], transform: SelectionTransform) {
-    const values = transformObjects(items, transform, (item) =>
-      authoredLook(item, this.document.namedStyle(item.style))
-    );
-    this.document.doc.transact(() => {
-      items.forEach((item) => {
-        const { rotation, gradientAngle, ...geometry } = values.get(item.id)!;
-        this.document.patch(item.id, geometry);
-        if (gradientAngle !== undefined) this.document.patchLook(item.id, { gradientAngle });
-        if (isBox(item) && !isFrame(item) && transform.angle)
-          this.document.patchLook(item.id, { rotation });
-      });
-    }, LOCAL);
+    this.transforms.apply(items, transform);
   }
   endTransform() {
-    this.transformWrites.flush();
-    this.finishTransform?.();
-    this.finishTransform = null;
-    this.document.undo.captureTimeout = 400;
-    this.document.undo.stopCapturing();
+    this.transforms.end();
   }
   updateGeometry(id: string, values: Partial<Pick<Item, "x" | "y" | "width" | "height">>) {
-    const model = this.graph.getDataModel();
-    const cell = model.getCell(id);
-    if (!cell?.geometry) return;
-    const origin = this.document.get(cell.parent?.id || "") || { x: 0, y: 0 };
-    const geometry = cell.geometry.clone();
-    if (values.x !== undefined) geometry.x = values.x - origin.x;
-    if (values.y !== undefined) geometry.y = values.y - origin.y;
-    if (values.width !== undefined) geometry.width = values.width;
-    if (values.height !== undefined) geometry.height = values.height;
-    model.setGeometry(cell, geometry);
+    updateCellGeometry(this.graph, this.document, id, values);
   }
   group() {
     groupSelection(this);
@@ -403,7 +397,7 @@ export class EditorController {
     this.emit();
   }
   destroy() {
-    if (this.finishTransform) this.endTransform();
+    if (this.transforms.active) this.endTransform();
     this.destroyed = true;
     this.cleanupIcons();
     this.cleanupInput();

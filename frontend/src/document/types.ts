@@ -132,6 +132,15 @@ export interface PictureRef {
   stored: boolean;
 }
 
+/** A small badge on any item: priority 1 (highest) to 5, or progress in quarters 0 to 4. */
+export const MARKERS = ["p1", "p2", "p3", "p4", "p5", "q0", "q1", "q2", "q3", "q4"] as const;
+export type Marker = (typeof MARKERS)[number];
+export const TASK_STATES = ["open", "done"] as const;
+export type TaskState = (typeof TASK_STATES)[number];
+/** Flags any item carries; each is absent when off. */
+export const FLAGS = ["locked", "hidden", "collapsed", "numbered"] as const;
+export type Flag = (typeof FLAGS)[number];
+
 export interface Item {
   /** Unique in the canvas. People see and type it, so it is short. */
   id: string;
@@ -175,6 +184,30 @@ export interface Item {
   ink?: InkKind;
   /** A highlight follows this item's geometry without changing its style. */
   target?: string;
+  /**
+   * Fields every item type carries, whatever it is: a frame collapses as a topic does, a line
+   * carries tags and a marker, a picture can be a task. Each is absent when it does not apply.
+   */
+  /** Pointer edits leave it alone until someone unlocks it; agents may still change it. */
+  locked?: boolean;
+  /** Not drawn, routed around, exported as a picture or counted by layout; its holder and lines stay. */
+  hidden?: boolean;
+  /** What it holds or heads is not drawn; a frame shrinks to its title bar. Shared with everyone. */
+  collapsed?: boolean;
+  /** Its branches show tiered numbers, 1, 1.1, 1.2, so people and agents can name them. */
+  numbered?: boolean;
+  /** Free categorical words, each an id-like word. */
+  tags?: string[];
+  marker?: Marker;
+  /** A checkbox in the label; holders and topics over tasks show how many are done. */
+  task?: TaskState;
+  /** A web address, or the id of an item, slide or saved view to fly to. */
+  link?: string;
+  /** Who last changed the item, in their own words, and when in milliseconds. */
+  editedBy?: string;
+  editedAt?: number;
+  /** Named values an item carries, such as owner or ticket, shown on hover and in labels as {key}. */
+  properties?: Record<string, string>;
 }
 
 export interface View {

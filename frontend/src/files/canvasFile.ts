@@ -37,12 +37,15 @@ export async function readDocumentFile(file: File) {
 
 /**
  * Adds a file's canvas to this one as one undoable change, keeping the file's ids where they are
- * free. `renames` points pictures at the names they were kept under here.
+ * free. `renames` points pictures at the names they were kept under here, and `place` moves the
+ * new items within the same change. Returns the ids of what was created.
  */
 export function importDocument(
   document: CanvasDocument,
   content: string,
-  renames: Map<string, string> = new Map()
+  renames: Map<string, string> = new Map(),
+  place: (created: string[]) => void = () => {},
+  stamp = false
 ) {
   let text = content;
   renames.forEach((kept, original) => (text = text.replaceAll(original, kept)));
@@ -50,12 +53,18 @@ export function importDocument(
   if (!statements.some((statement) => statement.kind === "header"))
     throw new Error("Choose an Arconis canvas file (.arconis).");
   document.undo.stopCapturing();
-  let created = 0;
-  document.doc.transact(() => {
-    const result = writeStatements(document, statements, { author: "", importing: true });
-    created = result.created.length;
-    if (renames.size) unstorePictures(document, result.created, new Set(renames.values()));
-  }, LOCAL);
+  let created: string[] = [];
+  const write = () =>
+    document.doc.transact(() => {
+      const result = writeStatements(document, statements, { author: "", importing: true });
+      created = result.created;
+      if (renames.size) unstorePictures(document, created, new Set(renames.values()));
+      place(created);
+    }, LOCAL);
+  // A file's items keep the editors the file names, rather than whoever opened it; a paste is
+  // this person's edit.
+  if (stamp) write();
+  else document.withoutStamps(write);
   document.undo.stopCapturing();
   return created;
 }

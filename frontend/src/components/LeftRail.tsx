@@ -6,6 +6,8 @@ import { decks, isTemplate, type Deck } from "../document/slides";
 import { goToSlide } from "../editor/topics";
 import { flyToView, removeView, renameView, saveCurrentView, savedViews } from "../editor/views";
 import { StencilBrowser } from "./StencilBrowser";
+import { OutlinePanel } from "./OutlinePanel";
+import { HistoryPanel } from "./HistoryPanel";
 import { TOOLS } from "./stencils";
 import { DrawingTools, type DrawingActions } from "./DrawingTools";
 import { isMarkup } from "../document/ink";
@@ -45,6 +47,8 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
           actions={actions}
         />
       )}
+      <OutlinePanel editor={editor} />
+      <HistoryPanel editor={editor} />
       <Decks
         all={decks(editor.document.list())}
         onPresent={(deck) => editor.presenter.start(deck)}

@@ -46,7 +46,8 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   await expect.poll(() => page.getByTestId("zoom-level").textContent()).not.toBe("100%");
   expect(await page.getByTestId("selection-count").textContent()).toBe("Slide");
 
-  // Speaker notes: a comment of several lines, broken with Shift Enter.
+  // Speaker notes: a comment of several lines, broken with Shift Enter, in the comments modal.
+  await canvas(page).press("Shift+c");
   const box = page.getByLabel("Add a comment", { exact: true });
   await box.pressSequentially("Open with the pain.");
   await box.press("Shift+Enter");
@@ -55,6 +56,7 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   const note = page.getByTestId("comment-thread").locator("p");
   await expect.poll(() => note.textContent()).toBe("Open with the pain.\nThen pause.");
   await expect.poll(() => row(page, /💬1/).count()).toBe(1);
+  await canvas(page).press("Escape");
 
   // Clicking empty canvas inside a slide selects the slide, as with a frame.
   await canvas(page).click({ position: { x: 300, y: 500 } });
@@ -68,8 +70,11 @@ it("presents a deck with the chrome gone, moving by key and button, with notes a
   const b = await open(await browser.newContext(VIEWPORT), room);
   await add(a, "Slide", "Problem", 100, 100);
   await add(a, "Slide", "Solution", 300, 300);
+  await canvas(a).press("Shift+c");
   await a.getByLabel("Add a comment", { exact: true }).fill("Land the ask.");
   await a.keyboard.press("Enter");
+  await expect.poll(() => a.getByTestId("comment-thread").count()).toBe(1);
+  await canvas(a).press("Escape");
   await expect.poll(() => b.getByTestId("deck").count()).toBe(1);
 
   await a.getByRole("button", { name: "Present deck", exact: true }).click();
@@ -131,7 +136,7 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   await expect.poll(() => row(page, "deck · template Layout").count()).toBe(1);
   await expect.poll(() => page.getByRole("button", { name: "Template · Layout" }).count()).toBe(1);
   // Text placed on the template appears again on the other slide.
-  await add(page, "Text", "Acme", 700, 600);
+  await add(page, "Text (T)", "Acme", 700, 600);
   await expect.poll(() => row(page, "Acme").count()).toBe(2);
   const objects = (await exported(page)).objects;
   expect(objects.filter((item) => item.name === "Acme")).toHaveLength(1);

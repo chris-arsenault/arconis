@@ -6,10 +6,17 @@ import {
   Ungroup,
   Trash2,
   Link2,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo } from "react";
 import type { EditorController } from "../editor/controller";
+import {
+  commandContext,
+  findCommand,
+  isAvailable,
+  runCommand,
+  showComments,
+} from "../editor/registry";
 import { isLink, typeLabel, type Item } from "../document/types";
 import { useCollaborativeText } from "./useCollaborativeText";
 import { effectiveAppearance } from "../document/appearance";
@@ -17,8 +24,11 @@ import { hasSubtitle, hasText } from "../document/capabilities";
 import { ConnectionControls } from "./ConnectionControls";
 import { StyleControls, GeometryControls } from "./ObjectProperties";
 import { AlignControls, ScreenSizeControl, TopicControls } from "./TopicControls";
-import { CommentControls } from "./CommentControls";
+import { FieldControls } from "./FieldControls";
+import { PropertiesControls } from "./PropertiesControls";
+import { Section } from "./ConnectionControls";
 import { SlideControls } from "./SlideControls";
+import { followLink } from "../editor/links";
 import { deckOf, decks } from "../document/slides";
 import { MarkdownTools } from "./MarkdownTools";
 import { TextProperties } from "./TextProperties";
@@ -27,13 +37,7 @@ import { fitText } from "../editor/textLayout";
 import { useCompletedField } from "./useCompletedField";
 import type { CompletedActions } from "../document/actions";
 import type { CanvasDocument } from "../document/canvasDocument";
-import {
-  addComment,
-  deleteComment,
-  groupThreads,
-  listComments,
-  setResolved,
-} from "../document/comments";
+import { groupThreads, listComments } from "../document/comments";
 import {
   addBranch,
   addReference,
@@ -44,6 +48,7 @@ import {
   zoomIntoSelection,
 } from "../editor/topics";
 import {
+  changeFields,
   changeGeometry,
   changeSelectionLook,
   changeSelectionStyle,
@@ -54,15 +59,11 @@ import {
 
 type ItemProps = Readonly<{ editor: EditorController; item: Item }>;
 
-export function Inspector({
-  editor,
-  author,
-}: Readonly<{ editor: EditorController; author: string }>) {
+export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   const selected = editor.selected();
   const item = selected[0];
   const several = selected.length > 1;
   const showText = !several && item && hasText(item);
-  const actions = useSelectionActions(editor);
   if (!item) return null;
   const canvas = editor.document;
   const textItems = selected.filter(hasText);
@@ -75,7 +76,7 @@ export function Inspector({
         <strong data-testid="selection-count">
           {several ? `${selected.length} objects` : typeLabel(item)}
         </strong>
-        <SelectionActions selected={selected} actions={actions} />
+        <SelectionActions editor={editor} />
       </header>
       {showText && <ObjectText canvas={canvas} item={item} />}
       <TopicControls
@@ -93,6 +94,18 @@ export function Inspector({
         onAlign={(mode) => alignSelection(editor, mode)}
         onDistribute={(axis) => distributeSelection(editor, axis)}
       />
+      <FieldControls
+        selected={selected}
+        items={canvas.list()}
+        onChange={(values) =>
+          changeFields(
+            canvas,
+            selected.map((item) => item.id),
+            values
+          )
+        }
+        onFollow={(link) => followLink(editor, link)}
+      />
       <StyleControls
         item={item}
         names={[...canvas.styles.keys()].sort((a, b) => a.localeCompare(b))}
@@ -109,23 +122,8 @@ export function Inspector({
           onFit={() => textItems.forEach((selected) => void fitText(canvas, selected.id))}
         />
       </StyleControls>
-      {!several && <SingleItemControls editor={editor} item={item} author={author} />}
+      {!several && <SingleItemControls editor={editor} item={item} />}
     </aside>
-  );
-}
-
-function useSelectionActions(editor: EditorController) {
-  return useMemo(
-    () => ({
-      connect: () => editor.connect(),
-      group: () => editor.group(),
-      ungroup: () => editor.ungroup(),
-      front: () => editor.stack("front"),
-      back: () => editor.stack("back"),
-      duplicate: () => editor.duplicate(),
-      remove: () => editor.remove(),
-    }),
-    [editor]
   );
 }
 
@@ -156,7 +154,7 @@ function ObjectText({ canvas, item }: Readonly<{ canvas: CanvasDocument; item: I
 }
 
 /** Controls that only make sense for one item at a time. */
-function SingleItemControls({ editor, item, author }: ItemProps & Readonly<{ author: string }>) {
+function SingleItemControls({ editor, item }: ItemProps) {
   const canvas = editor.document;
   const look = effectiveAppearance(item, canvas.namedStyle(item.style));
   const onSize = (width: number, height: number) =>
@@ -198,13 +196,28 @@ function SingleItemControls({ editor, item, author }: ItemProps & Readonly<{ aut
         )
       )}
       <ScreenSizeControl item={item} onSize={onSize} />
-      <CommentControls
-        threads={groupThreads(listComments(canvas), item.id)}
-        onAdd={(text, thread = "") => addComment(canvas, { on: item.id, author, text, thread })}
-        onDelete={(id) => deleteComment(canvas, id)}
-        onResolve={(id, resolved) => setResolved(canvas, id, resolved)}
+      <PropertiesControls
+        item={item}
+        onChange={(properties) => changeFields(canvas, [item.id], { properties })}
       />
+      <CommentsButton editor={editor} item={item} />
     </>
+  );
+}
+
+/** Comments open in a modal above the object; the panel only says how many and opens them. */
+function CommentsButton({ editor, item }: ItemProps) {
+  const threads = groupThreads(listComments(editor.document), item.id);
+  const open = threads.filter((thread) => !thread.root.resolved).length;
+  const label = threads.length
+    ? `Comments (${open} open, ${threads.length - open} resolved)`
+    : "Add a comment";
+  return (
+    <Section title="Comments">
+      <button className="text-action" onClick={() => showComments(editor, item.id)}>
+        <MessageSquare size={14} /> {label}
+      </button>
+    </Section>
   );
 }
 
@@ -259,45 +272,31 @@ function ActionButton({
   );
 }
 
-function SelectionActions({
-  actions,
-  selected,
-}: Readonly<{
-  actions: {
-    connect: () => void;
-    group: () => void;
-    ungroup: () => void;
-    front: () => void;
-    back: () => void;
-    duplicate: () => void;
-    remove: () => void;
-  };
-  selected: Item[];
-}>) {
+/** The header's actions are registry commands; their labels and availability come from there. */
+const HEADER_ACTIONS: { id: string; label: string; icon: LucideIcon; tone?: string }[] = [
+  { id: "structure.connect", label: "Connect", icon: Link2 },
+  { id: "edit.group", label: "Group", icon: Group },
+  { id: "edit.ungroup", label: "Ungroup", icon: Ungroup },
+  { id: "arrange.front", label: "To front", icon: BringToFront },
+  { id: "arrange.back", label: "To back", icon: SendToBack },
+  { id: "edit.duplicate", label: "Duplicate", icon: Copy },
+  { id: "edit.delete", label: "Delete selection", icon: Trash2, tone: "danger" },
+];
+
+function SelectionActions({ editor }: Readonly<{ editor: EditorController }>) {
+  const context = commandContext(editor);
   return (
     <div className="selection-actions" role="toolbar" aria-label="Selection actions">
-      <ActionButton
-        label="Connect"
-        icon={Link2}
-        onClick={actions.connect}
-        disabled={selected.length !== 2}
-      />
-      <ActionButton
-        label="Group"
-        icon={Group}
-        onClick={actions.group}
-        disabled={selected.length < 2}
-      />
-      <ActionButton
-        label="Ungroup"
-        icon={Ungroup}
-        onClick={actions.ungroup}
-        disabled={!selected.some((value) => value.type === "group")}
-      />
-      <ActionButton label="To front" icon={BringToFront} onClick={actions.front} />
-      <ActionButton label="To back" icon={SendToBack} onClick={actions.back} />
-      <ActionButton label="Duplicate" icon={Copy} onClick={actions.duplicate} />
-      <ActionButton label="Delete selection" icon={Trash2} tone="danger" onClick={actions.remove} />
+      {HEADER_ACTIONS.map(({ id, label, icon, tone }) => (
+        <ActionButton
+          key={id}
+          label={label}
+          icon={icon}
+          tone={tone}
+          disabled={!isAvailable(findCommand(id), context)}
+          onClick={() => runCommand(editor, id)}
+        />
+      ))}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { SIDES, DRAWING_WORDS } from "./syntax";
 import { lookEntries } from "./look";
 import { exportItems } from "../document/exportItems";
 import { selectedItems } from "../document/relations";
+import { editedWords, fieldWords } from "./fields";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -105,7 +106,12 @@ export function linkStatement(item: Item, present?: Set<string>) {
   if (item.name) parts.push(quote(item.name));
   parts.push("as", item.id);
   if (item.style) parts.push(item.style);
-  parts.push(...lookWords(item.look, arrowSkips(item)), ...route(item, present));
+  parts.push(
+    ...fieldWords(item),
+    ...lookWords(item.look, arrowSkips(item)),
+    ...route(item, present),
+    ...editedWords(item)
+  );
   return parts.join(" ");
 }
 
@@ -157,10 +163,11 @@ export function itemStatement(item: Item, standalone = false) {
   if (isLink(item)) return linkStatement(item);
   const parts: string[] = [item.type, item.id, ...names(item), ...identity(item)];
   if (item.arrange) parts.push(...arrangeWords(item.arrange));
-  parts.push(...lookWords(item.look));
+  parts.push(...fieldWords(item), ...lookWords(item.look));
   if (item.type === "drawing") parts.push("points", ...item.points.map(([x, y]) => pair(x, y)));
   else parts.push("at", pair(item.x, item.y), "size", pair(item.width, item.height));
   if (standalone && item.inside) parts.push("in", item.inside);
+  parts.push(...editedWords(item));
   return parts.join(" ");
 }
 

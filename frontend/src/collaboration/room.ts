@@ -32,7 +32,10 @@ export function parseRoom(value: string) {
     /* Raw room codes need no URL parsing. */
   }
   const prefix = candidate.startsWith("local=") ? LOCAL_PREFIX : lockedPrefix(candidate);
+  // A link may name an item to open at, after the room: #room=…&item=<id>.
   candidate = candidate.replace(/^(room|local|locked)=/, "");
+  const extra = candidate.search(/[&?]/);
+  if (extra >= 0) candidate = candidate.slice(0, extra);
   if (!/^[a-f0-9]{48}$/.test(candidate)) return null;
   return `${prefix}${candidate}`;
 }

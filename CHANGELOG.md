@@ -17,6 +17,62 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added readable history: undo steps named by what they did, in a rail panel that returns to any
+  step. Added properties on objects, shown on hover and in labels as {name}, in the canvas
+  language as `property`. Added copy as PNG, SVG export carrying the canvas text, and a tree
+  copied as Markdown. Frame and slide titles stay readable at any zoom. Added touch and pen
+  handling: finger pan, long press for the menu, two- and three-finger undo and redo, pen
+  draws. The chrome follows the system's dark mode; canvas colours stay as authored. A live
+  region announces the selection and tool for assistive technology.
+
+- Changed the pointer buttons to the standard mapping: the middle button pans and the right
+  button opens a command ring with a context menu beside it; a right drag strokes a wedge.
+  Comments now open on purpose, from the mark, Shift C or the menu, into a modal above the
+  object instead of the property panel. Added a floating selection toolbar, quick-create dots
+  that grow connected copies, connectors that make their target when dropped in space,
+  change-shape-in-place, swap positions, reverse and straighten lines, fit a frame to its
+  contents, docked frames, tables, task lists, arithmetic in the geometry fields and
+  Alt-resize from the centre.
+
+- Added presence that says where and what: a participant list with Follow, a call to bring
+  everyone over that each person answers, a laser held on K, cursor chat on /, and links that
+  open a room at an object. Viewports now travel on presence; nothing is written to the document.
+
+- Added an outline of the selected tree in the left rail that folds, renames and reorders it;
+  layout verbs that tidy a tree to one side, downward, compactly, sorted or balanced, tidy loose
+  objects into a grid and lay a connected diagram out as a flow; numbered branches; slides made
+  from a tree's branches; capture of notes that stack and become a tree; typed shorthand for
+  tags, tasks and markers; a filter bar that dims what does not match and gathers what does.
+
+- Added keyboard editing and walking of trees: arrows move through branches and siblings or to
+  the nearest object, Alt Up and Down swap siblings, Shift Tab promotes, Ctrl Delete removes a
+  topic keeping its branches, Ctrl Alt Arrow grows a connected copy, Ctrl Arrow nudges, digits
+  show a number of levels, a period focuses on a subtree, and Alt Enter mid-text splits a topic.
+  Trees written by an assistant in one go now lay out as they are written.
+
+- Added copy and paste style, a per-page default look for new objects of a kind, selection by
+  same type, style or fill, children, siblings and connected objects, invert selection, and Alt
+  click to step down through stacked objects.
+
+- Added find on canvas over names, subtitles, tags, comments and ids, stepping through matches
+  with a pulse; zoom keys for 100%, fit canvas and fit selection; a typed zoom percentage; a view
+  history with back and forward after every jump; and a Back to content button when the view
+  is empty.
+
+- Added copy, cut and paste: the selection copies as canvas language with its pictures and
+  pastes into any room under the pointer or in place, canvas language from anywhere pastes as
+  objects, and pasted lines become notes, a topic tree or a text block.
+
+- Added a command palette on Ctrl/Command K that lists every command that applies with its
+  shortcut, ranks what is typed and keeps recent commands first; hotkeys, the panel's actions and
+  the rail's labels read the same command table. Added keys for the connector, text, ellipse and
+  frame tools, lock, hide, collapse, tasks and zoom.
+
+- Added fields every object and line carries, in the property panel, files and the canvas
+  language alike: lock, hide, collapse with a folded count, tags, priority and progress markers,
+  task checkboxes with done counts on holders and topics, links to addresses or canvas targets,
+  and who last edited the object, person or assistant.
+
 - Added shared markup with pen widths, highlighter, attached object outlines, drag-oriented
   arrows and common shapes, lasso selection and whole/partial erasing. Promote markup into
   editable Drawing objects, use closed fills and gradients, and export with or without markup.

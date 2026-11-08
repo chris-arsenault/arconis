@@ -1,8 +1,9 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments, openThreadCounts } from "../document/comments";
-import { referenceCounts } from "../document/relations";
+import { branchNumbers, foldedBy, referenceCounts, taskCounts } from "../document/relations";
 import { deckOf, isSlide, isTemplate } from "../document/slides";
+import { isBox, type Item, type Marker } from "../document/types";
 import { hasHiddenDetail } from "./culling";
 
 /** What surrounds a label: a slide's deck and number before it, signs after it. */
@@ -12,10 +13,57 @@ export interface Marks {
 }
 const NONE: Marks = { before: "", after: "" };
 
+/** How each marker reads in a label: a priority, or progress in quarters. */
+export const MARKER_SIGNS: Record<Marker, string> = {
+  p1: "P1",
+  p2: "P2",
+  p3: "P3",
+  p4: "P4",
+  p5: "P5",
+  q0: "○",
+  q1: "◔",
+  q2: "◑",
+  q3: "◕",
+  q4: "●",
+};
+const TASK_SIGNS = { open: "☐", done: "☑" };
+
+/** The signs an item's own fields add, before and after its name. */
+function fieldMarks(
+  item: Item,
+  items: Item[],
+  tasks: Map<string, { done: number; total: number }>
+) {
+  const before: string[] = [];
+  const after: string[] = [];
+  if (item.task) before.push(TASK_SIGNS[item.task]);
+  if (item.locked) before.push("🔒");
+  if (item.collapsed) {
+    const folded = [...foldedBy(items, item.id)].filter((id) => {
+      const inner = items.find((candidate) => candidate.id === id);
+      return inner && isBox(inner) && !inner.onLine;
+    });
+    if (folded.length) after.push(`▸${folded.length}`);
+  }
+  const count = tasks.get(item.id);
+  if (count) after.push(`${count.done}/${count.total}`);
+  if (item.marker) after.push(MARKER_SIGNS[item.marker]);
+  if (item.tags?.length) after.push(...item.tags.map((tag) => `#${tag}`));
+  return { before, after };
+}
+
+/** A slide's deck and number, or "template", before its name; nothing for other items. */
+function slidePlace(item: Item) {
+  if (!isSlide(item)) return "";
+  const place = isTemplate(item) ? "template" : String(item.slide ?? 0);
+  return `${deckOf(item)} · ${place}`;
+}
+
 /**
- * Signs added to a label: hidden detail, references and open comments, and a slide's place in its
- * deck. They come from one pass per document change, because labels are read for every object at
- * every zoom step. `before` comes from peers and is escaped where the label is composed.
+ * Signs added to a label: hidden detail, references and open comments, a slide's place in its
+ * deck, and the item's own flags, tasks, marker and tags. They come from one pass per document
+ * change, because labels are read for every object at every zoom step. Everything here is escaped
+ * where the label is composed, since names and tags come from peers.
  */
 export class LabelMarks {
   private marks = new Map<string, Marks>();
@@ -36,20 +84,19 @@ export class LabelMarks {
     const items = this.document.list();
     const references = referenceCounts(items);
     const comments = openThreadCounts(listComments(this.document));
+    const tasks = taskCounts(items);
+    const numbers = branchNumbers(items);
     const next = new Map<string, Marks>();
-    for (const id of new Set([...references.keys(), ...comments.keys()])) {
-      const parts = [
-        references.has(id) ? `↗${references.get(id)}` : "",
-        comments.has(id) ? `💬${comments.get(id)}` : "",
-      ];
-      next.set(id, { before: "", after: parts.filter(Boolean).join(" ") });
-    }
-    for (const slide of items.filter(isSlide)) {
-      const place = isTemplate(slide) ? "template" : String(slide.slide ?? 0);
-      next.set(slide.id, {
-        before: `${deckOf(slide)} · ${place}`,
-        after: next.get(slide.id)?.after ?? "",
-      });
+    for (const item of items) {
+      const own = fieldMarks(item, items, tasks);
+      const after = [
+        ...own.after,
+        references.has(item.id) ? `↗${references.get(item.id)}` : "",
+        comments.has(item.id) ? `💬${comments.get(item.id)}` : "",
+      ].filter(Boolean);
+      const before = [slidePlace(item), numbers.get(item.id) ?? "", ...own.before].filter(Boolean);
+      if (before.length || after.length)
+        next.set(item.id, { before: before.join(" "), after: after.join(" ") });
     }
     const same = (a?: Marks, b?: Marks) => a?.before === b?.before && a?.after === b?.after;
     const changed = [...new Set([...this.marks.keys(), ...next.keys()])].filter(

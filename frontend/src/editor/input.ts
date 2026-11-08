@@ -3,7 +3,11 @@ import { PanningHandler, type CellState } from "@maxgraph/core";
 import { isUnderlay } from "./templates";
 import { clampScale, creationValues } from "./zoom";
 import { bindDrawingInput } from "./drawingInput";
-import { addBranch, zoomIntoSelection, zoomOutOfSelection } from "./topics";
+import { commandContext, commandForKey, runCommand, showComments } from "./registry";
+import { bindPointerButtons, configureButtons } from "./pointerButtons";
+import { configureCentredResize, configureCreateTarget } from "./createTarget";
+import { nextInStack } from "./selectBy";
+import { changeFields } from "./commands";
 
 function isTyping(target: EventTarget | null) {
   return (
@@ -22,69 +26,39 @@ function activatesControl(target: EventTarget | null, key: string) {
 }
 
 /** Tab belongs to the page unless the canvas has focus and something is selected. */
-function tabKey(editor: EditorController, event: KeyboardEvent) {
-  const onCanvas = event.target === document.body || editor.element.contains(event.target as Node);
-  if (onCanvas && !event.shiftKey && addBranch(editor)) event.preventDefault();
+function onCanvas(editor: EditorController, event: KeyboardEvent) {
+  return event.target === document.body || editor.element.contains(event.target as Node);
 }
 
-function editSelection(editor: EditorController) {
-  const item = editor.selected()[0];
-  if (item) editor.edit(item.id);
-}
-
-function keyboard(editor: EditorController, event: KeyboardEvent) {
-  const modifier = event.ctrlKey || event.metaKey;
+/** Whether the canvas's shortcuts apply to this key, rather than a text field or the palette. */
+function takesKey(editor: EditorController, event: KeyboardEvent) {
   const key = event.key.toLowerCase();
   // A presentation has its own keys, and nothing is being edited.
-  if (editor.presenter.active) return;
-  if (isTyping(event.target) || activatesControl(event.target, key)) return;
-  const actions: Record<string, () => void> = {
-    delete: () => editor.remove(),
-    backspace: () => editor.remove(),
-    escape: () => editor.clearEditing(),
-    v: () => editor.setTool("select"),
-    h: () => editor.setTool("pan"),
-    n: () => editor.setTool("note"),
-    r: () => editor.setTool("rectangle"),
-    d: () => editor.setTool("decision"),
-    p: () => editor.setTool("draw"),
-    "]": () => editor.stack("front"),
-    "[": () => editor.stack("back"),
-    enter: () => (event.altKey ? addBranch(editor, true) : editSelection(editor)),
-    z: () => (event.shiftKey ? zoomOutOfSelection(editor) : zoomIntoSelection(editor)),
-  };
-  if (modifier) return modifiedKey(editor, event);
-  if (key === "tab") {
-    tabKey(editor, event);
-    return;
-  }
-  if (key === " ") {
-    event.preventDefault();
-    editor.setTool("pan");
-  } else if (actions[key]) {
-    event.preventDefault();
-    actions[key]();
-  }
+  if (editor.presenter.active) return false;
+  if (isTyping(event.target) || activatesControl(event.target, key)) return false;
+  const paletteKey = key === "k" && (event.ctrlKey || event.metaKey);
+  return !editor.ui.palette || paletteKey;
 }
 
-function modifiedKey(editor: EditorController, event: KeyboardEvent) {
-  const actions: Record<string, () => void> = {
-    z: () => (event.shiftKey ? editor.document.undo.redo() : editor.document.undo.undo()),
-    y: () => editor.document.undo.redo(),
-    a: () => editor.graph.selectAll(),
-    d: () => editor.duplicate(),
-    g: () => (event.shiftKey ? editor.ungroup() : editor.group()),
-  };
-  const action = actions[event.key.toLowerCase()];
-  if (action) {
+/**
+ * Keys run commands from the registry, so a key means the same everywhere it applies. Space is a
+ * hold rather than a command, and the palette takes its own keys while it is open.
+ */
+function keyboard(editor: EditorController, event: KeyboardEvent) {
+  if (!takesKey(editor, event)) return;
+  if (event.key === " " && !event.ctrlKey && !event.metaKey) {
     event.preventDefault();
-    action();
-    editor.emit();
+    editor.setTool("pan");
+    return;
   }
+  const command = commandForKey(event, commandContext(editor));
+  if (!command || (event.key === "Tab" && !onCanvas(editor, event))) return;
+  event.preventDefault();
+  runCommand(editor, command.id);
 }
 
 /** The object under the pointer, looking through templates' underlays to what lies beneath. */
-function cellAt(editor: EditorController, event: MouseEvent) {
+export function cellAt(editor: EditorController, event: MouseEvent) {
   if (event.target instanceof Node) {
     for (const [cell, state] of editor.graph.view.states)
       if (!isUnderlay(cell) && state.text?.node?.contains(event.target)) return cell;
@@ -103,8 +77,39 @@ function cellAt(editor: EditorController, event: MouseEvent) {
   );
 }
 
+/** How far a pointer may move before an Alt click becomes an Alt drag. */
+const CLICK_SLOP = 4;
+
+/**
+ * An Alt click on stacked objects steps down to the one beneath the selection. It happens on
+ * release without movement, so an Alt drag still moves a topic alone as maxGraph has it.
+ */
+function bindStackCycling(editor: EditorController, options: { signal: AbortSignal }) {
+  let down: { clientX: number; clientY: number } | null = null;
+  editor.element.addEventListener(
+    "pointerdown",
+    (event) => {
+      down = event.altKey && event.button === 0 && editor.tool === "select" ? event : null;
+    },
+    { ...options, capture: true }
+  );
+  window.addEventListener(
+    "pointerup",
+    (event) => {
+      if (!down || !event.altKey) return;
+      const moved = Math.hypot(event.clientX - down.clientX, event.clientY - down.clientY);
+      down = null;
+      if (moved > CLICK_SLOP) return;
+      const next = nextInStack(editor.document.list(), editor.selected(), editor.worldPoint(event));
+      if (next) editor.select(next.id);
+    },
+    options
+  );
+}
+
 function bindPointerTools(editor: EditorController, options: { signal: AbortSignal }) {
   let pendingEdit = "";
+  bindStackCycling(editor, options);
   editor.element.addEventListener(
     "pointerdown",
     (event) => {
@@ -157,6 +162,20 @@ export function bindCanvasInput(editor: EditorController) {
     },
     options
   );
+  // A click on a label's folded count expands the item; one on its comment count opens them.
+  editor.element.addEventListener(
+    "click",
+    (event) => {
+      if (!(event.target instanceof Element)) return;
+      const mark = event.target.closest("[data-mark]")?.getAttribute("data-mark");
+      if (!mark) return;
+      const cell = cellAt(editor, event);
+      if (!cell?.id) return;
+      if (mark === "collapsed") changeFields(editor.document, [cell.id], { collapsed: undefined });
+      if (mark === "comments") showComments(editor, cell.id);
+    },
+    { ...options, capture: true }
+  );
   // Capture: maxGraph consumes double-clicks on shape nodes before they can bubble here.
   editor.element.addEventListener(
     "dblclick",
@@ -170,6 +189,12 @@ export function bindCanvasInput(editor: EditorController) {
     ...options,
     passive: false,
   });
+  editor.element.addEventListener(
+    "pointermove",
+    ({ clientX, clientY }) => (editor.pointer = { clientX, clientY }),
+    options
+  );
+  editor.element.addEventListener("pointerleave", () => (editor.pointer = null), options);
   window.addEventListener("keydown", (event) => keyboard(editor, event), options);
   window.addEventListener(
     "keyup",
@@ -178,8 +203,13 @@ export function bindCanvasInput(editor: EditorController) {
     },
     options
   );
+  // The right button opens the menu and the middle button pans; maxGraph handles the left alone.
   const pan = editor.graph.getPlugin<PanningHandler>("PanningHandler");
-  if (pan) pan.usePopupTrigger = true;
+  if (pan) pan.usePopupTrigger = false;
+  configureButtons(editor.band);
+  bindPointerButtons(editor, abort.signal);
+  configureCreateTarget(editor.graph, editor.document);
+  configureCentredResize();
   return () => abort.abort();
 }
 

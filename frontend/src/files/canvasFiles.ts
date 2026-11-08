@@ -31,9 +31,19 @@ export class CanvasFiles {
     this.signal.throwIfAborted();
     const renames = await this.preparePictures(content);
     this.signal.throwIfAborted();
-    const count = importDocument(this.document, content, renames);
+    const created = importDocument(this.document, content, renames);
     this.imported();
-    return count;
+    return created.length;
+  }
+
+  /** Pasted canvas text: its pictures are kept here first, then its items placed by `place`. */
+  async paste(content: string, place: (created: string[]) => void) {
+    this.signal.throwIfAborted();
+    const renames = await this.preparePictures(content);
+    this.signal.throwIfAborted();
+    const created = importDocument(this.document, content, renames, place, true);
+    this.imported();
+    return created;
   }
 
   /** Whole-document canvas files and selected PNG copies share the same portable representation. */

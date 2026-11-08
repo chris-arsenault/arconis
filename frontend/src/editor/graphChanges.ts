@@ -1,9 +1,11 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { LOCAL, type Item, type PathPoint, type Port } from "../document/types";
+import { LOCAL, isFrame, type Item, type PathPoint, type Port } from "../document/types";
 import { offsetPoints } from "../document/geometry";
 import { orphanedAnchors, removalClosure } from "../document/relations";
 import { isUnderlay } from "./templates";
+import { dockedFollowers } from "../document/docking";
+import { TASKS_TAG } from "./stencils";
 
 export function commitGraph(graph: Graph, document: CanvasDocument) {
   // Underlays are the projection's own cells, drawn from templates; they never reach the document.
@@ -33,22 +35,73 @@ function commitCell(cell: Cell, values: Partial<Item>, document: CanvasDocument)
   if (!cell.id || !cell.geometry) return;
   const existing = document.get(cell.id);
   if (existing) {
-    if (heightWasResized(existing, values)) document.patchLook(cell.id, { textFit: "fixed" });
-    document.patch(cell.id, values);
-    // Native rotation handles write the angle to the cell style, not its geometry.
-    const rotation = cell.getStyle().rotation;
-    if (rotation !== undefined && rotation !== existing.look.rotation)
-      document.patchLook(cell.id, { rotation });
-    if (cell.isEdge()) commitPorts(cell, existing, document);
-  } else {
-    // maxGraph makes cells of its own only when grouping or connecting.
-    const type = cell.isEdge() ? "line" : "group";
-    document.insert({
-      ...document.build(type, 0, 0, { order: newCellOrder(cell, document) }),
-      id: cell.id,
-      ...values,
-    });
+    commitExisting(cell, existing, values, document);
+    return;
   }
+  // maxGraph makes cells of its own when grouping, connecting, or ending a connector in space.
+  const cloneOf = (cell.getStyle() as Record<string, unknown>).cloneOf;
+  const template = typeof cloneOf === "string" ? document.get(cloneOf) : null;
+  const type = cell.isEdge() ? "line" : (template?.type ?? "group");
+  document.insert({
+    ...document.build(type, 0, 0, { order: newCellOrder(cell, document) }),
+    ...(template ? copiedFields(template) : {}),
+    id: cell.id,
+    ...values,
+  });
+}
+
+/** What a connector's new far end takes from its source: its kind and look, not its words. */
+function copiedFields(template: Item): Partial<Item> {
+  return {
+    stencil: template.stencil,
+    style: template.style,
+    look: { ...template.look },
+    icon: template.icon,
+    width: template.width,
+    height: template.height,
+  };
+}
+
+function commitExisting(
+  cell: Cell,
+  existing: Item,
+  values: Partial<Item>,
+  document: CanvasDocument
+) {
+  if (heightWasResized(existing, values)) document.patchLook(cell.id!, { textFit: "fixed" });
+  // A collapsed frame is drawn as its title bar; the document keeps its full size.
+  if (existing.collapsed && isFrame(existing)) delete values.height;
+  followEdges(existing, values, document);
+  joinTaskList(existing, values, document);
+  document.patch(cell.id!, values);
+  // Native rotation handles write the angle to the cell style, not its geometry.
+  const rotation = cell.getStyle().rotation;
+  if (rotation !== undefined && rotation !== existing.look.rotation)
+    document.patchLook(cell.id!, { rotation });
+  if (cell.isEdge()) commitPorts(cell, existing, document);
+}
+
+/** Frames docked to a resized frame's edges move their edges with it. */
+function followEdges(existing: Item, values: Partial<Item>, document: CanvasDocument) {
+  if (!isFrame(existing)) return;
+  const after = { ...existing, ...values };
+  const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  if (
+    same(existing.x, after.x) &&
+    same(existing.y, after.y) &&
+    same(existing.width, after.width) &&
+    same(existing.height, after.height)
+  )
+    return;
+  for (const patch of dockedFollowers(document.list(), existing, existing, after))
+    document.patch(patch.id, patch.values);
+}
+
+/** An object dragged into a task list becomes a task, as its neighbours are. */
+function joinTaskList(existing: Item, values: Partial<Item>, document: CanvasDocument) {
+  if (values.inside === undefined || values.inside === existing.inside || existing.task) return;
+  const holder = document.get(values.inside);
+  if (holder?.tags?.includes(TASKS_TAG)) values.task = "open";
 }
 
 function heightWasResized(existing: Item, values: Partial<Item>) {

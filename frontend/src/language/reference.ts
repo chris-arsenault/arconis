@@ -24,7 +24,7 @@ Types:
 - frame: a container with a title. group: a light dashed container.
 - band: a highlight behind items, spanning across frames: band <id> "name" / "subtitle" over a, b, c. It is sized to cover them once everything is placed.
 - text: free text. note: a sticky note. picture: an image people added (agents do not add pictures).
-Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up. For an id matching a new drawing attribute (ink, target, markup or workspace), follow the id with a quoted name, which may be empty; canonical files do this automatically.
+Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up. For an id that is also an attribute word (ink, target, markup, workspace, locked, hidden, collapsed, numbered, tags, marker, task, link, property or edited), follow the id with a quoted name, which may be empty; canonical files do this automatically.
 The name and subtitle are both optional: node r2 / "Amazon Aurora" has only a subtitle. Write \\n in text for a line break.
 
 Example:
@@ -83,6 +83,20 @@ Named styles are declared once and used by name. A style's name must not be a st
   frame r1 "us-east-1" region { ... }
 An item's own look applies over its style. Restating a style replaces it everywhere it is used.
 
+## Flags, tags, tasks and links
+
+Any item or line takes these among its attributes, whatever its type; canonical output prints them after what the item is and before its look:
+- locked: pointer edits in the browser leave it alone until someone unlocks it; agents may still change it. locked off unlocks.
+- hidden: not drawn, not routed around, not in exported pictures and not counted by layout; its holder, what it holds and its lines stay in the canvas. hidden off shows it again.
+- collapsed: an item that holds or heads others shows without them; a frame shrinks to its title bar, a topic keeps its node, and a count badge says how many are folded away. Shared with everyone. collapsed off expands.
+- numbered: a topic's branches show tiered numbers, 1, 1.1, 1.2, in the order they sit, so a person or an agent can say "change 2.3". numbered off removes them.
+- tags a, b, c: free categorical words of letters, digits, _ and -. Restating tags replaces the list; tags none clears it.
+- marker p1|p2|p3|p4|p5|q0|q1|q2|q3|q4: a small badge, priority 1 (highest) to 5 or progress in quarters 0 to 4; marker none removes it.
+- task open|done: a checkbox in the label; a holder or topic over tasks shows how many are done. task none removes it.
+- link "https://…" or link <id>: a web address, or an item, slide or saved view to fly to; link none removes it.
+- property <name> "value": a named value the item carries, such as property owner "Ada" or property ticket "ARC-12"; write several. People see them on hover, and {name} in a label shows the value there. property <name> none removes one.
+- edited "name" at <milliseconds>: who last changed the item and when. The canvas sets it on every edit by a person or an agent; files carry it.
+
 ## Changing what exists
 
 - Restate an item by its id to change it: node api "Orders API v2" fill #fff7d6. Only what you write changes.
@@ -90,7 +104,7 @@ An item's own look applies over its style. Restating a style replaces it everywh
 - An existing id named alone inside a block moves that item into the block: frame r2 { api }
 - Restate a line by its id: a -> c as w1 "new label"
 - delete a, b removes items with everything they hold and their lines.
-- tidy <id> lays out a mind map's topics under the given topic.
+- tidy <id> lays out a mind map's topics under the given topic, each branch on the side it already lies. tidy <id> right, left or down puts every branch on that side or beneath; compact tightens the gaps; sorted orders branches by name: tidy root down sorted.
 - title "Canvas name" renames the canvas.
 
 ## Drawings and markup

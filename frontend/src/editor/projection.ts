@@ -1,8 +1,9 @@
 import { Cell, Geometry, Graph, Point, type CellStyle } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { isBox, isLink, type Item } from "../document/types";
-import { objectStyle, underlayStyle } from "./styles";
+import { isBox, isLink, type Item, type Look } from "../document/types";
+import { collapsedHeight, objectStyle, underlayStyle } from "./styles";
 import { offsetPoints } from "../document/geometry";
+import { visibleItems } from "../document/relations";
 import { underlays } from "./templates";
 import { highlighted, isMarkup } from "../document/ink";
 import { effectiveAppearance } from "../document/appearance";
@@ -11,6 +12,8 @@ import { effectiveAppearance } from "../document/appearance";
 interface Drawing {
   presenting: boolean;
   underlaid: Set<string>;
+  /** The ids that stay bright while focusing; null when nothing is focused. */
+  bright: Set<string> | null;
 }
 
 function safeParent(item: Item, all: Map<string, Item>) {
@@ -26,9 +29,16 @@ function safeParent(item: Item, all: Map<string, Item>) {
   return item.inside;
 }
 
-export function projectDocument(graph: Graph, document: CanvasDocument, presenting = false) {
+/** `bright` names the items drawn at full strength while the rest dim; null dims nothing. */
+export function projectDocument(
+  graph: Graph,
+  document: CanvasDocument,
+  presenting = false,
+  bright: Set<string> | null = null
+) {
   const model = graph.getDataModel();
-  const items = document.list();
+  // Hidden items and what collapsed ones fold away stay in the document and out of the graph.
+  const items = visibleItems(document.list());
   // Underlays come first, so within a slide they stack under what the slide holds itself.
   const underlaid = underlays(items);
   const targetIds = new Set(
@@ -52,7 +62,11 @@ export function projectDocument(graph: Graph, document: CanvasDocument, presenti
       highlighted(item, targets, seenHighlights, document.namedStyle(item.style)),
     ])
   );
-  const drawing: Drawing = { presenting, underlaid: new Set(underlaid.map((item) => item.id)) };
+  const drawing: Drawing = {
+    presenting,
+    underlaid: new Set(underlaid.map((item) => item.id)),
+    bright,
+  };
   const parent = graph.getDefaultParent();
   model.beginUpdate();
   try {
@@ -106,15 +120,27 @@ function updateCell(
   const cell = model.getCell(item.id)!;
   if (cell.parent !== parent) model.add(parent, cell);
   if (cell.value !== item.name) model.setValue(cell, item.name);
-  const own = objectStyle(item, document.namedStyle(item.style), drawing.presenting);
-  const style = drawing.underlaid.has(item.id) ? underlayStyle(own, drawing.presenting) : own;
+  const style = cellStyle(item, document, drawing);
   if (!stylesEqual(style, cell.getStyle())) model.setStyle(cell, style);
   if (isLink(item)) attachTerminals(graph, item, cell);
   const origin = all.get(cell.parent!.id!) || { x: 0, y: 0 };
   const geometry = cell.isEdge()
     ? edgeGeometry(item, origin)
-    : new Geometry(item.x - origin.x, item.y - origin.y, item.width, item.height);
+    : boxGeometry(item, origin, document.namedStyle(item.style));
   if (!cell.geometry?.equals(geometry)) model.setGeometry(cell, geometry);
+}
+
+/** An item's style as drawn now: its own look, dimmed outside a focus, faint as an underlay. */
+function cellStyle(item: Item, document: CanvasDocument, drawing: Drawing) {
+  const dimmed = drawing.bright !== null && !drawing.bright.has(item.id);
+  const own = objectStyle(item, document.namedStyle(item.style), drawing.presenting, dimmed);
+  return drawing.underlaid.has(item.id) ? underlayStyle(own, drawing.presenting) : own;
+}
+
+/** A box's geometry within its holder; a collapsed frame is drawn as its title bar alone. */
+function boxGeometry(item: Item, origin: { x: number; y: number }, named: Look) {
+  const height = collapsedHeight(item, named) ?? item.height;
+  return new Geometry(item.x - origin.x, item.y - origin.y, item.width, height);
 }
 
 /** A line's x and y place its label along it, as maxGraph's relative edge geometry does. */

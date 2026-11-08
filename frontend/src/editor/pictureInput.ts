@@ -7,15 +7,6 @@ import { containerAt } from "./panels";
 const MAX_PLACED_PIXELS = 640;
 const QUALITY = 0.9;
 
-/** Nothing can be added to a password room until its password has opened it. */
-function isLocked(session: RoomSession) {
-  return session.lock !== null && session.lock.state !== "unlocked";
-}
-
-function isTyping(target: EventTarget | null) {
-  return target instanceof HTMLElement && Boolean(target.closest("input, textarea, [role=dialog]"));
-}
-
 /** Redraws through a canvas, which leaves only pixels: no scripts, metadata or location data. */
 async function reencode(file: Blob) {
   const bitmap = await createImageBitmap(file);
@@ -32,7 +23,8 @@ async function reencode(file: Blob) {
   return { bytes: new Uint8Array(await blob.arrayBuffer()), type: blob.type, width, height };
 }
 
-async function placePicture(
+/** Adds a picture file to the room and places it centred on a world point. */
+export async function placePictureFile(
   editor: EditorController,
   session: RoomSession,
   file: Blob,
@@ -62,40 +54,11 @@ function firstImage(files: Iterable<File> | ArrayLike<File> | undefined) {
   return Array.from(files ?? []).find((file) => file.type.startsWith("image/"));
 }
 
-/** Paste places a picture at the pointer, and dropping a file places it where it lands. */
+/** Dropping a picture file places it where it lands; pasting one goes through the clipboard. */
 export function bindPictureInput(editor: EditorController, session: RoomSession) {
   const abort = new AbortController();
   const { element } = editor;
-  let pointer: { clientX: number; clientY: number } | null = null;
   const options = { signal: abort.signal };
-  const place = (file: Blob, event: { clientX: number; clientY: number }) => {
-    placePicture(editor, session, file, editor.worldPoint(event)).catch((error: unknown) =>
-      session.setNotice(error instanceof Error ? error.message : "This picture could not be read.")
-    );
-  };
-  element.addEventListener(
-    "pointermove",
-    ({ clientX, clientY }) => (pointer = { clientX, clientY }),
-    options
-  );
-  window.addEventListener(
-    "paste",
-    (event) => {
-      if (isTyping(event.target) || isLocked(session)) return;
-      const file = firstImage(event.clipboardData?.files);
-      if (!file) return;
-      event.preventDefault();
-      const bounds = element.getBoundingClientRect();
-      place(
-        file,
-        pointer ?? {
-          clientX: bounds.left + bounds.width / 2,
-          clientY: bounds.top + bounds.height / 2,
-        }
-      );
-    },
-    options
-  );
   element.addEventListener("dragover", (event) => event.preventDefault(), options);
   element.addEventListener(
     "drop",
@@ -103,7 +66,11 @@ export function bindPictureInput(editor: EditorController, session: RoomSession)
       const file = firstImage(event.dataTransfer?.files);
       if (!file) return;
       event.preventDefault();
-      place(file, event);
+      placePictureFile(editor, session, file, editor.worldPoint(event)).catch((error: unknown) =>
+        session.setNotice(
+          error instanceof Error ? error.message : "This picture could not be read."
+        )
+      );
     },
     options
   );

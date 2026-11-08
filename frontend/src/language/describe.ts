@@ -4,6 +4,7 @@ import type { Draft } from "./draft";
 import { LanguageError } from "./lexer";
 import type { Attribute } from "./syntax";
 import { attributesFor, checkAttributes, type RoutedAttribute } from "./attributeRouting";
+import { FIELD_DESCRIBERS } from "./fields";
 
 /** What an item is and how it looks, from the attributes that say so. */
 
@@ -46,6 +47,7 @@ function word(item: Item, text: string, { draft, line }: Describing) {
 }
 
 const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
+  ...FIELD_DESCRIBERS,
   markup: (item, attribute, { line }) => {
     if (item.type === "highlight" && !attribute.value)
       throw new LanguageError("Highlights always belong to markup.", line);

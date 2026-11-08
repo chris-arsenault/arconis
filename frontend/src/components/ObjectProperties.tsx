@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { evaluateNumber } from "../editor/arithmetic";
 import { COLORS, type Item, type Look } from "../document/types";
 import type { Appearance } from "../document/appearance";
 import { canColorIcon, canRotate, hasFill, hasLine, hasText } from "../document/capabilities";
@@ -127,21 +128,52 @@ function LineControls({ drawn, change }: StyleProps) {
   );
 }
 
+/**
+ * A number field that applies on Enter or when left, takes arithmetic, and steps by one with the
+ * arrows and ten with Shift.
+ */
+const PLAIN_NUMBER = /^-?\d+(?:\.\d+)?$/;
+
 function NumberField({
   prefix,
   label,
   value,
   onChange,
 }: Readonly<{ prefix: string; label: string; value: number; onChange: (value: number) => void }>) {
+  const shown = String(Number(value.toPrecision(6)));
+  const [text, setText] = useState(shown);
+  const [seen, setSeen] = useState(shown);
+  if (seen !== shown) {
+    setSeen(shown);
+    setText(shown);
+  }
+  const commit = () => {
+    const next = evaluateNumber(text, value);
+    if (next !== null && next !== value) onChange(next);
+    else setText(shown);
+  };
+  // A plain number applies as it is typed; arithmetic waits for Enter or for focus to leave.
+  const typed = (next: string) => {
+    setText(next);
+    if (PLAIN_NUMBER.test(next) && Number(next) !== value) onChange(Number(next));
+  };
   return (
     <label className="number-field" title={label}>
       <span aria-hidden="true">{prefix}</span>
       <input
-        type="number"
+        type="text"
+        inputMode="decimal"
         aria-label={label}
-        value={Number(value.toPrecision(6))}
-        onChange={(event) => {
-          if (event.target.value !== "") onChange(Number(event.target.value));
+        value={text}
+        onChange={(event) => typed(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") commit();
+          else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            event.preventDefault();
+            const step = (event.shiftKey ? 10 : 1) * (event.key === "ArrowUp" ? 1 : -1);
+            onChange(Number((value + step).toPrecision(6)));
+          }
         }}
       />
     </label>

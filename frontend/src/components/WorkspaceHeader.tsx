@@ -8,6 +8,7 @@ import { RoomControls } from "./RoomControls";
 import { ChangePassword } from "./PasswordGate";
 import { AccountButton } from "./AccountControls";
 import { SaveWorkspace } from "./SaveWorkspace";
+import { Participants } from "./Presence";
 import { useCompletedField } from "./useCompletedField";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
@@ -28,6 +29,7 @@ interface Props {
 export function WorkspaceHeader(props: Readonly<Props>) {
   const { session, name, onName, onCreate, onJoin } = props;
   const titleEdit = useCompletedField(session.document.actions);
+  const [participants, setParticipants] = useState(false);
   const states = [...session.provider.awareness.getStates().values()] as Partial<{
     user: { name: string };
   }>[];
@@ -67,13 +69,25 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
         <button
           className="participant-badge"
-          title={`In this room: ${names}. Click to change your name.`}
-          aria-label="Change your name"
-          onClick={props.onEditName}
+          title={`In this room: ${names}. Click to see who is here or change your name.`}
+          aria-label="Participants"
+          aria-expanded={participants}
+          onClick={() => setParticipants(!participants)}
         >
           <span>{name.slice(0, 1).toUpperCase()}</span>
           {people > 1 && <small>+{people - 1}</small>}
         </button>
+        {participants && (
+          <Participants
+            editor={props.editor}
+            session={session}
+            onEditName={() => {
+              setParticipants(false);
+              props.onEditName();
+            }}
+            onClose={() => setParticipants(false)}
+          />
+        )}
         <RoomControls
           onCreate={onCreate}
           onJoin={onJoin}

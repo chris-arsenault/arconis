@@ -54,7 +54,10 @@ async function buildCanvas(page: Page) {
 }
 
 it("exports the whole canvas as a picture that loads back in another room", async () => {
-  const page = await open(await browser.newContext(VIEWPORT), createRoomId());
+  const page = await open(
+    await browser.newContext({ ...VIEWPORT, permissions: ["clipboard-read", "clipboard-write"] }),
+    createRoomId()
+  );
   await buildCanvas(page);
   const scale = await page.getByTestId("zoom-level").textContent();
   const png = await exportPng(page, "export-canvas");
@@ -62,6 +65,25 @@ it("exports the whole canvas as a picture that loads back in another room", asyn
   expect(width).toBeGreaterThan(height);
   expect(inked).toBeGreaterThan(100);
   expect(await page.getByTestId("zoom-level").textContent()).toBe(scale);
+
+  // The same picture reaches the clipboard, and the SVG carries the canvas text in its description.
+  const canvas = page.getByTestId("canvas");
+  const palette = async (command: string) => {
+    await canvas.press("ControlOrMeta+k");
+    const search = page.getByLabel("Search commands", { exact: true });
+    await search.fill(command);
+    await search.press("Enter");
+  };
+  await canvas.click({ position: { x: 40, y: 40 } });
+  await palette("Copy canvas as PNG");
+  await expect
+    .poll(() => page.getByTestId("sync-status").textContent())
+    .toContain("Picture copied");
+  const pending = page.waitForEvent("download");
+  await palette("Export canvas as SVG");
+  const svg = await readFile((await (await pending).path())!, "utf8");
+  expect(svg.startsWith("<svg")).toBe(true);
+  expect(svg).toContain("<desc>arconis 1");
 
   const other = await open(await browser.newContext(VIEWPORT), createRoomId());
   await load(other, "canvas.png", png);

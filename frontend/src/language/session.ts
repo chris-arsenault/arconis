@@ -134,6 +134,10 @@ export class LanguageSession {
       let result!: ReturnType<typeof writeStatements>;
       this.document.doc.transact(() => {
         result = writeStatements(this.document, statements, { author: this.author });
+        // Agents name themselves as the editor of what they wrote, as people do in the browser.
+        const now = Date.now();
+        for (const id of [...result.created, ...result.changed])
+          this.document.stampEditor(id, this.author, now);
       }, this.origin);
       this.undo.stopCapturing();
       const touched = [...result.created, ...result.changed];

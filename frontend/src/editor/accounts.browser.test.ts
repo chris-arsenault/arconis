@@ -44,7 +44,7 @@ it("signs in through Ahara's sign-in page, names the account, and saves a worksp
 
   // The account's name replaces whatever was typed, for everyone in the room.
   await expect
-    .poll(() => peer.getByRole("button", { name: "Change your name" }).getAttribute("title"))
+    .poll(() => peer.getByRole("button", { name: "Participants" }).getAttribute("title"))
     .toContain("Ada Lovelace");
 
   await add(page, "Rectangle (R)", SECRET, 300, 240);

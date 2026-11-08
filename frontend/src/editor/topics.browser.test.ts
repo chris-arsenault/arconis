@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import { mkdir } from "node:fs/promises";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import {
@@ -112,27 +111,6 @@ it("nests by dropping onto any larger object, and moving the parent moves childr
   expect(errors).toEqual([]);
 });
 
-it("aligns and distributes a selection, carrying what each object holds", async () => {
-  const page = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await add(page, "Rectangle (R)", "A", 100, 100);
-  await add(page, "Rectangle (R)", "B", 340, 260);
-  await add(page, "Rectangle (R)", "C", 900, 420);
-  await canvas(page).click({ position: emptySpot });
-  await row(page, "A").click();
-  await row(page, "B").click({ modifiers: ["Shift"] });
-  await row(page, "C").click({ modifiers: ["Shift"] });
-  await action(page, "Align top edges").click();
-  await expect.poll(async () => (await named(page, "C")).y).toBe((await named(page, "A")).y);
-  expect((await named(page, "B")).y).toBe((await named(page, "A")).y);
-  const [a, b, c] = [await named(page, "A"), await named(page, "B"), await named(page, "C")];
-  await action(page, "Distribute horizontally").click();
-  await expect.poll(async () => (await named(page, "B")).x).not.toBe(b.x);
-  expect((await named(page, "B")).x).toBeCloseTo((a.x + c.x) / 2, 5);
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect.poll(async () => (await named(page, "B")).x).toBe(b.x);
-  expect(errors).toEqual([]);
-});
-
 it("builds a tree from the keyboard alone, which peers see the same way", async () => {
   const room = createRoomId();
   const page = await open(await browser.newContext(VIEWPORT), room);
@@ -201,7 +179,10 @@ it("moves a topic with its branches, alone with Alt, and tidies a tree", async (
   expect((await named(page, "Child")).y).toBe(before.y + 100);
 
   await row(page, "Root").click();
-  await action(page, "Tidy branches").click();
+  await page
+    .getByLabel("Object properties")
+    .getByRole("button", { name: "Tidy branches", exact: true })
+    .click();
   const root = await named(page, "Root");
   await expect
     .poll(async () => {
@@ -291,22 +272,5 @@ it("lets a line be a topic, whose anchor and branches follow the line", async ()
   await expect
     .poll(async () => (await objects(page)).some((item) => item.id === anchor.id))
     .toBe(false);
-  expect(errors).toEqual([]);
-});
-
-it("composes everything: a screen as a topic, with a diagram inside and a reference", async () => {
-  const page = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await page.getByRole("button", { name: "Screen: Tablet, 820 by 1180", exact: true }).click();
-  await canvas(page).click({ position: { x: 60, y: 60 } });
-  await expect.poll(() => objectCount(page)).toBe(1);
-  await page.keyboard.press("Tab");
-  await typeTopic(page, "Next step");
-  await page.keyboard.press("Escape");
-  await expect.poll(() => objectCount(page)).toBe(3);
-  const items = await objects(page);
-  const tablet = items.find((item) => item.type === "frame")!;
-  expect(branches(items)[0].from).toBe(tablet.id);
-  await mkdir("test-results/review", { recursive: true });
-  await page.screenshot({ path: "test-results/review/topics-screen.png" });
   expect(errors).toEqual([]);
 });

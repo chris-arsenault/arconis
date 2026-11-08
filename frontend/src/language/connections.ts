@@ -8,6 +8,7 @@ import { BAND_TITLE_ROOM, FRAME_PADDING, footprint, union } from "../document/la
 import type { Attribute, LinkStatement, Segment, Statement } from "./syntax";
 import type { Conversation } from "./effects";
 import { attributesFor, checkAttributes } from "./attributeRouting";
+import { describeField, isFieldAttribute } from "./fields";
 
 export interface PendingLink {
   from: string;
@@ -15,26 +16,41 @@ export interface PendingLink {
   segment: Segment;
   statement: LinkStatement;
 }
+/**
+ * Lines a write has declared but not yet settled, as branch and line items, so placing and
+ * tidying a tree written in one go sees the tree it is building.
+ */
+export function pendingLinkItems(links: PendingLink[]): Item[] {
+  return links.map(({ from, to, segment }, index) => ({
+    ...BLANK,
+    id: `pending link ${index}`,
+    type: segment.type,
+    from,
+    to,
+  }));
+}
+
 export interface PendingBand {
   id: string;
   refs: string[];
   line: number;
 }
 
-/** Applies a line's attributes: style, look, bend points and where its label sits. */
+/** A bare word on a line names its style; nothing else is bare there. */
+function lineStyle(draft: Draft, word: string, line: number) {
+  if (!draft.styles.has(word))
+    throw new LanguageError(`"${word}" is not a style or an attribute of a line.`, line);
+  return word;
+}
+
+/** Applies a line's attributes: style, look, bend points, fields and where its label sits. */
 export function describeLink(draft: Draft, item: Item, attributes: Attribute[], line: number) {
   checkAttributes("link", attributes, line);
   for (const attribute of attributesFor(attributes, "link", "link")) {
     // `around` places a line's points once every item is placed; the writer does that.
     if (attribute.kind === "word" && attribute.word === "around") continue;
-    if (attribute.kind === "word") {
-      if (!draft.styles.has(attribute.word))
-        throw new LanguageError(
-          `"${attribute.word}" is not a style or an attribute of a line.`,
-          line
-        );
-      item.style = attribute.word;
-    } else if (attribute.kind === "look") {
+    if (attribute.kind === "word") item.style = lineStyle(draft, attribute.word, line);
+    else if (attribute.kind === "look") {
       item.look = { ...item.look, ...attribute.look };
       attribute.cleared.forEach((key) => delete item.look[key]);
     } else if (attribute.kind === "via") item.points = attribute.points;
@@ -42,7 +58,8 @@ export function describeLink(draft: Draft, item: Item, attributes: Attribute[], 
     else if (attribute.kind === "label") {
       item.x = attribute.x;
       item.y = attribute.y;
-    } else {
+    } else if (isFieldAttribute(attribute)) describeField(item, attribute);
+    else {
       const unhandled: never = attribute;
       throw new Error(`Unhandled line attribute: ${unhandled}`);
     }

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import * as Y from "yjs";
 import type { CanvasDocument } from "../document/canvasDocument";
+import { applyShorthand } from "../document/shorthand";
 
 interface Selection {
   start: Y.RelativePosition;
@@ -134,7 +135,10 @@ class TextareaBinding {
   };
 
   private finish = () => {
-    this.endAction?.();
+    if (!this.endAction) return;
+    // Typed shorthand such as #tag or [] becomes fields once the edit is done.
+    applyShorthand(this.document, this.id);
+    this.endAction();
     this.endAction = null;
   };
   private outside(target: EventTarget | null) {

@@ -1,4 +1,5 @@
 import type { ItemType, Port } from "../document/types";
+import { TREE_DIRECTIONS, type TreeDirection } from "../document/treeLayout";
 import { tokenize, type ArrowText } from "./lexer";
 import { Cursor, describe } from "./cursor";
 import {
@@ -97,7 +98,21 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     resolved: false,
     line,
   }),
-  tidy: (cursor, line) => ({ kind: "tidy", ref: cursor.ref(), line }),
+  tidy: (cursor, line) => {
+    const statement: Extract<Statement, { kind: "tidy" }> = {
+      kind: "tidy",
+      ref: cursor.ref(),
+      line,
+    };
+    while (cursor.isWord()) {
+      const word = cursor.next().text;
+      if ((TREE_DIRECTIONS as string[]).includes(word)) statement.direction = word as TreeDirection;
+      else if (word === "compact") statement.compact = true;
+      else if (word === "sorted") statement.sorted = true;
+      else cursor.fail(`After tidy <id>, write ${TREE_DIRECTIONS.join("|")}, compact or sorted.`);
+    }
+    return statement;
+  },
   data: (cursor, line) => {
     const hash = cursor.token.kind === "number" ? cursor.next().text : cursor.expectWord("a hash");
     const format = cursor.expectWord("the picture's media type");

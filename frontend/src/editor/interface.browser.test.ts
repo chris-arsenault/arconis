@@ -39,8 +39,8 @@ it("adds objects from a left rail of stencils, with nothing hovering over the ca
   await expect.poll(() => objectCount(page)).toBe(1);
   const pressed = page.locator(".tool[aria-pressed=true]");
   expect(await pressed.getAttribute("aria-label")).toBe("Select (V)");
-  await page.getByRole("button", { name: "Ellipse", exact: true }).click();
-  expect(await pressed.getAttribute("aria-label")).toBe("Ellipse");
+  await page.getByRole("button", { name: "Ellipse (E)", exact: true }).click();
+  expect(await pressed.getAttribute("aria-label")).toBe("Ellipse (E)");
   await canvas(page).click({ position: { x: 560, y: 200 } });
   await expect.poll(() => objectCount(page)).toBe(2);
   await dragStencil(page, "Sticky note (N)", 300, 450);
@@ -185,7 +185,7 @@ it("shows a compact property panel only for a selection, with controls that appl
   expect(await fits()).toBe(true);
   expect(await page.getByLabel("Line color", { exact: true }).count()).toBe(0);
   expect(await page.getByLabel("Font size", { exact: true }).inputValue()).toBe("16");
-  await add(page, "Text", "Words", 500, 400);
+  await add(page, "Text (T)", "Words", 500, 400);
   expect(await page.getByLabel("Fill color", { exact: true }).count()).toBe(0);
   await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
   const bounds = (await canvas(page).boundingBox())!;

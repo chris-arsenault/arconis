@@ -1,5 +1,6 @@
 import { BLANK, defaultSize, type CanvasDocument } from "../document/canvasDocument";
 import { branchPlacement, tidyBranch } from "../document/relations";
+import { layoutTree } from "../document/treeLayout";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
 import { DEFAULT_DECK, nextSlideNumber } from "../document/slides";
 import { declareStyle, describeItem, matchSizes } from "./describe";
@@ -11,12 +12,20 @@ import { LANGUAGE_VERSION } from "./printer";
 import { DEFAULT_GAP, paddingOf } from "../document/layout";
 import { combineRules, type Rules } from "./placement";
 import type { Follow, PictureData, Scope, WriteOptions, WriteResult } from "./writing";
-import { arrangeMembers, canvasStart, fitFrame, reflowDraft, spotInside } from "./arranging";
+import {
+  arrangeMembers,
+  canvasStart,
+  fitFrame,
+  growHolders,
+  reflowDraft,
+  spotInside,
+} from "./arranging";
 import {
   converse,
   describeLink,
   finishBands,
   finishLinks,
+  pendingLinkItems,
   type PendingBand,
   type PendingLink,
 } from "./connections";
@@ -58,7 +67,7 @@ const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } 
   link: (writer, statement, scope) => writer.link(statement, scope),
   delete: (writer, statement) =>
     statement.refs.forEach((ref) => writer.draft.remove(writer.draft.resolve(ref, statement.line))),
-  tidy: (writer, statement) => writer.tidy(statement.ref, statement.line),
+  tidy: (writer, statement) => writer.tidy(statement),
   data: (writer, statement) =>
     writer.pictures.push({ hash: statement.hash, format: statement.format, data: statement.data }),
 };
@@ -107,7 +116,7 @@ class Writer {
     }
     finishBands(draft, this.bands);
     // A file says exactly where everything is, even a child left outside its frame.
-    if (!this.options.importing) this.growHolders();
+    if (!this.options.importing) growHolders(draft);
     // Routing around items comes last, once every item it avoids is where it will be.
     const all = [...draft.items.values()];
     for (const id of around) {
@@ -376,12 +385,24 @@ class Writer {
     this.place(item, statement.attributes, scope, statement, movesIn && !placed && isBox(item));
   }
 
-  tidy(ref: string, line: number) {
+  tidy({ ref, line, direction, compact, sorted }: Extract<Statement, { kind: "tidy" }>) {
     const { draft } = this;
     const root = draft.item(ref, line);
-    tidyBranch([...draft.items.values()], root.id).forEach(({ x, y }, id) =>
-      draft.moveTo(draft.items.get(id)!, x, y)
-    );
+    const items = this.itemsWithPendingLinks();
+    const moves =
+      direction || compact || sorted
+        ? layoutTree(items, root.id, {
+            direction: direction ?? "sides",
+            compact: Boolean(compact),
+            sorted: Boolean(sorted),
+          })
+        : tidyBranch(items, root.id);
+    moves.forEach(({ x, y }, id) => draft.moveTo(draft.items.get(id)!, x, y));
+  }
+
+  /** The draft's items with this write's unsettled lines, so a tree being built is seen whole. */
+  private itemsWithPendingLinks(): Item[] {
+    return [...this.draft.items.values(), ...pendingLinkItems(this.links)];
   }
 
   /** Every end of every segment, with items declared at an end created where they appear. */
@@ -421,25 +442,12 @@ class Writer {
     const source = draft.items.get(from);
     if (!source || !isBox(source)) return undefined;
     return (own) => {
-      if (branch) return branchPlacement([...draft.items.values()], source, own.box);
+      if (branch) return branchPlacement(this.itemsWithPendingLinks(), source, own.box);
       const start = draft.extentOf(source);
       return {
         x: start.space.x + start.space.width + DEFAULT_GAP * 1.5 + (own.box.x - own.space.x),
         y: start.box.y + (start.box.height - own.box.height) / 2,
       };
     };
-  }
-
-  /** Frames grow to hold whatever was added or moved into them during the write, innermost first. */
-  private growHolders() {
-    const { draft } = this;
-    const holders = new Set<string>();
-    for (const id of [...draft.created, ...draft.moved]) {
-      const item = draft.items.get(id);
-      if (item) draft.ancestors(item).forEach((holder) => holders.add(holder));
-    }
-    const frames = [...holders].map((id) => draft.items.get(id)!).filter(isFrame);
-    frames.sort((a, b) => draft.ancestors(b).length - draft.ancestors(a).length);
-    frames.forEach((frame) => fitFrame(draft, frame, false, { width: true, height: true }));
   }
 }

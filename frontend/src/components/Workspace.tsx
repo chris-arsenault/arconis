@@ -1,19 +1,18 @@
-import { useState, useSyncExternalStore, type ReactNode } from "react";
-import {
-  Undo2,
-  Redo2,
-  Minus,
-  Plus,
-  Scan,
-  CheckCircle2,
-  WifiOff,
-  Keyboard,
-  Grid3x3,
-  Waypoints,
-} from "lucide-react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Plus, CheckCircle2, WifiOff } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
-import { zoomLabel } from "../editor/zoom";
+import { CommandPalette } from "./CommandPalette";
+import { PasteAs } from "./PasteAs";
+import { CaptureBox } from "./CaptureBox";
+import { PresenceOverlays } from "./Presence";
+import { ContextMenu } from "./ContextMenu";
+import { QuickCreate } from "./QuickCreate";
+import { SelectionToolbar } from "./SelectionToolbar";
+import { Measure } from "./Measure";
+import { Announcer } from "./Announcer";
+import { CommentModal } from "./CommentModal";
+import { CanvasHUD } from "./CanvasHUD";
 import { Canvas, InlineEditor, Cursors } from "./Canvas";
 import { Inspector } from "./Inspector";
 import { PasswordGate } from "./PasswordGate";
@@ -53,6 +52,10 @@ export function Workspace(props: Readonly<Props>) {
   const { session, name, onName, newRoom } = props;
   const { editor, setEditor, presenting } = useEditor(session);
   const [message, setMessage] = useState("");
+  // Every edit made here names this person as the item's last editor.
+  useEffect(() => {
+    session.document.setAuthor(name.trim() || "Guest");
+  }, [session, name]);
   const [namePrompt, setNamePrompt] = useState(props.askName);
   const [notes, setNotes] = useState(false);
   const closeNamePrompt = () => {
@@ -113,18 +116,14 @@ type BodyProps = Readonly<{
  * The rails around the canvas. Presenting shows the canvas alone with the notes beside it; the
  * canvas keeps its place in the tree either way, so the editor lives on.
  */
-function WorkspaceBody({ author, children, ...props }: BodyProps) {
+function WorkspaceBody({ children, ...props }: BodyProps) {
   const { editor, presenting, notes } = props;
   return (
     <div className="workspace-body">
       {editor && !presenting && <LeftRail editor={editor} />}
       <CanvasArea {...props}>{children}</CanvasArea>
       {editor &&
-        (presenting ? (
-          notes && <PresenterNotes editor={editor} />
-        ) : (
-          <Inspector editor={editor} author={author} />
-        ))}
+        (presenting ? notes && <PresenterNotes editor={editor} /> : <Inspector editor={editor} />)}
     </div>
   );
 }
@@ -158,6 +157,33 @@ function NamePrompt({
   );
 }
 
+/** Everything drawn over the canvas while editing: handles, cursors, the HUD and open dialogs. */
+function EditingOverlays({
+  editor,
+  session,
+  author,
+}: Readonly<{ editor: EditorController; session: RoomSession; author: string }>) {
+  return (
+    <>
+      <InlineEditor editor={editor} />
+      <SelectionFrame editor={editor} />
+      <GradientDirection editor={editor} />
+      <Cursors editor={editor} session={session} />
+      <CanvasHUD editor={editor} />
+      <QuickCreate editor={editor} />
+      <SelectionToolbar editor={editor} />
+      <Measure editor={editor} />
+      <Announcer editor={editor} />
+      {editor.ui.palette && <CommandPalette editor={editor} />}
+      {editor.ui.pasteAs && <PasteAs editor={editor} />}
+      {editor.ui.capture && <CaptureBox editor={editor} />}
+      <PresenceOverlays editor={editor} session={session} />
+      {editor.ui.menu && <ContextMenu editor={editor} />}
+      {editor.ui.comments && <CommentModal editor={editor} author={author} />}
+    </>
+  );
+}
+
 function CanvasArea({
   session,
   editor,
@@ -166,6 +192,7 @@ function CanvasArea({
   presenting,
   notes,
   onToggleNotes,
+  author,
   children,
 }: Readonly<{
   session: RoomSession;
@@ -175,19 +202,14 @@ function CanvasArea({
   presenting: boolean;
   notes: boolean;
   onToggleNotes: () => void;
+  author: string;
   children: ReactNode;
 }>) {
   return (
     <main className="canvas-area">
       <Canvas session={session} onEditor={onEditor} />
       {editor && !presenting && (
-        <>
-          <InlineEditor editor={editor} />
-          <SelectionFrame editor={editor} />
-          <GradientDirection editor={editor} />
-          <Cursors editor={editor} session={session} />
-          <CanvasHUD editor={editor} />
-        </>
+        <EditingOverlays editor={editor} session={session} author={author} />
       )}
       {editor && presenting && (
         <PresenterStage editor={editor} notes={notes} onToggleNotes={onToggleNotes} />
@@ -292,79 +314,5 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
         Font terms
       </a>
     </footer>
-  );
-}
-
-function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
-  const [help, setHelp] = useState(false);
-  return (
-    <>
-      <div className="canvas-history">
-        <button
-          aria-label="Undo"
-          title="Undo (Ctrl/⌘ Z)"
-          disabled={!editor.document.undo.canUndo()}
-          onClick={() => editor.document.undo.undo()}
-        >
-          <Undo2 size={18} />
-        </button>
-        <button
-          aria-label="Redo"
-          title="Redo (Ctrl/⌘ Shift Z)"
-          disabled={!editor.document.undo.canRedo()}
-          onClick={() => editor.document.undo.redo()}
-        >
-          <Redo2 size={18} />
-        </button>
-      </div>
-      <div className="canvas-zoom">
-        <button aria-label="Zoom out" onClick={() => editor.zoom(1 / 1.2)}>
-          <Minus size={17} />
-        </button>
-        <span data-testid="zoom-level">{zoomLabel(editor.graph.view.scale)}</span>
-        <button aria-label="Zoom in" onClick={() => editor.zoom(1.2)}>
-          <Plus size={17} />
-        </button>
-        <span className="zoom-divider" />
-        <button aria-label="Fit canvas" title="Fit to contents" onClick={() => editor.fit()}>
-          <Scan size={17} />
-        </button>
-        <button
-          aria-label="Grid and snapping"
-          title={editor.grid.visible ? "Hide grid and stop snapping" : "Show grid and snap to it"}
-          aria-pressed={editor.grid.visible}
-          onClick={() => {
-            editor.grid.toggle();
-            editor.emit();
-          }}
-        >
-          <Grid3x3 size={17} />
-        </button>
-        <button
-          aria-label="Reference lines"
-          title={editor.referencesVisible ? "Hide reference lines" : "Show references as lines"}
-          aria-pressed={editor.referencesVisible}
-          onClick={() => editor.toggleReferences()}
-        >
-          <Waypoints size={17} />
-        </button>
-      </div>
-      <button
-        className="help-button"
-        aria-label="Keyboard shortcuts"
-        onClick={() => setHelp(!help)}
-      >
-        <Keyboard size={18} />
-      </button>
-      {help && (
-        <div className="keyboard-help">
-          <strong>A few useful shortcuts</strong>
-          <p>V select · N note · R rectangle · D decision · P draw</p>
-          <p>Space pan · scroll zoom · Shift-click multi-select</p>
-          <p>Ctrl/⌘ Z undo · Ctrl/⌘ D duplicate · Ctrl/⌘ G group · ] front · [ back</p>
-          <p>Delete remove · Double-click edit · Escape finish</p>
-        </div>
-      )}
-    </>
   );
 }

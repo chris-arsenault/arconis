@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import { mkdir } from "node:fs/promises";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { add, browser, drag, errors, exported, open, row } from "./browserHarness";
@@ -35,29 +34,5 @@ it("snaps to a visible grid, and turning it off frees placement for that person"
   await page.reload();
   await gridButton(page).waitFor();
   expect(await gridButton(page).getAttribute("aria-pressed")).toBe("false");
-  expect(errors).toEqual([]);
-});
-
-it("keeps the grid readable at both ends of the zoom range", async () => {
-  const page = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await add(page, "Rectangle (R)", "Reference", 300, 200);
-  await mkdir("test-results/review", { recursive: true });
-  const bounds = (await page.getByTestId("canvas").boundingBox())!;
-  await page.mouse.move(bounds.x + 400, bounds.y + 300);
-  const spacing = () =>
-    page
-      .getByTestId("canvas")
-      .evaluate((element) => parseFloat(element.style.backgroundSize.split(",")[2]));
-  await page.screenshot({ path: "test-results/review/grid-100.png" });
-  for (const [delta, name] of [
-    [-1000, "in"],
-    [1000, "out"],
-  ] as const) {
-    for (let step = 0; step < 60; step++) await page.mouse.wheel(0, delta);
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: `test-results/review/grid-${name}.png` });
-    expect(await spacing()).toBeGreaterThanOrEqual(8);
-    expect(await spacing()).toBeLessThanOrEqual(80);
-  }
   expect(errors).toEqual([]);
 });

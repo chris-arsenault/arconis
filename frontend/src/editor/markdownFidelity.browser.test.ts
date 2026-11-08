@@ -55,7 +55,7 @@ it("retains Markdown, code, math and box styles across peer edits, local Undo an
 it("grows free text on request, fits fixed boxes and preserves explicit resize mode", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
-  await add(page, "Text", "Short", 220, 170);
+  await add(page, "Text (T)", "Short", 220, 170);
   const options = page.getByText("Spacing and sizing", { exact: true });
   await options.click();
   await page.getByLabel("Grow text height", { exact: true }).check();

@@ -41,6 +41,12 @@ export function defaultSize(type: ItemType, stencil = "rectangle"): [number, num
 
 export class CanvasDocument {
   readonly actions = new CompletedActions();
+  /**
+   * Whose edits these are, in their own words. Every write through this document names them as
+   * the item's last editor; empty names nobody, as on the relay, where sessions stamp their own.
+   */
+  author = "";
+  private unstamped = 0;
   private listed: Item[] | null = null;
   private transacting = false;
   readonly doc = new Y.Doc();
@@ -120,6 +126,39 @@ export class CanvasDocument {
     Object.entries(look).forEach(([key, value]) => {
       if (value !== undefined) looks.set(key, value);
     });
+    this.stamp(record);
+  }
+
+  /** Names the person whose edits these are from now on. */
+  setAuthor(name: string) {
+    this.author = name;
+  }
+
+  /** Runs writes, such as opening a file, that keep the editors the items already name. */
+  withoutStamps<T>(work: () => T): T {
+    this.unstamped++;
+    try {
+      return work();
+    } finally {
+      this.unstamped--;
+    }
+  }
+
+  /** Names this document's author as an item's last editor, now. */
+  private stamp(record: Y.Map<unknown>) {
+    if (!this.author || this.unstamped) return;
+    record.set("editedBy", this.author);
+    record.set("editedAt", Date.now());
+  }
+
+  /** Names someone as an item's last editor; sessions on the relay stamp their agent this way. */
+  stampEditor(id: string, author: string, time = Date.now()) {
+    const record = this.items.get(id);
+    if (!record) return;
+    this.doc.transact(() => {
+      record.set("editedBy", author);
+      record.set("editedAt", time);
+    }, LOCAL);
   }
 
   get(id: string): Item | null {
@@ -149,29 +188,48 @@ export class CanvasDocument {
     if (!record) return;
     const current = this.get(id)!;
     this.doc.transact(() => {
+      let changed = false;
       Object.entries(values as Record<string, unknown>).forEach(([key, value]) => {
-        if (key === "id") return;
+        if (key === "id" || key === "editedBy" || key === "editedAt") return;
         if (key === "name") this.editText(id, String(value));
         else if (key === "look") this.patchLook(id, value as Look);
-        else if (value === undefined) record.delete(key);
-        else if (JSON.stringify(current[key as keyof Item]) !== JSON.stringify(value))
+        else if (value === undefined) {
+          if (record.has(key)) {
+            record.delete(key);
+            changed = true;
+          }
+        } else if (JSON.stringify(current[key as keyof Item]) !== JSON.stringify(value)) {
           record.set(key, value);
+          changed = true;
+        }
       });
+      if (values.editedBy !== undefined && values.editedAt !== undefined) {
+        record.set("editedBy", values.editedBy);
+        record.set("editedAt", values.editedAt);
+      } else if (changed) this.stamp(record);
     }, LOCAL);
   }
 
   /** Sets look properties; an undefined value returns that property to its default. */
   patchLook(id: string, values: Look) {
-    const looks = this.items.get(id)?.get("look") as Y.Map<unknown> | undefined;
-    if (!looks) return;
-    this.doc.transact(
-      () =>
-        Object.entries(values).forEach(([key, value]) => {
-          if (value === undefined) looks.delete(key);
-          else if (looks.get(key) !== value) looks.set(key, value);
-        }),
-      LOCAL
-    );
+    const record = this.items.get(id);
+    const looks = record?.get("look") as Y.Map<unknown> | undefined;
+    if (!record || !looks) return;
+    this.doc.transact(() => {
+      let changed = false;
+      Object.entries(values).forEach(([key, value]) => {
+        if (value === undefined) {
+          if (looks.has(key)) {
+            looks.delete(key);
+            changed = true;
+          }
+        } else if (looks.get(key) !== value) {
+          looks.set(key, value);
+          changed = true;
+        }
+      });
+      if (changed) this.stamp(record);
+    }, LOCAL);
   }
 
   text(id: string) {
@@ -192,9 +250,11 @@ export class CanvasDocument {
       current.at(-1 - end) === value.at(-1 - end)
     )
       end++;
+    if (current === value) return;
     this.doc.transact(() => {
       text.delete(start, current.length - start - end);
       text.insert(start, value.slice(start, value.length - end));
+      this.stamp(this.items.get(id)!);
     }, LOCAL);
   }
 

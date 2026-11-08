@@ -40,6 +40,14 @@ const ROUTING = {
   label: { item: "reject", link: "link", style: "reject", arrangement: "ignore" },
   deck: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
   free: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
+  // Fields every item carries, lines included.
+  flag: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
+  tags: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
+  marker: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
+  task: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
+  link: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
+  edited: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
+  property: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
 } as const satisfies Record<Attribute["kind"], Routing>;
 
 type Context = keyof Routing;
