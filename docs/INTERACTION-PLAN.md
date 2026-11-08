@@ -6,7 +6,7 @@ Research and planning only, prepared 2026-11-08 against `8483e42` plus the uncom
 tree. The owner asked for a survey of professional drawing, diagramming and mind-mapping tools
 and a plan to refine three ideas: a right-click context menu, comments over objects instead of
 in the side rail, and right-click-drag to a command circle or colour and shape picker. The
-drawing engine overhaul in [DRAWING-PLAN.md](DRAWING-PLAN.md) comes first; nothing here is
+implemented [drawing tools](drawing.md) form the baseline for this work; nothing here is
 authorized for implementation, and no Sulion plan exists for this work yet. When the owner
 settles the decisions in the last section, open a Sulion plan from the phases below.
 
@@ -16,10 +16,10 @@ scratchpad: `research-context-menus.md`, `research-comments.md`, `research-radia
 `/tmp/claude-7321/-home-sulion-repos-arconis/5c04a88e-220a-4f3a-b3a3-cd317e903446/scratchpad/`.
 Key sources are linked inline below so this document stands on its own.
 
-## What Arconis does today
+## Research baseline
 
-Facts read from the working tree; re-read them on resume because the drawing and architecture
-plans change these files.
+These observations belong to the research snapshot, rather than the current feature reference.
+Read the [user guides](README.md) and [architecture](architecture.md) when implementation starts.
 
 - **Right button.** `editor/controller.ts` disables the browser menu, and `editor/input.ts` sets
   maxGraph's `PanningHandler.usePopupTrigger`, so right-button drag pans the canvas and a static
@@ -29,8 +29,7 @@ plans change these files.
   seven icon actions in `components/Inspector.tsx` (Connect, Group, Ungroup, To front, To back,
   Duplicate, Delete); and sections deeper in the panel (Add Reference, Tidy Branches, Align,
   Route around items, Present, Fit to text). There is no clipboard copy and paste, only Duplicate.
-  [ARCHITECTURE-PLAN.md](ARCHITECTURE-PLAN.md) P2 already intends to give selection-wide
-  operations one owner; a context menu is the first new consumer of that owner.
+  Current [application commands](architecture.md#editor) own shared selection operations.
 - **Comments.** `document/comments.ts` keys every comment to an item id (`on`); the language has
   `comment on <id>`, `reply`, `resolve` and `reopen`, so agents read and write the same threads.
   Threads show only in the property panel for the selected item (`components/CommentControls.tsx`).
@@ -97,8 +96,8 @@ What transfers to Arconis:
 
 - One **command registry** that hotkeys, the panel header, the context menu and any later
   toolbar or ring all read: id, label, shortcut, availability predicate over the selection, and
-  the operation. This is the P2 work in the architecture plan; the menu should not grow a fourth
-  copy of the command list.
+  the operation. Build on the existing [application commands](architecture.md#editor); the menu
+  should not grow a fourth copy of the command list.
 - **Selection rule:** right-click on an unselected object selects it alone; on a member of the
   selection keeps the selection; on empty canvas keeps the selection and shows the canvas menu
   (Excalidraw and Penpot's choice, which avoids losing a selection by a slip).
@@ -254,7 +253,7 @@ above.
 
 ### I1 — Command registry and context menu
 
-[depends on ARCHITECTURE-PLAN P2, or absorbs its command-ownership step]
+[builds on the existing application-command ownership in architecture.md]
 
 Scope: one registry of selection commands with labels, shortcuts and availability; the hotkey
 table, panel header and new context menu read it. Right-click handling that owns `contextmenu`,
@@ -305,8 +304,7 @@ dead-zone boundary and at viewport edges.
 Scope: a proactive bar near the selection with fill, line colour, text size, shape swap, comment
 and an overflow to the menu; Shift hides it; it does not reappear on drag release; add-next
 handles on the selection with a dwell; keyboard clone-and-connect; double-click on empty canvas
-creates a note. Collapse and connector-bar work stay in the backlog until the drawing plan's
-line work lands.
+creates a note. Collapse and connector-bar work stay in the backlog.
 
 Acceptance: the bar never covers the selected object, applies to multi-selections as the panel
 does, and keeps the panel's values in sync; handles never create an object from a plain drag.

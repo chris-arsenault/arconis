@@ -5,15 +5,17 @@ sticky notes and freehand drawing in one shared document.
 
 ## Read first
 
-| Topic                   | Link                                         |
-| ----------------------- | -------------------------------------------- |
-| Overview and quickstart | [README.md](README.md)                       |
-| Documentation index     | [docs/README.md](docs/README.md)             |
-| Product scope           | [docs/product.md](docs/product.md)           |
-| Architecture            | [docs/architecture.md](docs/architecture.md) |
-| Architecture decisions  | [docs/adr/README.md](docs/adr/README.md)     |
-| Backlog                 | [docs/backlog.md](docs/backlog.md)           |
-| Changelog               | [CHANGELOG.md](CHANGELOG.md)                 |
+| Topic                   | Link                                               |
+| ----------------------- | -------------------------------------------------- |
+| Overview and quickstart | [README.md](README.md)                             |
+| Documentation index     | [docs/README.md](docs/README.md)                   |
+| User walkthroughs       | [docs/getting-started.md](docs/getting-started.md) |
+| Assistants and MCP      | [docs/agents.md](docs/agents.md)                   |
+| Product scope           | [docs/product.md](docs/product.md)                 |
+| Architecture            | [docs/architecture.md](docs/architecture.md)       |
+| Architecture decisions  | [docs/adr/README.md](docs/adr/README.md)           |
+| Backlog                 | [docs/backlog.md](docs/backlog.md)                 |
+| Changelog               | [CHANGELOG.md](CHANGELOG.md)                       |
 
 ## Critical rules
 

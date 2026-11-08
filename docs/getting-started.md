@@ -1,0 +1,61 @@
+# Your first shared canvas
+
+Arconis combines diagrams, sticky notes, Markdown, drawings and slides in one room. You can
+work as a guest; an account adds saved workspaces and assistant connections.
+
+![An example room with a service diagram, shared notes and markup](images/workspace.png)
+
+## Start a room
+
+1. Open [Arconis](https://arconis.ahara.io).
+2. Enter a display name and choose **Create a room**. Signed-in participants use their account name.
+3. Change **Canvas title** in the header to name the workspace.
+4. Choose **Share room**, then **Copy room link** to invite someone. Keep this tab open while
+   a new participant joins, so they can receive the canvas.
+
+The welcome screen also offers **Create a password room** and **Work on this device only**.
+[Rooms and collaboration](collaboration.md) explains how those choices affect sharing and storage.
+
+## Build a small diagram
+
+1. Press **N** and click the canvas to add a note. Type an idea and press **Ctrl/Command Enter**
+   to finish. Enter by itself inserts a line.
+2. Choose **Rectangle** in the left rail, then click the canvas. Double-click the rectangle to
+   name it, and finish the edit.
+3. Choose **Connector: click two objects** and click the note followed by the rectangle.
+4. Press **V** to select. Drag either object; the connector stays attached.
+5. Select an object to change its text, fill, outline or geometry in the property panel on the
+   right. If that panel is hidden on a narrow screen, widen the window.
+
+You can also drag stencils directly from the rail. Search the rail to find architecture icons.
+The [canvas guide](editing.md) covers selection, containers, connectors and keyboard navigation.
+
+## Mark it up
+
+Press **P**, choose **Highlighter**, and drag over the diagram. The marks belong to shared
+markup above the workspace. Choose **Highlight object** and click an object to attach an outline.
+
+Use **Lasso** to select marks. **Make Drawing** promotes them into an editable workspace Drawing.
+The [drawing guide](drawing.md) covers shapes, erasing, fills, gradients and promotion.
+
+## Keep a copy
+
+Your browser retains the room locally. For a portable copy, use **Export document** in the header.
+An account's **Save to my account** button keeps a workspace available on other devices.
+
+**Export PNG** exports the selection, or the whole canvas when nothing is selected, and includes
+an editable copy. **Include markup** controls whether annotations appear in document and PNG
+exports. [Files and pictures](files.md) explains import, export and storage choices.
+
+## Continue by task
+
+| Task                                                | Guide                                        |
+| --------------------------------------------------- | -------------------------------------------- |
+| Arrange objects, connect them or build a topic tree | [Using the canvas](editing.md)               |
+| Annotate, draw shapes or create a Drawing           | [Drawing and markup](drawing.md)             |
+| Write Markdown, code or equations                   | [Text and formatting](text.md)               |
+| Turn a canvas into a presentation                   | [Slides and presentations](slides.md)        |
+| Invite people, work offline or use a password       | [Rooms and collaboration](collaboration.md)  |
+| Save across devices or manage an account            | [Accounts and saved workspaces](accounts.md) |
+| Exchange documents, PNGs and pictures               | [Files and pictures](files.md)               |
+| Work alongside Claude or ChatGPT                    | [Assistants and MCP](agents.md)              |

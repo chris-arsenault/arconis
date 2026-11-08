@@ -26,6 +26,10 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 
 State uses the shared bucket at `projects/arconis.tfstate`. Arconis registers no login client.
 
+Run infrastructure deployment through the shared CI/CD workflow. Local validation builds and
+test fixtures exercise application behavior without deploying or calling real AWS services.
+The [development guide](development.md) lists those checks.
+
 Instances are disposable, and replacing one loses nothing: usage comes from CloudWatch by group name,
 alerts and limits are in SSM, pictures are in S3, and documents are in browsers. Agent sessions end
 with the instance, and agents reconnect. A deployment that
@@ -65,11 +69,12 @@ in this environment, run secret-backed CLI commands through `with-cred --`. Othe
 their ordinary AWS credential environment. The local journal ends with the instance; check Loki for
 older shipped errors. A deployment is needed before changes to reporting or Alloy reach a running relay.
 
-Raise the limit for the current month by setting the override, with the month and dollar amount:
+For an authorized operational limit change, set the month-scoped override. Replace `YYYY-MM`
+and `USD` below with the intended calendar month and amount:
 
 ```sh
 aws ssm put-parameter --name /ahara/arconis/relay-budget-override --type String \
-  --overwrite --value 2026-11=25
+  --overwrite --value 'YYYY-MM=USD'
 ```
 
 The value lapses when the month ends. Spend figures are cached for a few minutes in the Lambda.

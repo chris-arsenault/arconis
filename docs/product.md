@@ -1,83 +1,73 @@
 # Product scope
 
 Arconis is a shared spatial workspace for creating, organizing and connecting ideas. People
-brainstorm with sticky notes, connect them, add architectural components and develop the
-result into a structured diagram, all in one document with no conversion between object types.
+combine diagrams, sticky notes, topic trees, drawings and slides in one document.
 
-## Canvas
+## Canvas and diagrams
 
-- Pan and zoom across a large coordinate space, zooming around the pointer.
-- Place, select, multi-select, drag, resize, transform and delete objects of any type.
-- Stay responsive with realistically sized diagrams.
+- Pan and zoom around the pointer, fit the canvas, and navigate through shared saved views.
+- Place, select, multi-select, drag, resize, rotate, duplicate, group and delete workspace objects.
+- Create basic shapes, architectural components and icons; label and style them in the property panel.
+- Attach cornered, diagonal or curved connectors to workspace objects, set per-end arrowheads,
+  adjust routes and route around objects.
+- Nest workspace items in eligible holders; move contents with their holder and lay out rows,
+  columns and grids in arranged frames.
+- Align or distribute selections and build screen layouts with common device-frame sizes.
 
-## Diagramming
+## Topics and relationships
 
-- Rectangles, ellipses, diamonds and basic architectural components.
-- Editable labels and shape properties.
-- Markdown labels with nested lists, highlighted code and LaTeX mathematics; three font families,
-  whole-box typography, colors, spacing and nine text positions. People and agents edit the same
-  source, and Copy Markdown carries it into other tools.
-- Connectors attached to objects, cornered, diagonal or curved, that stay attached when objects move
-  and can be routed around everything between their ends.
-- Grouping and ungrouping.
+- Use workspace objects and lines as topics, growing branches and siblings from the keyboard.
+- Move or tidy a topic tree, add cross-references and zoom into smaller-scale detail.
+- Display references and comments on labels and follow reference targets from the property panel.
 
-## Sticky notes and drawing
+## Text and pictures
 
-- Create notes anywhere, edit their text directly, move and resize them, and choose from a small
-  color palette.
-- Mark up the workspace with pen, highlighter, object outlines and quick shapes without moving
-  its objects. Select markup with a lasso, erase it, and hide it locally or omit it from exports.
-- Promote sketches into editable Drawing objects that move, transform and connect in the
-  workspace. Closed fills, linear gradients and precision erasing use the same editable paths.
-- Agents author and revise drawings through the same canvas language used by files and the UI.
-- Save named viewport positions.
+- Author Markdown labels, nested lists, highlighted code and LaTeX mathematics as editable source.
+- Choose bundled fonts, box-level typography, alignment, colors, spacing and text sizing.
+- Preview and copy Markdown, plain text and fenced code from the source tools.
+- Paste or drop pictures, then move, label, connect and resize them with preserved proportions.
+
+## Drawing and markup
+
+- Annotate the workspace with pen, highlighter, attached object outlines and quick shapes.
+- Lasso whole ink paths, recolor and transform them, and use whole or precision erasing.
+- Fill closed paths with solid colors or linear gradients.
+- Promote markup into editable Drawing objects that move, resize, rotate, connect and take part
+  in workspace containment; edit their contents with the same drawing tools.
+- Hide markup locally, clear it with Undo, or omit it from portable exports.
 
 ## Slides
 
-- Place slides over any part of the canvas: fixed-proportion viewports that belong to a deck and
-  carry a number, so a room becomes a deck without copying anything.
-- Give a deck a template, a slide whose contents are drawn under every other slide of the deck.
-- Present a deck full screen, moving between its slides in order, with the slide's comments as
-  speaker notes.
+- Place bounded slides over the canvas and organize them into named, numbered decks.
+- Author a template slide whose contents appear beneath the deck's other slides.
+- Present locally with slide navigation, full-screen controls, speaker notes and markup visibility.
+- Keep receiving peers' edits while presenting.
 
-## Relationships
+## Collaboration and storage
 
-Connectors join shape to shape, sticky to sticky and sticky to shape. Every object lives in one
-document and takes part in the same relationships.
+- Join ordinary rooms by link or code as a guest, with shared object, text, relationship and style edits.
+- See participant names, cursors and drag previews while keeping personal selection and viewport.
+- Continue editing offline, restore the browser's local copy and merge when collaboration returns.
+- Create password rooms with browser encryption, or rooms that use no relay connection.
+- Export editable documents or selection/whole-canvas PNGs carrying an editable copy; import them
+  into another room with pictures and references.
+- Use optional Ahara accounts for verified sign-in, display names and saved workspaces across devices.
+  Password-room saved copies remain sealed under their room keys.
 
-## Collaboration
+## Assistants
 
-- Participants in a room see object creation and deletion, position and size changes, text edits,
-  connector changes, group membership and styles in near real time.
-- Concurrent changes converge without lost objects or duplicate updates.
-- Each participant controls their own viewport and selection.
-- Presence shows names, cursors and in-progress drags.
-- A late joiner receives the document from an active peer, a disconnected participant
-  resynchronizes, and a returning browser restores its local copy.
+Signed-in people connect a remote MCP client using the server address in the account panel.
+An assistant joins an ordinary room someone has open and reads and writes the same canonical
+canvas language as files and browser edits. It can create diagrams, arrangements, topic trees,
+text, slides, drawings and discussions in atomic writes, discover syntax on demand and undo its
+own changes. Password rooms and device-only rooms remain browser-owned.
 
-## Rooms
+## Scope and references
 
-Creating a room generates an unguessable identifier in the browser. Joining accepts a shareable
-URL or room code. Participants may supply an ephemeral display name. Changes stay within their room.
-Rooms are sized for small groups of up to about fifteen people working on canvases of hundreds to
-thousands of items.
+Rooms provide a shared visual workspace, with account saving as a private copy for each account.
+The relay forwards collaboration frames and holds an ordinary room in memory while an assistant
+works; durable room data lives in browsers, portable files or account-saved copies.
 
-## Agents
-
-A person with an Ahara account can connect Claude or ChatGPT on the web through MCP, as a custom
-connector given only Arconis's address. Given a room's link, the
-agent reads and writes the canvas in the Arconis canvas language: nodes, cards, frames, bands, notes,
-lines, topic trees, references, named styles and discussions, placed beside or aligned with one
-another. One write can lay out a whole architecture, frames within frames. People in the room see its
-changes as they happen, and it is told what they change. Agents work only in ordinary rooms someone has
-open.
-
-## Boundaries
-
-Arconis is a small multi-user visual workspace. Rooms need no account, and the relay keeps no copy of
-a room. It focuses on the canvas rather than project management or facilitation tools such as voting,
-timers and templates. Its files are the canvas written in its own language rather than draw.io files,
-and agents read and write the same text. The [ADRs](adr/README.md) record why, and the
-[backlog](backlog.md) holds planned additions.
-
-Rooms suit non-sensitive work: see [Limitations](architecture.md#limitations).
+[User guides](README.md) explain supported workflows. [Architecture](architecture.md) describes
+the model and its operational limitations; [ADRs](adr/README.md) record decisions and rationale.
+The [backlog](backlog.md) and [open interaction design](INTERACTION-PLAN.md) contain future work.

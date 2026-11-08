@@ -1,9 +1,9 @@
 # Arconis
 
-A shared visual workspace for diagrams, sticky notes and freehand ideas, in the browser with
-no accounts.
+A shared browser workspace for diagrams, sticky notes, editable drawings and presentations.
+Rooms work for guests; optional accounts keep saved workspaces across devices.
 
-Application: <https://arconis.ahara.io>
+Application: <https://arconis.ahara.io> · [Start using Arconis](docs/getting-started.md)
 
 ## Quickstart
 
@@ -17,36 +17,40 @@ pnpm dev
 ```
 
 Open the same room in a second tab to collaborate locally. Before committing, run `make ci`.
-[docs/development.md](docs/development.md) covers tests and tooling.
+[Development](docs/development.md) covers configuration, tests and tooling.
 
 ## Architecture
 
 React and TypeScript render the interface, maxGraph edits and draws the canvas, and Yjs holds
-the shared document. Browsers exchange Yjs updates through a small relay on EC2 that stores
-nothing and runs only when needed, and IndexedDB keeps a copy on each device.
-[docs/architecture.md](docs/architecture.md) has the details.
+the shared document. Browsers exchange updates through an on-demand relay; IndexedDB retains
+each device's copy. The canvas language is shared by documents, files and MCP assistants.
+[Architecture](docs/architecture.md) describes the ownership and data flow.
 
 ## Deployment
 
-Pushing to `main` runs the shared Ahara CI workflow, which deploys after its checks pass.
-[docs/deployment.md](docs/deployment.md) covers infrastructure and local deployment.
+Pushing to `main` runs the shared Ahara CI workflow and deploys after its checks pass.
+[Deployment](docs/deployment.md) covers configuration and relay operations.
 
 ## Documentation
 
-| Topic | Link |
-| --- | --- |
-| Using the canvas | [docs/editing.md](docs/editing.md) |
-| Product scope | [docs/product.md](docs/product.md) |
-| Architecture | [docs/architecture.md](docs/architecture.md) |
-| Development | [docs/development.md](docs/development.md) |
-| Deployment | [docs/deployment.md](docs/deployment.md) |
-| Architecture decisions | [docs/adr/README.md](docs/adr/README.md) |
-| Backlog | [docs/backlog.md](docs/backlog.md) |
-| Changelog | [CHANGELOG.md](CHANGELOG.md) |
-| Agent guide | [AGENTS.md](AGENTS.md) |
+| Topic                                             | Link                                       |
+| ------------------------------------------------- | ------------------------------------------ |
+| First room and diagram                            | [Getting started](docs/getting-started.md) |
+| Canvas editing and shortcuts                      | [Using the canvas](docs/editing.md)        |
+| Drawing tools and markup                          | [Drawing and markup](docs/drawing.md)      |
+| Markdown, code and equations                      | [Text and formatting](docs/text.md)        |
+| Decks, templates and presenting                   | [Slides](docs/slides.md)                   |
+| Room links, passwords and offline work            | [Collaboration](docs/collaboration.md)     |
+| Accounts and saved workspaces                     | [Accounts](docs/accounts.md)               |
+| Documents, PNGs and pictures                      | [Files](docs/files.md)                     |
+| Assistant connections and MCP                     | [Agents](docs/agents.md)                   |
+| Product, architecture, development and operations | [Documentation index](docs/README.md)      |
+| Architecture decisions                            | [ADRs](docs/adr/README.md)                 |
+| Future work                                       | [Backlog](docs/backlog.md)                 |
+| Changes                                           | [Changelog](CHANGELOG.md)                  |
+| Coding-agent rules                                | [Agent guide](AGENTS.md)                   |
 
 ## License
 
-MIT; see [LICENSE](LICENSE). The deployed site lists dependency licenses at `/licenses.txt`. AWS, Azure
-and Google Cloud icons are not covered by the MIT license; see
-[their terms](frontend/public/third-party-icons.txt).
+MIT; see [LICENSE](LICENSE). The deployed site lists dependency licenses at `/licenses.txt`.
+AWS, Azure and Google Cloud icons have [their own terms](frontend/public/third-party-icons.txt).

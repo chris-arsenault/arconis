@@ -1,7 +1,9 @@
 # Development
 
-The frontend lives in `frontend/` and uses pnpm. The versions are in `frontend/.node-version` and
-the `packageManager` field of `frontend/package.json`.
+The frontend lives in `frontend/` and uses pnpm. Runtime and package-manager versions are in
+[.node-version](../frontend/.node-version) and [package.json](../frontend/package.json).
+
+## Run locally
 
 ```sh
 cd frontend
@@ -9,43 +11,84 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-The development configuration in `frontend/public/config.js` uses same-browser BroadcastChannel
-collaboration, so opening a room in a second tab joins it. Deployed builds receive the relay's
-address through Ahara's `config.js`, with no build-time secrets.
+Open the URL printed by Vite. [public/config.js](../frontend/public/config.js) uses same-browser
+BroadcastChannel collaboration: open a room in a second tab of the same browser and origin.
+Independent browsers require a relay-backed configuration, as used by the test fixtures.
 
-## Checks
+Deployed configuration is delivered through Ahara's `config.js`, including relay, account and
+MCP addresses. The ordinary local configuration provides canvas editing without deployed
+account or relay services. Keep secrets out of frontend assets and runtime browser configuration.
 
-| Command | Purpose |
-| --- | --- |
-| `make ci` | Lint, types, unit and protocol tests, formatting and Terraform formatting |
-| `make build` | Production frontend |
-| `make test-browser` | Browser journeys |
-| `make format` | Apply Prettier formatting |
+## Required checks
 
-## Browser tests
+Run these from the repository root:
 
-Browser tests use Vitest and Playwright. Install Chromium once:
+| Command             | Purpose                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `make ci`           | Lint, types, unit/protocol tests, source formatting and Terraform formatting. |
+| `make build`        | Build the site, relay, control Lambda, accounts API and Auth0 Action.         |
+| `make test-browser` | Run independent-context browser journeys against local fixtures.              |
+| `make format`       | Apply the frontend Prettier formatting rules.                                 |
+
+The [Makefile](../Makefile) and frontend package scripts are the command authority. Before a
+commit, complete `make ci`; run build and browser checks appropriate to the changed behavior.
+Documentation changes also need local link, anchor and example checks.
+
+## Focus a test run
+
+```sh
+cd frontend
+pnpm test src/language/drawing.test.ts
+pnpm test:browser src/editor/drawingReview.browser.test.ts
+```
+
+Tests live beside their owners. Domain/application tests establish canonical values and
+transaction behavior; browser journeys establish actual rendering, input and collaboration.
+
+## Browser setup and lifecycle
+
+Install the selected browser once:
 
 ```sh
 cd frontend
 pnpm exec playwright install chromium
 ```
 
-Each run starts its own Vite server and the real relay on a local port, with a stand-in for the
-control Lambda, then shuts them down, so no development server is needed. Journeys use independent browser contexts with no shared local
-storage, and drive the canvas with real pointer and keyboard input. Automated tests use these local
-fixtures only ([ADR-0006](adr/0006-automated-tests-use-local-fixtures.md)).
+Each browser run starts a temporary Vite server and the real local relay, with local stand-ins
+for external services, and closes them afterward. A separately running development server is
+unnecessary. Contexts have independent browser storage; journeys use real pointer and keyboard
+input. Automated tests use local fixtures only ([ADR-0006](adr/0006-automated-tests-use-local-fixtures.md)).
 
-Failure screenshots, traces and other generated output go to the ignored `frontend/test-results/`.
+The harness defaults to Chromium. `BROWSER=firefox` or `BROWSER=webkit` selects another engine;
+install that engine and its supported host dependencies first. An engine that cannot launch
+provides no behavior evidence for that browser.
+
+Failure screenshots, traces, logs and performance observations belong in ignored
+`frontend/test-results/`. Performance journeys record their workload and measurements rather
+than enforcing object limits or runtime timing budgets.
 
 ## MCP integration
 
-`relay/agents.test.ts` exercises authenticated HTTP sessions, room collaboration, guidance discovery
-and error responses against a local relay. `relay/bundledRelay.test.ts` builds and starts the production
-CommonJS bundle, uses a local signing-key service and a real peer socket, then opens and edits a room
-over HTTP MCP. The drawing browser journey also uses HTTP MCP alongside independent browser contexts
-and pointer/keyboard edits.
+[agents.test.ts](../frontend/src/relay/agents.test.ts) exercises authenticated HTTP sessions,
+local collaboration, help discovery and error responses.
+[bundledRelay.test.ts](../frontend/src/relay/bundledRelay.test.ts) builds and starts the production
+CommonJS bundle with a local signing-key service and a real peer socket, then opens and edits
+a room through HTTP MCP.
 
-To diagnose an already-downloaded relay artifact locally, set `RELAY_TEST_BUNDLE` to its path relative
-to `frontend/` when running the bundled relay test. With no override, the test builds the current
-source. Neither route calls deployed AWS services; keep downloaded bundles in `test-results/`.
+[drawingMcp.browser.test.ts](../frontend/src/editor/drawingMcp.browser.test.ts) uses HTTP MCP
+alongside independent browser contexts. It verifies editable authoring, transform/Undo behavior,
+atomic refusals and exported content through production owners.
+
+To test an already-downloaded relay bundle, set `RELAY_TEST_BUNDLE` to its path relative to
+`frontend/` when running the bundled test. With no override, it builds current source.
+Keep downloaded bundles in the ignored test-output directory.
+
+## Follow the architecture
+
+[Architecture](architecture.md) maps domain, language, editor, collaboration, file and account
+owners. Domain rules stay in `document/`; language extensions update the canonical parser,
+writer, printer and help together. Only the style adapter translates semantic appearance into
+maxGraph keys. Leaf controls consume values and focused operations.
+
+Use [AGENTS.md](../AGENTS.md) for repository rules and [deployment](deployment.md) for CI and
+operations. Deployments are separate from local tests.

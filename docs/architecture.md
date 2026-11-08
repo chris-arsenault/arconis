@@ -5,6 +5,11 @@ relay on EC2 carries messages between peers and stores nothing, and IndexedDB ke
 device. Agents work in a room through MCP tools on the relay, which holds that room's canvas in memory
 while they do.
 
+User workflows are in the [documentation index](README.md). Source paths below are relative to
+`frontend/src/`. The [ADR index](adr/README.md) distinguishes accepted, proposed and superseded
+records; proposed records can describe implemented behavior while awaiting owner approval.
+Alternatives in those records come from recorded requirements, implementations or owner decisions.
+
 ## Document model
 
 Yjs holds the canonical document ([ADR-0001](adr/0001-yjs-canonical-maxgraph-projection.md)), and its
@@ -30,7 +35,9 @@ independent of a participant's undo history. Records a peer writes in an unknown
   `Y.Map` iteration differs between peers.
 - **Lines.** A line names the items at its ends and any ports where it attaches. A line with a missing
   end stays in Yjs, hidden from the graph, so out-of-order updates can complete it.
-- **Holders.** Any item holds others through `inside`, and they keep world coordinates. A group's
+- **Holders.** `inside` relates contents to their holder while preserving world coordinates.
+  Workspace placement uses `document/capabilities.ts` to choose eligible boxes; Drawings hold
+  ink paths, while markup stays outside workspace containment. A group's
   frame follows its members; everything else keeps its size. Cycles break deterministically during
   projection. A band marks a span behind the items it covers and holds nothing.
   `document/relations.ts` owns deletion closure over holders, line anchors and incident links.
@@ -80,6 +87,13 @@ independent of a participant's undo history. Records a peer writes in an unknown
   Hiding annotations never deletes their graph records. CanvasFiles filters clean exports
   before printing and picture preparation; the PNG adapter applies the same choice to pixels
   and bounds, and carries SVG definitions into rasterization.
+  `document/ink.ts` computes painted bounds through semantic appearance, including stroke width
+  and arrowheads. Promotion and Fit use those bounds. `document/geometry.ts` supplies rotated
+  box hit testing, and `document/inkHit.ts` supplies segment-crossing tests for erasers.
+  `document/transform.ts` supplies the same Drawing reshape policy to numeric UI commands and
+  `language/drawing.ts`; gradient direction follows path rotation and geometry-only resizing
+  preserves sparse authored appearance. Clips resolve named styles before rendering.
+  See the [drawing guide](drawing.md) for the user workflow.
 
 ## Canvas language
 
@@ -102,6 +116,10 @@ index derives from that same source, including its basic syntax and coordinate c
   and conversation routing. Derived layout/deletion effects remain distinct from direct targets.
   `attributeRouting.ts` routes attributes to their actual interpretation passes or explicitly
   rejects/ignores them in context; adding a variant must account for these contracts.
+  `drawing.ts` validates the final Draft, including existing connectors whose endpoints changed
+  eligibility. Invalid markup or Drawing-content transitions reject the whole write. Existing
+  Drawing transforms carry their contents before normal holder placement; file declarations
+  retain explicit geometry without reapplying authoring transforms.
 - **Printing.** `printer.ts` writes items canonically, so an unchanged item always prints the same and
   comparing printed items finds changes. `look.ts` supplies one typed, key-complete descriptor for
   look keywords, value choices, ranges, flags and canonical print order.
@@ -166,6 +184,12 @@ UI types. `RelayTransport` serves deployed rooms and `LocalTransport` serves sam
 carrier, optional service capabilities, encryption, persistence and the file/saved-copy adapters.
 The provider owns closing its channel, including an encrypted wrapper's underlying carrier.
 
+The channel reports readiness when frames may flow; encrypted readiness waits for its key to
+open. Local BroadcastChannel, reconnecting relay sockets and in-process agent delivery implement
+that same focused contract with different carriers. Activation and picture services remain
+separate capabilities. Terminal cleanup closes the carrier and stops pending callbacks from
+reaching retired consumers.
+
 - **Rooms.** Each room is a set of sockets on the relay ([ADR-0009](adr/0009-relay-on-ec2.md)). A
   device-only room uses `LocalTransport` whatever the configuration, so it never reaches the relay.
 - **Joining.** A join request reaches one person, who answers with the difference and their own
@@ -212,7 +236,7 @@ rates, room traffic and how far a client may fall behind. A dropped frame heals 
 exchange.
 
 **Starting.** The relay runs only when needed, and local editing never depends on it. Creating a
-room, loading a room with a local copy, three separate edits by one person within an hour, and the
+room, loading a room with a local copy, repeated editing, and the
 Start collaboration button each ask the control Lambda to scale its Auto Scaling group to one
 ([ADR-0011](adr/0011-relay-in-an-auto-scaling-group.md)). Clients decide those
 triggers and the Lambda holds the limit, so a client ignoring them can only reach the same limit.
@@ -265,8 +289,8 @@ to Ahara's private log gateway and shared Loki stack, so shipped diagnostics sur
 [ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Arconis's users are its own database
 connection in the shared Ahara Auth0 tenant. The browser signs in to Auth0 with the authorization code
 flow and PKCE (`account/auth.ts`, through `oidc-client-ts`), for the accounts API's audience, and the ALB
-validates those tokens and that audience on `/api/*`. Sign-up, activation and password resets are
-Auth0's pages.
+validates those tokens and that audience on `/api/*`. Sign-up verifies the email by a code before
+completion; sign-in and password resets use Auth0's pages.
 
 `protocol/account.ts` owns shared HTTP metadata contracts. AccountStore checks outbound request bodies
 against them and decodes unknown replies into its used projections; AccountsApi checks each endpoint's
@@ -287,8 +311,8 @@ until the email is verified. Deleting an account removes its Auth0 user through 
 
 ## Limitations
 
-- A new device needs an active peer holding the document, because the relay retains nothing. Export a
-  file for a portable copy.
+- Joining a room on a fresh device needs an active peer holding the document. A portable file or
+  account-saved copy provides an independent restore path; the forwarding relay keeps no durable copy.
 - Agents reach only rooms someone has open, and their sessions end when the relay instance is
   replaced.
 - Room codes are not enforced access control, so rooms suit non-sensitive work

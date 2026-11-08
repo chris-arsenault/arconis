@@ -12,23 +12,13 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
-- Fix Drawing transforms through MCP, connector isolation during markup conversion, wide-stroke
-  promotion bounds, sparse eraser sweeps, rotated highlight picking, drawing-only recolor,
-  gradient handles and named-style clipping. Numeric resizing preserves inherited appearance.
-
 - Added shared markup with pen widths, highlighter, attached object outlines, drag-oriented
   arrows and common shapes, lasso selection and whole/partial erasing. Promote markup into
   editable Drawing objects, use closed fills and gradients, and export with or without markup.
   Drawings use the same canonical model and canvas language through MCP, files and the browser.
 
-- Unify shared domain and appearance rules across editor and agent operations; give controls
-  focused editing interfaces and separate messaging, relay controls and picture services.
-  File and saved-copy operations now have application owners, and accounts share HTTP contracts.
-  Preserve peer caret positions during whole-field composition and make topic creation one Undo step.
-
-- Publish completed text edits and collective transforms instead of their intermediate transitions,
-  while retaining immediate local editing, local persistence and concurrent Yjs text merging.
-  Shared icon/geometry code, UI text bindings and file adapters now have explicit ownership.
+- Changed text edits and collective transforms to share their completed results while retaining
+  immediate local editing, local persistence and concurrent text merging.
 
 - Added Markdown canvas labels with nested lists, highlighted code fences, local LaTeX math,
   source-editing tools, preview, Copy Markdown, Copy plain text and Copy code. Agents and files use
@@ -40,7 +30,7 @@ All notable user-visible changes are recorded here.
   with arrows, goes full screen and shows the slide's comments as speaker notes. A deck's slide 0 is
   its template, drawn under every other slide.
 - Changed comments to allow 20000 characters and several lines.
-- Added Ahara accounts, signed in at auth.ahara.io, with email activation, whose name replaces the
+- Added Ahara accounts, signed in at auth.ahara.io, with email-code verification, whose name replaces the
   one typed into rooms.
 - Added saved workspaces available on any device; a password room's saved copy stays encrypted under
   its room password, and a forgotten account password loses nothing.
@@ -75,6 +65,13 @@ All notable user-visible changes are recorded here.
 - Added rooms that work on this device only, opening no connection at all.
 - Removed the connector From and To menus; drag either end of a connector to re-attach it.
 - Reduced collaboration traffic: one person answers a join, idle rooms exchange almost nothing, and hidden tabs send no presence.
+
+### Bug fixes
+
+- Fixed Drawing transforms through MCP, connector isolation during markup conversion, wide-stroke
+  promotion bounds, sparse eraser sweeps, rotated highlight picking, drawing-only recolor,
+  gradient handles and named-style clipping. Numeric resizing preserves inherited appearance.
+- Fixed peer caret positions during whole-field composition and made topic creation one Undo step.
 
 ## v1.0.0 - 2026-11-07
 
