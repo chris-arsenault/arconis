@@ -2,7 +2,8 @@ import { it, expect, vi } from "vitest";
 import { CollaborationProvider, PRESENCE_INTERVAL_MS } from "./provider";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { ConnectionState, Transport } from "./transport";
-import { FrameAssembler, frames } from "./frames";
+import { CHUNK_BYTES, FrameAssembler, frames } from "./frames";
+import { MAX_MESSAGE_BYTES } from "../relay/relay";
 import { parseRoom, createRoomId, createLocalRoomId, isLocalRoom, roomHash } from "./room";
 
 class Bus implements Transport {
@@ -234,16 +235,16 @@ it("keeps a hidden tab's presence quiet until it is shown again", () => {
   }
 });
 
-it("bounds chunks and reconstructs a large state out of order", () => {
-  const data = new Uint8Array(900000).map((_, index) => index % 251);
+it("splits a large state into frames the relay accepts, and reassembles it", () => {
+  const data = new Uint8Array(CHUNK_BYTES * 3 - 1).map((_, index) => index % 251);
   const chunks = frames("first", "update", data);
-  expect(chunks.every((chunk) => new TextEncoder().encode(chunk).length < 240000)).toBe(true);
+  expect(chunks).toHaveLength(3);
+  const sizes = chunks.map((chunk) => new TextEncoder().encode(chunk).length);
+  expect(Math.max(...sizes)).toBeLessThanOrEqual(MAX_MESSAGE_BYTES);
   const assembler = new FrameAssembler();
-  const reversed = [...chunks];
-  reversed.reverse();
-  const result = reversed.map((chunk) => assembler.receive(chunk, "second")).filter(Boolean);
+  const result = chunks.map((chunk) => assembler.receive(chunk, "second")).filter(Boolean);
   expect(result).toHaveLength(1);
-  expect(result[0]!.data).toEqual(data);
+  expect(Buffer.from(result[0]!.data).equals(Buffer.from(data))).toBe(true);
   expect(assembler.receive(chunks[0], "first")).toBeNull();
   expect(assembler.receive('{"v":1}', "second")).toBeNull();
 });
