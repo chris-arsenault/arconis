@@ -28,7 +28,7 @@ All notable user-visible changes are recorded here.
 - Changed the pointer buttons to the standard mapping: the middle button pans and the right
   button opens a command ring with a context menu beside it; a right drag strokes a wedge.
   Comments now open on purpose, from the mark, Shift C or the menu, into a modal above the
-  object instead of the property panel. Added a floating selection toolbar, quick-create dots
+  object instead of the property panel. Added a selection toolbar, quick-create dots
   that grow connected copies, connectors that make their target when dropped in space,
   change-shape-in-place, swap positions, reverse and straighten lines, fit a frame to its
   contents, docked frames, tables, task lists, arithmetic in the geometry fields and

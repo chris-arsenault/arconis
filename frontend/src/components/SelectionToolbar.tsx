@@ -1,4 +1,3 @@
-import { useLayoutEffect, useRef } from "react";
 import { MessageSquare, MoreHorizontal, Shapes, Type } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { COLORS, isBox, type Item } from "../document/types";
@@ -10,9 +9,6 @@ import { openMenu, openSubRing, runCommand, showComments } from "../editor/regis
 
 /** Text sizes the toolbar steps through. */
 const TEXT_SIZES = [10, 12, 14, 16, 18, 22, 28, 36, 48];
-/** Space between the selection and the toolbar: past the rotation handle and dot above, or past the dot below. */
-const ABOVE_GAP = 52;
-const BELOW_GAP = 36;
 
 function FillSwatches({ editor, look }: Readonly<{ editor: EditorController; look: Appearance }>) {
   return COLORS.map((color, index) => (
@@ -71,52 +67,20 @@ function hidden(editor: EditorController, selected: Item[]) {
 }
 
 /**
- * The toolbar floating above the selection: fill, line colour, text size, shape, comment and
- * the rest of the menu. It hides while the selection is being dragged and while typing.
+ * The toolbar for the selection: fill, line colour, text size, shape, comment and the rest of
+ * the menu. It keeps one place above the view controls, so it never covers the selection, its
+ * handles or a neighbour; the ring and menu are the near-pointer way to the same commands.
+ * It hides while the selection is being dragged and while typing.
  */
-/** The selection as drawn, in screen pixels: shapes together with their labels, wherever they sit. */
-function drawnBounds(editor: EditorController) {
-  const boxes = editor.graph
-    .getSelectionCells()
-    .map((cell) => editor.graph.view.getState(cell))
-    .filter((state) => state !== null)
-    .flatMap((state) => [state, state.text?.boundingBox ?? state]);
-  if (!boxes.length) return null;
-  return {
-    left: Math.min(...boxes.map((box) => box.x)),
-    top: Math.min(...boxes.map((box) => box.y)),
-    right: Math.max(...boxes.map((box) => box.x + box.width)),
-    bottom: Math.max(...boxes.map((box) => box.y + box.height)),
-  };
-}
-
 export function SelectionToolbar({ editor }: Readonly<{ editor: EditorController }>) {
   const selected = editor.selected();
-  const ref = useRef<HTMLDivElement>(null);
-  const bounds = worldBounds(selected);
-  useLayoutEffect(() => {
-    const drawn = drawnBounds(editor);
-    if (!ref.current || !drawn) return;
-    const area = editor.element.getBoundingClientRect();
-    const box = ref.current.getBoundingClientRect();
-    const centre = (drawn.left + drawn.right) / 2;
-    // Above everything the selection draws, labels included, far enough up to leave the rotation
-    // handle and the quick-create dot reachable; beneath only when there is no room above.
-    const above = drawn.top - box.height - ABOVE_GAP;
-    const below = drawn.bottom + BELOW_GAP;
-    const top = above >= 8 ? above : below;
-    Object.assign(ref.current.style, {
-      left: `${Math.max(8, Math.min(centre - box.width / 2, area.width - box.width - 8))}px`,
-      top: `${Math.max(8, top)}px`,
-    });
-  });
-  if (!bounds || hidden(editor, selected)) return null;
+  if (hidden(editor, selected)) return null;
   const canvas = editor.document;
   const first = selected[0];
   const look = effectiveAppearance(first, canvas.namedStyle(first.style));
   const textItems = selected.filter(hasText);
   return (
-    <div ref={ref} className="selection-toolbar" role="toolbar" aria-label="Selection toolbar">
+    <div className="selection-toolbar" role="toolbar" aria-label="Selection toolbar">
       {selected.some(hasFill) && <FillSwatches editor={editor} look={look} />}
       {selected.some(hasLine) && (
         <input

@@ -1502,8 +1502,13 @@ input.outline-name {
   right: -26px;
   transform: translateY(-50%);
 }
+/* Bottom centre, above the view controls: a fixed home that never covers the selection, its
+   handles or a neighbour, and clear of the corners the other overlays use. */
 .selection-toolbar {
   position: absolute;
+  bottom: 78px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 5;
   display: inline-flex;
   align-items: center;
