@@ -10,9 +10,9 @@ import { openMenu, openSubRing, runCommand, showComments } from "../editor/regis
 
 /** Text sizes the toolbar steps through. */
 const TEXT_SIZES = [10, 12, 14, 16, 18, 22, 28, 36, 48];
-/** Space between the selection and the toolbar: past the quick-create dot below, or past the rotation handle and dot above. */
-const BELOW_GAP = 36;
+/** Space between the selection and the toolbar: past the rotation handle and dot above, or past the dot below. */
 const ABOVE_GAP = 52;
+const BELOW_GAP = 36;
 
 function FillSwatches({ editor, look }: Readonly<{ editor: EditorController; look: Appearance }>) {
   return COLORS.map((color, index) => (
@@ -71,7 +71,7 @@ function hidden(editor: EditorController, selected: Item[]) {
 }
 
 /**
- * The toolbar floating beneath the selection: fill, line colour, text size, shape, comment and
+ * The toolbar floating above the selection: fill, line colour, text size, shape, comment and
  * the rest of the menu. It hides while the selection is being dragged and while typing.
  */
 /** The selection as drawn, in screen pixels: shapes together with their labels, wherever they sit. */
@@ -100,11 +100,11 @@ export function SelectionToolbar({ editor }: Readonly<{ editor: EditorController
     const area = editor.element.getBoundingClientRect();
     const box = ref.current.getBoundingClientRect();
     const centre = (drawn.left + drawn.right) / 2;
-    // Beneath everything the selection draws, labels included, clear of the rotation handle and
-    // quick-create dot above; above only when there is no room below, far enough to leave them.
-    const below = drawn.bottom + BELOW_GAP;
+    // Above everything the selection draws, labels included, far enough up to leave the rotation
+    // handle and the quick-create dot reachable; beneath only when there is no room above.
     const above = drawn.top - box.height - ABOVE_GAP;
-    const top = below + box.height <= area.height - 8 ? below : above;
+    const below = drawn.bottom + BELOW_GAP;
+    const top = above >= 8 ? above : below;
     Object.assign(ref.current.style, {
       left: `${Math.max(8, Math.min(centre - box.width / 2, area.width - box.width - 8))}px`,
       top: `${Math.max(8, top)}px`,

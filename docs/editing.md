@@ -65,7 +65,7 @@ short dead zone toward a wedge, then release, to stroke it without looking. Two 
 sub-rings: **Colour** holds the six fills and the default, **Shape** changes the object's kind
 in place, keeping its text, size, contents and lines. Escape or a click elsewhere closes.
 
-The **selection toolbar** floats beneath whatever is selected with fills, line colour, text size,
+The **selection toolbar** floats above whatever is selected with fills, line colour, text size,
 shape, comment and the rest of the menu; it steps aside while you drag or type. The one
 selected object also shows a dot on each side: click a dot for a connected copy in that
 direction, or drag it to place the copy where you release. Dragging a connector from an
