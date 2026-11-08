@@ -86,6 +86,7 @@ class Scanner {
   }
 
   private string() {
+    if (this.upcoming(3) === '"""') return this.rawString();
     let value = "";
     let index = this.index + 1;
     while (index < this.source.length && this.source[index] !== '"') {
@@ -105,6 +106,27 @@ class Scanner {
       throw new LanguageError("A string is never closed.", this.line);
     this.push("string", value);
     this.index = index + 1;
+  }
+
+  /** Raw multiline text has framing newlines; everything between them is literal. */
+  private rawString() {
+    const openingLine = this.line;
+    let end = this.index;
+    while (this.source[end] === '"') end++;
+    const delimiter = this.source.slice(this.index, end);
+    const newline = this.source.startsWith("\r\n", end) ? "\r\n" : "\n";
+    if (!this.source.startsWith(newline, end))
+      throw new LanguageError("Raw text starts on the line after its opening quotes.", this.line);
+    const start = end + newline.length;
+    const closing = this.source.indexOf(`${newline}${delimiter}`, start);
+    if (closing < 0) throw new LanguageError("Raw text is never closed.", this.line);
+    this.tokens.push({
+      kind: "string",
+      text: this.source.slice(start, closing),
+      line: openingLine,
+    });
+    this.index = closing + newline.length + delimiter.length;
+    this.line += this.source.slice(end, this.index).split("\n").length - 1;
   }
 
   private arrow() {

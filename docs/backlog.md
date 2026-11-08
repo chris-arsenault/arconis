@@ -23,6 +23,8 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Export a deck as PDF or PPTX, one page per slide.
 - Let participants follow the presenter's slide, and show notes on a second screen.
 - Wrap the selection in a slide that adopts it.
+- Give text bulleted lists and a monospace code form, with the text options, since slides need them
+  most.
 
 ## Platform
 

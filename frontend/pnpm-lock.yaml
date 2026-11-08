@@ -7,15 +7,33 @@ settings:
 importers:
   .:
     dependencies:
+      "@fontsource/inter":
+        specifier: ^5.3.0
+        version: 5.3.0
+      "@fontsource/source-code-pro":
+        specifier: ^5.3.1
+        version: 5.3.1
+      "@fontsource/source-serif-4":
+        specifier: ^5.3.1
+        version: 5.3.1
       "@maxgraph/core":
         specifier: 0.25.1
         version: 0.25.1
+      "@mdit/plugin-katex":
+        specifier: ^1.1.5
+        version: 1.1.5(markdown-it@15.0.3)
       "@modelcontextprotocol/sdk":
         specifier: 1.32.2
         version: 1.32.2(zod@4.6.7)
+      highlight.js:
+        specifier: ^11.12.0
+        version: 11.12.0
       jose:
         specifier: 6.2.13
         version: 6.2.13
+      katex:
+        specifier: ^0.19.1
+        version: 0.19.1
       lib0:
         specifier: ^0.2.114
         version: 0.2.119
@@ -25,6 +43,9 @@ importers:
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.3.1)
+      markdown-it:
+        specifier: ^15.0.3
+        version: 15.0.3
       oidc-client-ts:
         specifier: 3.5.0
         version: 3.5.0
@@ -80,6 +101,9 @@ importers:
       "@eslint/js":
         specifier: ^9.39.0
         version: 9.39.5
+      "@types/katex":
+        specifier: ^0.16.8
+        version: 0.16.8
       "@types/node":
         specifier: ^24.0.0
         version: 24.19.2
@@ -811,6 +835,24 @@ packages:
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
 
+  "@fontsource/inter@5.3.0":
+    resolution:
+      {
+        integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==,
+      }
+
+  "@fontsource/source-code-pro@5.3.1":
+    resolution:
+      {
+        integrity: sha512-qsJEkwJWXYP/9clmtt3BsIlZ+Lr4cuRgNAgu0vyZdCgESMRMhRkAmEFFHHNM81VdeURqg5D5+Rr3bALDFav78A==,
+      }
+
+  "@fontsource/source-serif-4@5.3.1":
+    resolution:
+      {
+        integrity: sha512-cWcTCXjYYrgF9A67fThVir1VSc0lPEYmwQ6jA4pPt01s2MSCi/maINUcZoCzaqnU8fyUReDO97eGcBUkHgOeug==,
+      }
+
   "@hono/node-server@2.1.6":
     resolution:
       {
@@ -905,6 +947,42 @@ packages:
       {
         integrity: sha512-XlokOzDh3eOviwrnHBPwhElz7t3Cv03GFJQ5y1gapcpMjdP609W+NRLmVtht0Ukje2WmoFBet8IGP/e8kE2bSg==,
       }
+
+  "@mdit/helper@1.2.0":
+    resolution:
+      {
+        integrity: sha512-+Lh3nitlVclyxjD0LnOKPCyogVqL1W416FKOYjJSGDVlVKq9/jasQNOsUbjAvRwc+imgnFq1lsnat4q69UibIg==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      markdown-it: ^15.0.3
+    peerDependenciesMeta:
+      markdown-it:
+        optional: true
+
+  "@mdit/plugin-katex@1.1.5":
+    resolution:
+      {
+        integrity: sha512-hOiLKXL0rhLg1myXIk7YQPa7OeyhUniZSHPcIjx4pi8i/5to04zxaxnfcncp87vCB86zqUlCrHV2eratz5C2+A==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      markdown-it: ^15.0.3
+    peerDependenciesMeta:
+      markdown-it:
+        optional: true
+
+  "@mdit/plugin-tex@1.2.0":
+    resolution:
+      {
+        integrity: sha512-nVoipJc/zKZnQeDYh/tIB81Xw9RVZTQtoqKO69OTso0FyV7wzxvg/qZ/8qq5P7mvz6ArNVWGC0ozpRxmO/ufIg==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      markdown-it: ^15.0.3
+    peerDependenciesMeta:
+      markdown-it:
+        optional: true
 
   "@modelcontextprotocol/sdk@1.32.2":
     resolution:
@@ -1249,6 +1327,12 @@ packages:
         integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==,
       }
 
+  "@types/katex@0.16.8":
+    resolution:
+      {
+        integrity: sha512-trgaNyfU+Xh2Tc+ABIb44a5AYUpicB3uwirOioeOkNPPbmgRNtcWyDeeFRzjPZENO9Vq8gvVqfhaaXWLlevVwg==,
+      }
+
   "@types/node@24.19.2":
     resolution:
       {
@@ -1494,6 +1578,12 @@ packages:
         integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==,
       }
 
+  argparse@3.0.4:
+    resolution:
+      {
+        integrity: sha512-fwWK3Zq22l4XJJjx5mcBHGikIk+hJqO+32dPm0Jur7+rtG5x1scOjSfdT9ZKeWHPpsya/l0HHK4tDImBkTrtvA==,
+      }
+
   aria-query@5.3.2:
     resolution:
       {
@@ -1727,6 +1817,13 @@ packages:
         integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==,
       }
 
+  commander@15.1.0:
+    resolution:
+      {
+        integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==,
+      }
+    engines: { node: ">=22.12.0" }
+
   concat-map@0.0.1:
     resolution:
       {
@@ -1898,6 +1995,13 @@ packages:
         integrity: sha512-Ev/hIyePLZtpL98x562lvPtenrUfGr0lfaf44HFZ+hDEwso7ccV9QAZrEVLg0hxNAzygaAFxy2dYaAKKM0G06A==,
       }
     engines: { node: ">= 0.8" }
+
+  entities@8.1.0:
+    resolution:
+      {
+        integrity: sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA==,
+      }
+    engines: { node: ">=20.19.0" }
 
   es-abstract-get@1.0.0:
     resolution:
@@ -2444,6 +2548,13 @@ packages:
         integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==,
       }
 
+  highlight.js@11.12.0:
+    resolution:
+      {
+        integrity: sha512-nbfWpyRMcMrPMmDwJB+dhX/eiaPKtc2RB+0QZskqJ3WjRA/FDS0e9hZrx8EC/lbEv8gXy98FcDbNa/dspAaJMg==,
+      }
+    engines: { node: ">=12.0.0" }
+
   hono@4.13.17:
     resolution:
       {
@@ -2845,6 +2956,13 @@ packages:
       }
     engines: { node: ">=18" }
 
+  katex@0.19.1:
+    resolution:
+      {
+        integrity: sha512-jG8uKntjSEcm2EpQOh0XturpPuuC9r3Sq5HLHdsFdWZT27E672SF19QEi+of0/YeOy15lDgRhKvr5614uRrEfA==,
+      }
+    hasBin: true
+
   keyv@4.5.4:
     resolution:
       {
@@ -2878,6 +2996,12 @@ packages:
       }
     engines: { node: ">=16" }
     hasBin: true
+
+  linkify-it@6.1.0:
+    resolution:
+      {
+        integrity: sha512-wJ/TwpSDTLepCrQoYWYIExIKg5Zchex2Nn5yk2mFnB+6PtdkHtyLx742md9csRjjOnGkKIS/RrbY7l8D6gT9Vw==,
+      }
 
   locate-path@6.0.0:
     resolution:
@@ -2938,12 +3062,25 @@ packages:
       }
     engines: { node: ">=10" }
 
+  markdown-it@15.0.3:
+    resolution:
+      {
+        integrity: sha512-+Az7Ojz3iRGu8KYMvJ6xVhvrxP3eE+vEtJX75Ow88XBpcQNV/0lGX5ZynIIBftREo4DC2jsveAMDaeltmm8QvQ==,
+      }
+    hasBin: true
+
   math-intrinsics@1.1.0:
     resolution:
       {
         integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==,
       }
     engines: { node: ">= 0.4" }
+
+  mdurl@2.1.0:
+    resolution:
+      {
+        integrity: sha512-1+HBaOx0zi/dQWht8rNv9MYf9qqpqL/kxI0hXImU6Y547zM6Sni8BQibt7ifgMcYtQg41ao3Ivd6cnSM86inpg==,
+      }
 
   media-typer@1.1.1:
     resolution:
@@ -3273,6 +3410,13 @@ packages:
         integrity: sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ==,
       }
     engines: { node: ">= 0.10" }
+
+  punycode.js@2.3.1:
+    resolution:
+      {
+        integrity: sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA==,
+      }
+    engines: { node: ">=6" }
 
   punycode@2.3.1:
     resolution:
@@ -3757,6 +3901,12 @@ packages:
       }
     engines: { node: ">=14.17" }
     hasBin: true
+
+  uc.micro@3.0.0:
+    resolution:
+      {
+        integrity: sha512-U3PppEkleoTnIfi8BozMx3yju3qc/L6SwqWo2Sw+54PX+PX0q9I+r1Um5HCmqD7n9VDX5/v3vQH/AjA6deDdtw==,
+      }
 
   unbox-primitive@1.1.0:
     resolution:
@@ -4528,6 +4678,12 @@ snapshots:
       "@eslint/core": 0.17.0
       levn: 0.4.1
 
+  "@fontsource/inter@5.3.0": {}
+
+  "@fontsource/source-code-pro@5.3.1": {}
+
+  "@fontsource/source-serif-4@5.3.1": {}
+
   "@hono/node-server@2.1.6(hono@4.13.17)":
     dependencies:
       hono: 4.13.17
@@ -4574,6 +4730,24 @@ snapshots:
       "@jridgewell/sourcemap-codec": 1.6.0
 
   "@maxgraph/core@0.25.1": {}
+
+  "@mdit/helper@1.2.0(markdown-it@15.0.3)":
+    optionalDependencies:
+      markdown-it: 15.0.3
+
+  "@mdit/plugin-katex@1.1.5(markdown-it@15.0.3)":
+    dependencies:
+      "@mdit/helper": 1.2.0(markdown-it@15.0.3)
+      "@mdit/plugin-tex": 1.2.0(markdown-it@15.0.3)
+      katex: 0.19.1
+    optionalDependencies:
+      markdown-it: 15.0.3
+
+  "@mdit/plugin-tex@1.2.0(markdown-it@15.0.3)":
+    dependencies:
+      "@mdit/helper": 1.2.0(markdown-it@15.0.3)
+    optionalDependencies:
+      markdown-it: 15.0.3
 
   "@modelcontextprotocol/sdk@1.32.2(zod@4.6.7)":
     dependencies:
@@ -4750,6 +4924,8 @@ snapshots:
   "@types/estree@1.0.10": {}
 
   "@types/json-schema@7.0.15": {}
+
+  "@types/katex@0.16.8": {}
 
   "@types/node@24.19.2":
     dependencies:
@@ -4960,6 +5136,8 @@ snapshots:
 
   argparse@2.0.1: {}
 
+  argparse@3.0.4: {}
+
   aria-query@5.3.2: {}
 
   array-buffer-byte-length@1.0.2:
@@ -5116,6 +5294,8 @@ snapshots:
 
   color-name@1.1.4: {}
 
+  commander@15.1.0: {}
+
   concat-map@0.0.1: {}
 
   content-disposition@2.0.1: {}
@@ -5200,6 +5380,8 @@ snapshots:
   emoji-regex@9.2.2: {}
 
   encodeurl@2.0.1: {}
+
+  entities@8.1.0: {}
 
   es-abstract-get@1.0.0:
     dependencies:
@@ -5691,6 +5873,8 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
+  highlight.js@11.12.0: {}
+
   hono@4.13.17: {}
 
   html-escaper@2.0.2: {}
@@ -5905,6 +6089,10 @@ snapshots:
 
   jwt-decode@4.0.0: {}
 
+  katex@0.19.1:
+    dependencies:
+      commander: 15.1.0
+
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
@@ -5923,6 +6111,10 @@ snapshots:
   lib0@0.2.119:
     dependencies:
       isomorphic.js: 0.2.5
+
+  linkify-it@6.1.0:
+    dependencies:
+      uc.micro: 3.0.0
 
   locate-path@6.0.0:
     dependencies:
@@ -5958,7 +6150,18 @@ snapshots:
     dependencies:
       semver: 7.8.6
 
+  markdown-it@15.0.3:
+    dependencies:
+      argparse: 3.0.4
+      entities: 8.1.0
+      linkify-it: 6.1.0
+      mdurl: 2.1.0
+      punycode.js: 2.3.1
+      uc.micro: 3.0.0
+
   math-intrinsics@1.1.0: {}
+
+  mdurl@2.1.0: {}
 
   media-typer@1.1.1: {}
 
@@ -6131,6 +6334,8 @@ snapshots:
     dependencies:
       forwarded: 0.2.0
       ipaddr.js: 1.9.1
+
+  punycode.js@2.3.1: {}
 
   punycode@2.3.1: {}
 
@@ -6510,6 +6715,8 @@ snapshots:
       - supports-color
 
   typescript@5.9.3: {}
+
+  uc.micro@3.0.0: {}
 
   unbox-primitive@1.1.0:
     dependencies:

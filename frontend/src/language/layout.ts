@@ -32,14 +32,15 @@ function labelBelow(item: Item) {
 export function footprint(item: Item, look: Look = item.look): Box {
   if (!labelBelow(item) || (!item.name && !item.subtitle)) return boxOf(item);
   const size = (look.textSize ?? DEFAULT_TEXT_SIZE) * (look.scale ?? 1);
-  const longest = Math.max(item.name.length, item.subtitle.length);
+  const textLines = item.name ? item.name.split("\n") : [];
+  const longest = Math.max(item.subtitle.length, ...textLines.map((line) => line.length));
   const width = Math.max(item.width, longest * size * CHARACTER_WIDTH + size);
-  const lines = (item.name ? 1 : 0) + (item.subtitle ? 1 : 0);
+  const lines = textLines.length + (item.subtitle ? 1 : 0);
   return {
     x: item.x - (width - item.width) / 2,
     y: item.y,
     width,
-    height: item.height + lines * size * LINE_HEIGHT + size / 2,
+    height: item.height + lines * size * (look.lineHeight ?? LINE_HEIGHT) + size / 2,
   };
 }
 

@@ -21,7 +21,15 @@ const INDENT = "  ";
 const BARE = /^[A-Za-z_][A-Za-z0-9_:/-]*$/;
 
 export function quote(text: string) {
+  if (text.includes("\n")) return rawQuote(text);
   return `"${text.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", "\\n").replaceAll("\t", "\\t")}"`;
+}
+
+/** Raw strings frame, rather than escape, Markdown and LaTeX. Pick a collision-free delimiter. */
+function rawQuote(text: string) {
+  const longest = Math.max(2, ...[...text.matchAll(/"+/g)].map((match) => match[0].length));
+  const delimiter = '"'.repeat(longest + 1);
+  return `${delimiter}\n${text}\n${delimiter}`;
 }
 
 /** A word as written: bare when the language reads it as one word, quoted otherwise. */
@@ -44,8 +52,17 @@ const LOOK_ORDER: (keyof Look)[] = [
   "opacity",
   "textColor",
   "textSize",
+  "font",
+  "valign",
+  "textHighlight",
+  "lineHeight",
+  "paragraphGap",
+  "padding",
+  "textFit",
   "bold",
   "italic",
+  "underline",
+  "strike",
   "align",
   "vertical",
   "rotation",

@@ -1,6 +1,7 @@
 import type { EditorController, Shape } from "./controller";
-import { PanningHandler } from "@maxgraph/core";
+import { PanningHandler, type CellState } from "@maxgraph/core";
 import type { PathPoint } from "../document/types";
+import { isUnderlay } from "./templates";
 import { simplifyPath } from "../document/geometry";
 import { clampScale, creationValues, roundForScale } from "./zoom";
 import { addBranch, zoomIntoSelection, zoomOutOfSelection } from "./topics";
@@ -83,9 +84,14 @@ function modifiedKey(editor: EditorController, event: KeyboardEvent) {
   }
 }
 
+/** The object under the pointer, looking through templates' underlays to what lies beneath. */
 function cellAt(editor: EditorController, event: MouseEvent) {
   const bounds = editor.element.getBoundingClientRect();
-  return editor.graph.getCellAt(event.clientX - bounds.left, event.clientY - bounds.top);
+  const x = event.clientX - bounds.left;
+  const y = event.clientY - bounds.top;
+  return editor.graph.getCellAt(x, y, null, true, true, (state: CellState) =>
+    isUnderlay(state.cell)
+  );
 }
 
 function bindPointerTools(editor: EditorController, options: { signal: AbortSignal }) {

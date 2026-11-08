@@ -2,7 +2,7 @@ import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments, openThreadCounts } from "../document/comments";
 import { referenceCounts } from "../document/relations";
-import { deckOf, isSlide } from "../document/slides";
+import { deckOf, isSlide, isTemplate } from "../document/slides";
 import { hasHiddenDetail } from "./culling";
 
 /** What surrounds a label: a slide's deck and number before it, signs after it. */
@@ -44,11 +44,13 @@ export class LabelMarks {
       ];
       next.set(id, { before: "", after: parts.filter(Boolean).join(" ") });
     }
-    for (const slide of items.filter(isSlide))
+    for (const slide of items.filter(isSlide)) {
+      const place = isTemplate(slide) ? "template" : String(slide.slide ?? 0);
       next.set(slide.id, {
-        before: `${deckOf(slide)} · ${slide.slide ?? 0}`,
+        before: `${deckOf(slide)} · ${place}`,
         after: next.get(slide.id)?.after ?? "",
       });
+    }
     const same = (a?: Marks, b?: Marks) => a?.before === b?.before && a?.after === b?.after;
     const changed = [...new Set([...this.marks.keys(), ...next.keys()])].filter(
       (id) => !same(this.marks.get(id), next.get(id))

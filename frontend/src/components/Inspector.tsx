@@ -1,7 +1,4 @@
 import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
   BringToFront,
   SendToBack,
   Copy,
@@ -9,8 +6,6 @@ import {
   Ungroup,
   Trash2,
   Link2,
-  Bold,
-  Italic,
   type LucideIcon,
 } from "lucide-react";
 import type { EditorController } from "../editor/controller";
@@ -23,6 +18,10 @@ import { AlignControls, ScreenSizeControl, TopicControls } from "./TopicControls
 import { CommentControls } from "./CommentControls";
 import { SlideControls } from "./SlideControls";
 import { isSlide } from "../document/slides";
+import { MarkdownTools } from "./MarkdownTools";
+import { TextProperties } from "./TextProperties";
+import { markdownKey } from "../text/sourceKeys";
+import { fitText } from "../editor/textLayout";
 
 type ItemProps = Readonly<{ editor: EditorController; item: Item }>;
 type ChangeLook = (values: Look) => void;
@@ -89,7 +88,17 @@ export function Inspector({
         <SelectionActions editor={editor} selected={selected} />
       </header>
       {showText && (
-        <textarea ref={textRef} className="object-text" aria-label="Object text" rows={2} />
+        <>
+          <textarea
+            ref={textRef}
+            className="object-text"
+            aria-label="Object text"
+            rows={3}
+            onKeyDown={(event) => markdownKey(event, editor.document, item.id)}
+            onInput={() => void fitText(editor, item.id, true)}
+          />
+          <MarkdownTools editor={editor} id={item.id} textarea={textRef} expanded={false} />
+        </>
       )}
       <TopicControls editor={editor} selected={selected} />
       <AlignControls editor={editor} />
@@ -204,7 +213,7 @@ function StyleControls({ editor, item }: ItemProps) {
           />
         </Section>
       )}
-      {HAS_TEXT(item) && <TextControls {...props} />}
+      {HAS_TEXT(item) && <TextProperties editor={editor} />}
     </>
   );
 }
@@ -294,67 +303,6 @@ function NumberField({
         }}
       />
     </label>
-  );
-}
-
-const ALIGNMENTS: { value: "left" | "center" | "right"; icon: LucideIcon }[] = [
-  { value: "left", icon: AlignLeft },
-  { value: "center", icon: AlignCenter },
-  { value: "right", icon: AlignRight },
-];
-
-function TextControls({ drawn, change }: StyleProps) {
-  const fontStyle = Number(drawn.fontStyle || 0);
-  const align = String(drawn.align || "center");
-  const bold = Boolean(fontStyle & 1);
-  const italic = Boolean(fontStyle & 2);
-  return (
-    <Section title="Text">
-      <div className="control-row">
-        <ColorChip
-          label="Text color"
-          value={drawn.fontColor}
-          onChange={(color) => change({ textColor: color })}
-        />
-        <NumberField
-          prefix="Aa"
-          label="Font size"
-          value={Number(drawn.fontSize || 14)}
-          onChange={(value) => change({ textSize: value })}
-        />
-        <div className="segmented">
-          <button
-            aria-label="Bold"
-            title="Bold"
-            aria-pressed={bold}
-            onClick={() => change({ bold: !bold })}
-          >
-            <Bold size={14} />
-          </button>
-          <button
-            aria-label="Italic"
-            title="Italic"
-            aria-pressed={italic}
-            onClick={() => change({ italic: !italic })}
-          >
-            <Italic size={14} />
-          </button>
-        </div>
-      </div>
-      <div className="segmented" role="radiogroup" aria-label="Text alignment">
-        {ALIGNMENTS.map(({ value, icon: Icon }) => (
-          <button
-            key={value}
-            aria-label={`Align ${value}`}
-            title={`Align ${value}`}
-            aria-pressed={align === value}
-            onClick={() => change({ align: value })}
-          >
-            <Icon size={14} />
-          </button>
-        ))}
-      </div>
-    </Section>
   );
 }
 

@@ -26,6 +26,8 @@ describe("a presentation", () => {
     slide("a", 1);
     slide("c", 3);
     slide("other", 1, "agenda");
+    // The deck's template is drawn under its slides, never shown on its own.
+    slide("t", 0);
     const presenter = new Presenter(stage);
     expect(presenter.active).toBe(false);
     presenter.start("pitch");

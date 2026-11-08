@@ -1,6 +1,7 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import { worldBounds } from "../document/relations";
 import type { Item } from "../document/types";
+import { exportTextCss } from "./exportText";
 
 const MARGIN_PIXELS = 20;
 const HIDE_ATTRIBUTE = "data-export-hidden";
@@ -112,6 +113,10 @@ function loadImage(url: string) {
 
 async function rasterize({ pane, width, height }: ReturnType<typeof renderSvg>) {
   await inlinePictures(pane);
+  const css = await exportTextCss(pane);
+  const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+  style.textContent = css;
+  pane.prepend(style);
   const body = new XMLSerializer().serializeToString(pane);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
@@ -131,6 +136,7 @@ async function rasterize({ pane, width, height }: ReturnType<typeof renderSvg>) 
  * is nothing to draw.
  */
 export async function renderPng(graph: Graph, ids: string[], items: Item[]) {
+  await document.fonts.ready;
   const cells = shownCells(graph, new Set(ids));
   // Everything can be too small to draw at this zoom, while still being worth exporting.
   const chosen = new Set(ids);

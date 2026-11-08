@@ -286,6 +286,9 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
       <a href="/third-party-icons.txt" target="_blank" rel="noreferrer">
         Icon terms
       </a>
+      <a href="/third-party-fonts.txt" target="_blank" rel="noreferrer">
+        Font terms
+      </a>
     </footer>
   );
 }

@@ -6,6 +6,14 @@ export const LANGUAGE_REFERENCE = `# The Arconis canvas language
 
 A canvas is a list of statements, one per line (or separated by ;). Braces hold what an item contains. // starts a comment. Text goes in "double quotes". Colors are #rrggbb. Coordinates are canvas units, x to the right and y downward; a box's x,y is its top-left corner.
 
+## Markdown text
+
+An item's name is Markdown source: headings, nested bullets and numbering, quotes, emphasis, strike, links, inline code and language-labelled code fences. Math uses $...$, $$...$$ or a fenced math block. The exact inline tags <u>, <sub>, <sup> and <mark> are supported, without attributes; other HTML is displayed as text. Images belong to canvas picture items, not embedded text images.
+
+For multiline names, use three or more double quotes followed by a newline, literal content, then a newline and the same quotes. The two framing newlines are not content. Backslashes, code fences, braces and comment markers inside are literal. Use more quotes if the content contains a closing delimiter. Ordinary quoted strings still accept escaped newlines, tabs, quotes and backslashes. Read/file output uses raw strings for multiline content, so agents can work with Markdown directly.
+
+Text styling applies to the whole box and stays separate from Markdown. Copy Markdown returns the source; native files retain source and box styles.
+
 ## Items
 
   <type> [id] ["name"] [/ "subtitle"] [attributes...] [{ items inside }]
@@ -68,7 +76,7 @@ A new item at a line's far end with no placement goes to the right of the start,
 
 ## Look
 
-fill <color|none>, line <color|none>, line-width N, dashed, opacity N (0-100), text-color <color>, text-size N, bold, italic, align left|center|right, vertical, rotate N, icon-color <color>, badge <icon key> (frames: an icon in the corner), title header|top|side (frames: a header bar, plain text at the top left, or vertical down the side). Flags take off to turn off (bold off); any property takes default to return to the type's default (fill default).
+fill <color|none>, line <color|none>, line-width N, dashed, opacity N (0-100), text-color <color>, text-size N, font sans|serif|mono, bold, italic, underline, strike, align left|center|right, valign top|middle|bottom, text-highlight <color|none>, line-height N (positive multiplier), paragraph-gap N (non-negative em), padding N (non-negative canvas units), text-fit fixed|height (free text may grow vertically), vertical, rotate N, icon-color <color>, badge <icon key> (frames: an icon in the corner), title header|top|side (frames: a header bar, plain text at the top left, or vertical down the side). Text size must be positive. Flags take off to turn off (bold off); value properties take default to return to the type's default (fill default).
 
 Named styles are declared once and used by name. A style's name must not be a stencil's name (rectangle, ellipse, decision, service, database, cloud, person):
   style region line #00a1c9 dashed title top badge lucide:Flag text-color #00a1c9
@@ -89,7 +97,7 @@ An item's own look applies over its style. Restating a style replaces it everywh
 
   slide [id] ["name"] deck <deck> [N] [placement] [{ items }]
 
-A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. Its block places items inside it, and it keeps its size. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes.
+A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. Its block places items inside it, and it keeps its size. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes. A slide numbered 0 is the deck's template: what it holds is drawn under every other slide of the deck, at the same place within each, and a presentation skips it. slide t deck pitch 0 { text "Acme" at 1100,680 size 160,30 } puts the company name at the bottom right of every slide in pitch.
 
 ## Discussions and views
 

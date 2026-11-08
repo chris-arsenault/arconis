@@ -39,13 +39,21 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Slides.** A slide is a box item with a `deck` name and a `slide` number
   ([ADR-0016](adr/0016-slides-are-canvas-items.md)). `document/slides.ts` orders a deck's slides by
   number then id, numbers a new slide after the deck's highest, and gives it the deck's size and a
-  place behind everything. A deck has no record of its own.
+  place behind everything. A deck has no record of its own. Its slide 0 is its template:
+  `editor/templates.ts` computes, on every projection, copies of what the template holds under each
+  other slide of the deck, which exist only as graph cells that mutation capture skips and nothing
+  can select, hold or connect to.
 - **Topics.** Branches and references are line types, and a line joins them through an anchor node
   kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)). `document/relations.ts`
   holds the tree, layout and alignment logic.
 - **Look.** `editor/styles.ts` is the one place an item's type, named style and look become maxGraph
   styles. Icons, badges and pictures resolve to images there from local icon sets and validated hashes,
   so nothing a peer writes becomes an image address. Items made at deep zoom carry a scale.
+- **Text.** The name's existing `Y.Text` contains Markdown source, including language-labelled code
+  fences and LaTeX math. `text/markdown.ts` derives HTML with markdown-it, highlight.js and KaTeX;
+  it accepts only a small set of attribute-free semantic tags and disables text images. Fonts,
+  colors, size, spacing and nine-way alignment are box-level look properties. Files and agent tools
+  carry raw multiline names in the same language, and Copy Markdown returns the exact source.
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
   so the selection frame scales and rotates them.
 
@@ -78,9 +86,11 @@ maxGraph is an editing and rendering projection of the document.
 - `editor/graphChanges.ts` turns graph edits into Yjs transactions with a local origin. The resulting
   projection runs after maxGraph's model update ends, because edits made during its change
   notification are queued and never redrawn.
-- `editor/rendering.ts` renders labels as escaped HTML, the maxGraph mode that wraps text, laid out in
+- `editor/rendering.ts` renders labels as safe Markdown-derived HTML, the maxGraph mode that wraps text, laid out in
   screen pixels so they render at any zoom, and computes shape bounds from geometry instead of measuring
-  each shape. Labels come from peers, so the escaping is a security boundary.
+  each shape. Labels come from peers, so escaping and the semantic-tag allowlist are a security boundary.
+  Markdown is parsed only when a label's source changes; zoom reuses its derived markup. PNG export
+  embeds the matching Markdown/math CSS and required bundled font subsets before SVG rasterization.
 - A line's type, cornered, diagonal or curved, sets how it draws through its points; cornered lines use
   maxGraph's segment routing, whose segments people drag. Routing around items is placement:
   `document/routing.ts` finds right-angled corners around the boxes and labels between a line's ends,
@@ -97,7 +107,7 @@ maxGraph is an editing and rendering projection of the document.
   shown slide to the window and suspends the editor's shortcuts. While it runs, `Workspace` renders
   the canvas alone, in the same place in the tree so the editor lives on, `components/Presenter.tsx`
   masks everything outside the slide and takes the pointer, and slides project with no outline or
-  label.
+  label. The presentation skips templates and draws their copies at full strength.
 
 ## Collaboration
 

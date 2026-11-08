@@ -18,10 +18,22 @@ export const STENCIL_WORDS = new Set([
   "junction",
 ]);
 
-const NUMERIC = new Set<keyof Look>(["lineWidth", "textSize", "rotation", "opacity", "scale"]);
-const COLORED = new Set<keyof Look>(["fill", "line", "textColor", "iconColor"]);
+const NUMERIC = new Set<keyof Look>([
+  "lineWidth",
+  "textSize",
+  "rotation",
+  "opacity",
+  "scale",
+  "lineHeight",
+  "paragraphGap",
+  "padding",
+]);
+const COLORED = new Set<keyof Look>(["fill", "line", "textColor", "iconColor", "textHighlight"]);
 const CHOICES: Partial<Record<keyof Look, string[]>> = {
   align: ["left", "center", "right"],
+  font: ["sans", "serif", "mono"],
+  valign: ["top", "middle", "bottom"],
+  textFit: ["fixed", "height"],
   title: ["header", "top", "side"],
   path: ["cornered", "diagonal", "curved"],
   arrow: ["arrow", "open", "none"],
@@ -119,7 +131,7 @@ export function arrangeTail(cursor: Cursor, how: Arrangement, columns?: number):
 }
 
 function lookValue(cursor: Cursor, word: string, key: keyof Look): unknown {
-  if (NUMERIC.has(key)) return cursor.number(`a number after ${word}`);
+  if (NUMERIC.has(key)) return numericLook(cursor, word, key);
   if (COLORED.has(key)) {
     if (cursor.token.kind === "color") return cursor.next().text;
     if (cursor.word("none")) return "none";
@@ -130,6 +142,15 @@ function lookValue(cursor: Cursor, word: string, key: keyof Look): unknown {
   const value = cursor.expectWord(`one of ${choices.join(", ")} after ${word}`);
   if (!choices.includes(value))
     cursor.fail(`"${value}" is not one of ${choices.join(", ")} after ${word}.`);
+  return value;
+}
+
+function numericLook(cursor: Cursor, word: string, key: keyof Look) {
+  const value = cursor.number(`a number after ${word}`);
+  const positive = ["textSize", "lineHeight", "scale"].includes(key);
+  const nonnegative = ["paragraphGap", "padding"].includes(key);
+  if (!Number.isFinite(value) || (positive && value <= 0) || (nonnegative && value < 0))
+    cursor.fail(`${word} must be a finite ${positive ? "positive" : "non-negative"} number.`);
   return value;
 }
 

@@ -1,10 +1,13 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, NotebookText, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Maximize, Minimize, NotebookText, X } from "lucide-react";
 import { groupThreads, listComments } from "../document/comments";
 import type { EditorController } from "../editor/controller";
 
 /** Keys that move through the deck. Space keeps its editor meaning and does nothing here. */
 const STEPS: Record<string, number> = { ArrowRight: 1, PageDown: 1, ArrowLeft: -1, PageUp: -1 };
+
+/** A browser that refuses a full-screen request stays as it is. */
+const ignore = () => undefined;
 
 /**
  * The stage over the canvas while presenting: a mask darkening everything outside the slide, which
@@ -68,6 +71,7 @@ export function PresenterStage({
         >
           <NotebookText size={17} />
         </button>
+        <FullscreenButton />
         <button
           aria-label="Leave presentation"
           title="Leave presentation (Escape)"
@@ -77,6 +81,28 @@ export function PresenterStage({
         </button>
       </div>
     </div>
+  );
+}
+
+/** Fills the screen with the browser, and leaves full screen with the presentation. */
+function FullscreenButton() {
+  const [full, setFull] = useState(Boolean(document.fullscreenElement));
+  useEffect(() => {
+    const sync = () => setFull(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", sync);
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      if (document.fullscreenElement) document.exitFullscreen().catch(ignore);
+    };
+  }, []);
+  const toggle = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(ignore);
+    else document.documentElement.requestFullscreen?.().catch(ignore);
+  };
+  return (
+    <button aria-label="Full screen" title="Full screen" aria-pressed={full} onClick={toggle}>
+      {full ? <Minimize size={17} /> : <Maximize size={17} />}
+    </button>
   );
 }
 

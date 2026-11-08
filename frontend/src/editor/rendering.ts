@@ -8,6 +8,7 @@ import {
 } from "@maxgraph/core";
 import { labelIsLegible } from "./culling";
 import type { Marks } from "./marks";
+import { escapeText, renderMarkdown } from "../text/markdown";
 
 // maxGraph treats anything but http and data addresses as relative, which would prefix a picture's
 // object URL with the site's address and leave it unable to load.
@@ -17,12 +18,7 @@ UrlConverter.prototype.isRelativeUrl = (url: string) =>
 
 const SELECTION_COLOR = "#5443b3";
 
-function escapeLabel(value: unknown) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
+const escapeLabel = (value: unknown) => escapeText(String(value ?? ""));
 
 /** Keys `objectStyle` sets for the label alone: a subtitle and a badge's image. */
 export const LABEL_SUBTITLE = "labelSubtitle";
@@ -33,16 +29,34 @@ export const LABEL_BADGE = "labelBadge";
  * one, between its marks. Names, subtitles and a slide's deck come from peers and are escaped; a
  * badge is only ever a local icon's data address, which `objectStyle` resolves from the icon sets.
  */
-function composeLabel(cell: Cell, marks: Marks) {
+function composeLabel(cell: Cell, marks: Marks, content: string) {
   const style = cell.getStyle() as Record<string, unknown>;
   const subtitle = typeof style[LABEL_SUBTITLE] === "string" ? style[LABEL_SUBTITLE] : "";
   const badge = typeof style[LABEL_BADGE] === "string" ? style[LABEL_BADGE] : "";
-  let name = escapeLabel(cell.value);
+  let name = content;
   if (subtitle)
-    name = `<b>${name}</b><br><span style="font-weight:normal;font-size:0.85em;opacity:0.85">${escapeLabel(subtitle)}</span>`;
+    name = `<div style="font-weight:bold">${name}</div><span style="font-weight:normal;font-size:0.85em;opacity:0.85">${escapeLabel(subtitle)}</span>`;
   if (badge.startsWith("data:image/"))
     name = `<img src="${badge.replaceAll('"', "%22")}" alt="" style="width:1.3em;height:1.3em;vertical-align:middle;margin-right:0.4em">${name}`;
-  return [escapeLabel(marks.before), name, marks.after].filter(Boolean).join(" ");
+  const body = [escapeLabel(marks.before), name, escapeLabel(marks.after)]
+    .filter(Boolean)
+    .join(" ");
+  if (!body) return "";
+  const css = labelVariables(style);
+  return `<div class="canvas-markdown" dir="auto" style="${css}">${body}</div>`;
+}
+
+function labelVariables(style: Record<string, unknown>) {
+  const lineHeight = Number(style.labelLineHeight ?? 1.35);
+  const paragraphGap = Number(style.labelParagraphGap ?? 0.5);
+  const highlight = String(style.labelHighlight ?? "none");
+  const parts = [];
+  if (style.whiteSpace === "nowrap") parts.push("white-space:nowrap;overflow-wrap:normal");
+  if (Number.isFinite(lineHeight) && lineHeight > 0) parts.push(`--text-line-height:${lineHeight}`);
+  if (Number.isFinite(paragraphGap) && paragraphGap >= 0)
+    parts.push(`--text-paragraph-gap:${paragraphGap}em`);
+  if (/^#[\da-f]{3,8}$/i.test(highlight)) parts.push(`background-color:${highlight}`);
+  return parts.join(";");
 }
 
 /** `marks` surrounds a label with signs, such as that an object holds more than is drawn. */
@@ -54,9 +68,17 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
   // HTML labels are the only maxGraph mode that wraps text. Labels come from peers,
   // so every label is escaped before it reaches the DOM.
   graph.setHtmlLabels(true);
+  // The cache follows live cells, and zoom never reparses unchanged Markdown.
+  const labels = new WeakMap<Cell, { source: string; html: string }>();
   graph.getLabel = (cell) => {
     if (!cell || cell.getStyle().noLabel || !labelIsLegible(cell, graph.view.scale)) return "";
-    return composeLabel(cell, marks(cell));
+    const source = String(cell.value ?? "");
+    let label = labels.get(cell);
+    if (!label || label.source !== source) {
+      label = { source, html: renderMarkdown(source) };
+      labels.set(cell, label);
+    }
+    return composeLabel(cell, marks(cell), label.html);
   };
   // Measuring each shape with getBBox forces layout per cell and dominated zoom time.
   const renderer = graph.cellRenderer;
@@ -74,6 +96,8 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
     createLabel(state, value);
     const { text } = state;
     if (!text) return;
+    // Markdown already decides line breaks, including literal newlines inside code blocks.
+    text.replaceLinefeeds = false;
     text.ignoreStringSize = true;
     const configureCanvas = text.configureCanvas.bind(text);
     text.configureCanvas = (canvas, x, y, width, height) => {

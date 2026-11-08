@@ -14,6 +14,43 @@ canvas. New notes and text open ready for typing; double-click edits any object 
 Selecting something opens the property panel on the right, showing only what applies to it. With
 several objects selected, it applies styles to all of them.
 
+## Markdown and text styles
+
+Primary canvas labels are Markdown: headings, nested bullets and numbered lists, quotes, links,
+**bold**, _italic_, strike with `~~text~~`, and inline code. Exact `<u>`, `<sub>`, `<sup>` and
+`<mark>` tags support underline, subscript, superscript and highlighting without allowing other
+HTML or attributes. Subtitles stay plain text. Images use canvas picture items.
+
+Edit the source directly by double-clicking or pressing Enter, or use Object text in the property
+panel. Markdown tools expands formatting actions, a live Preview, code insertion and copy actions.
+Ctrl/Command B, I, U and K add bold, italic, underline and a link. Ctrl/Command Shift X adds strike.
+The tools preserve your text selection; Undo reverses your own edits.
+
+Use fenced code blocks with a language such as `python`, `typescript`, `javascript`, `java`, `c`,
+`cpp`, `csharp`, `go`, `rust`, `ruby`, `sql`, `bash`, `json`, `yaml`, `html` or `css`. Unknown or
+unlabelled fences remain readable monospace code. Preview offers Copy code for each code block.
+Nothing executes code.
+
+Math uses LaTeX inside `$...$`, display math inside `$$...$$`, or a fenced `math` block. More in
+Markdown tools inserts inline or display equations. Rendering happens locally with KaTeX; an
+unsupported expression shows an error while its original source stays editable. Escape literal
+dollar signs with a backslash when needed; dollars inside code remain literal.
+
+Enter continues a list, and Enter on an empty item exits or outdents it. Tab/Shift Tab indent and
+outdent lists and code. Shift Enter inserts a continuation line in a list. Ordinary topic text
+retains Tab to add a branch and Alt Enter to add a sibling.
+
+The Text properties style the whole box: Inter, Source Serif 4 or Source Code Pro; numeric font size;
+color; bold, italic, underline and strike; and nine positions combining left/center/right with
+top/middle/bottom. Spacing and sizing adds line height, paragraph spacing, padding, highlight and
+Fit to text. Free text can grow vertically at fixed width; explicitly resizing its height fixes
+the height again. Fit to text does not resize pictures, icons, slides or container titles.
+
+Copy Markdown copies exact portable source. Copy plain text removes markup while retaining content,
+code and equation source. Native canvas files and PNG's embedded copy also preserve box styles;
+other Markdown applications choose their own typography. Fonts and text rendering assets ship with
+the site, including those embedded in exported PNGs.
+
 ## Composing
 
 Any object can hold others. Dragging an object onto a larger one, or placing one inside it, adds it,
@@ -91,11 +128,18 @@ size, Wide 16:9 or Standard 4:3. Its label shows the deck and number before its 
 or dropped on a slide move with it, and deleting a slide deletes them, as with any object that holds
 others.
 
+A deck's template is its slide number 0, set with the Template box in the Slide section. Whatever
+the template holds, a company name at the bottom right or a header bar, is drawn under every other
+slide of the deck at the same place within it: dimmed while editing, plain while presenting. Those
+copies cannot be selected or moved; clicking one selects the slide beneath, and editing the template
+changes every slide. A template with slides of another size scales to fit them.
+
 The Slides list in the left rail shows each deck's slides in number order; click one to fly to it.
 Present, on a deck in the rail or in a slide's property panel, shows the canvas alone with the slide
 filling the window and everything outside it dark. Left and right arrows, Page Up and Page Down, and
-the bar's buttons move through the deck, the bar counts your place, Notes shows the slide's comments
-beside it, and Escape returns to the editor. Changes others make appear while you present.
+the bar's buttons move through the deck, skipping the template, the bar counts your place, Notes
+shows the slide's comments beside it, Full screen fills the screen, and Escape returns to the editor.
+Changes others make appear while you present.
 
 ## Comments
 
@@ -129,23 +173,23 @@ to reorder, and adding or removing items closes up the arrangement.
 
 ## Shortcuts
 
-| Keys | Action |
-| --- | --- |
-| V | Select |
-| H, or hold Space | Pan |
-| Scroll | Zoom around the pointer |
-| N, R, D, P | Note, rectangle, decision, draw |
-| Delete | Remove the selection |
-| Ctrl/Command Z, with Shift to redo | Undo and redo your own work |
-| Ctrl/Command D | Duplicate |
-| Ctrl/Command A | Select all |
-| Ctrl/Command G, with Shift to ungroup | Group and ungroup |
-| ] and [ | Bring to front and send to back |
-| Enter | Edit the selection's text |
-| Tab, Alt Enter | Add a branch, add a sibling |
-| Z, with Shift to go back | Zoom into the selection |
-| Left, Right, Page Up, Page Down | Previous and next slide while presenting |
-| Escape | Finish editing, or leave a presentation |
+| Keys                                  | Action                                   |
+| ------------------------------------- | ---------------------------------------- |
+| V                                     | Select                                   |
+| H, or hold Space                      | Pan                                      |
+| Scroll                                | Zoom around the pointer                  |
+| N, R, D, P                            | Note, rectangle, decision, draw          |
+| Delete                                | Remove the selection                     |
+| Ctrl/Command Z, with Shift to redo    | Undo and redo your own work              |
+| Ctrl/Command D                        | Duplicate                                |
+| Ctrl/Command A                        | Select all                               |
+| Ctrl/Command G, with Shift to ungroup | Group and ungroup                        |
+| ] and [                               | Bring to front and send to back          |
+| Enter                                 | Edit the selection's text                |
+| Tab, Alt Enter                        | Add a branch, add a sibling              |
+| Z, with Shift to go back              | Zoom into the selection                  |
+| Left, Right, Page Up, Page Down       | Previous and next slide while presenting |
+| Escape                                | Finish editing, or leave a presentation  |
 
 ## Rooms and sharing
 

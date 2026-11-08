@@ -43,6 +43,8 @@ export const ARROWS: Arrow[] = ["arrow", "open", "none"];
 export type TitlePlace = "header" | "top" | "side";
 export const TITLE_PLACES: TitlePlace[] = ["header", "top", "side"];
 export type Align = "left" | "center" | "right";
+export type TextFont = "sans" | "serif" | "mono";
+export type VerticalAlign = "top" | "middle" | "bottom";
 
 /** How an item looks, in the words a person would use. Unset properties take the type's default. */
 export interface Look {
@@ -51,8 +53,20 @@ export interface Look {
   lineWidth?: number;
   textColor?: string;
   textSize?: number;
+  font?: TextFont;
+  valign?: VerticalAlign;
+  textHighlight?: string;
+  /** Line height as a multiplier of font size; paragraph gap in em. */
+  lineHeight?: number;
+  paragraphGap?: number;
+  /** Padding in canvas units, following the item's scale. */
+  padding?: number;
+  /** Grow a free-text box vertically while authoring, or keep its chosen size. */
+  textFit?: "fixed" | "height";
   bold?: boolean;
   italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
   align?: Align;
   rotation?: number;
   dashed?: boolean;

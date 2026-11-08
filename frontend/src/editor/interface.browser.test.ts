@@ -164,9 +164,12 @@ it("shows a compact property panel only for a selection, with controls that appl
   const withoutPanel = (await canvas(page).boundingBox())!.width;
   await add(page, "Rectangle (R)", "Rectangle", 200, 150);
   expect((await canvas(page).boundingBox())!.width).toBeLessThan(withoutPanel);
-  const fits = () => panel.evaluate((node) => node.scrollHeight <= node.clientHeight);
+  // More text controls can scroll vertically; the compact sidebar must never overflow sideways.
+  const fits = () => panel.evaluate((node) => node.scrollWidth <= node.clientWidth);
   expect(await fits()).toBe(true);
   expect(await page.getByLabel("Object x", { exact: true }).count()).toBe(1);
+  await page.getByLabel("Object height", { exact: true }).scrollIntoViewIfNeeded();
+  expect(await page.getByLabel("Object height", { exact: true }).isVisible()).toBe(true);
   await page.screenshot({ path: "test-results/inspector-shape.png" });
   await add(page, "Sticky note (N)", "Note", 500, 150);
   expect(await fits()).toBe(true);

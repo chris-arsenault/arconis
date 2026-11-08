@@ -24,8 +24,18 @@ export interface Deck {
   slides: Item[];
 }
 
+/**
+ * The number of a deck's template. What a template holds is drawn under every other slide of its
+ * deck, at the same place within each, and a presentation skips the template itself.
+ */
+export const TEMPLATE_NUMBER = 0;
+
 export function isSlide(item: Pick<Item, "type"> | null | undefined) {
   return item?.type === "slide";
+}
+
+export function isTemplate(item: Item) {
+  return isSlide(item) && item.slide === TEMPLATE_NUMBER;
 }
 
 export function deckOf(item: Item) {
@@ -48,6 +58,11 @@ export function decks(items: Item[]): Deck[] {
 
 export function deckSlides(items: Item[], deck: string) {
   return items.filter((item) => isSlide(item) && deckOf(item) === deck).sort(compareSlides);
+}
+
+/** The slides a presentation of the deck walks: its slides in order, without templates. */
+export function presentedSlides(items: Item[], deck: string) {
+  return deckSlides(items, deck).filter((slide) => !isTemplate(slide));
 }
 
 /** The number a slide added to this deck takes: one past the highest, or 1. */

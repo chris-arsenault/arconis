@@ -1,8 +1,15 @@
 import { Cell, Geometry, Graph, Point, type CellStyle } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { isBox, isLink, type Item } from "../document/types";
-import { objectStyle } from "./styles";
+import { objectStyle, underlayStyle } from "./styles";
 import { offsetPoints } from "../document/geometry";
+import { underlays } from "./templates";
+
+/** How the document is drawn: as a presentation or not, with these ids drawn as underlays. */
+interface Drawing {
+  presenting: boolean;
+  underlaid: Set<string>;
+}
 
 function safeParent(item: Item, all: Map<string, Item>) {
   const visited = new Set([item.id]);
@@ -19,7 +26,11 @@ function safeParent(item: Item, all: Map<string, Item>) {
 
 export function projectDocument(graph: Graph, document: CanvasDocument, presenting = false) {
   const model = graph.getDataModel();
-  const all = new Map(document.list().map((item) => [item.id, item]));
+  const items = document.list();
+  // Underlays come first, so within a slide they stack under what the slide holds itself.
+  const underlaid = underlays(items);
+  const all = new Map([...underlaid, ...items].map((item) => [item.id, item]));
+  const drawing: Drawing = { presenting, underlaid: new Set(underlaid.map((item) => item.id)) };
   const parent = graph.getDefaultParent();
   model.beginUpdate();
   try {
@@ -40,7 +51,7 @@ export function projectDocument(graph: Graph, document: CanvasDocument, presenti
     const paths = [...all.values()].filter((item) => !isBox(item));
     for (const item of [...boxes, ...paths]) {
       const parentId = safeParent(item, all);
-      updateCell(graph, document, item, model.getCell(parentId) || parent, all, presenting);
+      updateCell(graph, document, item, model.getCell(parentId) || parent, all, drawing);
     }
     applyStacking(graph, all);
   } finally {
@@ -67,13 +78,14 @@ function updateCell(
   item: Item,
   parent: Cell,
   all: Map<string, Item>,
-  presenting: boolean
+  drawing: Drawing
 ) {
   const model = graph.getDataModel();
   const cell = model.getCell(item.id)!;
   if (cell.parent !== parent) model.add(parent, cell);
   if (cell.value !== item.name) model.setValue(cell, item.name);
-  const style = objectStyle(item, document.namedStyle(item.style), presenting);
+  const own = objectStyle(item, document.namedStyle(item.style), drawing.presenting);
+  const style = drawing.underlaid.has(item.id) ? underlayStyle(own, drawing.presenting) : own;
   if (!stylesEqual(style, cell.getStyle())) model.setStyle(cell, style);
   if (isLink(item)) attachTerminals(graph, item, cell);
   const origin = all.get(cell.parent!.id!) || { x: 0, y: 0 };

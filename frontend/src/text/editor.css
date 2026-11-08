@@ -1,0 +1,136 @@
+.markdown-tools {
+  font-size: 11px;
+  color: #403c53;
+}
+.markdown-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  margin: 4px 0;
+}
+.markdown-toolbar button {
+  padding: 4px 6px;
+  min-width: 25px;
+  border: 1px solid #ded9e9;
+  border-radius: 4px;
+  background: #fff;
+  color: #403c53;
+  font-size: 11px;
+  cursor: pointer;
+}
+.markdown-toolbar select {
+  width: auto;
+  max-width: 125px;
+  font-size: 11px;
+}
+.markdown-more {
+  position: relative;
+}
+.markdown-more summary {
+  cursor: pointer;
+  padding: 4px;
+}
+.markdown-more > div {
+  position: static;
+  z-index: 8;
+  padding: 6px;
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 4px 15px #30264233;
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+}
+.markdown-more[open] {
+  flex-basis: 100%;
+}
+.markdown-preview {
+  padding: 10px;
+  border: 1px solid #ded9e9;
+  border-radius: 5px;
+  background: #fff;
+  overflow: auto;
+  max-height: 280px;
+  font-size: 14px;
+}
+.markdown-preview > button {
+  margin-top: 5px;
+}
+.markdown-copy-status {
+  font-size: 10px;
+}
+.inline-markdown-panel {
+  position: absolute;
+  z-index: 5;
+  width: 340px;
+  max-width: calc(100% - 16px);
+  max-height: 45%;
+  overflow: auto;
+  padding: 6px;
+  background: #faf9fd;
+  border: 1px solid #c6b7e6;
+  border-radius: 5px;
+  box-shadow: 0 5px 15px #30264222;
+}
+.text-box-controls {
+  display: grid;
+  gap: 7px;
+}
+.text-box-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px 26px;
+  gap: 5px;
+}
+.text-box-main select,
+.text-box-main input[type="number"] {
+  width: 100%;
+}
+.text-box-controls label {
+  font-size: 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.text-box-controls input,
+.text-box-controls select {
+  padding: 3px 5px;
+  min-height: 25px;
+  height: 25px;
+  margin: 0;
+}
+.text-box-controls select {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+.text-box-controls input[type="color"] {
+  width: 26px;
+  padding: 2px;
+}
+.text-box-controls input[type="number"] {
+  width: 62px;
+}
+.text-box-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.text-box-toggles button {
+  padding: 4px 6px;
+  font-size: 10px;
+}
+.text-box-toggles button[aria-pressed="true"] {
+  background: #ebe5f8;
+}
+.inline-editor {
+  font-family: "Source Code Pro", monospace;
+  tab-size: 4;
+  white-space: pre-wrap;
+}
+.object-text {
+  font-family: "Source Code Pro", monospace;
+  tab-size: 4;
+}

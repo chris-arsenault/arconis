@@ -5,6 +5,10 @@ import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "../document/useCollaborativeText";
 import { addBranch } from "../editor/topics";
 import { bindPictureInput } from "../editor/pictureInput";
+import { MarkdownTools } from "./MarkdownTools";
+import { markdownKey } from "../text/sourceKeys";
+import { fitText } from "../editor/textLayout";
+import { positionTextEditor } from "../editor/textEditorPosition";
 
 export function Canvas({
   session,
@@ -51,24 +55,13 @@ export function Canvas({
 
 export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>) {
   const ref = useCollaborativeText(editor.document, editor.editId);
+  const panel = useRef<HTMLDivElement>(null);
   const item = editor.editId ? editor.document.get(editor.editId) : null;
   const editingId = editor.editId;
   useLayoutEffect(() => {
     const item = editingId ? editor.document.get(editingId) : null;
     if (!item || !ref.current) return;
-    const cell = editor.graph.getDataModel().getCell(item.id);
-    const state = cell ? editor.graph.view.getState(cell) : null;
-    if (!state) return;
-    Object.assign(ref.current.style, {
-      left: `${state.x}px`,
-      top: `${state.y}px`,
-      width: `${Math.max(120, state.width)}px`,
-      height: `${Math.max(60, state.height)}px`,
-      backgroundColor:
-        state.style.fillColor && state.style.fillColor !== "none"
-          ? String(state.style.fillColor)
-          : "#ffffff",
-    });
+    positionTextEditor(editor, item.id, ref.current, panel.current);
   });
   useLayoutEffect(() => {
     if (!editingId) return;
@@ -80,24 +73,45 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
     editor.closeEditor();
   };
   return (
-    <textarea
-      ref={ref}
-      className="inline-editor"
-      aria-label="Edit canvas text"
-      onBlur={close}
-      onKeyDown={(event) => {
-        event.stopPropagation();
-        if (event.key === "Escape" || ((event.ctrlKey || event.metaKey) && event.key === "Enter")) {
+    <>
+      <textarea
+        ref={ref}
+        className="inline-editor"
+        aria-label="Edit canvas text"
+        onBlur={(event) => {
+          if (
+            event.relatedTarget instanceof Element &&
+            event.relatedTarget.closest("[data-text-tools]")
+          )
+            return;
           close();
-          return;
-        }
-        // The same keys as on the canvas, so a tree can be typed. Plain Enter stays a new line.
-        const sibling = event.key === "Enter" && event.altKey;
-        if (event.key !== "Tab" && !sibling) return;
-        event.preventDefault();
-        addBranch(editor, sibling);
-      }}
-    />
+        }}
+        onInput={() => void fitText(editor, item.id, true)}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (markdownKey(event, editor.document, item.id)) {
+            void fitText(editor, item.id, true);
+            return;
+          }
+          if (event.nativeEvent.isComposing) return;
+          if (
+            event.key === "Escape" ||
+            ((event.ctrlKey || event.metaKey) && event.key === "Enter")
+          ) {
+            close();
+            return;
+          }
+          // The same keys as on the canvas, so a tree can be typed. Plain Enter stays a new line.
+          const sibling = event.key === "Enter" && event.altKey;
+          if (event.key !== "Tab" && !sibling) return;
+          event.preventDefault();
+          addBranch(editor, sibling);
+        }}
+      />
+      <div ref={panel} className="inline-markdown-panel" data-text-tools="true">
+        <MarkdownTools editor={editor} id={item.id} textarea={ref} expanded />
+      </div>
+    </>
   );
 }
 

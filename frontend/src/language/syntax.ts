@@ -135,6 +135,13 @@ export const LOOK_WORDS = {
   "line-width": "lineWidth",
   "text-color": "textColor",
   "text-size": "textSize",
+  font: "font",
+  valign: "valign",
+  "text-highlight": "textHighlight",
+  "line-height": "lineHeight",
+  "paragraph-gap": "paragraphGap",
+  padding: "padding",
+  "text-fit": "textFit",
   align: "align",
   rotate: "rotation",
   opacity: "opacity",
@@ -150,6 +157,8 @@ export const LOOK_WORDS = {
 export const LOOK_FLAGS = {
   bold: "bold",
   italic: "italic",
+  underline: "underline",
+  strike: "strike",
   dashed: "dashed",
   vertical: "vertical",
 } as const satisfies Record<string, keyof Look>;

@@ -18,8 +18,10 @@ or drag, nothing on the canvas to point at, and comments attach to items by id.
 
 A slide is an item type: a box with a fixed aspect ratio, a `deck` name and a `slide` number, drawn
 as an outline with its label above it and nothing else while presenting. A deck is only the name its
-slides share, with no record of its own; presenting orders a deck's slides by number, then id.
-Presenting is local state in the browser that shows the canvas alone, fits the slide to the window,
+slides share, with no record of its own; presenting orders a deck's slides by number, then id. A
+deck's template is its slide number 0, the owner's suggestion: what it holds is projected again under
+each other slide of the deck as cells of the graph alone, never items of the document, so one edit to
+the template reaches every slide and the file carries it once. Presenting is local state in the browser that shows the canvas alone, fits the slide to the window,
 masks everything outside it and suspends editing, while remote changes keep projecting.
 
 ## Alternatives considered

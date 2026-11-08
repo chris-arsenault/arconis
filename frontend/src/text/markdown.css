@@ -1,0 +1,148 @@
+.canvas-markdown {
+  line-height: var(--text-line-height, 1.35);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-transform: none;
+}
+.canvas-markdown p,
+.canvas-markdown h1,
+.canvas-markdown h2,
+.canvas-markdown h3,
+.canvas-markdown h4,
+.canvas-markdown h5,
+.canvas-markdown h6,
+.canvas-markdown ul,
+.canvas-markdown ol,
+.canvas-markdown blockquote,
+.canvas-markdown pre,
+.canvas-markdown table {
+  margin: 0 0 var(--text-paragraph-gap, 0.5em);
+}
+.canvas-markdown > :last-child,
+.canvas-markdown li > :last-child {
+  margin-bottom: 0;
+}
+.canvas-markdown h1 {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: normal;
+  font-size: 1.8em;
+  line-height: 1.2;
+}
+.canvas-markdown h1 em {
+  color: inherit;
+  font-style: italic;
+}
+.canvas-markdown h2 {
+  font-size: 1.5em;
+  line-height: 1.2;
+}
+.canvas-markdown h3 {
+  font-size: 1.25em;
+}
+.canvas-markdown h4,
+.canvas-markdown h5,
+.canvas-markdown h6 {
+  font-size: 1em;
+}
+.canvas-markdown ul,
+.canvas-markdown ol {
+  padding-inline-start: 1.5em;
+  text-align: start;
+}
+.canvas-markdown li {
+  margin: 0;
+  padding: 0;
+}
+.canvas-markdown blockquote {
+  border-inline-start: 0.15em solid #b8b8c6;
+  padding-inline-start: 0.7em;
+}
+.canvas-markdown a {
+  color: #315ca8;
+  text-decoration: underline;
+}
+.canvas-markdown code,
+.canvas-markdown pre {
+  font-family: "Source Code Pro", monospace;
+  font-weight: 400;
+  font-style: normal;
+  text-align: start;
+}
+.canvas-markdown code {
+  background: #edf0f5;
+  color: #26374c;
+  border-radius: 0.2em;
+  padding: 0.08em 0.2em;
+  font-size: 0.88em;
+}
+.canvas-markdown pre {
+  background: #f2f4f8;
+  color: #26374c;
+  padding: 0.6em;
+  border-radius: 0.3em;
+  white-space: pre-wrap;
+  tab-size: 4;
+}
+.canvas-markdown pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.88em;
+  white-space: inherit;
+}
+.canvas-markdown mark {
+  background: #ffed99;
+  color: inherit;
+}
+.canvas-markdown sub,
+.canvas-markdown sup {
+  font-size: 0.75em;
+  line-height: 0;
+}
+.canvas-markdown table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+.canvas-markdown th,
+.canvas-markdown td {
+  border: 1px solid #c7ccd6;
+  padding: 0.2em 0.4em;
+}
+.canvas-markdown hr {
+  border: 0;
+  border-top: 1px solid #c7ccd6;
+}
+.canvas-markdown .katex {
+  white-space: nowrap;
+  font-size: 1.1em;
+}
+.canvas-markdown .katex-display {
+  margin: 0.4em 0;
+  overflow: visible;
+}
+.canvas-markdown .hljs-keyword,
+.canvas-markdown .hljs-selector-tag,
+.canvas-markdown .hljs-literal {
+  color: #8545a0;
+}
+.canvas-markdown .hljs-string,
+.canvas-markdown .hljs-attr,
+.canvas-markdown .hljs-template-variable {
+  color: #17684b;
+}
+.canvas-markdown .hljs-title,
+.canvas-markdown .hljs-built_in,
+.canvas-markdown .hljs-type {
+  color: #245fa3;
+}
+.canvas-markdown .hljs-number,
+.canvas-markdown .hljs-symbol {
+  color: #a44d18;
+}
+.canvas-markdown .hljs-comment {
+  color: #64718a;
+  font-style: italic;
+}
+.canvas-markdown .hljs-meta {
+  color: #8c4161;
+}

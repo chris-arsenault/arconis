@@ -812,6 +812,17 @@ h1 em {
 .slide-number {
   flex: 0 0 72px;
 }
+.slide-template {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #5d6b85;
+}
+.slide-template input {
+  margin: 0;
+}
 .save-view {
   display: flex;
   gap: 4px;

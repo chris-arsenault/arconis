@@ -5,6 +5,7 @@ import { iconImage, loadIconFor } from "./icons";
 import { isPictureHash, isPictureType } from "../document/pictures";
 import { pictureImage } from "./pictureSource";
 import { LABEL_BADGE, LABEL_SUBTITLE } from "./rendering";
+import { TEXT_FONTS } from "../text/typography";
 
 /**
  * The one place an item's look becomes maxGraph styles. The model speaks in plain terms; everything
@@ -231,6 +232,11 @@ const DIRECT: [keyof Look, string][] = [
   ["textColor", "fontColor"],
   ["textSize", "fontSize"],
   ["align", "align"],
+  ["valign", "verticalAlign"],
+  ["padding", "spacing"],
+  ["lineHeight", "labelLineHeight"],
+  ["paragraphGap", "labelParagraphGap"],
+  ["textHighlight", "labelHighlight"],
   ["rotation", "rotation"],
   ["dashed", "dashed"],
   ["opacity", "fillOpacity"],
@@ -242,7 +248,9 @@ function fontStyle(look: Look, base: Style) {
     if (on === undefined) return font;
     return on ? font | mask : font & ~mask;
   };
-  return bit(bit(Number(base.fontStyle ?? 0), look.bold, BOLD), look.italic, ITALIC);
+  let result = bit(bit(Number(base.fontStyle ?? 0), look.bold, BOLD), look.italic, ITALIC);
+  result = bit(result, look.underline, 4);
+  return bit(result, look.strike, 8);
 }
 
 function lookStyle(look: Look, base: Style): Style {
@@ -252,8 +260,8 @@ function lookStyle(look: Look, base: Style): Style {
   if (look.arrow) result.endArrow = ARROWS[look.arrow];
   if (look.startArrow) result.startArrow = ARROWS[look.startArrow];
   if (look.vertical) result.horizontal = false;
-  if (look.bold !== undefined || look.italic !== undefined)
-    result.fontStyle = fontStyle(look, base);
+  result.fontStyle = fontStyle(look, base);
+  if (look.font && TEXT_FONTS[look.font]) result.fontFamily = TEXT_FONTS[look.font];
   return result;
 }
 
@@ -303,6 +311,30 @@ export function objectStyle(item: Item, named: Look = {}, presenting = false): C
     Object.assign(style, { strokeColor: "none", noLabel: true });
   applyLabel(item, style, look);
   return style;
+}
+
+/**
+ * An underlay draws a template's item again where nothing can touch it: no pointer events, no
+ * handles, no connections. It is dimmed while editing, so it reads as the template's, and plain
+ * while presenting.
+ */
+export function underlayStyle(style: CellStyle, presenting: boolean): CellStyle {
+  const opacity = presenting ? 100 : 55;
+  const underlay: Style = {
+    ...style,
+    underlay: true,
+    pointerEvents: false,
+    movable: false,
+    resizable: false,
+    rotatable: false,
+    editable: false,
+    connectable: false,
+    deletable: false,
+    bendable: false,
+    opacity,
+    textOpacity: opacity,
+  };
+  return underlay;
 }
 
 /** Peers write items, so an image only ever comes from a local icon key resolved here. */

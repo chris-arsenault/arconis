@@ -1,6 +1,6 @@
 import type { Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { deckSlides } from "../document/slides";
+import { presentedSlides } from "../document/slides";
 import type { Item } from "../document/types";
 import { fittingView, flyToView } from "./views";
 
@@ -34,7 +34,7 @@ export class Presenter {
   }
 
   slides() {
-    return this.deck === null ? [] : deckSlides(this.stage.document.list(), this.deck);
+    return this.deck === null ? [] : presentedSlides(this.stage.document.list(), this.deck);
   }
 
   /** The slide shown: the current one, or the nearest remaining when it was removed. */

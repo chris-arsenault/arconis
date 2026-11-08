@@ -118,3 +118,65 @@ it("presents a deck with the chrome gone, moving by key and button, with notes a
   await a.context().close();
   await b.context().close();
 });
+
+it("draws a template under the deck's slides, where nothing can touch it, and presents without it", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  const page = await open(context, createRoomId());
+  await add(page, "Slide", "Body", 100, 100);
+  // The deck's second slide moves well clear of the first before the first becomes the template.
+  await add(page, "Slide", "Layout", 200, 200);
+  await page.getByLabel("Object x", { exact: true }).fill("3000");
+  await page.getByTestId("deck").getByRole("button", { name: "2 · Layout" }).click();
+  await page.getByRole("checkbox", { name: "Template under the deck's slides" }).check();
+  await expect.poll(() => row(page, "deck · template Layout").count()).toBe(1);
+  await expect.poll(() => page.getByRole("button", { name: "Template · Layout" }).count()).toBe(1);
+  // Text placed on the template appears again on the other slide.
+  await add(page, "Text", "Acme", 700, 600);
+  await expect.poll(() => row(page, "Acme").count()).toBe(2);
+  const objects = (await exported(page)).objects;
+  expect(objects.filter((item) => item.name === "Acme")).toHaveLength(1);
+  expect(objects.find((item) => item.name === "Acme")!.inside).toBe(
+    objects.find((item) => item.name === "Layout")!.id
+  );
+
+  // On the other slide the copy cannot be picked: clicking it selects the slide beneath.
+  await page.getByTestId("deck").getByRole("button", { name: "1 · Body" }).click();
+  await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
+  await page.keyboard.press("Escape");
+  const copies = row(page, "Acme");
+  const stage = (await canvas(page).boundingBox())!;
+  // The flight to the slide has to land before the copy's place on screen is known: the template's
+  // own text sweeps across the window on the way, so wait for a copy that holds still.
+  const onScreen = async () => {
+    const boxes = await Promise.all([copies.nth(0).boundingBox(), copies.nth(1).boundingBox()]);
+    return (
+      boxes.find((box) => box && box.x > stage.x && box.x + box.width < stage.x + stage.width) ??
+      null
+    );
+  };
+  let last: Awaited<ReturnType<typeof onScreen>> = null;
+  await expect
+    .poll(async () => {
+      const now = await onScreen();
+      const still = now !== null && last !== null && now.x === last.x && now.y === last.y;
+      last = now;
+      return still;
+    })
+    .toBe(true);
+  const copy = last!;
+  await page.mouse.click(copy.x + copy.width / 2, copy.y + copy.height / 2);
+  await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
+  expect(await page.getByLabel("Object text", { exact: true }).inputValue()).toBe("Body");
+  expect((await exported(page)).objects).toHaveLength(3);
+
+  // Presenting skips the template and shows its text on the slide.
+  await page.getByRole("button", { name: "Present deck", exact: true }).click();
+  await page.getByTestId("presenter").waitFor();
+  await expect.poll(() => page.getByTestId("slide-position").textContent()).toBe("1 / 1");
+  await expect.poll(() => row(page, "Acme").count()).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Full screen", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect.poll(() => page.getByTestId("presenter").count()).toBe(0);
+  expect(errors).toEqual([]);
+  await context.close();
+});

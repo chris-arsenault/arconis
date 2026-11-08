@@ -6,9 +6,15 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added Markdown canvas labels with nested lists, highlighted code fences, local LaTeX math,
+  source-editing tools, preview, Copy Markdown, Copy plain text and Copy code. Agents and files use
+  raw multiline strings for the same source. Added three bundled fonts, nine text positions,
+  box-level text styling, spacing and fit/grow controls; PNG exports embed text CSS and fonts.
+
 - Added slides: fixed-proportion viewports placed over the canvas, each in a deck with a number, in
   the canvas language too, and a presentation of a deck that hides everything but the slide, moves
-  with arrows and shows the slide's comments as speaker notes.
+  with arrows, goes full screen and shows the slide's comments as speaker notes. A deck's slide 0 is
+  its template, drawn under every other slide.
 - Changed comments to allow 20000 characters and several lines.
 - Added Ahara accounts, signed in at auth.ahara.io, with email activation, whose name replaces the
   one typed into rooms.

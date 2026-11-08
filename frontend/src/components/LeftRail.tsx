@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Pencil, Play, Plus, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import type { View } from "../document/types";
-import { decks } from "../document/slides";
+import type { Item, View } from "../document/types";
+import { decks, isTemplate } from "../document/slides";
 import { goToSlide } from "../editor/topics";
 import { flyToView, removeView, renameView, saveCurrentView, savedViews } from "../editor/views";
 import { StencilBrowser } from "./StencilBrowser";
@@ -32,6 +32,12 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
+/** A slide's line in the rail: its number, or Template, then its name. */
+function slideEntry(slide: Item) {
+  if (isTemplate(slide)) return slide.name ? `Template · ${slide.name}` : "Template";
+  return `${slide.slide ?? 0} · ${slide.name || "Slide"}`;
+}
+
 /** Every deck in the room with its slides in order; clicking a slide flies to it. */
 function Decks({ editor }: Readonly<{ editor: EditorController }>) {
   const all = decks(editor.document.list());
@@ -59,7 +65,7 @@ function Decks({ editor }: Readonly<{ editor: EditorController }>) {
                 className="saved-view-name"
                 onClick={() => goToSlide(editor, slide.id)}
               >
-                {slide.slide ?? 0} · {slide.name || "Slide"}
+                {slideEntry(slide)}
               </button>
             ))}
           </div>

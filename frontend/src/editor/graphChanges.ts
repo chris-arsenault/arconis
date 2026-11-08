@@ -3,10 +3,12 @@ import type { CanvasDocument } from "../document/canvasDocument";
 import { LOCAL, type Item, type PathPoint, type Port } from "../document/types";
 import { offsetPoints } from "../document/geometry";
 import { orphanedAnchors } from "../document/relations";
+import { isUnderlay } from "./templates";
 
 export function commitGraph(graph: Graph, document: CanvasDocument) {
+  // Underlays are the projection's own cells, drawn from templates; they never reach the document.
   const cells = Object.values(graph.getDataModel().cells || {}).filter(
-    (cell) => cell.isVertex() || cell.isEdge()
+    (cell) => (cell.isVertex() || cell.isEdge()) && !isUnderlay(cell)
   );
   const present = new Set(cells.map((cell) => cell.id!));
   const changes = cells.map((cell) => ({ cell, values: cellValues(cell, document) }));
@@ -24,6 +26,7 @@ function commitCell(cell: Cell, values: Partial<Item>, document: CanvasDocument)
   if (!cell.id || !cell.geometry) return;
   const existing = document.get(cell.id);
   if (existing) {
+    if (heightWasResized(existing, values)) document.patchLook(cell.id, { textFit: "fixed" });
     document.patch(cell.id, values);
     // Native rotation handles write the angle to the cell style, not its geometry.
     const rotation = cell.getStyle().rotation;
@@ -39,6 +42,14 @@ function commitCell(cell: Cell, values: Partial<Item>, document: CanvasDocument)
       ...values,
     });
   }
+}
+
+function heightWasResized(existing: Item, values: Partial<Item>) {
+  return (
+    existing.type === "text" &&
+    values.height !== existing.height &&
+    existing.look.textFit === "height"
+  );
 }
 
 function portOf(style: Record<string, unknown>, prefix: "exit" | "entry"): Port | undefined {

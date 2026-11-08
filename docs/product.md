@@ -14,6 +14,9 @@ result into a structured diagram, all in one document with no conversion between
 
 - Rectangles, ellipses, diamonds and basic architectural components.
 - Editable labels and shape properties.
+- Markdown labels with nested lists, highlighted code and LaTeX mathematics; three font families,
+  whole-box typography, colors, spacing and nine text positions. People and agents edit the same
+  source, and Copy Markdown carries it into other tools.
 - Connectors attached to objects, cornered, diagonal or curved, that stay attached when objects move
   and can be routed around everything between their ends.
 - Grouping and ungrouping.
@@ -29,6 +32,7 @@ result into a structured diagram, all in one document with no conversion between
 
 - Place slides over any part of the canvas: fixed-proportion viewports that belong to a deck and
   carry a number, so a room becomes a deck without copying anything.
+- Give a deck a template, a slide whose contents are drawn under every other slide of the deck.
 - Present a deck full screen, moving between its slides in order, with the slide's comments as
   speaker notes.
 
