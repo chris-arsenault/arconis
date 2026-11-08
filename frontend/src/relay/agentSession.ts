@@ -1,4 +1,5 @@
 import { LanguageError } from "../language/lexer";
+import { randomUUID } from "node:crypto";
 import { LanguageSession, type ReadRequest } from "../language/session";
 import { ICON_VENDORS } from "../document/geometry";
 import { STENCILS } from "../document/types";
@@ -38,6 +39,8 @@ const REFUSALS: Record<Exclude<PeerReadiness, "ready">, string> = {
 
 /** One agent's connection: the room it has open and its language session there. */
 export class AgentSession {
+  /** Diagnostic correlation only; never an MCP session credential or room identifier. */
+  readonly logId = randomUUID();
   private peer: ServerPeer | null = null;
   private domain: LanguageSession | null = null;
 
@@ -46,6 +49,10 @@ export class AgentSession {
     /** How the agent appears to people, and signs its comments. */
     readonly name: string
   ) {}
+
+  get hasRoom() {
+    return this.peer !== null && this.domain !== null;
+  }
 
   async openRoom(link: string) {
     const roomId = parseRoomLink(link);

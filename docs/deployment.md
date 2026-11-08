@@ -41,6 +41,24 @@ and stack. Expected language refusals are tool errors with recovery guidance; th
 faults. Relay log forwarding uses Alloy and the existing private Ahara gateway, whose address is
 discovered by its `Name=ahara-reverse-proxy` tag. The gateway owns downstream ingest authentication.
 
+MCP diagnostics include successful and refused tool calls, request status and duration, aborted
+requests, and session creation/closure with its reason. Each JSON record includes a timestamp,
+severity, service and process id. `requestId` follows asynchronous work through the HTTP request;
+`callId` pairs a tool's start and outcome; `session` identifies its in-memory agent state. Creation
+records map that diagnostic id to a hashed MCP `sessionTag` and hashed account/client tags. Raw session
+headers, tokens, room codes, canvas text and tool arguments are excluded. A tool's `roomOpen` flag
+shows whether the session retained an open room, including on a refusal. Expected refusals and HTTP
+4xx responses are warnings; server failures are errors. Logging sink failures do not alter tool results.
+
+In Loki, filter `{service_name="arconis-relay"} | json | session="<diagnostic id>"` to follow one
+session, or `| requestId="<request id>"` for a request. Creation records with the same `actorTag` and
+`clientTag` identify separate sessions belonging to the same caller. Filter `event="mcp_http_finished"`
+for request statuses/durations and `event="tool_finished"` for domain outcomes, since a tool refusal
+can return HTTP 200. Correlation values stay in the JSON, not Loki labels. These choices follow
+[OpenTelemetry's log data model](https://opentelemetry.io/docs/specs/otel/logs/data-model/),
+[OWASP's logging guidance](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html),
+and [Loki's label guidance](https://grafana.com/docs/loki/latest/get-started/labels/bp-labels/).
+
 On a running relay instance, `journalctl -u arconis-relay.service --no-pager` reads the local fallback,
 and `journalctl -u alloy --no-pager` diagnoses shipping failures. Read these through SSM when needed;
 in this environment, run secret-backed CLI commands through `with-cred --`. Other installations use

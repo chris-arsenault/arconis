@@ -3,7 +3,7 @@ import { z } from "zod";
 import { LanguageError } from "../language/lexer";
 import { languageHelp } from "../language/reference";
 import { AgentSession, stencils } from "./agentSession";
-import { reportFailure } from "./errors";
+import { reportEvent, reportFailure } from "./errors";
 
 /** The most text one write may carry. */
 export const MAX_WRITE = 200_000;
@@ -21,15 +21,33 @@ function text(value: string, isError = false) {
 }
 
 /** Expected refusals teach recovery; unexpected failures also reach the server's logs. */
-async function answer(operation: string, work: () => unknown) {
+async function answer(session: AgentSession, operation: string, work: () => unknown) {
+  const callId = crypto.randomUUID();
+  const started = performance.now();
+  const context = () => ({ session: session.logId, callId, operation, roomOpen: session.hasRoom });
+  const finished = (outcome: "refused" | "succeeded") =>
+    reportEvent(
+      "tool_finished",
+      { ...context(), outcome, durationMs: performance.now() - started },
+      outcome === "refused" ? "warn" : "info"
+    );
+  reportEvent("tool_started", context());
   try {
     const value = await work();
     const result = typeof value === "string" ? value : JSON.stringify(value);
-    return text(result, result.startsWith("// Nothing was changed."));
+    const refused = result.startsWith("// Nothing was changed.");
+    finished(refused ? "refused" : "succeeded");
+    return text(result, refused);
   } catch (error) {
-    if (error instanceof LanguageError)
+    if (error instanceof LanguageError) {
+      finished("refused");
       return text(`// Nothing was changed. ${error.message}`, true);
-    const errorId = reportFailure(operation, error);
+    }
+    const errorId = reportFailure(operation, error, {
+      ...context(),
+      outcome: "failed",
+      durationMs: performance.now() - started,
+    });
     return text(
       `Arconis could not complete ${operation}. Error reference: ${errorId}. ` +
         "Report this reference to the operator. Read the canvas before retrying an edit; its outcome is unverified.",
@@ -67,7 +85,7 @@ export function createMcpServer(session: AgentSession) {
       annotations: { readOnlyHint: true },
     },
     ({ topic }) =>
-      answer("canvas_help", () => {
+      answer(session, "canvas_help", () => {
         const guide = languageHelp(topic);
         if (guide === null)
           throw new LanguageError(
@@ -76,7 +94,10 @@ export function createMcpServer(session: AgentSession) {
         return guide;
       })
   );
-  server.server.onerror = (error) => reportFailure("mcp_transport", error);
+  server.server.onerror = (error) =>
+    reportFailure("mcp_transport", error, { session: session.logId, roomOpen: session.hasRoom });
+  server.server.onclose = () =>
+    reportEvent("mcp_transport_closed", { session: session.logId, roomOpen: session.hasRoom });
   return server;
 }
 
@@ -93,7 +114,7 @@ function registerReading(server: McpServer, session: AgentSession) {
           .describe("The room's link, such as https://arconis.ahara.io/#room=…, or its code"),
       },
     },
-    ({ room }) => answer("open_room", () => session.openRoom(room))
+    ({ room }) => answer(session, "open_room", () => session.openRoom(room))
   );
   server.registerTool(
     "describe_canvas",
@@ -104,7 +125,7 @@ function registerReading(server: McpServer, session: AgentSession) {
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },
-    () => answer("describe_canvas", () => session.describe())
+    () => answer(session, "describe_canvas", () => session.describe())
   );
   server.registerTool(
     "read",
@@ -115,7 +136,7 @@ function registerReading(server: McpServer, session: AgentSession) {
       inputSchema: readShape,
       annotations: { readOnlyHint: true },
     },
-    (request) => answer("read", () => session.read(request))
+    (request) => answer(session, "read", () => session.read(request))
   );
 }
 
@@ -130,7 +151,7 @@ function registerWriting(server: McpServer, session: AgentSession) {
         statements: z.string().min(1).max(MAX_WRITE).describe("Statements in the canvas language"),
       },
     },
-    ({ statements }) => answer("write", () => session.write(statements))
+    ({ statements }) => answer(session, "write", () => session.write(statements))
   );
   server.registerTool(
     "undo",
@@ -139,7 +160,7 @@ function registerWriting(server: McpServer, session: AgentSession) {
       description: "Reverts your own most recent write, leaving everyone else's work alone.",
       inputSchema: {},
     },
-    () => answer("undo", () => session.undo())
+    () => answer(session, "undo", () => session.undo())
   );
   server.registerTool(
     "list_stencils",
@@ -155,6 +176,6 @@ function registerWriting(server: McpServer, session: AgentSession) {
       },
       annotations: { readOnlyHint: true },
     },
-    ({ query }) => answer("list_stencils", () => stencils(query))
+    ({ query }) => answer(session, "list_stencils", () => stencils(query))
   );
 }

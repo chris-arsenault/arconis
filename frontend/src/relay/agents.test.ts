@@ -48,6 +48,8 @@ let gateway: AgentGateway;
 const cleanups: (() => unknown)[] = [];
 
 beforeEach(async () => {
+  vi.spyOn(console, "info").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
   relay = new Relay({
     now: Date.now,
     stop: () => {},
@@ -114,6 +116,12 @@ async function agent(token = "alice") {
   return { client, call };
 }
 
+function loggedEvents() {
+  return [...vi.mocked(console.info).mock.calls, ...vi.mocked(console.warn).mock.calls].map(
+    ([line]) => JSON.parse(String(line)) as Record<string, string | number | boolean>
+  );
+}
+
 describe("signing in", () => {
   it("challenges an agent without a valid token and points it at Auth0 to sign in", async () => {
     const response = await fetch(`${base}/mcp`, { method: "POST", body: "{}" });
@@ -173,6 +181,93 @@ describe("signing in", () => {
     });
     expect(JSON.stringify(log.mock.calls)).not.toContain("private-token");
   });
+});
+
+it("correlates room state, refusals and closure without logging content or session credentials", async () => {
+  const alice = await person();
+  alice.document.create("node", 0, 0, { name: "PRIVATE CANVAS CONTENT" });
+  const first = await agent();
+  const second = await agent();
+  expect(await first.call("open_room", { room: ROOM })).toContain("PRIVATE CANVAS CONTENT");
+  expect(await first.call("describe_canvas")).toContain("PRIVATE CANVAS CONTENT");
+  expect(await second.call("describe_canvas")).toContain("Open a room first");
+  const sessionId = (first.client.transport as StreamableHTTPClientTransport).sessionId!;
+  await (first.client.transport as StreamableHTTPClientTransport).terminateSession();
+  const events = loggedEvents();
+  const created = events.filter((event) => event.event === "mcp_session_created");
+  expect(created).toHaveLength(2);
+  expect(created[0].session).not.toBe(created[1].session);
+  expect(created[0].actorTag).toBe(created[1].actorTag);
+  const finished = events.filter((event) => event.event === "tool_finished");
+  expect(finished).toMatchObject([
+    { session: created[0].session, operation: "open_room", outcome: "succeeded", roomOpen: true },
+    {
+      session: created[0].session,
+      operation: "describe_canvas",
+      outcome: "succeeded",
+      roomOpen: true,
+    },
+    {
+      session: created[1].session,
+      operation: "describe_canvas",
+      outcome: "refused",
+      roomOpen: false,
+      level: "warn",
+    },
+  ]);
+  for (const event of finished) {
+    expect(event.durationMs).toBeGreaterThanOrEqual(0);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: "mcp_http_finished",
+        requestId: event.requestId,
+        status: 200,
+      })
+    );
+  }
+  expect(events).toContainEqual(
+    expect.objectContaining({
+      event: "mcp_session_ended",
+      session: created[0].session,
+      reason: "client_delete",
+      roomOpen: true,
+    })
+  );
+  const recorded = JSON.stringify(events);
+  for (const secret of [ROOM, sessionId, "PRIVATE CANVAS CONTENT", "user-alice", "Bearer alice"])
+    expect(recorded).not.toContain(secret);
+});
+
+it("logs malformed and expired-session requests even when no tool handler runs", async () => {
+  const headers = { authorization: "Bearer alice", "content-type": "application/json" };
+  expect((await fetch(`${base}/mcp`, { method: "POST", headers, body: "not-json" })).status).toBe(
+    400
+  );
+  const response = await fetch(`${base}/mcp`, {
+    method: "POST",
+    headers: { ...headers, "mcp-session-id": "private-session-value" },
+    body: "{}",
+  });
+  expect(response.status).toBe(404);
+  const events = loggedEvents();
+  expect(events).toContainEqual(
+    expect.objectContaining({
+      event: "mcp_request_refused",
+      reason: "invalid_request_body",
+      level: "warn",
+    })
+  );
+  expect(events).toContainEqual(
+    expect.objectContaining({
+      event: "mcp_request_refused",
+      reason: "unknown_or_foreign_session",
+      level: "warn",
+    })
+  );
+  expect(events).toContainEqual(
+    expect.objectContaining({ event: "mcp_http_finished", status: 404 })
+  );
+  expect(JSON.stringify(events)).not.toContain("private-session-value");
 });
 
 describe("agent guidance and failures", () => {
