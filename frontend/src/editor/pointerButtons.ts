@@ -1,9 +1,10 @@
-import type { RubberBandHandler } from "@maxgraph/core";
+import { InternalEvent, type RubberBandHandler } from "@maxgraph/core";
 import type { EditorController } from "./controller";
 import { cellAt } from "./input";
 import { closeMenu, openMenu, runCommand } from "./registry";
 import { commandContext } from "./registry";
 import { ringEntries } from "./contextMenu";
+import { syncZoom } from "./zoom";
 
 /**
  * The standard mapping: the left button selects, moves and marquees; the middle button drags the
@@ -37,21 +38,21 @@ export function panWithPointer(editor: EditorController, event: PointerEvent) {
   event.preventDefault();
   event.stopPropagation();
   element.setPointerCapture(event.pointerId);
-  let last = { x: event.clientX, y: event.clientY };
+  let dx = 0;
+  let dy = 0;
   const move = (moveEvent: PointerEvent) => {
-    const { scale, translate } = graph.view;
-    graph.view.setTranslate(
-      translate.x + (moveEvent.clientX - last.x) / scale,
-      translate.y + (moveEvent.clientY - last.y) / scale
-    );
-    last = { x: moveEvent.clientX, y: moveEvent.clientY };
+    dx = moveEvent.clientX - event.clientX;
+    dy = moveEvent.clientY - event.clientY;
+    graph.panGraph(dx, dy);
   };
   const finish = () => {
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", finish);
     element.removeEventListener("pointercancel", finish);
     if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
-    editor.emit();
+    graph.panGraph(0, 0);
+    const { scale, translate } = graph.view;
+    graph.view.setTranslate(translate.x + dx / scale, translate.y + dy / scale);
   };
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", finish);
@@ -116,6 +117,19 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
 }
 
 export function bindPointerButtons(editor: EditorController, signal: AbortSignal) {
+  const preview = () => {
+    const dx = editor.graph.getPanDx();
+    const dy = editor.graph.getPanDy();
+    const overlays = editor.element.parentElement?.querySelectorAll<HTMLElement>(
+      ".selection-frame, .gradient-direction, .cursors, .find-pulse, .comment-modal, .quick-create, .measure, :scope > .laser"
+    );
+    overlays?.forEach((node) => {
+      node.style.translate = dx || dy ? `${dx}px ${dy}px` : "";
+    });
+    syncZoom(editor.graph, editor.element);
+  };
+  editor.graph.addListener(InternalEvent.PAN, preview);
+  signal.addEventListener("abort", () => editor.graph.removeListener(preview), { once: true });
   editor.element.addEventListener(
     "pointerdown",
     (event) => {

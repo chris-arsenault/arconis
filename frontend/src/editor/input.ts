@@ -251,7 +251,6 @@ function wheelHandler(editor: EditorController, signal: AbortSignal) {
       view.setTranslate(view.translate.x - panX / view.scale, view.translate.y - panY / view.scale);
     }
     panX = panY = zoomDelta = 0;
-    editor.emit();
   };
   return (event: WheelEvent) => {
     event.preventDefault();

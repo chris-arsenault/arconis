@@ -10,6 +10,43 @@ function exchange(a: CanvasDocument, b: CanvasDocument) {
   Y.applyUpdate(b.doc, aUpdate);
 }
 
+it("reuses unchanged list entries while text, look, undo and peer changes invalidate their item", () => {
+  const a = new CanvasDocument();
+  const b = new CanvasDocument();
+  const id = a.create("note", 0, 0, { name: "First" });
+  const other = a.create("node", 300, 0);
+  const before = a.list();
+  const untouched = before.find((item) => item.id === other);
+  a.text(id)!.insert(0, "Our ");
+  expect(a.list().find((item) => item.id === id)?.name).toBe("Our First");
+  expect(a.list().find((item) => item.id === other)).toBe(untouched);
+  a.patchLook(id, { fill: "#ffd9da" });
+  expect(a.list().find((item) => item.id === id)?.look.fill).toBe("#ffd9da");
+  a.undo.undo();
+  expect(a.list().find((item) => item.id === id)?.look.fill).toBeUndefined();
+  exchange(a, b);
+  b.patch(id, { x: 120 });
+  exchange(a, b);
+  expect(a.list().find((item) => item.id === id)?.x).toBe(120);
+  expect(a.list().find((item) => item.id === other)).toBe(untouched);
+  a.destroy();
+  b.destroy();
+});
+
+it("reads live item fields within a transaction even after its list was cached", () => {
+  const document = new CanvasDocument();
+  const id = document.create("node", 0, 0, { name: "Before" });
+  document.list();
+  document.doc.transact(() => {
+    document.patch(id, { x: 20 });
+    expect(document.list()[0].x).toBe(20);
+    document.text(id)!.insert(0, "Live ");
+    expect(document.list()[0].name).toBe("Live Before");
+  });
+  expect(document.list()[0]).toMatchObject({ x: 20, name: "Live Before" });
+  document.destroy();
+});
+
 it("omits concurrent lines whose end was deleted without losing unrelated items", () => {
   const a = new CanvasDocument();
   const b = new CanvasDocument();

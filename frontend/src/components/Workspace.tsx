@@ -25,7 +25,6 @@ import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 
 const subscribeEmpty = () => () => {};
-const snapshotEmpty = () => 0;
 interface Props {
   session: RoomSession;
   name: string;
@@ -40,17 +39,18 @@ interface Props {
 }
 
 /** The room's editor as it arrives, and whether it is presenting, re-rendering as either changes. */
-function useEditor(session: RoomSession) {
-  useSyncExternalStore(session.subscribe, session.snapshot);
+function useEditor() {
   const [editor, setEditor] = useState<EditorController | null>(null);
-  useSyncExternalStore(editor?.subscribe || subscribeEmpty, editor?.snapshot || snapshotEmpty);
-  const presenting = editor?.presenter.active ?? false;
+  const presenting = useSyncExternalStore(
+    editor?.subscribe || subscribeEmpty,
+    () => editor?.presenter.active ?? false
+  );
   return { editor, setEditor, presenting };
 }
 
 export function Workspace(props: Readonly<Props>) {
   const { session, name, onName, newRoom } = props;
-  const { editor, setEditor, presenting } = useEditor(session);
+  const { editor, setEditor, presenting } = useEditor();
   const [message, setMessage] = useState("");
   // Every edit made here names this person as the item's last editor.
   useEffect(() => {
@@ -163,6 +163,8 @@ function EditingOverlays({
   session,
   author,
 }: Readonly<{ editor: EditorController; session: RoomSession; author: string }>) {
+  useSyncExternalStore(editor.subscribe, editor.snapshot);
+  useSyncExternalStore(editor.subscribeView, editor.viewSnapshot);
   return (
     <>
       <InlineEditor editor={editor} />
@@ -205,6 +207,7 @@ function CanvasArea({
   author: string;
   children: ReactNode;
 }>) {
+  useSyncExternalStore(session.subscribe, () => session.document.list().length);
   return (
     <main className="canvas-area">
       <Canvas session={session} onEditor={onEditor} />
@@ -227,6 +230,7 @@ function EmptyCanvasHint({
   session,
   newRoom,
 }: Readonly<{ editor: EditorController; session: RoomSession; newRoom: boolean }>) {
+  useSyncExternalStore(session.subscribe, session.snapshot);
   const { sync } = session.provider;
   if (!newRoom && (sync === "searching" || sync === "receiving"))
     return (
@@ -277,6 +281,7 @@ function syncDescription(session: RoomSession) {
 }
 
 function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
+  useSyncExternalStore(session.subscribe, session.snapshot);
   const labels = {
     online: "Connected",
     connecting: "Connecting…",

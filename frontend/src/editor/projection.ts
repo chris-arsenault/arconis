@@ -16,6 +16,32 @@ interface Drawing {
   bright: Set<string> | null;
 }
 
+const projected = new WeakMap<Cell, readonly unknown[]>();
+
+function needsProjection(cell: Cell, inputs: readonly unknown[], force: boolean) {
+  const previous = projected.get(cell);
+  return force || !previous || inputs.some((value, index) => value !== previous[index]);
+}
+
+function projectionInputs(
+  document: CanvasDocument,
+  item: Item,
+  parent: Cell,
+  origin: { x: number; y: number },
+  drawing: Drawing
+) {
+  return [
+    item,
+    document.styles.get(item.style),
+    parent,
+    origin.x,
+    origin.y,
+    drawing.presenting,
+    drawing.bright?.has(item.id) ?? true,
+    drawing.underlaid.has(item.id),
+  ];
+}
+
 function safeParent(item: Item, all: Map<string, Item>) {
   const visited = new Set([item.id]);
   let parent = item.inside;
@@ -34,7 +60,8 @@ export function projectDocument(
   graph: Graph,
   document: CanvasDocument,
   presenting = false,
-  bright: Set<string> | null = null
+  bright: Set<string> | null = null,
+  force = true
 ) {
   const model = graph.getDataModel();
   // Hidden items and what collapsed ones fold away stay in the document and out of the graph.
@@ -87,7 +114,7 @@ export function projectDocument(
     const paths = [...all.values()].filter((item) => !isBox(item));
     for (const item of [...boxes, ...paths]) {
       const parentId = safeParent(item, all);
-      updateCell(graph, document, item, model.getCell(parentId) || parent, all, drawing);
+      updateCell(graph, document, item, model.getCell(parentId) || parent, all, drawing, force);
     }
     applyStacking(graph, all);
   } finally {
@@ -114,20 +141,24 @@ function updateCell(
   item: Item,
   parent: Cell,
   all: Map<string, Item>,
-  drawing: Drawing
+  drawing: Drawing,
+  force: boolean
 ) {
   const model = graph.getDataModel();
   const cell = model.getCell(item.id)!;
+  const origin = all.get(parent.id!) || { x: 0, y: 0 };
+  const inputs = projectionInputs(document, item, parent, origin, drawing);
+  if (!needsProjection(cell, inputs, force)) return;
   if (cell.parent !== parent) model.add(parent, cell);
   if (cell.value !== item.name) model.setValue(cell, item.name);
   const style = cellStyle(item, document, drawing);
   if (!stylesEqual(style, cell.getStyle())) model.setStyle(cell, style);
   if (isLink(item)) attachTerminals(graph, item, cell);
-  const origin = all.get(cell.parent!.id!) || { x: 0, y: 0 };
   const geometry = cell.isEdge()
     ? edgeGeometry(item, origin)
     : boxGeometry(item, origin, document.namedStyle(item.style));
   if (!cell.geometry?.equals(geometry)) model.setGeometry(cell, geometry);
+  projected.set(cell, inputs);
 }
 
 /** An item's style as drawn now: its own look, dimmed outside a focus, faint as an underlay. */

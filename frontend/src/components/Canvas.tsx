@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import type { RoomSession } from "../collaboration/room";
 import { EditorController } from "../editor/controller";
 import type { PreviewBox } from "../editor/preview";
@@ -208,6 +208,7 @@ export function Cursors({
   editor,
   session,
 }: Readonly<{ editor: EditorController; session: RoomSession }>) {
+  useSyncExternalStore(session.subscribe, session.snapshot);
   return (
     <div className="cursors" aria-hidden="true">
       {[...session.provider.awareness.getStates()]

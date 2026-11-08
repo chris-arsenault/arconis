@@ -150,6 +150,7 @@ export class DrawingEditor {
     return true;
   }
   leave() {
+    if (!this.activeSketch) return;
     this.activeSketch = "";
     this.changed();
   }

@@ -1,5 +1,6 @@
 import type { Graph } from "@maxgraph/core";
 import type { View } from "../document/types";
+import { viewportSize } from "./zoom";
 
 /** How many places back a person can return to. */
 const HISTORY_LIMIT = 50;
@@ -22,13 +23,14 @@ export class ViewHistory {
   /** The view as it is now, in the form saved views take. */
   current(): View {
     const { scale, translate } = this.graph.view;
+    const { width, height } = viewportSize(this.element);
     return {
       id: "",
       name: "",
       zoom: scale,
       center: {
-        x: this.element.clientWidth / 2 / scale - translate.x,
-        y: this.element.clientHeight / 2 / scale - translate.y,
+        x: width / 2 / scale - translate.x,
+        y: height / 2 / scale - translate.y,
       },
     };
   }

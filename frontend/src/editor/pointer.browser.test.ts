@@ -11,6 +11,30 @@ import {
   selectionLabel,
 } from "./browserHarness";
 
+it("moves the collective selection frame with the native middle-pan preview", async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const page = await open(context, createRoomId());
+  await add(page, "Rectangle (R)", "First", 300, 200);
+  await add(page, "Rectangle (R)", "Second", 600, 400);
+  await row(page, "First").click();
+  await row(page, "Second").click({ modifiers: ["Shift"] });
+  const frame = page.getByTestId("selection-frame");
+  const before = (await frame.boundingBox())!;
+  const bounds = (await page.getByTestId("canvas").boundingBox())!;
+  await page.mouse.move(bounds.x + 200, bounds.y + 650);
+  await page.mouse.down({ button: "middle" });
+  await page.mouse.move(bounds.x + 280, bounds.y + 690, { steps: 8 });
+  const preview = (await frame.boundingBox())!;
+  expect(Math.round(preview.x - before.x)).toBe(80);
+  expect(Math.round(preview.y - before.y)).toBe(40);
+  await page.mouse.up({ button: "middle" });
+  const after = (await frame.boundingBox())!;
+  expect(Math.round(after.x - before.x)).toBe(80);
+  expect(Math.round(after.y - before.y)).toBe(40);
+  expect(await objectCount(page)).toBe(2);
+  await context.close();
+});
+
 it("maps the buttons the standard way: middle pans, right opens the ring and menu, and comments open above the object", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());

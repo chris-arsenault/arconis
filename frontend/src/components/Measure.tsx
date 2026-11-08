@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { EditorController } from "../editor/controller";
 import { isBox } from "../document/types";
 import { stackAt } from "../editor/selectBy";
 import { gapsBetween } from "../editor/measure";
+
+const noPresence = { subscribe: () => () => {}, snapshot: () => 0 };
 
 /** Whether Alt is held, so measuring and other modifiers can show while it is. */
 function useAltHeld() {
@@ -29,6 +31,8 @@ function useAltHeld() {
 
 /** With one object selected and Alt held, the distances to the object under the pointer. */
 export function Measure({ editor }: Readonly<{ editor: EditorController }>) {
+  const presence = editor.room ?? noPresence;
+  useSyncExternalStore(presence.subscribe, presence.snapshot);
   const alt = useAltHeld();
   const [selected] = editor.selected();
   if (!alt || !selected || editor.selected().length !== 1 || !isBox(selected) || !editor.pointer)

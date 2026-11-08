@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ChevronLeft, ChevronRight, Maximize, Minimize, NotebookText, X } from "lucide-react";
 import { groupThreads, listComments } from "../document/comments";
 import type { EditorController } from "../editor/controller";
@@ -18,6 +18,8 @@ export function PresenterStage({
   notes,
   onToggleNotes,
 }: Readonly<{ editor: EditorController; notes: boolean; onToggleNotes: () => void }>) {
+  useSyncExternalStore(editor.subscribe, editor.snapshot);
+  useSyncExternalStore(editor.subscribeView, editor.viewSnapshot);
   const { presenter } = editor;
   const slide = presenter.slide();
   const total = presenter.slides().length;
@@ -132,6 +134,7 @@ function StageMask({ editor }: Readonly<{ editor: EditorController }>) {
 
 /** The shown slide's comments, as the presenter's notes, beside the stage. */
 export function PresenterNotes({ editor }: Readonly<{ editor: EditorController }>) {
+  useSyncExternalStore(editor.subscribe, editor.snapshot);
   const slide = editor.presenter.slide();
   if (!slide) return null;
   const threads = groupThreads(listComments(editor.document), slide.id);

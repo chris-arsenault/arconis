@@ -1,4 +1,12 @@
-import type { Cell, Geometry, Graph } from "@maxgraph/core";
+import {
+  Rectangle,
+  mathUtils,
+  type Cell,
+  type CellState,
+  type Geometry,
+  type Graph,
+} from "@maxgraph/core";
+import { viewportSize } from "./zoom";
 
 /** Anything drawn smaller than this disappears, and reappears on zooming toward it. */
 export const CULL_PIXELS = 4;
@@ -73,4 +81,45 @@ export function configureCulling(
       !tooSmall(cell, view.scale);
     return validateCell(cell, visible && shown);
   };
+  configureViewportRendering(graph);
+}
+
+/** Keep all states for routing and hit testing. Only painting uses the viewport; exports draw
+ * the complete scene. One viewport of overscan also covers a native pointer-pan preview. */
+function configureViewportRendering(graph: Graph) {
+  const renderer = graph.cellRenderer;
+  const redraw = renderer.redraw.bind(renderer);
+  const hidden = new WeakSet<CellState>();
+  renderer.redraw = (state, force = false, rendering = true) => {
+    const shown = exporting.has(graph) || inViewport(graph, state);
+    const wasHidden = hidden.has(state);
+    redraw(state, force || (wasHidden && shown), rendering && shown);
+    showState(state, shown);
+    if (shown) hidden.delete(state);
+    else hidden.add(state);
+  };
+}
+
+function showState(state: CellState, shown: boolean) {
+  const display = shown ? "" : "none";
+  for (const node of [state.shape?.node, state.text?.node, state.control?.node])
+    if (node && node.style.display !== display) node.style.display = display;
+}
+
+function inViewport(graph: Graph, state: CellState) {
+  // Unclipped text can extend arbitrarily beyond its cell. Keep it rendered, including line
+  // labels and frame titles, rather than estimating its extent from nominal text bounds.
+  if (!graph.isLabelClipped(state.cell) && state.cell.value) return true;
+  const { width, height } = viewportSize(graph.container);
+  const bounds =
+    mathUtils.getBoundingBox(
+      new Rectangle(state.x, state.y, state.width, state.height),
+      Number(state.style.rotation ?? 0)
+    ) ?? state;
+  return (
+    bounds.x <= width * 2 &&
+    bounds.y <= height * 2 &&
+    bounds.x + bounds.width >= -width &&
+    bounds.y + bounds.height >= -height
+  );
 }

@@ -8,6 +8,30 @@ const GRID_PIXELS = 10;
 /** Close enough to show snap points at 100%, and not so close that lines become a solid tint. */
 const LINE_PIXELS = 8;
 const MAJOR_LINE_EVERY = 10;
+type ViewportElement = Pick<HTMLElement, "clientWidth" | "clientHeight">;
+const viewportSizes = new WeakMap<ViewportElement, { width: number; height: number }>();
+
+/** Keep layout reads out of view-update consumers after the graph has changed the DOM. */
+export function viewportSize(element: ViewportElement) {
+  return viewportSizes.get(element) ?? { width: element.clientWidth, height: element.clientHeight };
+}
+
+export function observeViewport(element: HTMLElement, changed: () => void) {
+  viewportSizes.set(element, { width: element.clientWidth, height: element.clientHeight });
+  const observer = new ResizeObserver(([entry]) => {
+    const width = entry.contentRect.width;
+    const height = entry.contentRect.height;
+    const previous = viewportSizes.get(element);
+    if (previous?.width === width && previous.height === height) return;
+    viewportSizes.set(element, { width, height });
+    changed();
+  });
+  observer.observe(element);
+  return () => {
+    observer.disconnect();
+    viewportSizes.delete(element);
+  };
+}
 
 export function clampScale(scale: number) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
@@ -64,7 +88,7 @@ export function syncZoom(graph: Graph, element: HTMLElement) {
   const major = minor * MAJOR_LINE_EVERY;
   const size = (spacing: number) => `${spacing}px ${spacing}px`;
   const position = (spacing: number) =>
-    `${(translate.x * scale) % spacing}px ${(translate.y * scale) % spacing}px`;
+    `${(translate.x * scale + graph.getPanDx()) % spacing}px ${(translate.y * scale + graph.getPanDy()) % spacing}px`;
   element.style.backgroundSize = [major, major, minor, minor].map(size).join(",");
   element.style.backgroundPosition = [major, major, minor, minor].map(position).join(",");
 }

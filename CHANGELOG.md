@@ -17,6 +17,11 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Reduced UI work on larger canvases: navigation reuses label contents, middle-button drags use
+  the native pan preview, and selection handles avoid repeated SVG measurements. Editing reuses
+  unchanged document entries and skips their style and geometry work; viewport and presence
+  updates no longer rerender the whole workspace, and outline queries build relationships once.
+
 - Added readable history: undo steps named by what they did, in a rail panel that returns to any
   step. Added properties on objects, shown on hover and in labels as {name}, in the canvas
   language as `property`. Added copy as PNG, SVG export carrying the canvas text, and a tree

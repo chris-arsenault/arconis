@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { Download, ImageDown, Upload, Shapes } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -28,6 +28,7 @@ interface Props {
 
 export function WorkspaceHeader(props: Readonly<Props>) {
   const { session, name, onName, onCreate, onJoin } = props;
+  useSyncExternalStore(session.subscribe, session.snapshot);
   const titleEdit = useCompletedField(session.document.actions);
   const [participants, setParticipants] = useState(false);
   const states = [...session.provider.awareness.getStates().values()] as Partial<{

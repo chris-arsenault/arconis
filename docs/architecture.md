@@ -134,6 +134,18 @@ index derives from that same source, including its basic syntax and coordinate c
 
 maxGraph is an editing and rendering projection of the document.
 
+Unchanged read-only `CanvasDocument.list()` entries retain their identity across transactions;
+deep Yjs item changes invalidate their entries, while reads inside transactions stay live.
+Projection skips unchanged item, named-style and holder-origin inputs. Graph-origin geometry,
+value, style and terminal edits capture affected cells and moved descendants; structural edits
+retain the full deletion and reparenting policy. View notifications update canvas overlays and
+presence independently of the editor notifications consumed by the rails and inspector.
+HTML labels reuse their DOM during navigation, and geometric handles use their known bounds
+without forcing SVG layout measurements. Middle-button drags use maxGraph's native pan preview.
+Offscreen clipped objects retain their graph states for routing while skipping DOM painting;
+unclipped labels remain rendered, and exports draw the complete requested scene. A ResizeObserver
+keeps viewport dimensions available without forcing layout after a graph redraw.
+
 - EditorController composes graph-facing behavior and exposes selection/navigation operations.
   Leaf property, Markdown, connection, slide and comment controls receive semantic data and focused
   callbacks. `editor/commands.ts` owns selection formatting, Undo/transaction boundaries and source

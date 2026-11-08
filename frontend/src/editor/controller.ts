@@ -5,6 +5,8 @@ import {
   PanningHandler,
   VertexHandlerConfig,
   type ConnectionHandler,
+  type EventObject,
+  type UndoableEdit,
 } from "@maxgraph/core";
 import { configureLocking } from "./locking";
 import type { RoomSession } from "../collaboration/room";
@@ -18,7 +20,7 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
-import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
+import { clampScale, creationOffset, creationValues, syncZoom, observeViewport } from "./zoom";
 import { configureCulling } from "./culling";
 import { LabelMarks } from "./marks";
 import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
@@ -79,6 +81,8 @@ export class EditorController {
   private transforms: TransformSession;
   private lastPreview = 0;
   private listeners = new Set<() => void>();
+  private viewListeners = new Set<() => void>();
+  private viewVersion = 0;
   private cleanupInput: () => void;
   private cleanupIcons: () => void;
   readonly band: RubberBandHandler;
@@ -152,6 +156,10 @@ export class EditorController {
       subscribeIcons(() => this.project()),
       subscribePictures(() => this.project()),
       keepArranged(this.document),
+      observeViewport(element, () => {
+        this.graph.view.revalidate();
+        this.onView();
+      }),
     ];
     this.cleanupIcons = () => stops.forEach((stop) => stop());
     this.project();
@@ -163,6 +171,11 @@ export class EditorController {
     return () => this.listeners.delete(listener);
   };
   snapshot = () => this.version;
+  subscribeView = (listener: () => void) => {
+    this.viewListeners.add(listener);
+    return () => this.viewListeners.delete(listener);
+  };
+  viewSnapshot = () => this.viewVersion;
   emit = () => {
     this.version++;
     this.listeners.forEach((listener) => listener());
@@ -170,21 +183,22 @@ export class EditorController {
   private onView = () => {
     syncZoom(this.graph, this.element);
     this.drawing.refresh();
-    this.emit();
+    this.viewVersion++;
+    this.viewListeners.forEach((listener) => listener());
   };
   private onDocumentChange = () => {
     if (this.committing) {
       this.committed = true;
       return;
     }
-    this.project();
+    this.project(false);
     this.emit();
   };
-  private onGraphChange = () => {
+  private onGraphChange = (_sender: unknown, event: EventObject) => {
     if (this.projecting) return;
     this.committing = true;
     try {
-      commitGraph(this.graph, this.document);
+      commitGraph(this.graph, this.document, event.getProperty("edit") as UndoableEdit);
       syncLineAnchors(this.graph, this.document);
     } finally {
       this.committing = false;
@@ -194,7 +208,7 @@ export class EditorController {
       // maxGraph queues edits made while it notifies listeners and never redraws them,
       // so the resulting projection runs once this model update has fully ended.
       queueMicrotask(() => {
-        if (!this.destroyed) this.project();
+        if (!this.destroyed) this.project(false);
         if (!this.destroyed) this.emit();
       });
     }
@@ -205,8 +219,8 @@ export class EditorController {
     const bounds = this.element.getBoundingClientRect();
     const { scale, translate } = this.graph.view;
     return {
-      x: (event.clientX - bounds.left) / scale - translate.x,
-      y: (event.clientY - bounds.top) / scale - translate.y,
+      x: (event.clientX - bounds.left - this.graph.getPanDx()) / scale - translate.x,
+      y: (event.clientY - bounds.top - this.graph.getPanDy()) / scale - translate.y,
     };
   }
   private publishPreview() {
@@ -235,11 +249,11 @@ export class EditorController {
     this.project();
     this.emit();
   }
-  private project() {
+  private project(force = true) {
     this.projecting = true;
     try {
       const bright = brightSet(this.document.list(), this.focus, this.filter);
-      projectDocument(this.graph, this.document, this.presenter.active, bright);
+      projectDocument(this.graph, this.document, this.presenter.active, bright, force);
     } finally {
       this.projecting = false;
     }
@@ -390,11 +404,9 @@ export class EditorController {
   }
   zoom(factor: number) {
     this.graph.zoomTo(clampScale(this.graph.view.scale * factor), true);
-    this.emit();
   }
   fit() {
     fitContents(this.graph, this.element, this.document.list());
-    this.emit();
   }
   destroy() {
     if (this.transforms.active) this.endTransform();
@@ -407,5 +419,6 @@ export class EditorController {
     this.document.undo.off("stack-item-popped", this.emit);
     this.graph.destroy();
     this.listeners.clear();
+    this.viewListeners.clear();
   }
 }

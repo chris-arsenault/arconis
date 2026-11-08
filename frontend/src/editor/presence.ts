@@ -93,7 +93,7 @@ export function bindPresence(editor: EditorController, session: RoomSession) {
     const { center, zoom } = editor.history.current();
     setField(session, "viewport", { center, zoom });
   };
-  const unsubscribe = editor.subscribe(() => {
+  const unsubscribe = editor.subscribeView(() => {
     viewportTimer ??= setTimeout(shareViewport, VIEWPORT_INTERVAL_MS);
   });
   shareViewport();

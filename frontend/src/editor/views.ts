@@ -3,7 +3,7 @@ import type { CanvasDocument } from "../document/canvasDocument";
 import { newId } from "../document/ids";
 import { worldBounds } from "../document/relations";
 import { LOCAL, type Item, type View } from "../document/types";
-import { clampScale } from "./zoom";
+import { clampScale, viewportSize } from "./zoom";
 import { viewHistoryOf } from "./viewHistory";
 
 const FLY_MS = 350;
@@ -12,12 +12,9 @@ const FLY_MS = 350;
 export function fitContents(graph: Graph, element: HTMLElement, items: Item[]) {
   const bounds = worldBounds(items);
   if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
+  const { clientWidth: width, clientHeight: height } = element;
   const scale = clampScale(
-    Math.min(
-      2,
-      (element.clientWidth - 120) / bounds.width,
-      (element.clientHeight - 120) / bounds.height
-    )
+    Math.min(2, (width - 120) / bounds.width, (height - 120) / bounds.height)
   );
   viewHistoryOf(graph)?.record();
   graph.view.scaleAndTranslate(scale, 60 / scale - bounds.x, 60 / scale - bounds.y);
@@ -26,11 +23,12 @@ export function fitContents(graph: Graph, element: HTMLElement, items: Item[]) {
 /** Whether any of these items would show in the window as it is. */
 export function anythingInView(graph: Graph, element: HTMLElement, items: Item[]) {
   const { scale, translate } = graph.view;
+  const { width, height } = viewportSize(element);
   const window = {
     x: -translate.x,
     y: -translate.y,
-    width: element.clientWidth / scale,
-    height: element.clientHeight / scale,
+    width: width / scale,
+    height: height / scale,
   };
   return items.some((item) => {
     const box = worldBounds([item]);
@@ -46,9 +44,10 @@ export function anythingInView(graph: Graph, element: HTMLElement, items: Item[]
 
 function viewportCenter(graph: Graph, element: HTMLElement) {
   const { scale, translate } = graph.view;
+  const { clientWidth: width, clientHeight: height } = element;
   return {
-    x: element.clientWidth / 2 / scale - translate.x,
-    y: element.clientHeight / 2 / scale - translate.y,
+    x: width / 2 / scale - translate.x,
+    y: height / 2 / scale - translate.y,
   };
 }
 
@@ -89,9 +88,8 @@ export function fittingView(
   element: Pick<HTMLElement, "clientWidth" | "clientHeight">,
   fill: number
 ): View {
-  const zoom = clampScale(
-    Math.min((element.clientWidth * fill) / box.width, (element.clientHeight * fill) / box.height)
-  );
+  const { clientWidth: width, clientHeight: height } = element;
+  const zoom = clampScale(Math.min((width * fill) / box.width, (height * fill) / box.height));
   return {
     id: "",
     name: "",
@@ -110,14 +108,16 @@ export function flyToView(graph: Graph, element: HTMLElement, view: View, animat
   const start = viewportCenter(graph, element);
   const target = view.center;
   const startScale = graph.view.scale;
-  const place = (scale: number, x: number, y: number) =>
-    graph.view.scaleAndTranslate(
-      scale,
-      element.clientWidth / 2 / scale - x,
-      element.clientHeight / 2 / scale - y
-    );
+  const place = (scale: number, x: number, y: number, size = viewportSize(element)) => {
+    const { width, height } = size;
+    graph.view.scaleAndTranslate(scale, width / 2 / scale - x, height / 2 / scale - y);
+  };
   if (!animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    place(view.zoom, target.x, target.y);
+    // Layout effects can fit a slide before ResizeObserver reports the chrome disappearing.
+    place(view.zoom, target.x, target.y, {
+      width: element.clientWidth,
+      height: element.clientHeight,
+    });
     return;
   }
   const began = performance.now();

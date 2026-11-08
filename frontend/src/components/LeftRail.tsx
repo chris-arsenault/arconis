@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Pencil, Play, Plus, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import type { Item, View } from "../document/types";
@@ -13,6 +13,7 @@ import { DrawingTools, type DrawingActions } from "./DrawingTools";
 import { isMarkup } from "../document/ink";
 
 export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
+  useSyncExternalStore(editor.subscribe, editor.snapshot);
   const selected = editor.selected();
   const selection = {
     canPromote: selected.some((item) => item.type === "drawing" && isMarkup(item)),

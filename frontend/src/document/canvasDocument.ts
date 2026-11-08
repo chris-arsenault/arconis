@@ -48,6 +48,7 @@ export class CanvasDocument {
   author = "";
   private unstamped = 0;
   private listed: Item[] | null = null;
+  private snapshots = new Map<string, Item>();
   private transacting = false;
   readonly doc = new Y.Doc();
   readonly items = this.doc.getMap<Y.Map<unknown>>("items");
@@ -63,6 +64,13 @@ export class CanvasDocument {
   });
 
   constructor() {
+    this.items.observeDeep((events) => {
+      for (const event of events) {
+        const id = event.path[0];
+        if (typeof id === "string") this.snapshots.delete(id);
+        else event.changes.keys.forEach((_change, key) => this.snapshots.delete(key));
+      }
+    });
     this.doc.on("beforeTransaction", () => {
       this.transacting = true;
       this.listed = null;
@@ -174,12 +182,21 @@ export class CanvasDocument {
   list() {
     if (this.listed) return this.listed;
     const items = [...this.items.keys()]
-      .map((id) => this.get(id))
+      .map((id) => (this.transacting ? this.get(id) : this.snapshot(id)))
       .filter((item): item is Item => item !== null)
       .filter((item) => !isLink(item) || (this.items.has(item.from) && this.items.has(item.to)))
       .sort(compareStacking);
     if (!this.transacting) this.listed = items;
     return items;
+  }
+
+  /** Reuse unchanged read-only list entries; reads inside a transaction always see live fields. */
+  private snapshot(id: string) {
+    const known = this.snapshots.get(id);
+    if (known) return known;
+    const item = this.get(id);
+    if (item) this.snapshots.set(id, item);
+    return item;
   }
 
   /** Changes fields of an item. An undefined value clears an optional field. */

@@ -137,6 +137,8 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   await expect.poll(() => page.getByRole("button", { name: "Template · Layout" }).count()).toBe(1);
   // Text placed on the template appears again on the other slide.
   await add(page, "Text (T)", "Acme", 700, 600);
+  // Bring both slides into the viewport before checking both painted copies.
+  await page.getByRole("button", { name: "Fit canvas", exact: true }).click();
   await expect.poll(() => row(page, "Acme").count()).toBe(2);
   const objects = (await exported(page)).objects;
   expect(objects.filter((item) => item.name === "Acme")).toHaveLength(1);

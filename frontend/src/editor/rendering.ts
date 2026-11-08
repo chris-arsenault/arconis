@@ -3,6 +3,11 @@ import {
   HandleConfig,
   VertexHandlerConfig,
   UrlConverter,
+  Shape,
+  ImageShape,
+  RectangleShape,
+  EllipseShape,
+  CellState,
   type Cell,
   type Graph,
   type TooltipHandler,
@@ -20,6 +25,16 @@ UrlConverter.prototype.isRelativeUrl = (url: string) =>
 const SELECTION_COLOR = "#5443b3";
 /** The smallest a frame's or slide's title is drawn on screen, whatever the zoom. */
 const TITLE_FLOOR_PIXELS = 11;
+
+// Handles and connection-point icons have known bounds too. They are created outside the cell
+// renderer, and measuring each one through SVG would flush layout after every label update.
+function geometricBoundingBox(this: Shape) {
+  this.useSvgBoundingBox = false;
+  Shape.prototype.updateBoundingBox.call(this);
+}
+ImageShape.prototype.updateBoundingBox = geometricBoundingBox;
+RectangleShape.prototype.updateBoundingBox = geometricBoundingBox;
+EllipseShape.prototype.updateBoundingBox = geometricBoundingBox;
 
 const escapeLabel = (value: unknown) => escapeText(String(value ?? ""));
 
@@ -125,6 +140,18 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
   };
   // Measuring each shape with getBBox forces layout per cell and dominated zoom time.
   const renderer = graph.cellRenderer;
+  const isTextShapeInvalid = renderer.isTextShapeInvalid.bind(renderer);
+  // TextShape resets empty colors to "none", while the stylesheet removes those entries.
+  // Supply the same defaults to its unchanged-style check so it can reuse the label's DOM.
+  renderer.isTextShapeInvalid = (state, text) =>
+    isTextShapeInvalid(
+      new CellState(state.view, state.cell, {
+        ...state.style,
+        labelBackgroundColor: state.style.labelBackgroundColor ?? "none",
+        labelBorderColor: state.style.labelBorderColor ?? "none",
+      }),
+      text
+    );
   const createShape = renderer.createShape.bind(renderer);
   renderer.createShape = (state) => {
     const shape = createShape(state);

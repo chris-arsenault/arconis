@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { KeyRound } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 
@@ -44,6 +44,7 @@ function PasswordForm({
 
 /** Stands between a password room and its contents, which do not exist here until it opens. */
 export function PasswordGate({ session }: Readonly<{ session: RoomSession }>) {
+  useSyncExternalStore(session.subscribe, session.snapshot);
   const { lock } = session;
   if (!lock || lock.state === "unlocked") return null;
   return (

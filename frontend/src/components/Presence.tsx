@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Eye, Megaphone, X } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -171,6 +171,7 @@ export function PresenceOverlays({
   editor,
   session,
 }: Readonly<{ editor: EditorController; session: RoomSession }>) {
+  useSyncExternalStore(session.subscribe, session.snapshot);
   const own = session.provider.awareness.getLocalState() as PeerState | null;
   return (
     <>

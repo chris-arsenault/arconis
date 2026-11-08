@@ -1,4 +1,12 @@
-import type { Cell, Graph } from "@maxgraph/core";
+import {
+  GeometryChange,
+  ValueChange,
+  StyleChange,
+  TerminalChange,
+  type Cell,
+  type Graph,
+  type UndoableEdit,
+} from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { LOCAL, isFrame, type Item, type PathPoint, type Port } from "../document/types";
 import { offsetPoints } from "../document/geometry";
@@ -7,7 +15,16 @@ import { isUnderlay } from "./templates";
 import { dockedFollowers } from "../document/docking";
 import { TASKS_TAG } from "./stencils";
 
-export function commitGraph(graph: Graph, document: CanvasDocument) {
+export function commitGraph(graph: Graph, document: CanvasDocument, edit?: UndoableEdit) {
+  const changed = changedCells(edit);
+  if (changed) {
+    document.doc.transact(() => {
+      for (const cell of changed)
+        if (cell.geometry && !isUnderlay(cell) && document.get(cell.id!)?.type !== "highlight")
+          commitCell(cell, cellValues(cell, document), document);
+    }, LOCAL);
+    return;
+  }
   // Underlays are the projection's own cells, drawn from templates; they never reach the document.
   const cells = Object.values(graph.getDataModel().cells || {}).filter(
     (cell) => (cell.isVertex() || cell.isEdge()) && !isUnderlay(cell)
@@ -29,6 +46,25 @@ export function commitGraph(graph: Graph, document: CanvasDocument) {
         commitCell(cell, values, document);
     });
   }, LOCAL);
+}
+
+/** Geometry edits include descendants whose world positions follow their holder. Structural
+ * edits retain the full deletion/reparenting policy below, including ungrouping and new cells. */
+function changedCells(edit?: UndoableEdit): Set<Cell> | null {
+  if (!edit) return null;
+  const cells = new Set<Cell>();
+  for (const change of edit.changes) {
+    if (change instanceof GeometryChange)
+      change.cell.filterDescendants(() => true).forEach((cell) => cells.add(cell));
+    else if (
+      change instanceof ValueChange ||
+      change instanceof StyleChange ||
+      change instanceof TerminalChange
+    )
+      cells.add(change.cell);
+    else return null;
+  }
+  return cells;
 }
 
 function commitCell(cell: Cell, values: Partial<Item>, document: CanvasDocument) {

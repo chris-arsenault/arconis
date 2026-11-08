@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import {
   BringToFront,
   SendToBack,
@@ -60,6 +61,7 @@ import {
 type ItemProps = Readonly<{ editor: EditorController; item: Item }>;
 
 export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
+  useSyncExternalStore(editor.subscribe, editor.snapshot);
   const selected = editor.selected();
   const item = selected[0];
   const several = selected.length > 1;
