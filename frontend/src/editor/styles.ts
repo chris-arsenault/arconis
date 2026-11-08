@@ -1,7 +1,8 @@
 import type { CellStyle } from "@maxgraph/core";
-import type { Item, LinePath, Look } from "../document/types";
+import { isLink, type Item, type LinePath, type Look } from "../document/types";
+import { authoredLook, effectiveAppearance, type Appearance } from "../document/appearance";
 import { isLockedIcon } from "../document/geometry";
-import { iconImage, loadIconFor } from "./icons";
+import { iconImage, loadIconFor } from "../assets/icons/catalog";
 import { isPictureHash, isPictureType } from "../document/pictures";
 import { pictureImage } from "./pictureSource";
 import { LABEL_BADGE, LABEL_SUBTITLE } from "./rendering";
@@ -15,17 +16,10 @@ type Style = CellStyle & Record<string, unknown>;
 
 const BASE_STYLE: Style = {
   shape: "rectangle",
-  fillColor: "#ffffff",
-  strokeColor: "#9ca5b8",
-  fontColor: "#283249",
-  fontSize: 14,
-  fontFamily: "Inter, system-ui, sans-serif",
   whiteSpace: "wrap",
   overflow: "hidden",
   rounded: true,
   arcSize: 12,
-  spacing: 14,
-  strokeWidth: 1,
 };
 
 const STENCIL_STYLES: Record<string, Style> = {
@@ -37,56 +31,33 @@ const STENCIL_STYLES: Record<string, Style> = {
   // A point where lines meet, drawn as a dot in the lines' color.
   junction: {
     shape: "ellipse",
-    fillColor: "#7f8aa3",
-    strokeColor: "none",
     resizable: false,
     rotatable: false,
     noLabel: true,
   },
   icon: {
-    fillColor: "none",
-    strokeColor: "none",
     rounded: false,
     verticalLabelPosition: "bottom",
-    verticalAlign: "top",
     whiteSpace: "nowrap",
     overflow: "visible",
-    spacing: 2,
-    fontSize: 12,
     imageAspect: true,
   },
 };
 
 const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
   note: {
-    fillColor: "#fff0ad",
-    strokeColor: "none",
     shadow: true,
     rounded: false,
-    align: "left",
-    verticalAlign: "top",
-    fontSize: 16,
-    spacing: 20,
   },
-  text: { fillColor: "none", strokeColor: "none", fontSize: 22 },
+  text: {},
   group: {
-    fillColor: "#f3f0fc",
-    fillOpacity: 35,
-    strokeColor: "#a797cc",
-    dashed: true,
-    verticalAlign: "top",
-    fontSize: 12,
     // A rotated frame would no longer contain its children; children rotate instead.
     rotatable: false,
   },
   frame: {
     shape: "swimlane",
     startSize: 28,
-    fillColor: "#eef0f5",
     swimlaneFillColor: "#ffffff",
-    strokeColor: "#b9bfcd",
-    fontSize: 13,
-    fontStyle: 1,
     whiteSpace: "nowrap",
     overflow: "visible",
     rounded: false,
@@ -94,7 +65,6 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
   },
   card: {
     shape: "label",
-    align: "left",
     spacingLeft: 76,
     imageAlign: "left",
     imageVerticalAlign: "middle",
@@ -103,34 +73,22 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     rounded: false,
   },
   band: {
-    fillColor: "#e6f6f7",
-    strokeColor: "none",
     rounded: false,
-    verticalAlign: "top",
-    fontSize: 13,
     rotatable: false,
   },
   line: {
     shape: "connector",
     edgeStyle: "orthogonalEdgeStyle",
     rounded: true,
-    endArrow: "block",
-    strokeColor: "#7f8aa3",
-    strokeWidth: 2,
     labelBackgroundColor: "#f7f8fc",
     whiteSpace: "nowrap",
     overflow: "visible",
-    fontSize: 14,
     startSize: 6,
     endSize: 6,
   },
   drawing: {
     shape: "connector",
     edgeStyle: "none",
-    endArrow: "none",
-    startArrow: "none",
-    strokeColor: "#6554c0",
-    strokeWidth: 3,
     curved: true,
     // A drawing moves and transforms as one item, not as hundreds of waypoints.
     bendable: false,
@@ -138,33 +96,20 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
   // A viewport over the canvas: an outline that covers nothing, labelled above itself so a
   // presentation masking everything outside the box shows neither.
   slide: {
-    fillColor: "none",
-    strokeColor: "#7863d4",
     rounded: false,
     aspect: "fixed",
     rotatable: false,
     verticalLabelPosition: "top",
-    verticalAlign: "bottom",
-    align: "left",
     whiteSpace: "nowrap",
     overflow: "visible",
-    fontSize: 12,
-    fontStyle: 1,
-    fontColor: "#5443b3",
-    spacing: 4,
   },
   // Shows as a plain frame until its bytes arrive.
   picture: {
-    fillColor: "#eef0f5",
-    strokeColor: "#d5daea",
     rounded: false,
     aspect: "fixed",
     verticalLabelPosition: "bottom",
-    verticalAlign: "top",
     whiteSpace: "nowrap",
     overflow: "visible",
-    fontSize: 12,
-    spacing: 2,
   },
 };
 
@@ -172,11 +117,6 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
 const TITLE_STYLES: Record<string, Style> = {
   top: {
     shape: "rectangle",
-    fillColor: "none",
-    align: "left",
-    verticalAlign: "top",
-    fontStyle: 1,
-    spacing: 8,
     spacingLeft: 10,
   },
   side: { horizontal: false },
@@ -185,20 +125,14 @@ const TITLE_STYLES: Record<string, Style> = {
 const REFERENCE_STYLE: Style = {
   // Lets the view hide references without asking the document about every cell it draws.
   reference: true,
-  dashed: true,
   edgeStyle: "none",
-  endArrow: "open",
-  strokeColor: "#a797cc",
 };
 /** The small handle a line grows when it takes part in a topic tree or a reference. */
 const LINE_ANCHOR_STYLE: Style = {
   shape: "ellipse",
-  fillColor: "#7863d4",
-  strokeColor: "#ffffff",
   movable: false,
   resizable: false,
   rotatable: false,
-  spacing: 0,
 };
 
 /**
@@ -211,8 +145,6 @@ const PATHS: Record<LinePath, Style> = {
   curved: { edgeStyle: "none", curved: true },
 };
 const ARROWS = { arrow: "block", open: "open", none: "none" };
-const BOLD = 1;
-const ITALIC = 2;
 /** Style values that follow an item's scale, so deep-zoom items keep familiar proportions. */
 const SCALED = ["fontSize", "strokeWidth", "spacing", "spacingLeft", "startSize", "endSize"];
 
@@ -242,32 +174,24 @@ const DIRECT: [keyof Look, string][] = [
   ["opacity", "fillOpacity"],
 ];
 
-/** Bold and italic are bits of one font style value, so each changes only its own bit. */
-function fontStyle(look: Look, base: Style) {
-  const bit = (font: number, on: boolean | undefined, mask: number) => {
-    if (on === undefined) return font;
-    return on ? font | mask : font & ~mask;
-  };
-  let result = bit(bit(Number(base.fontStyle ?? 0), look.bold, BOLD), look.italic, ITALIC);
-  result = bit(result, look.underline, 4);
-  return bit(result, look.strike, 8);
-}
-
-function lookStyle(look: Look, base: Style): Style {
+function lookStyle(item: Item, look: Appearance): Style {
   const result: Style = {};
   for (const [key, styleKey] of DIRECT) if (look[key] !== undefined) result[styleKey] = look[key];
-  if (look.path) Object.assign(result, PATHS[look.path]);
-  if (look.arrow) result.endArrow = ARROWS[look.arrow];
-  if (look.startArrow) result.startArrow = ARROWS[look.startArrow];
+  if (isLink(item) || item.type === "drawing") {
+    Object.assign(result, PATHS[look.path]);
+    result.endArrow = ARROWS[look.arrow];
+    result.startArrow = ARROWS[look.startArrow];
+  }
   if (look.vertical) result.horizontal = false;
-  result.fontStyle = fontStyle(look, base);
+  result.fontStyle = fontFlags(look);
   if (look.font && TEXT_FONTS[look.font]) result.fontFamily = TEXT_FONTS[look.font];
   return result;
 }
 
-/** An item's look: its named style, then its own properties over it. */
-export function resolvedLook(item: Item, named: Look = {}): Look {
-  return { ...named, ...item.look };
+function fontFlags(look: Appearance) {
+  return (
+    (look.bold ? 1 : 0) | (look.italic ? 2 : 0) | (look.underline ? 4 : 0) | (look.strike ? 8 : 0)
+  );
 }
 
 /** Size-dependent values grow or shrink with an item's scale. */
@@ -299,18 +223,24 @@ function baseStyle(item: Item, look: Look): Style {
 
 /** `presenting` draws slides as nothing at all: a presentation shows only what lies on them. */
 export function objectStyle(item: Item, named: Look = {}, presenting = false): CellStyle {
-  const look = resolvedLook(item, named);
+  const look = effectiveAppearance(item, named);
   const base = baseStyle(item, look);
-  const style: Style = { ...base, ...lookStyle(look, base) };
+  const style: Style = { ...base, ...lookStyle(item, look) };
+  // Mutation capture reads rotation from the model style. A default must not become an authored edit.
+  if (authoredLook(item, named).rotation === undefined) delete style.rotation;
   applyScale(style, look.scale);
   applyPorts(item, style);
   if (isLockedIcon(item)) delete style.rotation;
-  if (item.icon && (item.type === "node" || item.type === "card")) applyIcon(item, style, look);
-  if (item.type === "picture") applyPicture(item, style);
+  applyAssets(item, style, look);
   if (presenting && item.type === "slide")
     Object.assign(style, { strokeColor: "none", noLabel: true });
   applyLabel(item, style, look);
   return style;
+}
+
+function applyAssets(item: Item, style: Style, look: Look) {
+  if (item.icon && (item.type === "node" || item.type === "card")) applyIcon(item, style, look);
+  if (item.type === "picture") applyPicture(item, style);
 }
 
 /**

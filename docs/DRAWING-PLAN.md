@@ -93,7 +93,7 @@ Sources inspected during proposal research; re-read changed files on resume:
 | `frontend/src/components/LeftRail.tsx` | Existing unified tools; contextual drawing controls belong with this interaction. |
 | `frontend/src/components/SelectionFrame.tsx` | Existing collective scale and rotation gestures. |
 | `frontend/src/language/` | Parser, writer, printer, reference and agent sessions must express the same new model. |
-| `frontend/src/document/files.ts`, `frontend/src/document/pngCopy.ts` | File persistence and embedded editable PNG data. |
+| `frontend/src/files/canvasFile.ts`, `frontend/src/document/pngCopy.ts` | File persistence and embedded editable PNG data. |
 | `frontend/src/editor/pngExport.ts` | Current graph draw-pane export; extend bounds and content filtering together. |
 | `frontend/src/editor/presenter.ts`, `frontend/src/components/Presenter.tsx` | Local presentation behavior; likely concurrent changes require reconciliation. |
 

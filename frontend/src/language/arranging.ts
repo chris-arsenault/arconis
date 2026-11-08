@@ -1,40 +1,12 @@
-import { isBox, type Arrangement, type Item, type Look } from "../document/types";
+import { isBox, type Arrangement, type Item } from "../document/types";
 import type { Draft } from "./draft";
-import { DEFAULT_GAP, footprint, paddingOf, union, type Box } from "./layout";
-import { crossOffset } from "./placement";
+import { DEFAULT_GAP, paddingOf, union, type Box } from "../document/layout";
+import { slots, arrangedLayout } from "../document/arrangement";
 import type { Attribute } from "./syntax";
 
 /** Arranging and fitting items within a draft. */
 
 export type Arrange = Extract<Attribute, { kind: "arrange" }>;
-
-/**
- * Where each space goes in a row, column or grid, as its top-left corner measured from the
- * arrangement's corner.
- */
-export function slots(spaces: Box[], arrangement: Arrangement) {
-  const gap = arrangement.gap ?? DEFAULT_GAP;
-  const across = arrangement.how === "row" ? "height" : "width";
-  const along = arrangement.how === "row" ? "width" : "height";
-  const extent = Math.max(0, ...spaces.map((space) => space[across]));
-  const cell = {
-    width: Math.max(0, ...spaces.map((space) => space.width)),
-    height: Math.max(0, ...spaces.map((space) => space.height)),
-  };
-  const count = Math.max(1, arrangement.columns ?? 1);
-  let cursor = 0;
-  return spaces.map((space, index) => {
-    if (arrangement.how === "grid")
-      return {
-        x: (index % count) * (cell.width + gap) + (cell.width - space.width) / 2,
-        y: Math.floor(index / count) * (cell.height + gap) + (cell.height - space.height) / 2,
-      };
-    const offset = crossOffset(arrangement.align, extent, space[across]);
-    const at = cursor;
-    cursor += space[along] + gap;
-    return arrangement.how === "row" ? { x: at, y: offset } : { x: offset, y: at };
-  });
-}
 
 /** Lays members out from 0,0 in a row, column or grid, returning the box they fill. */
 export function arrangeMembers(draft: Draft, members: string[], arrange: Arrangement): Box {
@@ -52,71 +24,6 @@ export function arrangeMembers(draft: Draft, members: string[], arrange: Arrange
     .map((id) => draft.spaceOf(id))
     .filter((space): space is Box => space !== null);
   return union(laid) ?? { x: 0, y: 0, width: 0, height: 0 };
-}
-
-/**
- * Members in their arranged order: by where they sit along the arrangement, reading order for a
- * grid, with `last` after the rest in the order given.
- */
-export function arrangedOrder(members: Item[], arrangement: Arrangement, last: string[] = []) {
-  const center = (item: Item) => ({
-    x: item.x + item.width / 2,
-    y: item.y + item.height / 2,
-  });
-  const key = (item: Item) => {
-    const { x, y } = center(item);
-    if (arrangement.how === "row") return [x, y];
-    if (arrangement.how === "column") return [y, x];
-    return [Math.round(y), x];
-  };
-  const placed = members.filter((item) => !last.includes(item.id));
-  placed.sort((a, b) => {
-    const [a1, a2] = key(a);
-    const [b1, b2] = key(b);
-    return a1 - b1 || a2 - b2 || a.id.localeCompare(b.id);
-  });
-  const after = last
-    .map((id) => members.find((item) => item.id === id))
-    .filter((item) => item !== undefined);
-  return [...placed, ...after];
-}
-
-/**
- * Where an arranged frame's members go and what size the frame becomes: members in order from the
- * frame's top-left inside its padding, and the frame fitted around them.
- */
-export function arrangedLayout(
-  frame: Item,
-  members: Item[],
-  lookOf: (item: Item) => Look,
-  last: string[] = []
-) {
-  const arrangement = frame.arrange!;
-  const ordered = arrangedOrder(members, arrangement, last);
-  const spaces = ordered.map((item) => footprint(item, lookOf(item)));
-  const padding = paddingOf(frame, lookOf(frame));
-  const origin = { x: frame.x + padding.left, y: frame.y + padding.top };
-  const targets = slots(spaces, arrangement);
-  const moves = new Map<string, { dx: number; dy: number }>();
-  ordered.forEach((item, index) =>
-    moves.set(item.id, {
-      dx: origin.x + targets[index].x - spaces[index].x,
-      dy: origin.y + targets[index].y - spaces[index].y,
-    })
-  );
-  const laid = union(
-    spaces.map((space, index) => ({
-      ...space,
-      ...{ x: origin.x + targets[index].x, y: origin.y + targets[index].y },
-    }))
-  );
-  const size = laid
-    ? {
-        width: laid.x + laid.width + padding.right - frame.x,
-        height: laid.y + laid.height + padding.bottom - frame.y,
-      }
-    : { width: frame.width, height: frame.height };
-  return { moves, size };
 }
 
 function within(inner: Box, outer: Box) {

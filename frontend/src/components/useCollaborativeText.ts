@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import * as Y from "yjs";
-import type { CanvasDocument } from "./canvasDocument";
-import { LOCAL } from "./types";
+import type { CanvasDocument } from "../document/canvasDocument";
 
 interface Selection {
   start: Y.RelativePosition;
@@ -19,6 +18,7 @@ class TextareaBinding {
     value: string;
   } | null = null;
   private finishingComposition = false;
+  private endAction: (() => void) | null = null;
 
   constructor(
     private document: CanvasDocument,
@@ -33,6 +33,8 @@ class TextareaBinding {
     element.addEventListener("compositionstart", this.startComposition);
     element.addEventListener("compositionend", this.endComposition);
     element.addEventListener("keydown", this.keydown);
+    element.addEventListener("blur", this.blur);
+    element.ownerDocument.addEventListener("focusin", this.focusChanged);
   }
 
   private focused() {
@@ -72,6 +74,7 @@ class TextareaBinding {
       return;
     }
     this.finishingComposition = false;
+    this.endAction ??= this.document.actions.begin();
     this.writing = true;
     try {
       this.document.editText(this.id, this.element.value);
@@ -80,6 +83,7 @@ class TextareaBinding {
     }
   };
   private keydown = (event: KeyboardEvent) => {
+    if (this.finishKey(event)) return;
     if (event.isComposing || this.composition || !(event.ctrlKey || event.metaKey)) return;
     const key = event.key.toLowerCase();
     if (key !== "z" && key !== "y") return;
@@ -88,7 +92,16 @@ class TextareaBinding {
     if (key === "y" || event.shiftKey) this.document.undo.redo();
     else this.document.undo.undo();
   };
+  private finishKey(event: KeyboardEvent) {
+    if (event.isComposing || this.composition) return false;
+    if (event.key !== "Escape" && !((event.ctrlKey || event.metaKey) && event.key === "Enter"))
+      return false;
+    this.finish();
+    this.element.blur();
+    return true;
+  }
   private startComposition = () => {
+    this.endAction ??= this.document.actions.begin();
     this.composition = {
       selection: this.readSelection(),
       start: this.element.selectionStart,
@@ -108,10 +121,9 @@ class TextareaBinding {
     if (value !== composition.value) {
       this.writing = true;
       try {
-        this.document.doc.transact(() => {
-          this.text.delete(start, end - start);
-          this.text.insert(start, inserted);
-        }, LOCAL);
+        const current = this.text.toString();
+        // Preserve unchanged CRDT characters even when the browser composes over a whole field.
+        this.document.editText(this.id, current.slice(0, start) + inserted + current.slice(end));
       } finally {
         this.writing = false;
       }
@@ -121,13 +133,32 @@ class TextareaBinding {
     this.element.setSelectionRange(caret, caret);
   };
 
+  private finish = () => {
+    this.endAction?.();
+    this.endAction = null;
+  };
+  private outside(target: EventTarget | null) {
+    return (
+      target !== this.element && !(target instanceof Element && target.closest("[data-text-tools]"))
+    );
+  }
+  private blur = (event: FocusEvent) => {
+    if (this.outside(event.relatedTarget)) this.finish();
+  };
+  private focusChanged = (event: FocusEvent) => {
+    if (this.outside(event.target)) this.finish();
+  };
+
   destroy() {
+    this.finish();
     this.document.doc.off("beforeTransaction", this.capture);
     this.text.unobserve(this.refresh);
     this.element.removeEventListener("input", this.input);
     this.element.removeEventListener("compositionstart", this.startComposition);
     this.element.removeEventListener("compositionend", this.endComposition);
     this.element.removeEventListener("keydown", this.keydown);
+    this.element.removeEventListener("blur", this.blur);
+    this.element.ownerDocument.removeEventListener("focusin", this.focusChanged);
   }
 }
 

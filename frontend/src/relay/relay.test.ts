@@ -2,7 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
-import type { UploadReply, UploadRequest } from "../collaboration/transport";
+import type { UploadReply, UploadRequest } from "../collaboration/serviceProtocol";
 import { attachRelay } from "./attach";
 import {
   BUDGET_CHECK_MS,

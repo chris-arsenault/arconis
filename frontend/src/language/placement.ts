@@ -1,5 +1,6 @@
-import { DEFAULT_GAP, type Box } from "./layout";
+import { DEFAULT_GAP, type Box } from "../document/layout";
 import type { Attribute, Edge } from "./syntax";
+import { attributesFor, type RoutedAttribute } from "./attributeRouting";
 
 /**
  * An item's two boxes: `box` is the item itself, `space` adds labels drawn outside it. Gaps between
@@ -75,7 +76,7 @@ function alignRules(edge: Edge, { box }: Extent): Rules {
  * an item whose block places contents inside it.
  */
 export function placementRules(
-  attribute: Attribute,
+  attribute: RoutedAttribute<"item", "rules">,
   target: (ref: string) => Extent,
   holder = false
 ): Rules {
@@ -91,8 +92,6 @@ export function placementRules(
       );
     case "align":
       return alignRules(attribute.edge, target(attribute.ref));
-    default:
-      return {};
   }
 }
 
@@ -100,20 +99,14 @@ export function placementRules(
 export function combineRules(
   attributes: Attribute[],
   target: (ref: string) => Extent,
-  holder = false
+  holder = false,
+  context: "item" | "arrangement" = "item"
 ): Rules {
   const rules: Rules = {};
-  for (const attribute of attributes) {
+  for (const attribute of attributesFor(attributes, context, "rules")) {
     const set = placementRules(attribute, target, holder);
     if (set.x) rules.x = set.x;
     if (set.y) rules.y = set.y;
   }
   return rules;
-}
-
-/** Offset across a row or column for an item, by how the arrangement aligns its members. */
-export function crossOffset(align: Edge | undefined, extent: number, size: number) {
-  if (align === "top" || align === "left") return 0;
-  if (align === "bottom" || align === "right") return extent - size;
-  return (extent - size) / 2;
 }

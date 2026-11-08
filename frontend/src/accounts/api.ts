@@ -3,6 +3,14 @@
  * workspace records, and signs storage links. A password room's saved copy reaches it encrypted under
  * that room's key; it never sees a password or a key.
  */
+import type {
+  AccountFailure,
+  AccountProfile,
+  AccountReply,
+  SaveWorkspaceRequest,
+  WorkspaceRecord,
+} from "../protocol/account";
+
 export const MAX_NAME_LENGTH = 40;
 export const MAX_WORKSPACES = 100;
 export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
@@ -14,23 +22,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /** Ordinary, password and device-only rooms: `locked-` and `local-` mark the last two. */
 const ROOM_ID = /^(locked-|local-)?[a-f0-9]{48}$/;
 
-export interface Profile {
-  name: string;
-  bytes: number;
-}
-export interface WorkspaceRecord {
-  id: string;
-  name: string;
-  roomId: string;
-  size: number;
-  revision: string;
-  updated: number;
-}
-
 /** What the API needs from DynamoDB. */
 export interface AccountTable {
-  profile(user: string): Promise<Profile | null>;
-  saveProfile(user: string, values: Pick<Profile, "name">): Promise<void>;
+  profile(user: string): Promise<AccountProfile | null>;
+  saveProfile(user: string, values: Pick<AccountProfile, "name">): Promise<void>;
   workspaces(user: string): Promise<WorkspaceRecord[]>;
   workspace(user: string, id: string): Promise<WorkspaceRecord | null>;
   saveWorkspace(user: string, record: WorkspaceRecord): Promise<void>;
@@ -51,14 +46,9 @@ export interface AccountServices {
   newRevision(): string;
 }
 
-export interface ApiReply {
-  status: number;
-  body: object;
-}
-
-const reply = (status: number, body: object): ApiReply => ({ status, body });
-const notFound = reply(404, { error: "Not found" });
-const invalid = (error: string) => reply(400, { error });
+const notFound: AccountFailure = { status: 404, body: { error: "Not found" } };
+const invalid = (error: string): AccountFailure => ({ status: 400, body: { error } });
+const conflict = (error: string): AccountFailure => ({ status: 409, body: { error } });
 
 function parseBody(body: string) {
   try {
@@ -73,13 +63,6 @@ function cleanName(value: unknown) {
   if (typeof value !== "string") return null;
   const name = value.trim();
   return name && name.length <= MAX_NAME_LENGTH ? name : null;
-}
-
-interface SaveRequest {
-  size: number;
-  checksum: string;
-  name: string;
-  roomId: string;
 }
 
 function saveProblem({ size, checksum, name, roomId }: Record<string, unknown>) {
@@ -99,7 +82,7 @@ export class AccountsApi {
     private services: AccountServices
   ) {}
 
-  async handle(user: string, method: string, path: string, body: string): Promise<ApiReply> {
+  async handle(user: string, method: string, path: string, body: string): Promise<AccountReply> {
     const route = path.split("/").slice(1).join("/");
     if (route === "api/me") return this.me(user, method, parseBody(body));
     if (route === "api/workspaces") return method === "GET" ? this.list(user) : notFound;
@@ -110,26 +93,33 @@ export class AccountsApi {
 
   private async me(user: string, method: string, body: Record<string, unknown>) {
     if (method === "GET") {
-      const profile = await this.table.profile(user);
-      return profile ? reply(200, profile) : notFound;
+      return this.profile(user);
     }
     if (method === "PUT") return this.saveProfile(user, body);
     if (method === "DELETE") return this.deleteAccount(user);
     return notFound;
   }
 
-  private async saveProfile(user: string, body: Record<string, unknown>) {
+  private async profile(user: string): Promise<AccountReply<"getProfile">> {
+    const profile = await this.table.profile(user);
+    return profile ? { status: 200, body: profile } : notFound;
+  }
+
+  private async saveProfile(
+    user: string,
+    body: Record<string, unknown>
+  ): Promise<AccountReply<"updateProfile">> {
     const name = cleanName(body.name);
     if (!name) return invalid(`A name needs 1 to ${MAX_NAME_LENGTH} characters.`);
     await this.table.saveProfile(user, { name });
-    return reply(200, { name });
+    return { status: 200, body: { name } };
   }
 
-  private async deleteAccount(user: string) {
+  private async deleteAccount(user: string): Promise<AccountReply<"deleteAccount">> {
     await this.deleteAllWorkspaces(user);
     await this.table.deleteProfile(user);
     await this.services.deleteLogin(user);
-    return reply(200, {});
+    return { status: 200, body: {} };
   }
 
   private async deleteAllWorkspaces(user: string) {
@@ -137,19 +127,35 @@ export class AccountsApi {
     await Promise.all(records.map((record) => this.remove(user, record)));
   }
 
-  private async list(user: string) {
-    return reply(200, { workspaces: await this.table.workspaces(user) });
+  private async list(user: string): Promise<AccountReply<"listWorkspaces">> {
+    return { status: 200, body: { workspaces: await this.table.workspaces(user) } };
   }
 
   private async workspace(user: string, method: string, id: string, body: Record<string, unknown>) {
     if (method === "PUT") return this.prepareSave(user, id, body);
     const record = await this.table.workspace(user, id);
     if (!record) return notFound;
-    if (method === "GET")
-      return reply(200, { ...record, url: await this.services.signDownload(user, id) });
+    if (method === "GET") return this.download(user, record);
     if (method !== "DELETE") return notFound;
+    return this.deleteWorkspace(user, record);
+  }
+
+  private async download(
+    user: string,
+    record: WorkspaceRecord
+  ): Promise<AccountReply<"getWorkspace">> {
+    return {
+      status: 200,
+      body: { ...record, url: await this.services.signDownload(user, record.id) },
+    };
+  }
+
+  private async deleteWorkspace(
+    user: string,
+    record: WorkspaceRecord
+  ): Promise<AccountReply<"deleteWorkspace">> {
     await this.remove(user, record);
-    return reply(200, {});
+    return { status: 200, body: {} };
   }
 
   private async remove(user: string, record: WorkspaceRecord) {
@@ -159,15 +165,20 @@ export class AccountsApi {
   }
 
   /** Reserves the space, records the workspace and signs a link that allows exactly this upload. */
-  private async prepareSave(user: string, id: string, body: Record<string, unknown>) {
+  private async prepareSave(
+    user: string,
+    id: string,
+    body: Record<string, unknown>
+  ): Promise<AccountReply<"saveWorkspace">> {
     const problem = saveProblem(body);
     if (problem) return invalid(problem);
-    const { size: bytes, checksum, name, roomId } = body as unknown as SaveRequest;
+    // Only the validated HTTP boundary narrows untrusted JSON to the shared request contract.
+    const { size: bytes, checksum, name, roomId } = body as unknown as SaveWorkspaceRequest;
     const existing = await this.table.workspace(user, id);
     if (!existing && (await this.table.workspaces(user)).length >= MAX_WORKSPACES)
-      return reply(409, { error: `An account can hold ${MAX_WORKSPACES} workspaces.` });
+      return conflict(`An account can hold ${MAX_WORKSPACES} workspaces.`);
     if (!(await this.table.addBytes(user, bytes - (existing?.size ?? 0))))
-      return reply(409, { error: "This account's storage is full." });
+      return conflict("This account's storage is full.");
     const record: WorkspaceRecord = {
       id,
       name: name.trim(),
@@ -178,7 +189,7 @@ export class AccountsApi {
     };
     await this.table.saveWorkspace(user, record);
     const url = await this.services.signUpload(user, id, bytes, checksum);
-    return reply(200, { url, revision: record.revision });
+    return { status: 200, body: { url, revision: record.revision } };
   }
 }
 

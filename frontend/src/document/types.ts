@@ -162,7 +162,7 @@ export interface View {
 export const LOCAL = Symbol("local editor");
 export const COLORS = ["#fff0ad", "#ffd9da", "#d9e9ff", "#d8efdf", "#e7dafa", "#ffffff"];
 
-const BOX_TYPES = new Set<ItemType>([
+const BOX_TYPES = [
   "node",
   "card",
   "frame",
@@ -172,15 +172,19 @@ const BOX_TYPES = new Set<ItemType>([
   "note",
   "picture",
   "slide",
-]);
-const LINK_TYPES = new Set<ItemType>(["line", "branch", "reference"]);
+] as const;
+const LINK_TYPES = ["line", "branch", "reference"] as const;
+export type BoxItem = Item & { type: (typeof BOX_TYPES)[number] };
+export type LinkItem = Item & { type: (typeof LINK_TYPES)[number] };
+const boxes = new Set<ItemType>(BOX_TYPES);
+const links = new Set<ItemType>(LINK_TYPES);
 
 /** Items with a box: everything but links and drawings. */
-export function isBox(item: Pick<Item, "type">) {
-  return BOX_TYPES.has(item.type);
+export function isBox<T extends Pick<Item, "type">>(item: T): item is T & Pick<BoxItem, "type"> {
+  return boxes.has(item.type);
 }
-export function isLink(item: Pick<Item, "type">) {
-  return LINK_TYPES.has(item.type);
+export function isLink<T extends Pick<Item, "type">>(item: T): item is T & Pick<LinkItem, "type"> {
+  return links.has(item.type);
 }
 /** Items that exist to hold others. Any box can hold children, but these have frame behavior. */
 export function isFrame(item: Pick<Item, "type"> | undefined) {

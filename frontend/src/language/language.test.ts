@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
 import { LOCAL, type Item } from "../document/types";
-import { importDocument } from "../document/files";
+import { importDocument } from "../files/canvasFile";
 import { parse } from "./parser";
 import { printCanvas } from "./printer";
 import { writeStatements } from "./writer";
-import { footprint } from "./layout";
+import { footprint } from "../document/layout";
 
 function write(document: CanvasDocument, text: string) {
   let result!: ReturnType<typeof writeStatements>;

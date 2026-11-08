@@ -74,5 +74,104 @@ export default ts.config(
       "ahara/no-js-file-extension": "error",
     },
   },
+  {
+    files: ["src/document/**/*.ts"],
+    ignores: ["src/**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "react",
+                "@maxgraph/*",
+                "../editor/*",
+                "../components/*",
+                "../relay/*",
+                "../accounts/*",
+              ],
+              message:
+                "Domain policies must remain independent of UI, graph and server implementations.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      "src/components/TextProperties.tsx",
+      "src/components/MarkdownPreview.tsx",
+      "src/components/MarkdownTools.tsx",
+      "src/components/ObjectProperties.tsx",
+      "src/components/ConnectionControls.tsx",
+      "src/components/TopicControls.tsx",
+      "src/components/SlideControls.tsx",
+      "src/components/CommentControls.tsx",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../editor/styles", "../editor/controller", "@maxgraph/*"],
+              message:
+                "Leaf controls consume semantic values and focused operations; compose graph dependencies outside them.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/files/**/*.ts", "src/account/savedRoom.ts"],
+    ignores: ["src/**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../collaboration/room", "../editor/controller", "@maxgraph/*"],
+              message:
+                "File and saved-copy operations receive collaborators rather than room or graph implementations.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      "src/protocol/**/*.ts",
+      "src/collaboration/channel.ts",
+      "src/collaboration/serviceProtocol.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "../account/*",
+                "../accounts/*",
+                "../relay/*",
+                "../components/*",
+                "../editor/*",
+                "@aws-sdk/*",
+                "react",
+                "@maxgraph/*",
+              ],
+              message: "Shared protocol contracts must remain runtime-neutral.",
+            },
+          ],
+        },
+      ],
+      "no-restricted-globals": ["error", "window", "document", "navigator", "BroadcastChannel"],
+    },
+  },
   prettier
 );

@@ -1,10 +1,13 @@
 import { parseComment, type CanvasComment } from "../document/comments";
 import { isId, newId } from "../document/ids";
 import { isLink, type Item } from "../document/types";
-import { BLANK, type Draft } from "./draft";
+import type { Draft } from "./draft";
+import { BLANK } from "../document/canvasDocument";
 import { LanguageError } from "./lexer";
-import { BAND_TITLE_ROOM, FRAME_PADDING, footprint, union } from "./layout";
+import { BAND_TITLE_ROOM, FRAME_PADDING, footprint, union } from "../document/layout";
 import type { Attribute, LinkStatement, Segment, Statement } from "./syntax";
+import type { Conversation } from "./effects";
+import { attributesFor, checkAttributes } from "./attributeRouting";
 
 export interface PendingLink {
   from: string;
@@ -20,7 +23,8 @@ export interface PendingBand {
 
 /** Applies a line's attributes: style, look, bend points and where its label sits. */
 export function describeLink(draft: Draft, item: Item, attributes: Attribute[], line: number) {
-  for (const attribute of attributes) {
+  checkAttributes("link", attributes, line);
+  for (const attribute of attributesFor(attributes, "link", "link")) {
     // `around` places a line's points once every item is placed; the writer does that.
     if (attribute.kind === "word" && attribute.word === "around") continue;
     if (attribute.kind === "word") {
@@ -38,7 +42,10 @@ export function describeLink(draft: Draft, item: Item, attributes: Attribute[], 
     else if (attribute.kind === "label") {
       item.x = attribute.x;
       item.y = attribute.y;
-    } else throw new LanguageError(`A line cannot take "${attribute.kind}".`, line);
+    } else {
+      const unhandled: never = attribute;
+      throw new Error(`Unhandled line attribute: ${unhandled}`);
+    }
   }
 }
 
@@ -166,10 +173,6 @@ function rootComment(draft: Draft, id: string, line: number) {
   return root;
 }
 
-type Conversation = Extract<
-  Statement,
-  { kind: "view" | "discussion" | "comment" | "reply" | "resolve" }
->;
 export type Speaker = { author: string; time: number; importing: boolean };
 
 /** A discussion read from a file, keeping its comments' ids where they are free. */
@@ -229,9 +232,11 @@ const CONVERSE: {
   },
 };
 
-/** Discussions, comments and views. */
-export function converse(draft: Draft, statement: Statement, speaker: Speaker) {
-  const handler = CONVERSE[statement.kind as Conversation["kind"]] as
-    ((draft: Draft, statement: Statement, speaker: Speaker) => void) | undefined;
-  handler?.(draft, statement, speaker);
+export function converse(draft: Draft, statement: Conversation, speaker: Speaker) {
+  const handler = CONVERSE[statement.kind as Conversation["kind"]] as (
+    draft: Draft,
+    statement: Conversation,
+    speaker: Speaker
+  ) => void;
+  handler(draft, statement, speaker);
 }

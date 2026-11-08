@@ -2,13 +2,16 @@ import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 import type { RoomSession } from "../collaboration/room";
 import { EditorController } from "../editor/controller";
 import type { PreviewBox } from "../editor/preview";
-import { useCollaborativeText } from "../document/useCollaborativeText";
+import { useCollaborativeText } from "./useCollaborativeText";
+import { notifyPictures, setPictureSource } from "../editor/pictureSource";
 import { addBranch } from "../editor/topics";
 import { bindPictureInput } from "../editor/pictureInput";
 import { MarkdownTools } from "./MarkdownTools";
 import { markdownKey } from "../text/sourceKeys";
 import { fitText } from "../editor/textLayout";
 import { positionTextEditor } from "../editor/textEditorPosition";
+import { effectiveAppearance } from "../document/appearance";
+import { editSource } from "../editor/commands";
 
 export function Canvas({
   session,
@@ -19,6 +22,8 @@ export function Canvas({
 }>) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    setPictureSource((hash, type, shared) => session.pictures.url(hash, type, shared));
+    const stopPictures = session.pictures.subscribe(notifyPictures);
     const editor = new EditorController(ref.current!, session.document);
     onEditor(editor);
     let lastCursor = 0;
@@ -34,6 +39,8 @@ export function Canvas({
     editor.onPreview = (boxes) => session.provider.awareness.setLocalStateField("preview", boxes);
     const unbindPictures = bindPictureInput(editor, session);
     return () => {
+      stopPictures();
+      setPictureSource(null);
       unbindPictures();
       element.removeEventListener("mousemove", updateCursor);
       element.removeEventListener("mouseleave", leave);
@@ -86,13 +93,15 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
             return;
           close();
         }}
-        onInput={() => void fitText(editor, item.id, true)}
+        onInput={() => void fitText(editor.document, item.id, true)}
         onKeyDown={(event) => {
           event.stopPropagation();
-          if (markdownKey(event, editor.document, item.id)) {
-            void fitText(editor, item.id, true);
+          if (
+            markdownKey(event, (element, edit) =>
+              editSource(editor.document, item.id, element, edit)
+            )
+          )
             return;
-          }
           if (event.nativeEvent.isComposing) return;
           if (
             event.key === "Escape" ||
@@ -109,7 +118,13 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
         }}
       />
       <div ref={panel} className="inline-markdown-panel" data-text-tools="true">
-        <MarkdownTools editor={editor} id={item.id} textarea={ref} expanded />
+        <MarkdownTools
+          source={item.name}
+          appearance={effectiveAppearance(item, editor.document.namedStyle(item.style))}
+          onEdit={(element, edit) => editSource(editor.document, item.id, element, edit)}
+          textarea={ref}
+          expanded
+        />
       </div>
     </>
   );

@@ -5,15 +5,15 @@ sticky notes and freehand drawing in one shared document.
 
 ## Read first
 
-| Topic | Link |
-| --- | --- |
-| Overview and quickstart | [README.md](README.md) |
-| Documentation index | [docs/README.md](docs/README.md) |
-| Product scope | [docs/product.md](docs/product.md) |
-| Architecture | [docs/architecture.md](docs/architecture.md) |
-| Architecture decisions | [docs/adr/README.md](docs/adr/README.md) |
-| Backlog | [docs/backlog.md](docs/backlog.md) |
-| Changelog | [CHANGELOG.md](CHANGELOG.md) |
+| Topic                   | Link                                         |
+| ----------------------- | -------------------------------------------- |
+| Overview and quickstart | [README.md](README.md)                       |
+| Documentation index     | [docs/README.md](docs/README.md)             |
+| Product scope           | [docs/product.md](docs/product.md)           |
+| Architecture            | [docs/architecture.md](docs/architecture.md) |
+| Architecture decisions  | [docs/adr/README.md](docs/adr/README.md)     |
+| Backlog                 | [docs/backlog.md](docs/backlog.md)           |
+| Changelog               | [CHANGELOG.md](CHANGELOG.md)                 |
 
 ## Critical rules
 
@@ -50,17 +50,21 @@ sticky notes and freehand drawing in one shared document.
 
 ## Code map
 
-| Path | Purpose |
-| --- | --- |
-| `frontend/src/document/` | The item model, Y.Text, undo, geometry, transforms and files |
-| `frontend/src/language/` | The canvas language: parser, writer, printer, reference and agent sessions |
-| `frontend/src/editor/` | maxGraph projection, mutation capture, input, rendering and drag previews |
-| `frontend/src/collaboration/` | Peer protocol, frames, persistence, presence and transports |
-| `frontend/src/components/` | Interface, selection frame and object and room controls |
-| `frontend/src/relay/` | The relay process, its MCP endpoint and its control Lambda, bundled separately from the site |
-| `infrastructure/terraform/` | Relay, control Lambda and Ahara website deployment |
-| `.github/workflows/ci.yml` | Shared CI and deployment |
-| `docs/` | Current-state documentation, ADRs and backlog |
+| Path                          | Purpose                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `frontend/src/document/`      | Canonical items, shared policies, semantic appearance, Y.Text, undo, geometry and actions    |
+| `frontend/src/files/`         | Portable canvas/picture import-export orchestration, codecs and browser downloads            |
+| `frontend/src/assets/icons/`  | Shared icon catalog, rendering and bundled vendor data                                       |
+| `frontend/src/language/`      | The canvas language: parser, writer, printer, reference and agent sessions                   |
+| `frontend/src/editor/`        | maxGraph projection, mutation capture, input, rendering and drag previews                    |
+| `frontend/src/collaboration/` | Peer protocol, frames, persistence, presence and transports                                  |
+| `frontend/src/components/`    | UI composition, focused controls, selection frame and canonical browser bindings             |
+| `frontend/src/protocol/`      | Runtime-neutral account HTTP metadata contracts                                              |
+| `frontend/src/account/`       | Browser accounts, saved-copy adapter/codec and autosave coordination                         |
+| `frontend/src/relay/`         | The relay process, its MCP endpoint and its control Lambda, bundled separately from the site |
+| `infrastructure/terraform/`   | Relay, control Lambda and Ahara website deployment                                           |
+| `.github/workflows/ci.yml`    | Shared CI and deployment                                                                     |
+| `docs/`                       | Current-state documentation, ADRs and backlog                                                |
 
 ## Architecture patterns
 
@@ -71,12 +75,12 @@ import it or `relay/`. [docs/architecture.md](docs/architecture.md) covers the f
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `make ci` | Required lint, types, tests and Terraform formatting before commits |
-| `make build` | Build production assets |
-| `make test-browser` | Independent-context browser journeys |
-| `make format` | Apply Prettier formatting |
+| Command             | Purpose                                                             |
+| ------------------- | ------------------------------------------------------------------- |
+| `make ci`           | Required lint, types, tests and Terraform formatting before commits |
+| `make build`        | Build production assets                                             |
+| `make test-browser` | Independent-context browser journeys                                |
+| `make format`       | Apply Prettier formatting                                           |
 
 The frontend uses pnpm. Browser tests own their temporary servers and shut them down.
 Generated logs, screenshots and coverage stay in ignored output directories.

@@ -6,7 +6,7 @@ import { attachRelay } from "../relay/attach";
 import { Relay, type StopReason } from "../relay/relay";
 import { STORAGE_LIMIT_BYTES, type StoredPictures } from "../relay/uploads";
 import { Uploads } from "../relay/uploads";
-import type { RelayStatus } from "./transport";
+import type { RelayStatus } from "./serviceProtocol";
 
 async function readBody(request: IncomingMessage) {
   const chunks: Buffer[] = [];

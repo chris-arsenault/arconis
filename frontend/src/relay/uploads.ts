@@ -1,4 +1,4 @@
-import type { UploadReply, UploadRequest } from "../collaboration/transport";
+import type { UploadReply, UploadRequest } from "../collaboration/serviceProtocol";
 import { MAX_PICTURE_BYTES, isPictureHash } from "../document/pictures";
 
 /** Total bytes of pictures shared storage may hold. */

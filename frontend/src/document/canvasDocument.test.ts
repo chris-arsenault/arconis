@@ -1,7 +1,7 @@
 import { it, expect } from "vitest";
 import * as Y from "yjs";
 import { CanvasDocument } from "./canvasDocument";
-import { importDocument, serializeDocument } from "./files";
+import { importDocument, serializeDocument } from "../files/canvasFile";
 
 function exchange(a: CanvasDocument, b: CanvasDocument) {
   const aUpdate = Y.encodeStateAsUpdate(a.doc, Y.encodeStateVector(b.doc));

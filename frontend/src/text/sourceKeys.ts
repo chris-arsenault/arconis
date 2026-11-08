@@ -1,13 +1,11 @@
 import type { KeyboardEvent } from "react";
-import type { CanvasDocument } from "../document/canvasDocument";
-import { applySourceEdit, sourceAction, structuralKey, type TextAction } from "./commands";
+import { sourceAction, structuralKey, type SourceEdit, type TextAction } from "./commands";
 
 const SHORTCUTS: Record<string, TextAction> = { b: "bold", i: "italic", u: "underline", k: "link" };
 
 export function markdownKey(
   event: KeyboardEvent<HTMLTextAreaElement>,
-  document: CanvasDocument,
-  id: string
+  apply: (element: HTMLTextAreaElement, edit: SourceEdit) => void
 ) {
   if (event.nativeEvent.isComposing || event.altKey) return false;
   const element = event.currentTarget;
@@ -24,6 +22,6 @@ export function markdownKey(
   if (!edit) return false;
   event.preventDefault();
   event.stopPropagation();
-  applySourceEdit(document, id, element, edit);
+  apply(element, edit);
   return true;
 }

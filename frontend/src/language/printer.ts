@@ -9,7 +9,8 @@ import {
   type Port,
   type View,
 } from "../document/types";
-import { LOOK_FLAGS, LOOK_WORDS, SIDES } from "./syntax";
+import { SIDES } from "./syntax";
+import { lookEntries } from "./look";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -44,48 +45,13 @@ function pair(x: number, y: number) {
   return `${number(x)},${number(y)}`;
 }
 
-const LOOK_ORDER: (keyof Look)[] = [
-  "fill",
-  "line",
-  "lineWidth",
-  "dashed",
-  "opacity",
-  "textColor",
-  "textSize",
-  "font",
-  "valign",
-  "textHighlight",
-  "lineHeight",
-  "paragraphGap",
-  "padding",
-  "textFit",
-  "bold",
-  "italic",
-  "underline",
-  "strike",
-  "align",
-  "vertical",
-  "rotation",
-  "iconColor",
-  "badge",
-  "title",
-  "path",
-  "arrow",
-  "startArrow",
-  "scale",
-];
-const WORD_FOR = new Map<keyof Look, string>([
-  ...Object.entries(LOOK_WORDS).map(([text, key]) => [key, text] as [keyof Look, string]),
-  ...Object.entries(LOOK_FLAGS).map(([text, key]) => [key, text] as [keyof Look, string]),
-]);
-
 /** Look properties as attributes. `skip` leaves out ones the statement already says another way. */
 export function lookWords(look: Look, skip: (keyof Look)[] = []) {
   const parts: string[] = [];
-  for (const key of LOOK_ORDER) {
+  for (const [key, definition] of lookEntries) {
     const value = look[key];
     if (value === undefined || skip.includes(key)) continue;
-    const name = WORD_FOR.get(key)!;
+    const name = definition.word;
     if (typeof value === "boolean") parts.push(value ? name : `${name} off`);
     else if (typeof value === "number") parts.push(`${name} ${number(value)}`);
     else if (key === "badge") parts.push(`${name} ${value ? word(value) : "none"}`);

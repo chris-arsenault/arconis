@@ -1,14 +1,9 @@
-import {
-  TOTAL_STORAGE_BYTES,
-  USER_STORAGE_BYTES,
-  type AccountTable,
-  type Profile,
-  type WorkspaceRecord,
-} from "./api";
+import { TOTAL_STORAGE_BYTES, USER_STORAGE_BYTES, type AccountTable } from "./api";
+import type { AccountProfile, WorkspaceRecord } from "../protocol/account";
 
 /** Test-only: the account table in memory, with the same limits as the real one. */
 export function memoryAccountTable() {
-  const profiles = new Map<string, Omit<Profile, "bytes">>();
+  const profiles = new Map<string, Omit<AccountProfile, "bytes">>();
   const workspaces = new Map<string, Map<string, WorkspaceRecord>>();
   const bytes = new Map<string, number>();
   let total = 0;

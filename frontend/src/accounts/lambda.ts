@@ -25,8 +25,8 @@ import {
   USER_STORAGE_BYTES,
   tokenSubject,
   type AccountTable,
-  type WorkspaceRecord,
 } from "./api";
+import type { WorkspaceRecord } from "../protocol/account";
 import { managementFromEnvironment } from "./auth0Management";
 
 const TableName = process.env.TABLE_NAME ?? "";

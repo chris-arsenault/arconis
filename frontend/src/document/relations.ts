@@ -1,5 +1,5 @@
 import { compareStacking, offsetPoints } from "./geometry";
-import { isBox, type Item, type ItemType, type PathPoint } from "./types";
+import { isBox, isLink, type Item, type ItemType, type PathPoint } from "./types";
 
 /**
  * Topics are not a type of item. Any item can extend outward through branches and point at others
@@ -50,6 +50,23 @@ export function containedDescendants(items: Item[], id: string) {
   }
   found.delete(id);
   return [...found];
+}
+
+/** Deleting an item also deletes its contents, line anchors and links touching any removed end. */
+export function removalClosure(items: Item[], ids: Iterable<string>) {
+  const removed = new Set(ids);
+  let previousSize = -1;
+  while (previousSize !== removed.size) {
+    previousSize = removed.size;
+    for (const item of items)
+      if (
+        removed.has(item.inside) ||
+        removed.has(item.onLine) ||
+        (isLink(item) && (removed.has(item.from) || removed.has(item.to)))
+      )
+        removed.add(item.id);
+  }
+  return removed;
 }
 
 /** How many references touch each item, in one pass over the document. */

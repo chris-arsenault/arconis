@@ -2,7 +2,7 @@ import { LanguageError } from "../language/lexer";
 import { LanguageSession, type ReadRequest } from "../language/session";
 import { ICON_VENDORS } from "../document/geometry";
 import { STENCILS } from "../document/types";
-import { loadAllVendors, loadIcons, searchIcons } from "../editor/icons";
+import { loadAllVendors, loadIcons, searchIcons } from "../assets/icons/catalog";
 import type { Relay } from "./relay";
 import { ServerPeer, type PeerReadiness } from "./serverPeer";
 

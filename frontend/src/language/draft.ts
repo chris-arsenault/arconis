@@ -1,30 +1,12 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { writeComment, type CanvasComment } from "../document/comments";
 import { isId, newId } from "../document/ids";
-import { containedDescendants } from "../document/relations";
-import { isBox, isLink, type Item, type Look, type View } from "../document/types";
+import { containedDescendants, removalClosure } from "../document/relations";
+import { isBox, type Item, type Look, type View } from "../document/types";
 import { LanguageError } from "./lexer";
-import { footprint, type Box } from "./layout";
+import { footprint, type Box } from "../document/layout";
 import type { Extent } from "./placement";
-
-export const BLANK: Omit<Item, "id" | "type"> = {
-  name: "",
-  subtitle: "",
-  inside: "",
-  x: 0,
-  y: 0,
-  width: 160,
-  height: 90,
-  order: 0,
-  style: "",
-  look: {},
-  stencil: "rectangle",
-  icon: "",
-  from: "",
-  to: "",
-  points: [],
-  onLine: "",
-};
+import { authoredLook } from "../document/appearance";
 
 const GEOMETRY = ["x", "y", "width", "height"] as const;
 
@@ -113,7 +95,7 @@ export class Draft {
   }
 
   lookOf(item: Item): Look {
-    return { ...(this.styles.get(item.style) ?? {}), ...item.look };
+    return authoredLook(item, this.styles.get(item.style));
   }
 
   extentOf(item: Item): Extent {
@@ -168,20 +150,7 @@ export class Draft {
   /** Removes an item with what it holds, what sits on it and the lines touching any of them. */
   remove(id: string) {
     if (this.virtual.has(id)) return;
-    const all = [...this.items.values()];
-    const gone = new Set([id, ...containedDescendants(all, id)]);
-    let size = -1;
-    while (size !== gone.size) {
-      size = gone.size;
-      all
-        .filter(
-          (item) =>
-            gone.has(item.inside) ||
-            gone.has(item.onLine) ||
-            (isLink(item) && (gone.has(item.from) || gone.has(item.to)))
-        )
-        .forEach((item) => gone.add(item.id));
-    }
+    const gone = removalClosure([...this.items.values()], [id]);
     gone.forEach((goneId) => {
       this.items.delete(goneId);
       this.removed.add(goneId);

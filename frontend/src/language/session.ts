@@ -4,7 +4,7 @@ import { listComments } from "../document/comments";
 import { decks } from "../document/slides";
 import { isBox, isLink, type Item } from "../document/types";
 import { LanguageError } from "./lexer";
-import { footprint, intersects, union, type Box } from "./layout";
+import { footprint, intersects, union, type Box } from "../document/layout";
 import { parse } from "./parser";
 import {
   chosenItems,
@@ -17,6 +17,7 @@ import {
   viewStatement,
 } from "./printer";
 import type { Statement } from "./syntax";
+import { directTargets } from "./effects";
 import { writeStatements } from "./writer";
 
 /** More than this in one read asks the reader to narrow it. */
@@ -222,7 +223,7 @@ export class LanguageSession {
 
   private refuseStale(statements: Statement[]) {
     const stale: string[] = [];
-    for (const id of new Set(targets(statements))) {
+    for (const id of new Set(directTargets(statements))) {
       const item = this.document.get(id);
       const seen = this.seen.get(id);
       if (item && seen !== undefined && seen !== itemStatement(item, true))
@@ -261,25 +262,6 @@ class StaleError extends LanguageError {
       "Since you last saw them, someone else changed the items below. Their current state follows; decide again and resend."
     );
   }
-}
-
-/** Existing items a write changes by naming them, whose state the writer must have seen. */
-const TARGETS: {
-  [K in Statement["kind"]]?: (statement: Extract<Statement, { kind: K }>) => string[];
-} = {
-  edit: (statement) => [statement.ref, ...targets(statement.body ?? [])],
-  item: (statement) => [...(statement.id ? [statement.id] : []), ...targets(statement.body ?? [])],
-  arrange: (statement) => targets(statement.body),
-  delete: (statement) => statement.refs,
-  tidy: (statement) => [statement.ref],
-  link: (statement) => (statement.id ? [statement.id] : []),
-};
-
-function targets(statements: Statement[]): string[] {
-  return statements.flatMap((statement) => {
-    const find = TARGETS[statement.kind] as ((statement: Statement) => string[]) | undefined;
-    return find?.(statement) ?? [];
-  });
 }
 
 function changesBetween(before: Snapshot, after: Snapshot) {

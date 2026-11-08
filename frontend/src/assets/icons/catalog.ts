@@ -1,4 +1,4 @@
-import { ICON_VENDORS, vendorOfIcon, type IconVendor } from "../document/geometry";
+import { ICON_VENDORS, vendorOfIcon, type IconVendor } from "../../document/geometry";
 
 /** A catalog entry. Documents store only `key`; markup always comes from the local icon sets. */
 export interface IconEntry {

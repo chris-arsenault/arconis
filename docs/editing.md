@@ -26,6 +26,12 @@ panel. Markdown tools expands formatting actions, a live Preview, code insertion
 Ctrl/Command B, I, U and K add bold, italic, underline and a link. Ctrl/Command Shift X adds strike.
 The tools preserve your text selection; Undo reverses your own edits.
 
+Your text changes appear locally as you type. Others receive the completed edit when you leave
+the source and its tools, press Escape, or press Ctrl/Command Enter. Plain Enter adds a line.
+Escape finishes and keeps the edit. Title, subtitle and deck fields also finish on Enter.
+Peers' completed changes still merge while you edit, and local persistence retains your work.
+Collective resize and rotation publish their result when you release the handle.
+
 Use fenced code blocks with a language such as `python`, `typescript`, `javascript`, `java`, `c`,
 `cpp`, `csharp`, `go`, `rust`, `ruby`, `sql`, `bash`, `json`, `yaml`, `html` or `css`. Unknown or
 unlabelled fences remain readable monospace code. Preview offers Copy code for each code block.

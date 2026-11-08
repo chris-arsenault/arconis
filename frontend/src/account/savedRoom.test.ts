@@ -1,0 +1,159 @@
+import { afterEach, expect, it, vi } from "vitest";
+import { CanvasDocument } from "../document/canvasDocument";
+import { PLAIN_CODEC, PictureStore, type StoredPicture } from "../collaboration/pictureStore";
+import { RoomLock, type LockedStorage } from "../collaboration/roomLock";
+import { LockedTransport } from "../collaboration/lockedTransport";
+import type { FrameChannel } from "../collaboration/channel";
+import type { Envelope } from "../collaboration/roomKey";
+import { SavedRoom } from "./savedRoom";
+import { isSealed } from "./workspaceFile";
+
+const BYTES = new Uint8Array([1, 2, 3]);
+const cleanups: (() => Promise<unknown> | void)[] = [];
+afterEach(async () => {
+  for (const close of cleanups.splice(0)) await close();
+});
+
+function workspace(encrypted = false) {
+  const document = new CanvasDocument();
+  const updates: Uint8Array[] = [];
+  let envelope: Envelope | undefined;
+  const storage: LockedStorage = {
+    envelope: () => Promise.resolve(envelope),
+    saveEnvelope: async (value) => {
+      envelope = value;
+    },
+    updates: () => Promise.resolve(updates),
+    addUpdate: async (value) => {
+      updates.push(value);
+    },
+    replaceUpdates: async (value) => {
+      updates.splice(0, updates.length, value);
+    },
+    close: () => {},
+  };
+  const channel: FrameChannel = {
+    onMessage: () => {},
+    onReady: () => {},
+    onStatus: () => {},
+    connect: () => {},
+    send: () => {},
+    close: () => {},
+  };
+  const locked = new LockedTransport(channel, "test");
+  const key = encrypted ? new RoomLock(storage, locked, document.doc, () => {}, false) : null;
+  const shelf = new Map<string, StoredPicture>();
+  const pictures = new PictureStore({
+    shelf: {
+      get: (hash) => Promise.resolve(shelf.get(hash)),
+      put: async (hash, picture) => {
+        shelf.set(hash, picture);
+      },
+    },
+    codec: key?.codec ?? PLAIN_CODEC,
+    download: null,
+    createUrl: () => "blob:test",
+    revokeUrl: () => {},
+  });
+  const lifetime = new AbortController();
+  const persistence = key ?? {};
+  const room = new SavedRoom("room", document, pictures, key, persistence, lifetime.signal);
+  cleanups.push(async () => {
+    lifetime.abort();
+    pictures.close();
+    await key?.destroy();
+    locked.close();
+    document.destroy();
+  });
+  return { document, pictures, key, room, lifetime, persistence };
+}
+
+it("merges saved state without losing local edits or treating restore/persistence as new edits", async () => {
+  const first = workspace();
+  first.document.create("note", 0, 0, { id: "from_first", name: "First" });
+  const copy = await first.room.contents();
+  const second = workspace();
+  const changed = vi.fn();
+  const stop = second.room.onChange(changed);
+  second.document.create("note", 100, 0, { id: "from_second", name: "Second" });
+  expect(changed).toHaveBeenCalledOnce();
+  await second.room.apply(copy);
+  expect(
+    second.document
+      .list()
+      .map((item) => item.name)
+      .sort((a, b) => a.localeCompare(b))
+  ).toEqual(["First", "Second"]);
+  expect(changed).toHaveBeenCalledOnce();
+  second.document.doc.transact(() => second.document.meta.set("stored", "yes"), second.persistence);
+  expect(changed).toHaveBeenCalledOnce();
+  second.document.rename("Changed here");
+  expect(changed).toHaveBeenCalledTimes(2);
+  stop();
+  second.document.rename("After unsubscribe");
+  expect(changed).toHaveBeenCalledTimes(2);
+});
+
+it("carries unshared picture bytes and excludes pictures already in shared storage", async () => {
+  const first = workspace();
+  const hash = await first.pictures.add(BYTES, "image/png");
+  first.document.create("picture", 0, 0, { picture: { hash, format: "image/png", stored: false } });
+  first.document.create("picture", 200, 0, {
+    picture: { hash: "a".repeat(64), format: "image/png", stored: true },
+  });
+  const copy = await first.room.contents();
+  if (isSealed(copy)) throw new Error("Expected plain saved contents.");
+  expect(copy.contents.pictures).toHaveLength(1);
+  const target = workspace();
+  await target.room.apply(copy);
+  expect(await target.pictures.readOpen(hash)).toEqual({ bytes: BYTES, type: "image/png" });
+});
+
+it("reads the current envelope, hides the title and adopts saved keys before waiting for unlock", async () => {
+  const first = workspace(true);
+  await first.key!.choose("initial password");
+  first.document.rename("Secret project title");
+  first.document.create("note", 0, 0, { name: "Secret text" });
+  const hash = await first.pictures.add(BYTES, "image/png");
+  first.document.create("picture", 0, 0, { picture: { hash, format: "image/png", stored: false } });
+  await first.key!.changePassword("new password");
+  const copy = await first.room.contents();
+  expect(first.room.title()).toBe("Password room");
+  expect(isSealed(copy)).toBe(true);
+  if (!isSealed(copy)) throw new Error("Expected sealed saved contents.");
+  expect(copy.envelope.revision).toBe(2);
+  expect(new TextDecoder().decode(copy.sealed)).not.toContain("Secret");
+  const target = workspace(true);
+  const applying = target.room.apply(copy);
+  expect(target.key!.state).toBe("enter");
+  expect(target.document.list()).toEqual([]);
+  await target.key!.enter("new password");
+  await applying;
+  expect(target.document.title()).toBe("Secret project title");
+  expect(target.document.list().find((item) => item.type === "note")?.name).toBe("Secret text");
+  expect(await target.pictures.readOpen(hash)).toEqual({ bytes: BYTES, type: "image/png" });
+  const departed = workspace(true);
+  const waiting = departed.room.apply(copy);
+  expect(departed.key!.state).toBe("enter");
+  departed.lifetime.abort();
+  await waiting;
+  expect(departed.document.list()).toEqual([]);
+});
+
+it("does not apply a saved copy after the room departs", async () => {
+  const first = workspace();
+  first.document.create("note", 0, 0, { name: "Elsewhere" });
+  const target = workspace();
+  target.lifetime.abort();
+  await target.room.apply(await first.room.contents());
+  expect(target.document.list()).toEqual([]);
+  await expect(target.room.contents()).rejects.toMatchObject({ name: "AbortError" });
+});
+
+it("refuses a plain saved copy while a password room is waiting for its envelope", async () => {
+  const target = workspace(true);
+  target.document.rename("Private pending room");
+  target.document.create("note", 0, 0, { name: "Never publish this unsealed" });
+  expect(target.key!.state).toBe("waiting");
+  await expect(target.room.contents()).rejects.toThrow("Open this password room before saving.");
+});

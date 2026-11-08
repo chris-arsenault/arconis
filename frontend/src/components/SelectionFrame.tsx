@@ -28,11 +28,13 @@ function track(editor: EditorController, event: ReactPointerEvent, transformFor:
     handle.removeEventListener("pointermove", move as EventListener);
     handle.removeEventListener("pointerup", finish);
     handle.removeEventListener("pointercancel", finish);
+    handle.removeEventListener("lostpointercapture", finish);
     editor.endTransform();
   };
   handle.addEventListener("pointermove", move as EventListener);
   handle.addEventListener("pointerup", finish);
   handle.addEventListener("pointercancel", finish);
+  handle.addEventListener("lostpointercapture", finish);
 }
 
 function scaling(world: WorldBox, corner: Corner): TransformFor {

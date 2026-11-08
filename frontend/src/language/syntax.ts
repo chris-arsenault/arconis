@@ -127,38 +127,3 @@ export const SIDES: Record<string, Port> = {
   "bottom-left": [0, 1],
   "bottom-right": [1, 1],
 };
-
-/** The language's word for each look property that takes a value. */
-export const LOOK_WORDS = {
-  fill: "fill",
-  line: "line",
-  "line-width": "lineWidth",
-  "text-color": "textColor",
-  "text-size": "textSize",
-  font: "font",
-  valign: "valign",
-  "text-highlight": "textHighlight",
-  "line-height": "lineHeight",
-  "paragraph-gap": "paragraphGap",
-  padding: "padding",
-  "text-fit": "textFit",
-  align: "align",
-  rotate: "rotation",
-  opacity: "opacity",
-  "icon-color": "iconColor",
-  badge: "badge",
-  title: "title",
-  path: "path",
-  arrow: "arrow",
-  "start-arrow": "startArrow",
-  scale: "scale",
-} as const satisfies Record<string, keyof Look>;
-/** Look properties that are on or off: the word alone turns one on, `off` turns it off. */
-export const LOOK_FLAGS = {
-  bold: "bold",
-  italic: "italic",
-  underline: "underline",
-  strike: "strike",
-  dashed: "dashed",
-  vertical: "vertical",
-} as const satisfies Record<string, keyof Look>;

@@ -2,7 +2,7 @@ import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { writeFile } from "node:fs/promises";
 import { CanvasDocument } from "../document/canvasDocument";
-import { serializeDocument } from "../document/files";
+import { serializeDocument } from "../files/canvasFile";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
@@ -77,6 +77,8 @@ it("synchronizes independent browsers, late join, offline edits, reload and room
   await b.getByLabel("Object y", { exact: true }).fill("420");
   await a.getByLabel("Object text", { exact: true }).fill("First Shared database");
   await b.getByLabel("Object text", { exact: true }).fill("Shared database second");
+  await a.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
+  await b.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
   await first.setOffline(false);
   await expect
     .poll(() => a.getByLabel("Object y", { exact: true }).inputValue(), { timeout: 45000 })

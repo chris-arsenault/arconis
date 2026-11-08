@@ -6,8 +6,9 @@ import {
   removeAwarenessStates,
 } from "y-protocols/awareness";
 import { FrameAssembler, frames, type Frame, type MessageKind } from "./frames";
-import type { Transport } from "./transport";
+import type { FrameChannel } from "./channel";
 import { compareHoldings, encodeHoldings } from "./vectors";
+import { CompletedActions } from "../document/actions";
 
 const REMOTE = Symbol("remote peer");
 /** Delays after connecting at which an unanswered join request is repeated. */
@@ -39,30 +40,43 @@ export class CollaborationProvider {
   private announcedTo = new Set<string>();
   /** Whether this connection has asked the whole room for what the first answer missed. */
   private pulled = false;
+  private readyPending = false;
+  private vectorPending = false;
+  private helloPending = false;
+  private deferred = new Map<string, { frame: Frame; data: Uint8Array }>();
+  private stopActions: () => void;
 
   constructor(
     readonly doc: Y.Doc,
-    readonly transport: Transport,
+    readonly transport: FrameChannel,
     private synchronized: () => void,
     /** This peer's identity in frames. A locked transport has to send as the same peer. */
-    private id: string = crypto.randomUUID()
+    private id: string = crypto.randomUUID(),
+    private actions: Pick<CompletedActions, "active" | "subscribe"> = new CompletedActions()
   ) {
     this.awareness = new Awareness(doc);
     this.doc.on("update", this.onUpdate);
     this.awareness.on("update", this.onAwareness);
     transport.onMessage = this.receive;
-    transport.onReady = () => {
-      // Search first: a fast transport can deliver the answer before send() returns.
-      this.startSearching();
-      this.pulled = false;
-      this.announcedTo.clear();
-      this.send("hello", Y.encodeStateVector(doc));
-      this.sendAwareness();
-      this.synchronized();
-    };
+    this.stopActions = actions.subscribe(this.release);
+    transport.onReady = this.onReady;
     this.antiEntropy = setInterval(() => this.send("vector", encodeHoldings(doc)), 30000);
     globalThis.document?.addEventListener("visibilitychange", this.onVisibility);
   }
+  private onReady = () => {
+    if (this.actions.active) {
+      this.readyPending = true;
+      return;
+    }
+    this.readyPending = false;
+    // Search first: a fast transport can deliver the answer before send() returns.
+    this.startSearching();
+    this.pulled = false;
+    this.announcedTo.clear();
+    this.send("hello", Y.encodeStateVector(this.doc));
+    this.sendAwareness();
+    this.synchronized();
+  };
   /** Hidden tabs stay quiet. Peers time their presence out, and it returns on being shown. */
   private onVisibility = () => {
     if (!isHidden()) this.sendAwareness();
@@ -100,16 +114,36 @@ export class CollaborationProvider {
     this.synchronized();
   }
   private send(kind: MessageKind, data: Uint8Array, target = "") {
+    if (this.actions.active && kind !== "awareness") {
+      if (kind === "vector") this.vectorPending = true;
+      if (kind === "hello") this.helloPending = true;
+      return;
+    }
     frames(this.id, kind, data, target).forEach((frame) => this.transport.send(frame));
   }
   private onUpdate = (update: Uint8Array, origin: unknown) => {
     if (origin === REMOTE) return;
     this.updates.push(update);
-    this.flushTimer ??= setTimeout(() => {
-      this.send("update", Y.mergeUpdates(this.updates));
-      this.updates = [];
-      this.flushTimer = null;
-    }, 40);
+    if (!this.actions.active) this.flushTimer ??= setTimeout(this.flushUpdates, 40);
+  };
+  private flushUpdates = () => {
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = null;
+    if (this.actions.active || !this.updates.length) return;
+    const updates = this.updates;
+    this.updates = [];
+    this.send("update", Y.mergeUpdates(updates));
+  };
+  private release = () => {
+    if (this.readyPending) this.onReady();
+    this.flushUpdates();
+    const requests = [...this.deferred.values()];
+    this.deferred.clear();
+    requests.forEach(({ frame, data }) => this.deliver(frame, data));
+    if (this.helloPending) this.send("hello", Y.encodeStateVector(this.doc));
+    if (this.vectorPending) this.send("vector", encodeHoldings(this.doc));
+    this.helloPending = false;
+    this.vectorPending = false;
   };
   private onAwareness = (
     { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
@@ -135,13 +169,21 @@ export class CollaborationProvider {
         this.setSync("receiving");
       return;
     }
+    this.deliver(result.frame, result.data);
+  };
+  private deliver(frame: Frame, data: Uint8Array) {
     try {
-      this.handle(result.frame, result.data);
+      this.handle(frame, data);
     } catch {
       /* Invalid peer payloads cannot interrupt local editing. */
     }
-  };
+  }
   private handle(frame: Frame, data: Uint8Array) {
+    // Sync replies encode the live document too, so they must respect the same action boundary.
+    if (this.actions.active && (frame.kind === "hello" || frame.kind === "vector")) {
+      this.deferred.set(`${frame.from}:${frame.kind}`, { frame, data });
+      return;
+    }
     if (frame.kind === "hello") this.answerJoin(frame.from, data);
     else if (frame.kind === "vector") this.receiveVector(frame, data);
     else if (frame.kind === "update") {
@@ -182,6 +224,7 @@ export class CollaborationProvider {
     if (!frame.target && weLack) this.send("vector", encodeHoldings(this.doc), frame.from);
   }
   destroy() {
+    this.stopActions();
     removeAwarenessStates(this.awareness, [this.doc.clientID], "leave");
     this.doc.off("update", this.onUpdate);
     this.awareness.off("update", this.onAwareness);

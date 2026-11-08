@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pencil, Play, Plus, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import type { Item, View } from "../document/types";
-import { decks, isTemplate } from "../document/slides";
+import { decks, isTemplate, type Deck } from "../document/slides";
 import { goToSlide } from "../editor/topics";
 import { flyToView, removeView, renameView, saveCurrentView, savedViews } from "../editor/views";
 import { StencilBrowser } from "./StencilBrowser";
@@ -26,8 +26,18 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
         ))}
       </div>
       <StencilBrowser editor={editor} />
-      <Decks editor={editor} />
-      <SavedViews editor={editor} />
+      <Decks
+        all={decks(editor.document.list())}
+        onPresent={(deck) => editor.presenter.start(deck)}
+        onGo={(id) => goToSlide(editor, id)}
+      />
+      <SavedViews
+        views={savedViews(editor.document)}
+        onGo={(view) => flyToView(editor.graph, editor.element, view)}
+        onRemove={(id) => removeView(editor.document, id)}
+        onRename={(view, name) => renameView(editor.document, view, name)}
+        onSave={(name) => saveCurrentView(editor, name)}
+      />
     </aside>
   );
 }
@@ -39,8 +49,11 @@ function slideEntry(slide: Item) {
 }
 
 /** Every deck in the room with its slides in order; clicking a slide flies to it. */
-function Decks({ editor }: Readonly<{ editor: EditorController }>) {
-  const all = decks(editor.document.list());
+function Decks({
+  all,
+  onPresent,
+  onGo,
+}: Readonly<{ all: Deck[]; onPresent: (deck: string) => void; onGo: (id: string) => void }>) {
   if (!all.length) return null;
   return (
     <section className="saved-views" aria-label="Slides">
@@ -53,18 +66,14 @@ function Decks({ editor }: Readonly<{ editor: EditorController }>) {
               className="saved-view-action deck-present"
               title={`Present ${deck}`}
               aria-label={`Present ${deck}`}
-              onClick={() => editor.presenter.start(deck)}
+              onClick={() => onPresent(deck)}
             >
               <Play size={13} />
             </button>
           </div>
           <div className="saved-view-list">
             {slides.map((slide) => (
-              <button
-                key={slide.id}
-                className="saved-view-name"
-                onClick={() => goToSlide(editor, slide.id)}
-              >
+              <button key={slide.id} className="saved-view-name" onClick={() => onGo(slide.id)}>
                 {slideEntry(slide)}
               </button>
             ))}
@@ -75,23 +84,36 @@ function Decks({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
+function SavedViews({
+  views,
+  onGo,
+  onRemove,
+  onRename,
+  onSave,
+}: Readonly<{
+  views: View[];
+  onGo: (view: View) => void;
+  onRemove: (id: string) => void;
+  onRename: (view: View, name: string) => void;
+  onSave: (name: string) => void;
+}>) {
   const [name, setName] = useState("");
   const [renaming, setRenaming] = useState("");
-  const views = savedViews(editor.document);
   return (
     <section className="saved-views" aria-label="Saved views">
       <h3>Saved views</h3>
       <div className="saved-view-list">
         {views.map((view) =>
           renaming === view.id ? (
-            <RenameView key={view.id} view={view} editor={editor} onDone={() => setRenaming("")} />
+            <RenameView
+              key={view.id}
+              view={view}
+              onRename={(name) => onRename(view, name)}
+              onDone={() => setRenaming("")}
+            />
           ) : (
             <div className="saved-view" key={view.id}>
-              <button
-                className="saved-view-name"
-                onClick={() => flyToView(editor.graph, editor.element, view)}
-              >
+              <button className="saved-view-name" onClick={() => onGo(view)}>
                 {view.name}
               </button>
               <button
@@ -106,7 +128,7 @@ function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
                 className="saved-view-action"
                 title={`Remove ${view.name}`}
                 aria-label={`Remove view ${view.name}`}
-                onClick={() => removeView(editor.document, view.id)}
+                onClick={() => onRemove(view.id)}
               >
                 <X size={13} />
               </button>
@@ -118,7 +140,7 @@ function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
         className="save-view"
         onSubmit={(event) => {
           event.preventDefault();
-          saveCurrentView(editor, name.trim() || `View ${views.length + 1}`);
+          onSave(name.trim() || `View ${views.length + 1}`);
           setName("");
         }}
       >
@@ -138,14 +160,14 @@ function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
 
 function RenameView({
   view,
-  editor,
+  onRename,
   onDone,
-}: Readonly<{ view: View; editor: EditorController; onDone: () => void }>) {
+}: Readonly<{ view: View; onRename: (name: string) => void; onDone: () => void }>) {
   const [name, setName] = useState(view.name);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.select(), []);
   const commit = () => {
-    if (name.trim()) renameView(editor.document, view, name.trim());
+    if (name.trim()) onRename(name.trim());
     onDone();
   };
   return (

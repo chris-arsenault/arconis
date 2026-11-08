@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CollaborationProvider } from "../collaboration/provider";
-import type { ConnectionState, Transport } from "../collaboration/transport";
+import type { ConnectionState, FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
 import { attachRelay } from "./attach";
 import { AgentGateway, type McpConfig } from "./mcpHttp";
@@ -18,7 +18,7 @@ const config: McpConfig = {
 const TOKENS: Record<string, string> = { alice: "user-alice", bob: "user-bob" };
 
 /** A person's browser in miniature: the real provider over a real socket to the relay. */
-class SocketTransport implements Transport {
+class SocketTransport implements FrameChannel {
   onMessage: (message: string) => void = () => {};
   onReady = () => {};
   onStatus: (state: ConnectionState, detail?: string) => void = () => {};

@@ -6,6 +6,15 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Unify shared domain and appearance rules across editor and agent operations; give controls
+  focused editing interfaces and separate messaging, relay controls and picture services.
+  File and saved-copy operations now have application owners, and accounts share HTTP contracts.
+  Preserve peer caret positions during whole-field composition and make topic creation one Undo step.
+
+- Publish completed text edits and collective transforms instead of their intermediate transitions,
+  while retaining immediate local editing, local persistence and concurrent Yjs text merging.
+  Shared icon/geometry code, UI text bindings and file adapters now have explicit ownership.
+
 - Added Markdown canvas labels with nested lists, highlighted code fences, local LaTeX math,
   source-editing tools, preview, Copy Markdown, Copy plain text and Copy code. Agents and files use
   raw multiline strings for the same source. Added three bundled fonts, nine text positions,

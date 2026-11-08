@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { UploadRequest } from "../collaboration/transport";
+import type { UploadRequest } from "../collaboration/serviceProtocol";
 import { MAX_PICTURE_BYTES } from "../document/pictures";
 import { STORAGE_LIMIT_BYTES, Uploads, type StoredPictures } from "./uploads";
 

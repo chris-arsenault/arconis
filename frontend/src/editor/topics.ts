@@ -40,25 +40,27 @@ function lineMidpoint(graph: Graph, lineId: string) {
   return { x: point.x / scale - translate.x, y: point.y / scale - translate.y };
 }
 
-/** The object standing in for a line in tree and reference links, created on first use. */
-function anchorFor(editor: EditorController, line: Item) {
+interface EndpointPlan {
+  item: Item;
+  insert: boolean;
+}
+
+/** Resolve geometry before a topology command mutates anything. New anchors are still drafts. */
+function planEndpoint(editor: EditorController, item: Item): EndpointPlan | null {
+  if (!isLine(item)) return { item, insert: false };
   const { document, graph } = editor;
-  const existing = anchorOf(document.list(), line.id);
-  if (existing) return existing.id;
-  const middle = lineMidpoint(graph, line.id);
-  if (!middle) return "";
+  const existing = anchorOf(document.list(), item.id);
+  if (existing) return { item: existing, insert: false };
+  const middle = lineMidpoint(graph, item.id);
+  if (!middle) return null;
   const size = ANCHOR_PIXELS / graph.view.scale;
-  return document.create("node", middle.x - size / 2, middle.y - size / 2, {
+  const anchor = document.build("node", middle.x - size / 2, middle.y - size / 2, {
     stencil: "ellipse",
     width: size,
     height: size,
-    onLine: line.id,
+    onLine: item.id,
   });
-}
-
-/** The item that represents this one in a link: itself, or for a line, its anchor. */
-export function endpointFor(editor: EditorController, item: Item) {
-  return isLine(item) ? anchorFor(editor, item) : item.id;
+  return { item: anchor, insert: true };
 }
 
 /** Keeps each line's anchor at its midpoint, carrying what it holds and its branches along. */
@@ -101,14 +103,16 @@ export function addBranch(editor: EditorController, sibling = false) {
   if (!selected) return "";
   const { document, graph } = editor;
   const items = document.list();
-  const parentId = sibling ? branchParent(items, selected.id) : endpointFor(editor, selected);
-  const parent = document.get(parentId);
+  const endpoint = sibling ? null : planEndpoint(editor, selected);
+  const parent = sibling ? document.get(branchParent(items, selected.id)) : endpoint?.item;
   if (!parent) return "";
-  const placed = branchPlacement(document.list(), parent, branchSize(editor, parent));
+  const plannedItems = endpoint?.insert ? [...items, parent] : items;
+  const placed = branchPlacement(plannedItems, parent, branchSize(editor, parent));
   const node = topicFor(editor, parent, placed.x, placed.y);
   document.undo.stopCapturing();
   document.doc.transact(() => {
-    document.insert(node);
+    if (endpoint?.insert) document.insert({ ...endpoint.item, order: document.nextOrder() });
+    document.insert({ ...node, order: document.nextOrder() });
     document.insert(
       document.build("branch", 0, 0, {
         from: parent.id,
@@ -127,15 +131,31 @@ export function addBranch(editor: EditorController, sibling = false) {
 
 /** Points the first of two selected objects at the second, with no physical link implied. */
 export function addReference(editor: EditorController) {
-  const selected = editor.selected();
+  connectSelection(editor, "reference");
+}
+
+/** Anchor creation and its relationship are one command and one local undo step. */
+export function connectSelection(editor: EditorController, type: "line" | "reference" = "line") {
+  const selected = editor
+    .selected()
+    .filter((item) => type === "reference" || item.type !== "drawing");
   if (selected.length !== 2) return;
-  const [from, to] = selected.map((item) => endpointFor(editor, item));
+  const [from, to] = selected.map((item) => planEndpoint(editor, item));
   if (!from || !to) return;
-  editor.document.create("reference", 0, 0, {
-    from,
-    to,
-    ...creationValues("reference", editor.graph.view.scale),
-  });
+  const { document } = editor;
+  document.undo.stopCapturing();
+  document.doc.transact(() => {
+    if (from.insert) document.insert({ ...from.item, order: document.nextOrder() });
+    if (to.insert) document.insert({ ...to.item, order: document.nextOrder() });
+    document.insert(
+      document.build(type, 0, 0, {
+        from: from.item.id,
+        to: to.item.id,
+        ...creationValues(type, editor.graph.view.scale),
+      })
+    );
+  }, LOCAL);
+  document.undo.stopCapturing();
 }
 
 /** Lays out the selected topic's tree, moving each object along with what it holds. */
@@ -157,7 +177,11 @@ export function tidySelection(editor: EditorController) {
   document.undo.stopCapturing();
 }
 
-function flyTo(editor: EditorController, item: Item, fill: number) {
+function flyTo(
+  editor: EditorController,
+  item: Pick<Item, "x" | "y" | "width" | "height">,
+  fill: number
+) {
   const { element, graph } = editor;
   flyToView(graph, element, fittingView(item, element, fill));
 }
@@ -166,9 +190,17 @@ function flyTo(editor: EditorController, item: Item, fill: number) {
 export function zoomIntoSelection(editor: EditorController) {
   const [selected] = editor.selected();
   if (!selected) return;
-  const id = endpointFor(editor, selected);
-  const item = editor.document.get(id);
-  if (item) flyTo(editor, item, ZOOM_FILL);
+  if (!isLine(selected)) return flyTo(editor, selected, ZOOM_FILL);
+  const anchor = anchorOf(editor.document.list(), selected.id);
+  if (anchor) return flyTo(editor, anchor, ZOOM_FILL);
+  const middle = lineMidpoint(editor.graph, selected.id);
+  if (!middle) return;
+  const size = ANCHOR_PIXELS / editor.graph.view.scale;
+  flyTo(
+    editor,
+    { x: middle.x - size / 2, y: middle.y - size / 2, width: size, height: size },
+    ZOOM_FILL
+  );
 }
 
 /** Zooms back out to the object holding the selection, or to the whole canvas. */

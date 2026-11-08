@@ -1,4 +1,4 @@
-import type { RelayStatus } from "../collaboration/transport";
+import type { RelayStatus } from "../collaboration/serviceProtocol";
 import { ALERT_FRACTION, limitFor, monthOf, monthlySpend, type Usage } from "./budget";
 
 /** How long a spend figure is reused. Its source lags by minutes, and each read costs a little. */

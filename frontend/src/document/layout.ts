@@ -1,4 +1,4 @@
-import type { Item, Look } from "../document/types";
+import type { Item, Look } from "./types";
 
 export interface Box {
   x: number;

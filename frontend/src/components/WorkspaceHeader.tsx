@@ -2,19 +2,13 @@ import { useRef } from "react";
 import { Download, ImageDown, Upload, Shapes } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
-import {
-  downloadDocument,
-  downloadFile,
-  importDocument,
-  readDocumentFile,
-  serializeDocument,
-} from "../document/files";
-import { embedCopy } from "../document/pngCopy";
+import { downloadFile } from "../files/download";
 import { renderPng } from "../editor/pngExport";
 import { RoomControls } from "./RoomControls";
 import { ChangePassword } from "./PasswordGate";
 import { AccountButton } from "./AccountControls";
 import { SaveWorkspace } from "./SaveWorkspace";
+import { useCompletedField } from "./useCompletedField";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 
@@ -33,6 +27,7 @@ interface Props {
 
 export function WorkspaceHeader(props: Readonly<Props>) {
   const { session, name, onName, onCreate, onJoin } = props;
+  const titleEdit = useCompletedField(session.document.actions);
   const states = [...session.provider.awareness.getStates().values()] as Partial<{
     user: { name: string };
   }>[];
@@ -51,13 +46,22 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         <input
           aria-label="Canvas title"
           value={session.document.title()}
-          onChange={(event) => session.document.rename(event.target.value)}
+          onChange={(event) => {
+            titleEdit.start();
+            session.document.rename(event.target.value);
+          }}
+          onBlur={titleEdit.finish}
+          onKeyDown={titleEdit.keydown}
         />
       </div>
       <div className="topbar-actions">
         {props.account && <AccountButton account={props.account} onOpen={props.onOpenSaved} />}
         {props.account && (
-          <SaveWorkspace account={props.account} session={session} onMessage={props.onMessage} />
+          <SaveWorkspace
+            account={props.account}
+            room={session.saveable}
+            onMessage={props.onMessage}
+          />
         )}
         <ChangePassword session={session} />
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
@@ -86,13 +90,11 @@ type FileProps = Readonly<Pick<Props, "session" | "editor" | "onMessage">>;
 
 async function loadFile({ session, editor, onMessage }: FileProps, file: File) {
   try {
-    const content = await readDocumentFile(file);
-    const count = importDocument(session.document, content, await session.prepareFile(content));
+    const count = await session.files.import(file);
     onMessage(`Imported ${count} objects.`);
     editor?.fit();
-    void session.uploadPictures();
   } catch (error) {
-    onMessage(String(error));
+    fileFailure(error, onMessage);
   }
 }
 
@@ -100,20 +102,33 @@ async function exportPng({ session, editor, onMessage }: FileProps) {
   if (!editor) return;
   try {
     const ids = editor.selectionClosure();
-    const png = await renderPng(editor.graph, ids, session.document.list());
+    const png = await session.files.png(ids, () =>
+      renderPng(editor.graph, ids, session.document.list())
+    );
     if (!png) {
       onMessage("Add something to the canvas first.");
       return;
     }
-    const copy = serializeDocument(session.document, ids, await session.portablePictures(ids));
-    downloadFile(session.document, await embedCopy(png, copy), "image/png", "png");
+    downloadFile(session.document, new Uint8Array(png), "image/png", "png");
   } catch (error) {
-    onMessage(String(error));
+    fileFailure(error, onMessage);
+  }
+}
+
+function fileFailure(error: unknown, onMessage: (text: string) => void) {
+  if (error instanceof DOMException && error.name === "AbortError") return;
+  onMessage(String(error));
+}
+
+async function exportCanvas({ session, onMessage }: FileProps) {
+  try {
+    downloadFile(session.document, await session.files.canvas(), "text/plain", "arconis");
+  } catch (error) {
+    fileFailure(error, onMessage);
   }
 }
 
 function DocumentActions(props: FileProps) {
-  const { session } = props;
   const input = useRef<HTMLInputElement>(null);
   const load = (file: File) => loadFile(props, file);
   const exportPicture = () => exportPng(props);
@@ -123,11 +138,7 @@ function DocumentActions(props: FileProps) {
         className="icon-button"
         title="Export document"
         aria-label="Export document"
-        onClick={() => {
-          void session
-            .portablePictures()
-            .then((pictures) => downloadDocument(session.document, pictures));
-        }}
+        onClick={() => void exportCanvas(props)}
       >
         <Download size={18} />
       </button>

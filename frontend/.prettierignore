@@ -3,4 +3,4 @@ dist-relay/
 coverage/
 node_modules/
 test-results/
-src/editor/vendorIcons/
+src/assets/icons/vendorIcons/

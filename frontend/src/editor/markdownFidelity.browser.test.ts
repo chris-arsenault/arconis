@@ -29,11 +29,13 @@ it("retains Markdown, code, math and box styles across peer edits, local Undo an
   await source(a).press("ArrowRight");
   await source(b).press("ControlOrMeta+End");
   await source(b).pressSequentially("\nPeer");
+  await source(b).press("ControlOrMeta+Enter");
   await expect.poll(() => source(a).inputValue()).toContain("Peer");
   expect(await source(a).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe(
     2
   );
   await source(a).pressSequentially("Local ");
+  await source(a).press("ControlOrMeta+Enter");
   await expect.poll(() => source(b).inputValue()).toContain("Local Shared");
   await source(a).press("ControlOrMeta+z");
   await expect.poll(() => source(b).inputValue()).toContain("# Shared");

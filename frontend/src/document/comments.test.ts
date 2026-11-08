@@ -11,7 +11,7 @@ import {
   parseComment,
   setResolved,
 } from "./comments";
-import { importDocument, serializeDocument } from "./files";
+import { importDocument, serializeDocument } from "../files/canvasFile";
 
 const docs: CanvasDocument[] = [];
 function fresh() {

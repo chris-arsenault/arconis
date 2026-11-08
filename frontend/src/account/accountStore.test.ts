@@ -3,7 +3,8 @@ import { AccountsApi, type AccountServices } from "../accounts/api";
 import { memoryAccountTable } from "../accounts/memoryTable";
 import { AccountStore, startingName, type Fetcher } from "./accountStore";
 import type { Auth } from "./auth";
-import { isSealed, type SavedCopy } from "./workspaceFile";
+import { createEnvelope, generateRoomKey, seal } from "../collaboration/roomKey";
+import { encodeContents, isSealed, type SavedCopy } from "./workspaceFile";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const ROOM = "ab".repeat(24);
@@ -126,6 +127,67 @@ describe("saved workspaces", () => {
     expect(await store.workspaces()).toEqual([]);
     await expect(store.load(ID)).rejects.toThrow(/no longer exists/);
   });
+
+  it("returns the saved revision through listing and loading, and changes it on replacement", async () => {
+    const { store } = setup();
+    await store.restore();
+    const first = await store.save(ID, "First", COPY);
+    expect((await store.load(ID)).revision).toBe(first);
+    expect(await store.workspaces()).toMatchObject([{ id: ID, revision: first, updated: 1000 }]);
+    const second = await store.save(ID, "Second", COPY);
+    expect(second).not.toBe(first);
+    expect((await store.load(ID)).revision).toBe(second);
+    expect(await store.workspaces()).toMatchObject([{ id: ID, name: "Second", revision: second }]);
+  });
+
+  it("preserves validation and storage refusal messages from the real API", async () => {
+    const { store, table, objects } = setup();
+    await store.restore();
+    await expect(store.rename(" ")).rejects.toThrow("A name needs 1 to 40 characters.");
+    expect(store.name).toBe("ada");
+    await expect(store.save(ID, "x".repeat(201), COPY)).rejects.toThrow(
+      "The workspace name is not valid."
+    );
+    table.setBytes("ada", 1024 ** 3);
+    await expect(store.save(ID, "Refused", COPY)).rejects.toThrow(
+      "This account's storage is full."
+    );
+    expect(objects.size).toBe(0);
+    expect(await store.workspaces()).toEqual([]);
+  });
+
+  it("sends only metadata to the accounts API while saving and loading opaque password contents", async () => {
+    const { auth, request } = setup();
+    const calls = vi.fn(request);
+    const store = new AccountStore(auth, "https://api", calls);
+    const roomId = `locked-${ROOM}`;
+    const key = await generateRoomKey();
+    const copy: SavedCopy = {
+      roomId,
+      envelope: await createEnvelope("room password", key, 1),
+      sealed: await seal(key, encodeContents({ ...COPY.contents, roomId })),
+    };
+    await store.restore();
+    await store.save(ID, "Password room", copy);
+    expect((await store.load(ID)).copy).toEqual(copy);
+    const apiSave = calls.mock.calls.find(
+      ([url, init]) => url === `https://api/api/workspaces/${ID}` && init?.method === "PUT"
+    );
+    expect(
+      Object.keys(JSON.parse(String(apiSave?.[1]?.body))).sort((a, b) => a.localeCompare(b))
+    ).toEqual(["checksum", "name", "roomId", "size"]);
+  });
+});
+
+it("rejects malformed successful metadata rather than asserting an arbitrary reply type", async () => {
+  const { auth } = fakeAuth();
+  const store = new AccountStore(auth, "https://api", async () =>
+    Response.json({ workspaces: [{ id: ID, revision: "missing the other fields" }] })
+  );
+  await expect(store.workspaces()).rejects.toThrow(
+    "The account service returned an invalid reply."
+  );
+  await expect(store.load(ID)).rejects.toThrow("The account service returned an invalid reply.");
 });
 
 describe("the account", () => {

@@ -1,6 +1,6 @@
 import { ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { UploadRequest } from "../collaboration/transport";
+import type { UploadRequest } from "../collaboration/serviceProtocol";
 import type { StoredPictures } from "./uploads";
 
 const PREFIX = "pictures/";

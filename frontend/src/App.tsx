@@ -43,7 +43,7 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
       if (!active) return;
       setSession(instance);
       const saved = takeSavedCopy(room);
-      if (saved) void instance.applySaved(saved);
+      if (saved) void instance.saveable.apply(saved);
     };
     void start().catch((reason: unknown) => {
       if (active) setError(String(reason));
@@ -98,7 +98,7 @@ export function App() {
   };
   const openSaved = (copy: SavedCopy) => {
     if (session?.id === copy.roomId) {
-      void session.applySaved(copy);
+      void session.saveable.apply(copy);
       return;
     }
     pendingSavedCopy = copy;

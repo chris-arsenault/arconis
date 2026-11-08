@@ -1,5 +1,5 @@
 import { CollaborationProvider } from "../collaboration/provider";
-import type { ConnectionState, Transport } from "../collaboration/transport";
+import type { ConnectionState, FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { Relay, RelaySocket } from "./relay";
 
@@ -66,7 +66,7 @@ export class ServerPeer {
 }
 
 /** Carries frames between a peer in this process and the relay, with no socket between them. */
-class InProcessTransport implements Transport {
+class InProcessTransport implements FrameChannel {
   onMessage: (message: string) => void = () => {};
   onReady = () => {};
   onStatus: (state: ConnectionState, detail?: string) => void = () => {};

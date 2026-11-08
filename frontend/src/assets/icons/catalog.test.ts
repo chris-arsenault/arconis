@@ -1,7 +1,7 @@
 import { it, expect, beforeAll } from "vitest";
-import { iconEntries, iconImage, loadAllVendors, loadIcons, searchIcons } from "./icons";
-import { objectStyle } from "./styles";
-import type { Item, Look } from "../document/types";
+import { iconEntries, iconImage, loadAllVendors, loadIcons, searchIcons } from "./catalog";
+import { objectStyle } from "../../editor/styles";
+import type { Item, Look } from "../../document/types";
 
 beforeAll(loadIcons);
 

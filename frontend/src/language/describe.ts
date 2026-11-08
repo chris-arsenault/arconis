@@ -3,6 +3,7 @@ import { STENCILS, type Item, type Stencil } from "../document/types";
 import type { Draft } from "./draft";
 import { LanguageError } from "./lexer";
 import type { Attribute } from "./syntax";
+import { attributesFor, checkAttributes, type RoutedAttribute } from "./attributeRouting";
 
 /** What an item is and how it looks, from the attributes that say so. */
 
@@ -12,7 +13,8 @@ interface Describing {
   sized: Set<string>;
   line: number;
 }
-type Describer<K extends Attribute["kind"]> = (
+type Described = RoutedAttribute<"item", "describe" | "arrange">;
+type Describer<K extends Described["kind"]> = (
   item: Item,
   attribute: Extract<Attribute, { kind: K }>,
   context: Describing
@@ -43,13 +45,7 @@ function word(item: Item, text: string, { draft, line }: Describing) {
   );
 }
 
-function lineOnly<K extends "via" | "label">(name: string): Describer<K> {
-  return (_item, _attribute, { line }) => {
-    throw new LanguageError(`Only a line takes ${name}.`, line);
-  };
-}
-
-const DESCRIBE: { [K in Attribute["kind"]]?: Describer<K> } = {
+const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
   word: (item, attribute, context) => word(item, attribute.word, context),
   look: (item, attribute) => {
     item.look = { ...item.look, ...attribute.look };
@@ -80,8 +76,6 @@ const DESCRIBE: { [K in Attribute["kind"]]?: Describer<K> } = {
   on: (item, attribute, { draft, line }) => {
     draft.anchors.push({ id: item.id, ref: attribute.ref, line });
   },
-  via: lineOnly("via"),
-  label: lineOnly("label-at"),
   // A frame or group keeps its arrangement; anything else is arranged once.
   arrange: (item, { how, columns, gap, align }) => {
     if (item.type !== "frame" && item.type !== "group") return;
@@ -105,9 +99,10 @@ const DESCRIBE: { [K in Attribute["kind"]]?: Describer<K> } = {
 };
 
 export function describeItem(item: Item, attributes: Attribute[], context: Describing) {
-  for (const attribute of attributes) {
-    const apply = DESCRIBE[attribute.kind] as Describer<Attribute["kind"]> | undefined;
-    apply?.(item, attribute, context);
+  checkAttributes("item", attributes, context.line);
+  for (const attribute of attributesFor(attributes, "item", ["describe", "arrange"])) {
+    const apply = DESCRIBE[attribute.kind] as Describer<Described["kind"]>;
+    apply(item, attribute, context);
   }
 }
 
@@ -116,9 +111,8 @@ export function declareStyle(draft: Draft, name: string, attributes: Attribute[]
   if (!isId(name) || (STENCILS as readonly string[]).includes(name))
     throw new LanguageError(`"${name}" cannot name a style.`, line);
   const look = {};
-  for (const attribute of attributes) {
-    if (attribute.kind !== "look")
-      throw new LanguageError("A style holds only look properties such as fill or dashed.", line);
+  checkAttributes("style", attributes, line);
+  for (const attribute of attributesFor(attributes, "style", "style")) {
     Object.assign(look, attribute.look);
   }
   draft.styles.set(name, look);
@@ -127,8 +121,7 @@ export function declareStyle(draft: Draft, name: string, attributes: Attribute[]
 
 /** `width of X` and `height of X`, read once X is placed. */
 export function matchSizes(item: Item, attributes: Attribute[], context: Describing) {
-  for (const attribute of attributes) {
-    if (attribute.kind !== "match") continue;
+  for (const attribute of attributesFor(attributes, "item", "match")) {
     item[attribute.dimension] = context.draft.extent(attribute.ref, context.line).box[
       attribute.dimension
     ];

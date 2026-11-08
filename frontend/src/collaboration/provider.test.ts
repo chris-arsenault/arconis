@@ -1,12 +1,12 @@
 import { it, expect, vi } from "vitest";
 import { CollaborationProvider, PRESENCE_INTERVAL_MS } from "./provider";
 import { CanvasDocument } from "../document/canvasDocument";
-import type { ConnectionState, Transport } from "./transport";
+import type { ConnectionState, FrameChannel } from "./channel";
 import { CHUNK_BYTES, FrameAssembler, frames } from "./frames";
 import { MAX_MESSAGE_BYTES } from "../relay/relay";
 import { parseRoom, createRoomId, createLocalRoomId, isLocalRoom, roomHash } from "./room";
 
-class Bus implements Transport {
+class Bus implements FrameChannel {
   onMessage: (message: string) => void = () => {};
   onReady = () => {};
   onStatus: (state: ConnectionState) => void = () => {};

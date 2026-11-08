@@ -51,6 +51,7 @@ it("renders agent-authored Markdown and math during a presentation and reflects 
   expect(await a.getByTestId("canvas").locator(".katex-display").count()).toBe(1);
   expect(await a.getByTestId("canvas").locator("pre .hljs-keyword").count()).toBeGreaterThan(0);
   await peerSource.fill("# Peer update\n\n$y^2$");
+  await peerSource.press("ControlOrMeta+Enter");
   await expect.poll(() => a.getByTestId("canvas").locator("h1").textContent()).toBe("Peer update");
   expect(await a.getByTestId("canvas").locator(".katex").count()).toBe(1);
   await a.keyboard.press("Escape");

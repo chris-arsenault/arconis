@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
-import { importDocument, serializeDocument } from "../document/files";
+import { importDocument, serializeDocument } from "../files/canvasFile";
 import { parse } from "./parser";
 import { printCanvas, quote } from "./printer";
 import { writeStatements } from "./writer";

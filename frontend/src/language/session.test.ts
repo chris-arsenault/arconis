@@ -5,7 +5,7 @@ import { parse } from "./parser";
 import { writeStatements } from "./writer";
 import { LanguageSession } from "./session";
 import { REFERENCE_DIAGRAM } from "./referenceDiagram";
-import { intersects } from "./layout";
+import { intersects } from "../document/layout";
 
 function personWrites(document: CanvasDocument, text: string) {
   document.doc.transact(() => writeStatements(document, parse(text), { author: "Person" }), LOCAL);

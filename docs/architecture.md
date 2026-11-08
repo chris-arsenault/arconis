@@ -20,6 +20,9 @@ independent of a participant's undo history. Records a peer writes in an unknown
   uses holder-relative geometry ([ADR-0004](adr/0004-canonical-world-geometry.md)). A line's `x` and
   `y` place its label.
 - **Files.** A file is the whole canvas written in the canvas language, with picture bytes at the end.
+  `files/canvasFile.ts` supplies its model/language codec; `files/canvasFiles.ts` owns portable
+  picture preparation, hash renaming and import/export sequencing. Its picture and render callbacks
+  do not require a room or graph implementation. `files/download.ts` owns browser downloads.
   A PNG export holds the same text in a compressed text chunk (`document/pngCopy.ts`), and its picture
   is the graph's draw pane rendered offscreen at an export scale (`editor/pngExport.ts`). Opening a file
   keeps its ids where they are free.
@@ -30,6 +33,9 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Holders.** Any item holds others through `inside`, and they keep world coordinates. A group's
   frame follows its members; everything else keeps its size. Cycles break deterministically during
   projection. A band marks a span behind the items it covers and holds nothing.
+  `document/relations.ts` owns deletion closure over holders, line anchors and incident links.
+  Document commands, language drafts and graph mutation capture apply that same policy; graph
+  capture first accounts for surviving cells' new parents, so ungrouping preserves their contents.
 - **Arranged frames.** A frame or group with an `arrange` keeps its members in a row, column or grid,
   in the order they sit, and sizes itself to them. Whoever edits rearranges: the writer after each
   write, and `editor/arrangements.ts` after each of a person's own edits. Arranging is deterministic
@@ -46,8 +52,13 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Topics.** Branches and references are line types, and a line joins them through an anchor node
   kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)). `document/relations.ts`
   holds the tree, layout and alignment logic.
-- **Look.** `editor/styles.ts` is the one place an item's type, named style and look become maxGraph
-  styles. Icons, badges and pictures resolve to images there from local icon sets and validated hashes,
+- **Look.** `document/appearance.ts` distinguishes sparse authored looks from effective semantic
+  defaults, resolving named styles and item overrides for controls, preview, measurement and rendering.
+  `document/capabilities.ts` owns repeated eligibility and geometry constraints. Adapter-specific
+  behavior remains explicit: numeric sizing and collective transforms preserve different aspect
+  policies, and authored fields still round-trip unchanged. `editor/styles.ts` translates semantic
+  appearance into maxGraph styles, applying scale once. Icons, badges and pictures resolve to images
+  there from local icon sets and validated hashes,
   so nothing a peer writes becomes an image address. Items made at deep zoom carry a scale.
 - **Text.** The name's existing `Y.Text` contains Markdown source, including language-labelled code
   fences and LaTeX math. `text/markdown.ts` derives HTML with markdown-it, highlight.js and KaTeX;
@@ -67,12 +78,18 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Writing.** `writer.ts` applies statements to a draft copy of the canvas (`draft.ts`) and commits the
   differences in one transaction, so a write that fails partway changes nothing. Items are placed in
   statement order: relations name items placed earlier and measure gaps between items with their labels
-  (`layout.ts`, `placement.ts`); rows, columns and grids lay out their members (`arranging.ts`); frames
+  (`document/layout.ts`, `language/placement.ts`); rows, columns and grids lay out their members
+  (`language/arranging.ts`, with pure calculations in `document/arrangement.ts`); frames
   fit their contents; arranged frames reflow; shared fan-outs gain a junction (`junctions.ts`); lines
   and bands are settled once every item exists (`connections.ts`). Placement is applied once and
-  stored as positions.
+  stored as positions. Statement handler tables cover every non-conversation statement;
+  `effects.ts` classifies every statement and supplies direct stale-check targets, nested traversal
+  and conversation routing. Derived layout/deletion effects remain distinct from direct targets.
+  `attributeRouting.ts` routes attributes to their actual interpretation passes or explicitly
+  rejects/ignores them in context; adding a variant must account for these contracts.
 - **Printing.** `printer.ts` writes items canonically, so an unchanged item always prints the same and
-  comparing printed items finds changes.
+  comparing printed items finds changes. `look.ts` supplies one typed, key-complete descriptor for
+  look keywords, value choices, ranges, flags and canonical print order.
 - **Sessions.** `session.ts` is one agent's work: it records each item as it last showed it, refuses
   writes that name items someone else changed since with their current state, reports others' changes
   on every call, and undoes only its own writes.
@@ -81,6 +98,11 @@ independent of a participant's undo history. Records a peer writes in an unknown
 
 maxGraph is an editing and rendering projection of the document.
 
+- EditorController composes graph-facing behavior and exposes selection/navigation operations.
+  Leaf property, Markdown, connection, slide and comment controls receive semantic data and focused
+  callbacks. `editor/commands.ts` owns selection formatting, Undo/transaction boundaries and source
+  editing follow-up. Topology commands plan endpoints before inserting anchors and relationships
+  together; viewport navigation reads geometry without creating document items.
 - `editor/projection.ts` applies the document to the graph behind a guard, so remote changes do not
   feed back into Yjs.
 - `editor/graphChanges.ts` turns graph edits into Yjs transactions with a local origin. The resulting
@@ -94,7 +116,7 @@ maxGraph is an editing and rendering projection of the document.
 - A line's type, cornered, diagonal or curved, sets how it draws through its points; cornered lines use
   maxGraph's segment routing, whose segments people drag. Routing around items is placement:
   `document/routing.ts` finds right-angled corners around the boxes and labels between a line's ends,
-  preferring fewer bends, and `language/routes.ts` stores them once as the line's points and ports,
+  preferring fewer bends, and `document/routeLine.ts` computes the line's points and ports,
   from an `around` statement or the property panel's Route around items.
 - `editor/culling.ts` leaves objects too small to see out of the view, and with them anything they hold
   and connectors reaching them.
@@ -102,6 +124,17 @@ maxGraph is an editing and rendering projection of the document.
   dots, stroke precision and the size of new objects.
 - `document/transform.ts` computes collective scale and rotation over a gesture's starting snapshot,
   and `components/SelectionFrame.tsx` drives it.
+- `components/useCollaborativeText.ts` binds textareas to Y.Text, preserving relative selections,
+  composition and Undo. `components/useCompletedField.ts` owns the completion lifecycle of single-line
+  title, subtitle and deck fields. These browser bindings stay outside the document model.
+  Composition applies its merged result through the same text reconciliation as ordinary input,
+  retaining unchanged CRDT characters when a browser replaces a whole field.
+  Source commands measure currently rendered fonts synchronously to keep source, caret and derived
+  height in one immediate operation. Appearance changes and explicit fitting can wait for fonts;
+  a source edit during font loading may need another edit or fit after those fonts arrive.
+- `assets/icons/` supplies the same catalog to stencils, rendering and relay agent search, with
+  lazy vendor chunks. Canvas composition connects the room's picture store to rendering and owns
+  its subscription cleanup; the collaboration session does not import editor picture globals.
 - **Presenting.** `editor/presenter.ts` is one person's walk through a deck, local to the browser:
   it reads the deck's slides from the document on every call, so peers' changes show, fits the
   shown slide to the window and suspends the editor's shortcuts. While it runs, `Workspace` renders
@@ -111,8 +144,12 @@ maxGraph is an editing and rendering projection of the document.
 
 ## Collaboration
 
-Transport adapters know Yjs updates and state vectors, never graph or UI types. `RelayTransport`
-serves deployed rooms and `LocalTransport` serves same-browser development.
+The provider works through `collaboration/channel.ts`'s FrameChannel contract, with no graph or
+UI types. `RelayTransport` serves deployed rooms and `LocalTransport` serves same-browser development.
+`services.ts` defines relay activation and picture-storage capabilities separately from messaging;
+`serviceProtocol.ts` holds runtime-neutral service messages. RoomSession composes one underlying
+carrier, optional service capabilities, encryption, persistence and the file/saved-copy adapters.
+The provider owns closing its channel, including an encrypted wrapper's underlying carrier.
 
 - **Rooms.** Each room is a set of sockets on the relay ([ADR-0009](adr/0009-relay-on-ec2.md)). A
   device-only room uses `LocalTransport` whatever the configuration, so it never reaches the relay.
@@ -127,17 +164,27 @@ serves deployed rooms and `LocalTransport` serves same-browser development.
   immediately in either direction.
 - **Messages.** Updates are coalesced and split into bounded chunks that reassemble out of order.
   `collaboration/frames.ts` and `collaboration/provider.ts` declare the sizes and timings.
+- **Completed actions.** Local text and collective geometry edits remain immediate Yjs changes,
+  including local persistence. `document/actions.ts` tracks their application lifetime outside
+  shared canvas data. While an action is open, the provider retains local updates and defers
+  document-derived join/repair replies; it continues receiving peer edits. Completion publishes
+  one merged update through normal Yjs delivery. All local document writes in that action travel
+  together, preserving CRDT dependencies without per-item filtering or a second document model.
+  Text finishes on leaving its source/tools, Escape or Ctrl/Command Enter; single-line metadata
+  also finishes on Enter. Finishing retains the text; Escape does not discard it.
+  A new participant may wait for completion if that editor is the only reachable canvas holder.
 - **Password rooms.** A random room key encrypts every frame's contents, the local copy and picture
   bytes with AES-GCM, and the password only wraps that key, through PBKDF2. The wrapped key is an
   envelope that peers exchange unencrypted, and it replaces another only with proof of holding the
-  room key. `collaboration/lockedTransport.ts` wraps any transport, and `collaboration/roomLock.ts`
+  room key. `collaboration/lockedTransport.ts` decorates the frame channel and retains key/envelope
+  exchange; it does not forward relay controls or picture service methods. `collaboration/roomLock.ts`
   stands in for y-indexeddb. The relay still sees each frame's sender, kind and target, plus sizes and
   timing. Nothing authenticates who a keyholder is, and removing someone requires a new room, because
   changing the password does not change the key.
 - **Presence.** Names, cursors and native move and resize previews travel on Yjs awareness, adding no
   document history; the document changes on drop. Presence coalesces to a bounded rate, and hidden
   tabs send none, so peers time them out until they are shown again. Selection-frame transforms write
-  to the document at a bounded rate during the gesture, with undo merged into one step.
+  locally at a bounded rate during the gesture, with Undo merged into one step, and publish on release.
 - **Persistence.** y-indexeddb stores each room's document on the device and restores it before
   connecting.
 
@@ -196,13 +243,21 @@ flow and PKCE (`account/auth.ts`, through `oidc-client-ts`), for the accounts AP
 validates those tokens and that audience on `/api/*`. Sign-up, activation and password resets are
 Auth0's pages.
 
+`protocol/account.ts` owns shared HTTP metadata contracts. AccountStore checks outbound request bodies
+against them and decodes unknown replies into its used projections; AccountsApi checks each endpoint's
+actual success response construction. Its storage/service ports remain server-owned. Shared contracts
+do not import browser auth, saved document contents or AWS implementations.
+
 `account/workspaceFile.ts` defines the saved copy: an ordinary room's contents as they are, or a password
-room's sealed under its room key with the envelope its password opens, which `collaboration/room.ts`
-opens once the room's password is entered. The API checks limits and signs S3 links, and
+room's sealed under its room key with the envelope its password opens. `account/savedRoom.ts` implements
+SaveableRoom: picture inclusion, current envelope adoption, encoding, merging and update-origin
+filtering live there. RoomSession supplies its document/picture/key capabilities and operation lifetime;
+the adapter reads current key state per operation and keeps password-room titles out of account metadata.
+The API checks limits and signs S3 links, and
 `account/workspaceSaver.ts` merges any newer saved copy before storing, so two devices cannot overwrite
 each other's work.
 
-A post-login Action, bundled from `accounts/auth0Actions.ts`, refuses sign-in to Arconis's connection
+A post-login Action, compiled from `accounts/auth0-actions/post-login.ts`, refuses sign-in to Arconis's connection
 until the email is verified. Deleting an account removes its Auth0 user through the Management API.
 
 ## Limitations

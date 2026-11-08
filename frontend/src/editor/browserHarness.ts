@@ -11,7 +11,7 @@ import { createServer, type ViteDevServer } from "vite";
 import { mkdir, readFile } from "node:fs/promises";
 import type { Item, View } from "../document/types";
 import { CanvasDocument } from "../document/canvasDocument";
-import { importDocument } from "../document/files";
+import { importDocument } from "../files/canvasFile";
 import { startRelayFixture } from "../collaboration/relayFixture";
 
 export let browser: Browser;
@@ -128,6 +128,7 @@ export async function add(page: Page, tool: string, label: string, x: number, y:
   await page.getByRole("button", { name: tool, exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x, y } });
   await page.getByLabel("Object text", { exact: true }).fill(label);
+  await page.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
 }
 /** An object's label on the canvas. Clicking it selects the object with a real gesture. */
 export function row(page: Page, label: string | RegExp) {

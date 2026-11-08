@@ -1,7 +1,7 @@
-import type { CanvasDocument } from "./canvasDocument";
-import { LOCAL } from "./types";
-import { NO_PICTURES, type FilePictures } from "./pictures";
-import { isPng, readCopy } from "./pngCopy";
+import type { CanvasDocument } from "../document/canvasDocument";
+import { LOCAL } from "../document/types";
+import { NO_PICTURES, type FilePictures } from "../document/pictures";
+import { isPng, readCopy } from "../document/pngCopy";
 import { parse } from "../language/parser";
 import { printCanvas } from "../language/printer";
 import { writeStatements } from "../language/writer";
@@ -22,24 +22,6 @@ export function serializeDocument(
   // A password room names pictures by their sealed bytes; a file names them by their plain bytes.
   pictures.renames.forEach((plain, sealed) => (text = text.replaceAll(sealed, plain)));
   return text;
-}
-
-export function downloadFile(
-  document: CanvasDocument,
-  content: BlobPart,
-  type: string,
-  ext: string
-) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const anchor = window.document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${document.title().replace(/[^a-z0-9 -]/gi, "_")}.${ext}`;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-export function downloadDocument(document: CanvasDocument, pictures: FilePictures) {
-  downloadFile(document, serializeDocument(document, [], pictures), "text/plain", "arconis");
 }
 
 /** Reads a chosen file as canvas text, whether it is a canvas file or a picture carrying one. */

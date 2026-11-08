@@ -1,5 +1,6 @@
-import { isBox, isFrame, isLink, type Item, type PathPoint } from "./types";
+import { isBox, isFrame, isLink, type Item, type Look, type PathPoint } from "./types";
 import { isLockedIcon } from "./geometry";
+import { keepsAspectOnTransform } from "./capabilities";
 
 export interface SelectionTransform {
   anchor: { x: number; y: number };
@@ -23,11 +24,15 @@ const GROUP_PADDING = 28;
 const MINIMUM_SIZE = 0.001;
 
 /** Applies one transform to world-space objects. Input is the gesture's starting snapshot. */
-export function transformObjects(items: Item[], transform: SelectionTransform) {
+export function transformObjects(
+  items: Item[],
+  transform: SelectionTransform,
+  lookOf: (item: Item) => Look = (item) => item.look
+) {
   const apply = pointTransform(transform);
   const result = new Map<string, TransformedObject>();
   for (const item of items) {
-    if (!isFrame(item)) result.set(item.id, transformObject(item, transform, apply));
+    if (!isFrame(item)) result.set(item.id, transformObject(item, transform, apply, lookOf(item)));
   }
   const groups = items.filter((item) => isFrame(item));
   const byId = new Map(items.map((item) => [item.id, item]));
@@ -53,14 +58,15 @@ function pointTransform({ anchor, scaleX, scaleY, angle }: SelectionTransform) {
 function transformObject(
   item: Item,
   { scaleX, scaleY, angle }: SelectionTransform,
-  apply: (point: PathPoint) => PathPoint
+  apply: (point: PathPoint) => PathPoint,
+  look: Look
 ): TransformedObject {
-  const rotation = item.look.rotation ?? 0;
+  const rotation = look.rotation ?? 0;
   const points = item.points.map((point) => apply(point).map(round) as PathPoint);
   if (!isBox(item)) return { ...item, points, rotation };
   const locked = isLockedIcon(item);
   const evenScale = Math.min(scaleX, scaleY);
-  const even = locked || item.type === "picture";
+  const even = keepsAspectOnTransform(item);
   const width = Math.max(MINIMUM_SIZE, round(item.width * (even ? evenScale : scaleX)));
   const height = Math.max(MINIMUM_SIZE, round(item.height * (even ? evenScale : scaleY)));
   const [centerX, centerY] = apply([item.x + item.width / 2, item.y + item.height / 2]);

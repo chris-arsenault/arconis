@@ -1,22 +1,12 @@
 import { useState } from "react";
 import { Check, RotateCcw, Trash2 } from "lucide-react";
-import {
-  addComment,
-  deleteComment,
-  groupThreads,
-  listComments,
-  MAX_COMMENT_LENGTH,
-  setResolved,
-  type CanvasComment,
-} from "../document/comments";
-import type { Item } from "../document/types";
-import type { EditorController } from "../editor/controller";
+import { MAX_COMMENT_LENGTH, type CanvasComment } from "../document/comments";
 import { Section } from "./ConnectionControls";
 
 function CommentBody({
-  editor,
   comment,
-}: Readonly<{ editor: EditorController; comment: CanvasComment }>) {
+  onDelete,
+}: Readonly<{ comment: CanvasComment; onDelete: (id: string) => void }>) {
   return (
     <div className="comment">
       <div className="comment-meta">
@@ -26,10 +16,7 @@ function CommentBody({
           className="icon-action"
           aria-label={`Delete comment by ${comment.author}`}
           title="Delete"
-          onClick={() => {
-            deleteComment(editor.document, comment.id);
-            editor.emit();
-          }}
+          onClick={() => onDelete(comment.id)}
         >
           <Trash2 size={12} />
         </button>
@@ -78,15 +65,16 @@ function CommentBox({
 
 /** Threads on the selected item, including lines. */
 export function CommentControls({
-  editor,
-  item,
-  author,
-}: Readonly<{ editor: EditorController; item: Item; author: string }>) {
-  const threads = groupThreads(listComments(editor.document), item.id);
-  const add = (text: string, thread = "") => {
-    addComment(editor.document, { on: item.id, author, text, thread });
-    editor.emit();
-  };
+  threads,
+  onAdd,
+  onDelete,
+  onResolve,
+}: Readonly<{
+  threads: { root: CanvasComment; replies: CanvasComment[] }[];
+  onAdd: (text: string, thread?: string) => void;
+  onDelete: (id: string) => void;
+  onResolve: (id: string, resolved: boolean) => void;
+}>) {
   return (
     <Section title="Comments">
       {threads.map(({ root, replies }) => (
@@ -95,24 +83,21 @@ export function CommentControls({
           className={root.resolved ? "comment-thread resolved" : "comment-thread"}
           data-testid="comment-thread"
         >
-          <CommentBody editor={editor} comment={root} />
+          <CommentBody comment={root} onDelete={onDelete} />
           {replies.map((reply) => (
-            <CommentBody key={reply.id} editor={editor} comment={reply} />
+            <CommentBody key={reply.id} comment={reply} onDelete={onDelete} />
           ))}
           <div className="comment-actions">
             <CommentBox
               label={`Reply to ${root.author}`}
               placeholder="Reply"
-              onSubmit={(text) => add(text, root.id)}
+              onSubmit={(text) => onAdd(text, root.id)}
             />
             <button
               className="icon-action"
               aria-label={root.resolved ? "Reopen thread" : "Resolve thread"}
               title={root.resolved ? "Reopen" : "Resolve"}
-              onClick={() => {
-                setResolved(editor.document, root.id, !root.resolved);
-                editor.emit();
-              }}
+              onClick={() => onResolve(root.id, !root.resolved)}
             >
               {root.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
             </button>
@@ -122,7 +107,7 @@ export function CommentControls({
       <CommentBox
         label="Add a comment"
         placeholder="Add a comment"
-        onSubmit={(text) => add(text)}
+        onSubmit={(text) => onAdd(text)}
       />
     </Section>
   );

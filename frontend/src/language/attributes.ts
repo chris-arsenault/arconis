@@ -1,6 +1,6 @@
-import type { Look } from "../document/types";
 import { describe, type Cursor } from "./cursor";
-import { LOOK_FLAGS, LOOK_WORDS, type Arrangement, type Attribute, type Edge } from "./syntax";
+import type { Arrangement, Attribute, Edge } from "./syntax";
+import { lookAttribute, type LookDefinition } from "./look";
 
 /** Parsing of the attributes that follow an item, a line or a style. */
 
@@ -17,28 +17,6 @@ export const STENCIL_WORDS = new Set([
   "person",
   "junction",
 ]);
-
-const NUMERIC = new Set<keyof Look>([
-  "lineWidth",
-  "textSize",
-  "rotation",
-  "opacity",
-  "scale",
-  "lineHeight",
-  "paragraphGap",
-  "padding",
-]);
-const COLORED = new Set<keyof Look>(["fill", "line", "textColor", "iconColor", "textHighlight"]);
-const CHOICES: Partial<Record<keyof Look, string[]>> = {
-  align: ["left", "center", "right"],
-  font: ["sans", "serif", "mono"],
-  valign: ["top", "middle", "bottom"],
-  textFit: ["fixed", "height"],
-  title: ["header", "top", "side"],
-  path: ["cornered", "diagonal", "curved"],
-  arrow: ["arrow", "open", "none"],
-  startArrow: ["arrow", "open", "none"],
-};
 
 function beside(cursor: Cursor, side: Side): Attribute {
   const horizontal = side === "left" || side === "right";
@@ -117,9 +95,7 @@ const ATTRIBUTE_WORDS = new Set([...Object.keys(PARSERS), "gap", ...ARRANGEMENTS
 
 /** Whether a word begins an attribute rather than being an item's id. */
 export function isAttributeWord(word: string) {
-  return (
-    ATTRIBUTE_WORDS.has(word) || word in LOOK_WORDS || word in LOOK_FLAGS || STENCIL_WORDS.has(word)
-  );
+  return ATTRIBUTE_WORDS.has(word) || lookAttribute(word) !== undefined || STENCIL_WORDS.has(word);
 }
 
 /** The rest of `row`, `column` or `grid N`: an optional edge members line up by. */
@@ -130,25 +106,28 @@ export function arrangeTail(cursor: Cursor, how: Arrangement, columns?: number):
   return attribute;
 }
 
-function lookValue(cursor: Cursor, word: string, key: keyof Look): unknown {
-  if (NUMERIC.has(key)) return numericLook(cursor, word, key);
-  if (COLORED.has(key)) {
+function lookValue(
+  cursor: Cursor,
+  definition: Exclude<LookDefinition, { kind: "flag" | "number" }>
+): string {
+  const { word, kind } = definition;
+  if (kind === "color") {
     if (cursor.token.kind === "color") return cursor.next().text;
     if (cursor.word("none")) return "none";
     cursor.fail(`Expected a color like #1f6feb, or none, after ${word}.`);
   }
-  if (key === "badge") return cursor.iconKey();
-  const choices = CHOICES[key] ?? [];
+  if (kind === "icon") return cursor.iconKey();
+  const choices = Object.keys(definition.choices);
   const value = cursor.expectWord(`one of ${choices.join(", ")} after ${word}`);
   if (!choices.includes(value))
     cursor.fail(`"${value}" is not one of ${choices.join(", ")} after ${word}.`);
   return value;
 }
 
-function numericLook(cursor: Cursor, word: string, key: keyof Look) {
+function numericLook(cursor: Cursor, { word, range }: Extract<LookDefinition, { kind: "number" }>) {
   const value = cursor.number(`a number after ${word}`);
-  const positive = ["textSize", "lineHeight", "scale"].includes(key);
-  const nonnegative = ["paragraphGap", "padding"].includes(key);
+  const positive = range === "positive";
+  const nonnegative = range === "nonnegative";
   if (!Number.isFinite(value) || (positive && value <= 0) || (nonnegative && value < 0))
     cursor.fail(`${word} must be a finite ${positive ? "positive" : "non-negative"} number.`);
   return value;
@@ -156,15 +135,16 @@ function numericLook(cursor: Cursor, word: string, key: keyof Look) {
 
 function look(cursor: Cursor): Attribute {
   const word = cursor.next().text;
-  if (word in LOOK_FLAGS) {
-    const key = LOOK_FLAGS[word as keyof typeof LOOK_FLAGS];
+  const { key, definition } = lookAttribute(word)!;
+  if (definition.kind === "flag") {
     const on = !cursor.word("off");
     cursor.word("on");
     return { kind: "look", look: { [key]: on }, cleared: [] };
   }
-  const key = LOOK_WORDS[word as keyof typeof LOOK_WORDS];
   if (cursor.word("default")) return { kind: "look", look: {}, cleared: [key] };
-  return { kind: "look", look: { [key]: lookValue(cursor, word, key) } as Look, cleared: [] };
+  const value =
+    definition.kind === "number" ? numericLook(cursor, definition) : lookValue(cursor, definition);
+  return { kind: "look", look: { [key]: value }, cleared: [] };
 }
 
 /** `gap N` sets the gap of the placement or arrangement just before it. */
@@ -183,7 +163,7 @@ function attribute(cursor: Cursor, previous: Attribute[]): Attribute {
   if (token.kind !== "word") cursor.fail(`Unexpected ${describe(token)}.`);
   const word = token.text;
   if (word === "gap") return gap(cursor, previous);
-  if (word in LOOK_WORDS || word in LOOK_FLAGS) return look(cursor);
+  if (lookAttribute(word)) return look(cursor);
   cursor.next();
   const parse = PARSERS[word];
   if (parse) return parse(cursor);

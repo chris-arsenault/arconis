@@ -2,9 +2,11 @@ import * as Y from "yjs";
 import { LOCAL, isLink, type Item, type ItemType, type Look, type View } from "./types";
 import { compareStacking } from "./geometry";
 import { newId } from "./ids";
+import { CompletedActions } from "./actions";
+import { removalClosure } from "./relations";
 
 /** Fields every item has, with the values an item starts from. */
-const BLANK: Omit<Item, "id" | "type"> = {
+export const BLANK: Omit<Item, "id" | "type"> = {
   name: "",
   subtitle: "",
   inside: "",
@@ -35,6 +37,7 @@ export function defaultSize(type: ItemType, stencil = "rectangle"): [number, num
 }
 
 export class CanvasDocument {
+  readonly actions = new CompletedActions();
   private listed: Item[] | null = null;
   private transacting = false;
   readonly doc = new Y.Doc();
@@ -195,20 +198,7 @@ export class CanvasDocument {
   /** Removes items with everything they hold, the nodes sitting on them and their links. */
   remove(ids: string[]) {
     this.undo.stopCapturing();
-    const removed = new Set(ids);
-    const items = this.list();
-    let previousSize = -1;
-    while (previousSize !== removed.size) {
-      previousSize = removed.size;
-      items
-        .filter(
-          (item) =>
-            removed.has(item.inside) ||
-            removed.has(item.onLine) ||
-            (isLink(item) && (removed.has(item.from) || removed.has(item.to)))
-        )
-        .forEach((item) => removed.add(item.id));
-    }
+    const removed = removalClosure(this.list(), ids);
     this.doc.transact(() => removed.forEach((id) => this.items.delete(id)), LOCAL);
     this.undo.stopCapturing();
   }

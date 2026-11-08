@@ -20,11 +20,11 @@ import { clampScale, creationOffset, creationValues, syncZoom } from "./zoom";
 import { configureCulling } from "./culling";
 import { LabelMarks } from "./marks";
 import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
-import { configureComposition, endpointFor, syncLineAnchors } from "./topics";
+import { configureComposition, connectSelection, syncLineAnchors } from "./topics";
 import type { ScreenSize } from "../document/screens";
 import { newSlideValues } from "../document/slides";
 import { fitContents } from "./views";
-import { subscribeIcons } from "./icons";
+import { subscribeIcons } from "../assets/icons/catalog";
 import { subscribePictures } from "./pictureSource";
 import { configurePanels, containerAt } from "./panels";
 import { compareStacking } from "../document/geometry";
@@ -33,6 +33,7 @@ import { transformObjects, type SelectionTransform } from "../document/transform
 import { CanvasGrid } from "./grid";
 import { editorStage, Presenter } from "./presenter";
 import { RateLimitedWrite } from "./rateLimitedWrite";
+import { authoredLook } from "../document/appearance";
 
 /** How often a selection-frame gesture writes to the document, and so reaches peers. */
 const TRANSFORM_WRITE_MS = 100;
@@ -59,6 +60,7 @@ export class EditorController {
   private destroyed = false;
   private previewing = false;
   private transformWrites = new RateLimitedWrite(TRANSFORM_WRITE_MS);
+  private finishTransform: (() => void) | null = null;
   private lastPreview = 0;
   private listeners = new Set<() => void>();
   private cleanupInput: () => void;
@@ -311,6 +313,7 @@ export class EditorController {
     return this.selectionClosure().map((id) => this.document.get(id)!);
   }
   beginTransform() {
+    this.finishTransform = this.document.actions.begin();
     this.document.undo.stopCapturing();
     this.document.undo.captureTimeout = Number.MAX_SAFE_INTEGER;
   }
@@ -319,7 +322,9 @@ export class EditorController {
     this.transformWrites.schedule(() => this.writeTransform(items, transform));
   }
   private writeTransform(items: Item[], transform: SelectionTransform) {
-    const values = transformObjects(items, transform);
+    const values = transformObjects(items, transform, (item) =>
+      authoredLook(item, this.document.namedStyle(item.style))
+    );
     this.document.doc.transact(() => {
       items.forEach((item) => {
         const { rotation, ...geometry } = values.get(item.id)!;
@@ -331,6 +336,8 @@ export class EditorController {
   }
   endTransform() {
     this.transformWrites.flush();
+    this.finishTransform?.();
+    this.finishTransform = null;
     this.document.undo.captureTimeout = 400;
     this.document.undo.stopCapturing();
   }
@@ -353,15 +360,7 @@ export class EditorController {
     ungroupSelection(this);
   }
   connect() {
-    const selected = this.selected().filter((item) => item.type !== "drawing");
-    if (selected.length !== 2) return;
-    const [from, to] = selected.map((item) => endpointFor(this, item));
-    if (from && to)
-      this.document.create("line", 0, 0, {
-        from,
-        to,
-        ...creationValues("line", this.graph.view.scale),
-      });
+    connectSelection(this);
   }
   duplicate() {
     duplicateSelection(this);
@@ -397,6 +396,7 @@ export class EditorController {
     this.emit();
   }
   destroy() {
+    if (this.finishTransform) this.endTransform();
     this.destroyed = true;
     this.cleanupIcons();
     this.cleanupInput();

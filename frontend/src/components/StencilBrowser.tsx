@@ -22,7 +22,7 @@ import {
   subscribeIcons,
   vendorEntries,
   type IconEntry,
-} from "../editor/icons";
+} from "../assets/icons/catalog";
 import { PanelTop } from "lucide-react";
 import { SCREEN_SIZES, type ScreenSize } from "../document/screens";
 import { INFRASTRUCTURE_ICONS, STENCIL_GROUPS, type Stencil } from "./stencils";

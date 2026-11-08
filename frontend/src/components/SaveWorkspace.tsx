@@ -1,24 +1,21 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Cloud, CloudUpload } from "lucide-react";
 import type { AccountStore } from "../account/accountStore";
-import { WorkspaceSaver } from "../account/workspaceSaver";
-import type { RoomSession } from "../collaboration/room";
+import { WorkspaceSaver, type SaveableRoom } from "../account/workspaceSaver";
 
 /** Saves the room to the signed-in account, and keeps it saved after that. */
 export function SaveWorkspace({
   account,
-  session,
+  room,
   onMessage,
-}: Readonly<{ account: AccountStore; session: RoomSession; onMessage: (text: string) => void }>) {
+}: Readonly<{ account: AccountStore; room: SaveableRoom; onMessage: (text: string) => void }>) {
   useSyncExternalStore(account.subscribe, account.snapshot);
   const signedIn = account.status === "in";
   const [saver, setSaver] = useState<WorkspaceSaver | null>(null);
   const [, setVersion] = useState(0);
   useEffect(() => {
     if (!signedIn) return;
-    const next = new WorkspaceSaver(account, session.saveable, () =>
-      setVersion((version) => version + 1)
-    );
+    const next = new WorkspaceSaver(account, room, () => setVersion((version) => version + 1));
     // The saver holds a subscription, so it belongs to this effect rather than to rendering.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaver(next);
@@ -27,7 +24,7 @@ export function SaveWorkspace({
       next.close();
       setSaver(null);
     };
-  }, [account, session, signedIn, onMessage]);
+  }, [account, room, signedIn, onMessage]);
   const error = saver?.error ?? "";
   useEffect(() => {
     if (error) onMessage(error);

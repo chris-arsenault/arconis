@@ -1,24 +1,17 @@
-import { defaultSize, type CanvasDocument } from "../document/canvasDocument";
+import { BLANK, defaultSize, type CanvasDocument } from "../document/canvasDocument";
 import { branchPlacement, tidyBranch } from "../document/relations";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
 import { DEFAULT_DECK, nextSlideNumber } from "../document/slides";
 import { declareStyle, describeItem, matchSizes } from "./describe";
-import { routeLineAround } from "./routes";
+import { routeLineAround } from "../document/routeLine";
 import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
-import { BLANK, Draft } from "./draft";
+import { Draft } from "./draft";
 import { LanguageError } from "./lexer";
 import { LANGUAGE_VERSION } from "./printer";
-import { DEFAULT_GAP, paddingOf } from "./layout";
+import { DEFAULT_GAP, paddingOf } from "../document/layout";
 import { combineRules, type Rules } from "./placement";
 import type { Follow, PictureData, Scope, WriteOptions, WriteResult } from "./writing";
-import {
-  arrangeMembers,
-  canvasStart,
-  fitFrame,
-  reflowDraft,
-  spotInside,
-  type Arrange,
-} from "./arranging";
+import { arrangeMembers, canvasStart, fitFrame, reflowDraft, spotInside } from "./arranging";
 import {
   converse,
   describeLink,
@@ -36,6 +29,8 @@ import type {
   LinkStatement,
   Statement,
 } from "./syntax";
+import { isConversation, type Conversation } from "./effects";
+import { attributesFor } from "./attributeRouting";
 
 export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
@@ -45,9 +40,7 @@ type Handler<K extends Statement["kind"]> = (
   scope: Scope
 ) => void;
 
-const PLACEMENT = new Set<Attribute["kind"]>(["at", "beside", "align", "by", "nudge"]);
-
-const HANDLERS: { [K in Statement["kind"]]?: Handler<K> } = {
+const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } = {
   header: (_writer, statement) => {
     if (statement.version > LANGUAGE_VERSION)
       throw new LanguageError(
@@ -117,14 +110,16 @@ class Writer {
   }
 
   statement(statement: Statement, scope: Scope) {
-    const handler = HANDLERS[statement.kind] as Handler<typeof statement.kind> | undefined;
-    if (handler) handler(this, statement, scope);
-    else
+    if (isConversation(statement))
       converse(this.draft, statement, {
         author: this.options.author,
         time: this.options.now ?? Date.now(),
         importing: Boolean(this.options.importing),
       });
+    else {
+      const handler = HANDLERS[statement.kind] as Handler<typeof statement.kind>;
+      handler(this, statement, scope);
+    }
   }
 
   style(name: string, attributes: Attribute[], line: number) {
@@ -165,7 +160,7 @@ class Writer {
     this.defaultSize(item);
     this.matchSizes(item, statement.attributes, statement.line);
     // A band over items is sized once they are all placed; one read from a file has its own box.
-    const over = statement.attributes.find((attribute) => attribute.kind === "over");
+    const over = attributesFor(statement.attributes, "item", "band")[0];
     if (item.type === "band" && over)
       this.bands.push({ id: item.id, refs: over.refs, line: statement.line });
     // A drawing's points are where it is; it takes no placement.
@@ -207,8 +202,13 @@ class Writer {
 
   // Placement
 
-  private rules(attributes: Attribute[], line: number, holder = false): Rules {
-    return combineRules(attributes, (ref) => this.draft.extent(ref, line), holder);
+  private rules(
+    attributes: Attribute[],
+    line: number,
+    holder = false,
+    context: "item" | "arrangement" = "item"
+  ): Rules {
+    return combineRules(attributes, (ref) => this.draft.extent(ref, line), holder, context);
   }
 
   /** Where an item with no place of its own goes: after the previous item, or into free space. */
@@ -248,12 +248,14 @@ class Writer {
     follow?: Follow
   ) {
     const { draft } = this;
-    const inside = attributes.find((attribute) => attribute.kind === "in");
+    const inside = attributesFor(attributes, "item", "holder")[0];
     if (inside) item.inside = draft.resolve(inside.ref, line);
     const rules = this.rules(attributes, line, body !== undefined);
     if (scope.members) scope.members.push(item.id);
     else this.placeFirst(item, rules, scope, fresh, follow);
-    const by = attributes.find((attribute) => attribute.kind === "by");
+    const by = attributesFor(attributes, "item", "offset").find(
+      (attribute) => attribute.kind === "by"
+    );
     if (by && !scope.members) draft.moveTo(item, item.x + by.dx, item.y + by.dy);
     if (body) this.body(item, attributes, body);
     if (!scope.members) this.settle(item, rules, attributes);
@@ -266,16 +268,24 @@ class Writer {
     const x = rules.x?.sized ? rules.x.value(own) : item.x;
     const y = rules.y?.sized ? rules.y.value(own) : item.y;
     this.draft.moveTo(item, x, y);
-    for (const attribute of attributes)
-      if (attribute.kind === "nudge")
-        this.draft.moveTo(item, item.x + attribute.dx, item.y + attribute.dy);
+    for (const attribute of attributesFor(attributes, "item", "offset")) {
+      switch (attribute.kind) {
+        case "by":
+          break; // The first `by` was applied before the item's body was laid out.
+        case "nudge":
+          this.draft.moveTo(item, item.x + attribute.dx, item.y + attribute.dy);
+          break;
+        default: {
+          const unhandled: never = attribute;
+          throw new Error(`Unhandled offset attribute: ${unhandled}`);
+        }
+      }
+    }
   }
 
   private body(item: Item, attributes: Attribute[], body: Statement[]) {
     const { draft } = this;
-    const arrange = attributes.find(
-      (attribute): attribute is Arrange => attribute.kind === "arrange"
-    );
+    const arrange = attributesFor(attributes, "item", "arrange")[0];
     const inner: Scope = { holder: item.id, previous: "", nested: true };
     // A file says where each member is; it is not arranged again on the way in.
     if (arrange && !this.options.importing) inner.members = [];
@@ -295,9 +305,7 @@ class Writer {
     const members: string[] = [];
     const inner: Scope = { holder: scope.holder, previous: "", nested: scope.nested, members };
     statement.body.forEach((child) => this.statement(child, inner));
-    const arrange = statement.attributes.find(
-      (attribute): attribute is Arrange => attribute.kind === "arrange"
-    )!;
+    const arrange = attributesFor(statement.attributes, "arrangement", "arrange")[0]!;
     const laid = arrangeMembers(draft, members, arrange);
     const id = statement.id ?? `arrangement ${++this.arrangements}`;
     if (statement.id && (draft.items.has(id) || draft.virtual.has(id)))
@@ -312,7 +320,7 @@ class Writer {
   /** Where an arrangement's corner goes, once its members' extent is known. */
   private arrangementSpot(id: string, statement: ArrangeStatement, scope: Scope) {
     const laid = this.draft.virtual.get(id)!;
-    const rules = this.rules(statement.attributes, statement.line);
+    const rules = this.rules(statement.attributes, statement.line, false, "arrangement");
     const own = { box: laid, space: laid };
     let spot = { x: laid.x, y: laid.y };
     if (!scope.members && (!rules.x || !rules.y)) {
@@ -340,9 +348,9 @@ class Writer {
     this.matchSizes(item, statement.attributes, statement.line);
     const movesIn = scope.nested && item.inside !== scope.holder;
     if (movesIn) item.inside = scope.holder;
-    if (movesIn || statement.attributes.some((attribute) => attribute.kind === "in"))
+    if (movesIn || attributesFor(statement.attributes, "item", "holder").length)
       draft.moved.add(item.id);
-    const placed = statement.attributes.some((attribute) => PLACEMENT.has(attribute.kind));
+    const placed = attributesFor(statement.attributes, "item", ["rules", "offset"]).length > 0;
     this.place(item, statement.attributes, scope, statement, movesIn && !placed);
   }
 

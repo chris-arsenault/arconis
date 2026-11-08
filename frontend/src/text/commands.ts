@@ -1,5 +1,3 @@
-import type { CanvasDocument } from "../document/canvasDocument";
-
 export type TextAction =
   | "bold"
   | "italic"
@@ -105,21 +103,6 @@ function clearMarkdown(source: string) {
     .replace(/<\/?(?:u|sub|sup|mark)>/g, "")
     .replace(/(\*\*|~~|`)(.*?)\1/g, "$2")
     .replace(/\*([^*]+)\*/g, "$1");
-}
-
-/** One toolbar command is one local Undo action, shared by the source editors. */
-export function applySourceEdit(
-  document: CanvasDocument,
-  id: string,
-  element: HTMLTextAreaElement,
-  edit: SourceEdit
-) {
-  const source = element.value;
-  element.focus({ preventScroll: true });
-  document.undo.stopCapturing();
-  document.editText(id, source.slice(0, edit.start) + edit.text + source.slice(edit.end));
-  document.undo.stopCapturing();
-  element.setSelectionRange(edit.anchor, edit.head);
 }
 
 function inFence(source: string, position: number) {

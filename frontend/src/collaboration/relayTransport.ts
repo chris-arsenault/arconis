@@ -1,10 +1,6 @@
-import type {
-  ConnectionState,
-  RelayStatus,
-  Transport,
-  UploadReply,
-  UploadRequest,
-} from "./transport";
+import type { ConnectionState, FrameChannel } from "./channel";
+import type { RelayStatus, UploadReply, UploadRequest } from "./serviceProtocol";
+import type { RelayActivation, UploadAuthorization } from "./services";
 
 /** How long to wait for a relay that said it is starting before reporting it off. */
 export const START_DEADLINE_MS = 3 * 60_000;
@@ -26,7 +22,7 @@ type ControlMessage =
   | { relay: "closing"; reason: string }
   | { relay: "upload-reply"; reply: UploadReply };
 
-export class RelayTransport implements Transport {
+export class RelayTransport implements FrameChannel, RelayActivation, UploadAuthorization {
   onMessage: (message: string) => void = () => {};
   onReady = () => {};
   onStatus: (state: ConnectionState, detail?: string) => void = () => {};
@@ -34,6 +30,7 @@ export class RelayTransport implements Transport {
   private uploads = new Map<string, (reply: UploadReply) => void>();
   private ready = false;
   private stopped = true;
+  private closed = false;
   private retry = 0;
   /** Ask the relay to count this arrival as activity until one socket has opened. */
   private fresh = false;
@@ -47,6 +44,7 @@ export class RelayTransport implements Transport {
     if (!this.stopped) this.connect();
   };
   private offline = () => {
+    if (this.closed) return;
     this.clearReconnect();
     this.retire();
     this.onStatus("offline", OFFLINE_DETAIL);
@@ -61,6 +59,7 @@ export class RelayTransport implements Transport {
   }
 
   connect() {
+    if (this.closed) return;
     this.stopped = false;
     this.clearReconnect();
     if (!navigator.onLine) {
@@ -145,6 +144,7 @@ export class RelayTransport implements Transport {
 
   /** Asks the relay to start. The control service enforces the monthly limit. */
   start() {
+    if (this.closed) return;
     this.startingSince ??= Date.now();
     this.knownOff = null;
     this.statusChecked = false;
@@ -153,9 +153,12 @@ export class RelayTransport implements Transport {
   }
 
   private async requestStart() {
+    if (this.closed) return;
     try {
-      this.applyStart(await this.control("start", "POST"));
+      const status = await this.control("start", "POST");
+      if (!this.closed) this.applyStart(status);
     } catch {
+      if (this.closed) return;
       this.startingSince = null;
       if (!this.ready)
         this.onStatus(
@@ -233,10 +236,10 @@ export class RelayTransport implements Transport {
     try {
       status = await this.control("status", "GET");
     } catch {
-      this.onStatus("offline", "Reconnecting; edits are saved on this device.");
+      if (!this.closed) this.onStatus("offline", "Reconnecting; edits are saved on this device.");
       return;
     }
-    if (this.ready || this.startingSince !== null) return;
+    if (this.closed || this.ready || this.startingSince !== null) return;
     if (status === "limit") this.showOff("limit");
     else if (status === "starting") this.onStatus("starting", STARTING_DETAIL);
     else if (status === "running")
@@ -250,6 +253,7 @@ export class RelayTransport implements Transport {
   }
 
   private scheduleReconnect(delay: number) {
+    if (this.closed) return;
     this.clearReconnect();
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
   }
@@ -265,6 +269,8 @@ export class RelayTransport implements Transport {
   }
 
   close() {
+    if (this.closed) return;
+    this.closed = true;
     this.stopped = true;
     this.clearReconnect();
     this.clearRestart();

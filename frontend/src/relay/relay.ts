@@ -1,4 +1,4 @@
-import type { UploadReply, UploadRequest } from "../collaboration/transport";
+import type { UploadReply, UploadRequest } from "../collaboration/serviceProtocol";
 import type { Uploads } from "./uploads";
 
 /** Rooms and their sockets. The relay forwards frames between them and stores nothing. */

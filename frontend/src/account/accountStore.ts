@@ -1,21 +1,20 @@
 import { sha256 } from "../document/pictures";
 import type { Auth } from "./auth";
 import { encodeSavedCopy, decodeSavedCopy, type SavedCopy } from "./workspaceFile";
+import type {
+  AccountProfile,
+  AccountRequestBody,
+  SaveWorkspaceRequest,
+  UpdateProfileRequest,
+  WorkspaceDownloadReply,
+  WorkspaceListReply,
+  WorkspaceRecord,
+  WorkspaceUploadReply,
+} from "../protocol/account";
 
 /** out: nobody is signed in. in: signed in, with the account's profile. */
 export type AccountStatus = "loading" | "out" | "in";
 
-interface Profile {
-  name: string;
-}
-interface WorkspaceRecord {
-  id: string;
-  name: string;
-  roomId: string;
-  size: number;
-  revision: string;
-  updated: number;
-}
 export type SavedWorkspace = WorkspaceRecord;
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
@@ -23,6 +22,50 @@ export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 /** The name an account starts with, from its email, until the person chooses another. */
 export function startingName(email: string | null) {
   return (email?.split("@")[0] ?? "").slice(0, 40) || "Me";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function malformedReply(): never {
+  throw new Error("The account service returned an invalid reply.");
+}
+
+/** The browser needs only the profile name, an explicit projection of the HTTP reply. */
+function profileName(value: unknown): Pick<AccountProfile, "name"> {
+  if (!isRecord(value) || typeof value.name !== "string") return malformedReply();
+  return { name: value.name };
+}
+function textField(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "string" ? value : malformedReply();
+}
+function numberField(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "number" ? value : malformedReply();
+}
+function workspaceRecord(value: unknown): WorkspaceRecord {
+  if (!isRecord(value)) return malformedReply();
+  return {
+    id: textField(value, "id"),
+    name: textField(value, "name"),
+    roomId: textField(value, "roomId"),
+    revision: textField(value, "revision"),
+    size: numberField(value, "size"),
+    updated: numberField(value, "updated"),
+  };
+}
+function workspaceList(value: unknown): WorkspaceListReply {
+  if (!isRecord(value) || !Array.isArray(value.workspaces)) return malformedReply();
+  return { workspaces: value.workspaces.map(workspaceRecord) };
+}
+/** Download metadata has more fields, but loading uses the same signed-link projection. */
+function workspaceLink(
+  value: unknown
+): WorkspaceUploadReply & Pick<WorkspaceDownloadReply, "url" | "revision"> {
+  if (!isRecord(value) || typeof value.url !== "string" || typeof value.revision !== "string")
+    return malformedReply();
+  return { url: value.url, revision: value.revision };
 }
 
 export class AccountStore {
@@ -68,15 +111,16 @@ export class AccountStore {
       return;
     }
     this.email = (await this.auth.email()) ?? "";
-    const profile = await this.api<Profile>("GET", "me");
+    const reply = await this.api("GET", "me");
+    const profile = reply === null ? null : profileName(reply);
     this.name = profile?.name ?? startingName(this.email);
     // The first sign-in creates the profile.
-    if (!profile) await this.api("PUT", "me", { name: this.name });
+    if (!profile) await this.api("PUT", "me", { name: this.name } satisfies UpdateProfileRequest);
     this.error = "";
     this.set("in");
   }
 
-  private async api<T>(method: string, path: string, body?: object) {
+  private async api(method: "GET" | "PUT" | "DELETE", path: string, body?: AccountRequestBody) {
     const token = await this.auth.token();
     if (!token) throw new Error("Sign in again.");
     const response = await this.request(`${this.apiUrl}/api/${path}`, {
@@ -88,9 +132,12 @@ export class AccountStore {
       body: body ? JSON.stringify(body) : undefined,
     });
     if (response.status === 404) return null;
-    const parsed = (await response.json()) as T & { error?: string };
-    if (!response.ok) throw new Error(parsed.error ?? "The request failed.");
-    return parsed as T;
+    const parsed: unknown = await response.json();
+    if (!response.ok)
+      throw new Error(
+        isRecord(parsed) && typeof parsed.error === "string" ? parsed.error : "The request failed."
+      );
+    return parsed;
   }
 
   signIn() {
@@ -98,7 +145,7 @@ export class AccountStore {
   }
 
   async rename(name: string) {
-    await this.api("PUT", "me", { name });
+    await this.api("PUT", "me", { name } satisfies UpdateProfileRequest);
     this.name = name.trim();
     this.changed();
   }
@@ -117,21 +164,22 @@ export class AccountStore {
   }
 
   async workspaces(): Promise<SavedWorkspace[]> {
-    const reply = await this.api<{ workspaces: WorkspaceRecord[] }>("GET", "workspaces");
-    return reply?.workspaces ?? [];
+    const reply = await this.api("GET", "workspaces");
+    return reply === null ? [] : workspaceList(reply).workspaces;
   }
 
   /** Stores a saved copy under an existing or new identifier. */
   async save(id: string, name: string, copy: SavedCopy) {
     const bytes = encodeSavedCopy(copy);
     const { base64: checksum } = await sha256(bytes);
-    const signed = await this.api<{ url: string; revision: string }>("PUT", `workspaces/${id}`, {
+    const reply = await this.api("PUT", `workspaces/${id}`, {
       size: bytes.length,
       checksum,
       name,
       roomId: copy.roomId,
-    });
-    if (!signed) throw new Error("The workspace could not be saved.");
+    } satisfies SaveWorkspaceRequest);
+    if (reply === null) throw new Error("The workspace could not be saved.");
+    const signed = workspaceLink(reply);
     const uploaded = await this.request(signed.url, {
       method: "PUT",
       body: new Blob([new Uint8Array(bytes)], { type: "application/octet-stream" }),
@@ -142,8 +190,9 @@ export class AccountStore {
   }
 
   async load(id: string) {
-    const record = await this.api<{ url: string; revision: string }>("GET", `workspaces/${id}`);
-    if (!record) throw new Error("This workspace no longer exists.");
+    const reply = await this.api("GET", `workspaces/${id}`);
+    if (reply === null) throw new Error("This workspace no longer exists.");
+    const record = workspaceLink(reply);
     const response = await this.request(record.url);
     if (!response.ok) throw new Error("This workspace could not be loaded.");
     const copy = decodeSavedCopy(new Uint8Array(await response.arrayBuffer()));

@@ -1,5 +1,5 @@
-import { facing, routeAround, sideOf, type Box, type RouteEnd } from "../document/routing";
-import { isBox, type Item, type Look, type PathPoint, type Port } from "../document/types";
+import { facing, routeAround, sideOf, type Box, type RouteEnd } from "./routing";
+import { isBox, type Item, type Look, type PathPoint, type Port } from "./types";
 import { footprint, intersects } from "./layout";
 
 /**

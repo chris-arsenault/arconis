@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { EditCounter, EDIT_WINDOW_MS, SAME_EDIT_MS } from "./relayStart";
 import { RelayTransport, START_DEADLINE_MS } from "./relayTransport";
-import type { ConnectionState } from "./transport";
+import type { ConnectionState } from "./channel";
 
 class Socket {
   static readonly OPEN = 1;
@@ -221,6 +221,33 @@ it("stops everything when closed", async () => {
   await vi.advanceTimersByTimeAsync(120_000);
   expect(Socket.all).toHaveLength(count);
 });
+
+it.each(["starting", "stopping", "rejected"])(
+  "ignores a pending start request that finishes after close: %s",
+  async (status) => {
+    const { transport, fetchMock, states } = setup();
+    let finish!: (value: string) => void;
+    let fail!: (error: Error) => void;
+    fetchMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve, reject) => {
+          finish = (value) => resolve(Response.json({ status: value }));
+          fail = reject;
+        })
+    );
+    transport.connect();
+    transport.start();
+    const beforeClose = [...states];
+    const count = Socket.all.length;
+    transport.close();
+    if (status === "rejected") fail(new Error("late network failure"));
+    else finish(status);
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(states).toEqual(beforeClose);
+    expect(Socket.all).toHaveLength(count);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  }
+);
 
 it("starts after three separate edits within an hour", () => {
   const counter = new EditCounter();

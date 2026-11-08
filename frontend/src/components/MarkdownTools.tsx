@@ -1,9 +1,8 @@
 import { useState, type RefObject } from "react";
-import type { EditorController } from "../editor/controller";
-import { applySourceEdit, sourceAction, type TextAction } from "../text/commands";
+import { sourceAction, type SourceEdit, type TextAction } from "../text/commands";
+import type { Appearance } from "../document/appearance";
 import { markdownPlainText } from "../text/markdown";
 import { MarkdownPreview } from "./MarkdownPreview";
-import { fitText } from "../editor/textLayout";
 
 const ACTIONS: { action: TextAction; label: string; text: string }[] = [
   { action: "bold", label: "Markdown bold", text: "B" },
@@ -25,20 +24,21 @@ const MORE_ACTIONS: { action: TextAction; label: string }[] = [
 ];
 
 export function MarkdownTools({
-  editor,
-  id,
+  source,
+  appearance,
+  onEdit,
   textarea,
   expanded,
 }: Readonly<{
-  editor: EditorController;
-  id: string;
+  source: string;
+  appearance: Appearance;
+  onEdit: (element: HTMLTextAreaElement, edit: SourceEdit) => void;
   textarea: RefObject<HTMLTextAreaElement | null>;
   expanded: boolean;
 }>) {
   const [preview, setPreview] = useState(false);
   const [language, setLanguage] = useState("typescript");
   const [status, setStatus] = useState("");
-  const source = editor.document.get(id)?.name ?? "";
   const act = (action: TextAction, codeLanguage = language) => {
     const element = textarea.current;
     if (!element) return;
@@ -49,8 +49,7 @@ export function MarkdownTools({
       action,
       codeLanguage
     );
-    applySourceEdit(editor.document, id, element, edit);
-    void fitText(editor, id, true);
+    onEdit(element, edit);
   };
   const copy = async (text: string) => {
     try {
@@ -79,7 +78,7 @@ export function MarkdownTools({
           Copy plain text
         </button>
       </div>
-      {preview && <MarkdownPreview editor={editor} id={id} source={source} copy={copy} />}
+      {preview && <MarkdownPreview appearance={appearance} source={source} copy={copy} />}
       <span className="markdown-copy-status" role="status">
         {status}
       </span>

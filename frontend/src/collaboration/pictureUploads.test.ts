@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
 import { PLAIN_CODEC, PictureStore, type StoredPicture } from "./pictureStore";
 import { uploadWaitingPictures, type PutBytes } from "./pictureUploads";
-import type { UploadReply, UploadRequest } from "./transport";
+import type { UploadReply, UploadRequest } from "./serviceProtocol";
 
 const BYTES = new Uint8Array([9, 8, 7]);
 let document: CanvasDocument;

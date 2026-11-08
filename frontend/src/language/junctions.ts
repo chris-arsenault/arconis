@@ -1,8 +1,9 @@
 import { defaultSize } from "../document/canvasDocument";
 import type { Item } from "../document/types";
-import { BLANK, type Draft } from "./draft";
+import type { Draft } from "./draft";
+import { BLANK } from "../document/canvasDocument";
 import { LanguageError } from "./lexer";
-import { DEFAULT_GAP, union } from "./layout";
+import { DEFAULT_GAP, union } from "../document/layout";
 import type { PendingLink } from "./connections";
 import type { LinkStatement } from "./syntax";
 

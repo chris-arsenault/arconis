@@ -1,7 +1,8 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { movedWithContents } from "../document/relations";
 import { LOCAL, isBox, type Item } from "../document/types";
-import { arrangedLayout } from "../language/arranging";
+import { arrangedLayout } from "../document/arrangement";
+import { authoredLook } from "../document/appearance";
 
 /** Moves smaller than this are rounding, not a change worth writing. */
 const SETTLED = 1e-6;
@@ -37,7 +38,7 @@ export function reflowArrangements(document: CanvasDocument) {
     return levels;
   };
   const frames = items.filter((item) => item.arrange).sort((a, b) => depth(b) - depth(a));
-  const lookOf = (item: Item) => ({ ...document.namedStyle(item.style), ...item.look });
+  const lookOf = (item: Item) => authoredLook(item, document.namedStyle(item.style));
   document.doc.transact(() => {
     for (const { id } of frames) {
       const current = document.list();

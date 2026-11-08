@@ -1,7 +1,7 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { isPictureHash, sha256 } from "../document/pictures";
 import type { PictureStore } from "./pictureStore";
-import type { UploadReply, UploadRequest } from "./transport";
+import type { UploadReply, UploadRequest } from "./serviceProtocol";
 
 /** Not an undoable edit: undoing must not make a picture forget that it reached storage. */
 const STORAGE_ORIGIN = Symbol("picture storage");

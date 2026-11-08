@@ -2,7 +2,7 @@ import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { LOCAL, type Item, type PathPoint, type Port } from "../document/types";
 import { offsetPoints } from "../document/geometry";
-import { orphanedAnchors } from "../document/relations";
+import { orphanedAnchors, removalClosure } from "../document/relations";
 import { isUnderlay } from "./templates";
 
 export function commitGraph(graph: Graph, document: CanvasDocument) {
@@ -11,14 +11,20 @@ export function commitGraph(graph: Graph, document: CanvasDocument) {
     (cell) => (cell.isVertex() || cell.isEdge()) && !isUnderlay(cell)
   );
   const present = new Set(cells.map((cell) => cell.id!));
+  const items = document.list();
   const changes = cells.map((cell) => ({ cell, values: cellValues(cell, document) }));
+  const currentValues = new Map(changes.map(({ cell, values }) => [cell.id, values]));
+  // Ungrouping removes the holder but reparents its surviving children in this same graph edit.
+  const resulting = items.map((item) => ({ ...item, ...currentValues.get(item.id) }));
+  const removed = removalClosure(resulting, [
+    ...items.filter((item) => !present.has(item.id)).map((item) => item.id),
+    ...orphanedAnchors(resulting),
+  ]);
   document.doc.transact(() => {
-    document
-      .list()
-      .filter((item) => !present.has(item.id))
-      .forEach((item) => document.items.delete(item.id));
-    orphanedAnchors(document.list()).forEach((id) => document.items.delete(id));
-    changes.forEach(({ cell, values }) => commitCell(cell, values, document));
+    removed.forEach((id) => document.items.delete(id));
+    changes.forEach(({ cell, values }) => {
+      if (!removed.has(cell.id!)) commitCell(cell, values, document);
+    });
   }, LOCAL);
 }
 

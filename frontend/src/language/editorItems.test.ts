@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
-import { importDocument } from "../document/files";
+import { importDocument } from "../files/canvasFile";
 import { LOCAL } from "../document/types";
 import { reflowArrangements } from "../editor/arrangements";
 import { parse } from "./parser";

@@ -8,66 +8,51 @@ import {
   Link2,
   type LucideIcon,
 } from "lucide-react";
+import { useMemo } from "react";
 import type { EditorController } from "../editor/controller";
-import { COLORS, isBox, isFrame, isLink, typeLabel, type Item, type Look } from "../document/types";
-import { useCollaborativeText } from "../document/useCollaborativeText";
-import { isLockedIcon } from "../document/geometry";
-import { objectStyle } from "../editor/styles";
-import { ConnectionControls, Section } from "./ConnectionControls";
+import { isLink, typeLabel, type Item } from "../document/types";
+import { useCollaborativeText } from "./useCollaborativeText";
+import { effectiveAppearance } from "../document/appearance";
+import { hasSubtitle, hasText } from "../document/capabilities";
+import { ConnectionControls } from "./ConnectionControls";
+import { StyleControls, GeometryControls } from "./ObjectProperties";
 import { AlignControls, ScreenSizeControl, TopicControls } from "./TopicControls";
 import { CommentControls } from "./CommentControls";
 import { SlideControls } from "./SlideControls";
-import { isSlide } from "../document/slides";
+import { deckOf, decks } from "../document/slides";
 import { MarkdownTools } from "./MarkdownTools";
 import { TextProperties } from "./TextProperties";
 import { markdownKey } from "../text/sourceKeys";
 import { fitText } from "../editor/textLayout";
+import { useCompletedField } from "./useCompletedField";
+import type { CompletedActions } from "../document/actions";
+import type { CanvasDocument } from "../document/canvasDocument";
+import {
+  addComment,
+  deleteComment,
+  groupThreads,
+  listComments,
+  setResolved,
+} from "../document/comments";
+import {
+  addBranch,
+  addReference,
+  alignSelection,
+  distributeSelection,
+  jumpTo,
+  tidySelection,
+  zoomIntoSelection,
+} from "../editor/topics";
+import {
+  changeGeometry,
+  changeSelectionLook,
+  changeSelectionStyle,
+  changeTemplate,
+  editSource,
+  routeAround,
+} from "../editor/commands";
 
 type ItemProps = Readonly<{ editor: EditorController; item: Item }>;
-type ChangeLook = (values: Look) => void;
-/** `drawn` is the item as rendered, so controls show defaults the item does not set itself. */
-type StyleProps = Readonly<{ item: Item; drawn: Record<string, unknown>; change: ChangeLook }>;
-
-const isIcon = (item: Item) => item.type === "node" && item.stencil === "icon";
-const HAS_FILL = (item: Item) =>
-  isBox(item) && item.type !== "text" && item.type !== "picture" && !isIcon(item);
-const HAS_LINE = (item: Item) => item.type !== "note" && item.type !== "text" && !isIcon(item);
-// Logos and vendor icons keep their own colors; only the line icon set takes one.
-const HAS_ICON_COLOR = (item: Item) => item.icon.startsWith("lucide:");
-const HAS_TEXT = (item: Item) => item.type !== "drawing";
-const HAS_SUBTITLE = (item: Item) => ["node", "card", "band"].includes(item.type) && !item.onLine;
-
-/** Named styles, which people and agents share; an item's own look applies over its style. */
-function NamedStyle({ editor, item }: ItemProps) {
-  const names = [...editor.document.styles.keys()].sort((a, b) => a.localeCompare(b));
-  if (!names.length && !item.style) return null;
-  return (
-    <Section title="Style">
-      <select
-        aria-label="Named style"
-        value={item.style}
-        onChange={(event) =>
-          editor
-            .selected()
-            .forEach((selected) =>
-              editor.document.patch(selected.id, { style: event.target.value })
-            )
-        }
-      >
-        <option value="">None</option>
-        {names.map((name) => (
-          <option key={name} value={name}>
-            {name}
-          </option>
-        ))}
-      </select>
-    </Section>
-  );
-}
-
-function number(value: number) {
-  return Number(value.toPrecision(6));
-}
 
 export function Inspector({
   editor,
@@ -76,56 +61,176 @@ export function Inspector({
   const selected = editor.selected();
   const item = selected[0];
   const several = selected.length > 1;
-  const showText = !several && item && HAS_TEXT(item);
-  const textRef = useCollaborativeText(editor.document, showText ? item.id : null);
+  const showText = !several && item && hasText(item);
+  const actions = useSelectionActions(editor);
   if (!item) return null;
+  const canvas = editor.document;
+  const textItems = selected.filter(hasText);
+  const drawn = selected.map((selected) =>
+    effectiveAppearance(selected, canvas.namedStyle(selected.style))
+  );
   return (
     <aside className="inspector" aria-label="Object properties">
       <header className="inspector-header">
         <strong data-testid="selection-count">
           {several ? `${selected.length} objects` : typeLabel(item)}
         </strong>
-        <SelectionActions editor={editor} selected={selected} />
+        <SelectionActions selected={selected} actions={actions} />
       </header>
-      {showText && (
-        <>
-          <textarea
-            ref={textRef}
-            className="object-text"
-            aria-label="Object text"
-            rows={3}
-            onKeyDown={(event) => markdownKey(event, editor.document, item.id)}
-            onInput={() => void fitText(editor, item.id, true)}
-          />
-          <MarkdownTools editor={editor} id={item.id} textarea={textRef} expanded={false} />
-        </>
-      )}
-      <TopicControls editor={editor} selected={selected} />
-      <AlignControls editor={editor} />
-      <StyleControls editor={editor} item={item} />
+      {showText && <ObjectText canvas={canvas} item={item} />}
+      <TopicControls
+        selected={selected}
+        items={canvas.list()}
+        onBranch={() => addBranch(editor)}
+        onReference={() => addReference(editor)}
+        onZoom={() => zoomIntoSelection(editor)}
+        onTidy={() => tidySelection(editor)}
+        onJump={(id) => jumpTo(editor, id)}
+        onRemove={(id) => canvas.remove([id])}
+      />
+      <AlignControls
+        selected={selected}
+        onAlign={(mode) => alignSelection(editor, mode)}
+        onDistribute={(axis) => distributeSelection(editor, axis)}
+      />
+      <StyleControls
+        item={item}
+        names={[...canvas.styles.keys()].sort((a, b) => a.localeCompare(b))}
+        drawn={drawn[0]}
+        change={(look) => changeSelectionLook(canvas, selected, look)}
+        onStyle={(style) => changeSelectionStyle(canvas, selected, style)}
+      >
+        <TextProperties
+          selected={textItems}
+          drawn={textItems.map((selected) =>
+            effectiveAppearance(selected, canvas.namedStyle(selected.style))
+          )}
+          change={(look) => changeSelectionLook(canvas, textItems, look, true)}
+          onFit={() => textItems.forEach((selected) => void fitText(canvas, selected.id))}
+        />
+      </StyleControls>
       {!several && <SingleItemControls editor={editor} item={item} author={author} />}
     </aside>
   );
 }
 
-/** Controls that only make sense for one item at a time. */
-function SingleItemControls({ editor, item, author }: ItemProps & Readonly<{ author: string }>) {
+function useSelectionActions(editor: EditorController) {
+  return useMemo(
+    () => ({
+      connect: () => editor.connect(),
+      group: () => editor.group(),
+      ungroup: () => editor.ungroup(),
+      front: () => editor.stack("front"),
+      back: () => editor.stack("back"),
+      duplicate: () => editor.duplicate(),
+      remove: () => editor.remove(),
+    }),
+    [editor]
+  );
+}
+
+/** This binding is a canonical editor adapter; display-only Markdown controls receive commands. */
+function ObjectText({ canvas, item }: Readonly<{ canvas: CanvasDocument; item: Item }>) {
+  const textRef = useCollaborativeText(canvas, item.id);
   return (
     <>
-      {HAS_SUBTITLE(item) && (
-        <input
-          className="object-subtitle"
-          aria-label="Object subtitle"
-          placeholder="Subtitle"
+      <textarea
+        ref={textRef}
+        className="object-text"
+        aria-label="Object text"
+        rows={3}
+        onKeyDown={(event) =>
+          markdownKey(event, (element, edit) => editSource(canvas, item.id, element, edit))
+        }
+        onInput={() => void fitText(canvas, item.id, true)}
+      />
+      <MarkdownTools
+        source={item.name}
+        appearance={effectiveAppearance(item, canvas.namedStyle(item.style))}
+        onEdit={(element, edit) => editSource(canvas, item.id, element, edit)}
+        textarea={textRef}
+        expanded={false}
+      />
+    </>
+  );
+}
+
+/** Controls that only make sense for one item at a time. */
+function SingleItemControls({ editor, item, author }: ItemProps & Readonly<{ author: string }>) {
+  const canvas = editor.document;
+  const look = effectiveAppearance(item, canvas.namedStyle(item.style));
+  const onSize = (width: number, height: number) =>
+    editor.updateGeometry(item.id, { width, height });
+  return (
+    <>
+      {hasSubtitle(item) && (
+        <SubtitleField
           value={item.subtitle}
-          onChange={(event) => editor.document.patch(item.id, { subtitle: event.target.value })}
+          actions={canvas.actions}
+          onChange={(subtitle) => canvas.patch(item.id, { subtitle })}
         />
       )}
-      <SlideControls editor={editor} item={item} />
-      <PositionControls editor={editor} item={item} />
-      <ScreenSizeControl editor={editor} item={item} />
-      <CommentControls editor={editor} item={item} author={author} />
+      <SlideControls
+        item={item}
+        actions={canvas.actions}
+        names={decks(canvas.list()).map(({ deck }) => deck)}
+        onDeck={(deck) => canvas.patch(item.id, { deck: deck || undefined })}
+        onNumber={(slide) => canvas.patch(item.id, { slide })}
+        onTemplate={(template) => changeTemplate(canvas, item, template)}
+        onSize={onSize}
+        onPresent={() => editor.presenter.start(deckOf(item), item.id)}
+      />
+      {isLink(item) ? (
+        <ConnectionControls
+          item={item}
+          look={look}
+          onLook={(look) => changeSelectionLook(canvas, [item], look)}
+          onRoute={() => routeAround(canvas, item)}
+        />
+      ) : (
+        item.type !== "drawing" && (
+          <GeometryControls
+            item={item}
+            rotation={look.rotation}
+            onGeometry={(key, value) => changeGeometry(editor, item, key, value)}
+            onRotate={(rotation) => changeSelectionLook(canvas, [item], { rotation })}
+          />
+        )
+      )}
+      <ScreenSizeControl item={item} onSize={onSize} />
+      <CommentControls
+        threads={groupThreads(listComments(canvas), item.id)}
+        onAdd={(text, thread = "") => addComment(canvas, { on: item.id, author, text, thread })}
+        onDelete={(id) => deleteComment(canvas, id)}
+        onResolve={(id, resolved) => setResolved(canvas, id, resolved)}
+      />
     </>
+  );
+}
+
+function SubtitleField({
+  value,
+  actions,
+  onChange,
+}: Readonly<{
+  value: string;
+  actions: Pick<CompletedActions, "begin">;
+  onChange: (value: string) => void;
+}>) {
+  const edit = useCompletedField(actions);
+  return (
+    <input
+      className="object-subtitle"
+      aria-label="Object subtitle"
+      placeholder="Subtitle"
+      value={value}
+      onChange={(event) => {
+        edit.start();
+        onChange(event.target.value);
+      }}
+      onBlur={edit.finish}
+      onKeyDown={edit.keydown}
+    />
   );
 }
 
@@ -155,203 +260,44 @@ function ActionButton({
 }
 
 function SelectionActions({
-  editor,
+  actions,
   selected,
-}: Readonly<{ editor: EditorController; selected: Item[] }>) {
+}: Readonly<{
+  actions: {
+    connect: () => void;
+    group: () => void;
+    ungroup: () => void;
+    front: () => void;
+    back: () => void;
+    duplicate: () => void;
+    remove: () => void;
+  };
+  selected: Item[];
+}>) {
   return (
     <div className="selection-actions" role="toolbar" aria-label="Selection actions">
       <ActionButton
         label="Connect"
         icon={Link2}
-        onClick={() => editor.connect()}
+        onClick={actions.connect}
         disabled={selected.length !== 2}
       />
       <ActionButton
         label="Group"
         icon={Group}
-        onClick={() => editor.group()}
+        onClick={actions.group}
         disabled={selected.length < 2}
       />
       <ActionButton
         label="Ungroup"
         icon={Ungroup}
-        onClick={() => editor.ungroup()}
+        onClick={actions.ungroup}
         disabled={!selected.some((value) => value.type === "group")}
       />
-      <ActionButton label="To front" icon={BringToFront} onClick={() => editor.stack("front")} />
-      <ActionButton label="To back" icon={SendToBack} onClick={() => editor.stack("back")} />
-      <ActionButton label="Duplicate" icon={Copy} onClick={() => editor.duplicate()} />
-      <ActionButton
-        label="Delete selection"
-        icon={Trash2}
-        tone="danger"
-        onClick={() => editor.remove()}
-      />
+      <ActionButton label="To front" icon={BringToFront} onClick={actions.front} />
+      <ActionButton label="To back" icon={SendToBack} onClick={actions.back} />
+      <ActionButton label="Duplicate" icon={Copy} onClick={actions.duplicate} />
+      <ActionButton label="Delete selection" icon={Trash2} tone="danger" onClick={actions.remove} />
     </div>
   );
-}
-
-function StyleControls({ editor, item }: ItemProps) {
-  const change: ChangeLook = (values) =>
-    editor.selected().forEach((selected) => editor.document.patchLook(selected.id, values));
-  const drawn = objectStyle(item, editor.document.namedStyle(item.style)) as Record<
-    string,
-    unknown
-  >;
-  const props = { item, drawn, change };
-  return (
-    <>
-      <NamedStyle editor={editor} item={item} />
-      {HAS_FILL(item) && <FillControls {...props} />}
-      {HAS_LINE(item) && <LineControls {...props} />}
-      {HAS_ICON_COLOR(item) && (
-        <Section title="Icon">
-          <ColorChip
-            label="Icon color"
-            value={item.look.iconColor ?? "#283249"}
-            onChange={(color) => change({ iconColor: color })}
-          />
-        </Section>
-      )}
-      {HAS_TEXT(item) && <TextProperties editor={editor} />}
-    </>
-  );
-}
-
-function ColorChip({
-  label,
-  value,
-  onChange,
-}: Readonly<{ label: string; value: unknown; onChange: (color: string) => void }>) {
-  const color = /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : "#ffffff";
-  return (
-    <input
-      className="color-chip"
-      aria-label={label}
-      title={label}
-      type="color"
-      value={color}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  );
-}
-
-function FillControls({ drawn, change }: StyleProps) {
-  return (
-    <Section title="Fill">
-      <div className="control-row">
-        {COLORS.map((color, index) => (
-          <button
-            key={color}
-            title={`Fill ${color}`}
-            aria-label={`Fill ${color}`}
-            className={`swatch swatch-${index}`}
-            aria-pressed={drawn.fillColor === color}
-            onClick={() => change({ fill: color })}
-          />
-        ))}
-        <ColorChip
-          label="Fill color"
-          value={drawn.fillColor}
-          onChange={(color) => change({ fill: color })}
-        />
-      </div>
-    </Section>
-  );
-}
-
-function LineControls({ drawn, change }: StyleProps) {
-  return (
-    <Section title="Line">
-      <div className="control-row">
-        <ColorChip
-          label="Line color"
-          value={drawn.strokeColor}
-          onChange={(color) => change({ line: color })}
-        />
-        <NumberField
-          prefix="W"
-          label="Line width"
-          value={Number(drawn.strokeWidth || 1)}
-          onChange={(value) => change({ lineWidth: value })}
-        />
-      </div>
-    </Section>
-  );
-}
-
-function NumberField({
-  prefix,
-  label,
-  value,
-  onChange,
-}: Readonly<{
-  prefix: string;
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}>) {
-  return (
-    <label className="number-field" title={label}>
-      <span aria-hidden="true">{prefix}</span>
-      <input
-        type="number"
-        aria-label={label}
-        value={number(value)}
-        onChange={(event) => {
-          if (event.target.value !== "") onChange(Number(event.target.value));
-        }}
-      />
-    </label>
-  );
-}
-
-const GEOMETRY = [
-  { key: "x", prefix: "X" },
-  { key: "y", prefix: "Y" },
-  { key: "width", prefix: "W" },
-  { key: "height", prefix: "H" },
-] as const;
-
-function GeometryControls({ editor, item }: ItemProps) {
-  const locked = isLockedIcon(item) || isSlide(item);
-  const setSize = (key: "width" | "height", value: number) => {
-    // Vendor icons and slides scale evenly, so either size field sets both.
-    const ratio = key === "width" ? item.height / item.width : item.width / item.height;
-    const other = key === "width" ? "height" : "width";
-    editor.updateGeometry(item.id, { [key]: value, [other]: value * ratio });
-  };
-  return (
-    <Section title="Position and size">
-      <div className="geometry-grid">
-        {GEOMETRY.map(({ key, prefix }) => (
-          <NumberField
-            key={key}
-            prefix={prefix}
-            label={`Object ${key}`}
-            value={item[key]}
-            onChange={(value) =>
-              locked && (key === "width" || key === "height")
-                ? setSize(key, value)
-                : editor.updateGeometry(item.id, { [key]: value })
-            }
-          />
-        ))}
-        {!isFrame(item) && !locked && (
-          <NumberField
-            prefix="°"
-            label="Object rotation"
-            value={item.look.rotation ?? 0}
-            onChange={(value) => editor.document.patchLook(item.id, { rotation: value })}
-          />
-        )}
-      </div>
-    </Section>
-  );
-}
-
-function PositionControls(props: ItemProps) {
-  if (isLink(props.item)) return <ConnectionControls {...props} />;
-  if (props.item.type === "drawing") return null;
-  return <GeometryControls {...props} />;
 }

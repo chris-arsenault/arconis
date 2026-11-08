@@ -14,12 +14,12 @@ import {
   unseal,
   type Envelope,
 } from "./roomKey";
-import type { ConnectionState, Transport } from "./transport";
+import type { ConnectionState, FrameChannel } from "./channel";
 
 const SECRET = "Quarterly secret plan";
 
 /** Carries messages between peers and records everything a relay would see. */
-class Wire implements Transport {
+class Wire implements FrameChannel {
   onMessage: (message: string) => void = () => {};
   onReady = () => {};
   onStatus: (state: ConnectionState) => void = () => {};
@@ -89,7 +89,13 @@ function person(
   const document = new CanvasDocument();
   const changed = vi.fn();
   const lock = new RoomLock(storage, transport, document.doc, changed, created);
-  const provider = new CollaborationProvider(document.doc, transport, () => {}, id);
+  const provider = new CollaborationProvider(
+    document.doc,
+    transport,
+    () => {},
+    id,
+    document.actions
+  );
   provider.connect();
   cleanups.push(() => {
     provider.destroy();
@@ -141,6 +147,30 @@ describe("the key", () => {
 });
 
 describe("a password room", () => {
+  it("keeps an edit local and sealed until completion, including for a new participant", async () => {
+    const wire = network();
+    const a = person(wire, true);
+    await a.lock.whenSynced;
+    await a.lock.choose("right");
+    const id = a.document.create("node", 0, 0, { name: SECRET });
+    const b = person(wire);
+    await vi.waitFor(() => expect(b.lock.state).toBe("enter"));
+    await b.lock.enter("right");
+    await vi.waitFor(() => expect(b.document.get(id)?.name).toBe(SECRET));
+    const saved = a.storage.saved.length;
+    const finish = a.document.actions.begin();
+    a.document.editText(id, `${SECRET} finished`);
+    await vi.waitFor(() => expect(a.storage.saved.length).toBeGreaterThan(saved));
+    expect(b.document.get(id)?.name).toBe(SECRET);
+    const c = person(wire);
+    await vi.waitFor(() => expect(c.lock.state).toBe("enter"));
+    await c.lock.enter("right");
+    await vi.waitFor(() => expect(c.document.get(id)?.name).toBe(SECRET));
+    finish();
+    await vi.waitFor(() => expect(c.document.get(id)?.name).toBe(`${SECRET} finished`));
+    expect(b.document.list()).toEqual(a.document.list());
+    expect(wire.seen.join("")).not.toContain(SECRET);
+  });
   it("syncs between people with the password, with no plaintext on the wire or on disk", async () => {
     const wire = network();
     const a = person(wire, true);

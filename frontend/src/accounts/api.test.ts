@@ -167,6 +167,37 @@ it("answers only its own routes", async () => {
   expect((await api.handle("a", "POST", "/api/me", "")).status).toBe(404);
 });
 
+it("preserves empty deletion replies and not-found responses for every unsupported method", async () => {
+  const { api, save } = setup();
+  const absent = { status: 404, body: { error: "Not found" } };
+  expect(await api.handle("a", "GET", "/api/me", "")).toEqual(absent);
+  expect(await api.handle("a", "GET", `/api/workspaces/${ID}`, "")).toEqual(absent);
+  expect(await api.handle("a", "DELETE", `/api/workspaces/${ID}`, "")).toEqual(absent);
+  await save("a", ID);
+  for (const [method, path] of [
+    ["POST", "/api/me"],
+    ["PUT", "/api/workspaces"],
+    ["DELETE", "/api/workspaces"],
+    ["POST", `/api/workspaces/${ID}`],
+  ])
+    expect(await api.handle("a", method, path, "")).toEqual(absent);
+  expect(await api.handle("a", "DELETE", `/api/workspaces/${ID}`, "")).toEqual({
+    status: 200,
+    body: {},
+  });
+  expect(await api.handle("a", "DELETE", "/api/me", "")).toEqual({ status: 200, body: {} });
+});
+
+it.each(["not json", "null", "[]", '{"size":100}', '{"name":7}'])(
+  "validates untrusted request bodies independently of shared TypeScript types: %s",
+  async (body) => {
+    const { api, services } = setup();
+    expect((await api.handle("a", "PUT", `/api/workspaces/${ID}`, body)).status).toBe(400);
+    expect((await api.handle("a", "PUT", "/api/me", body)).status).toBe(400);
+    expect(services.signUpload).not.toHaveBeenCalled();
+  }
+);
+
 describe("reading a token's subject", () => {
   const token = (claims: object) =>
     `Bearer h.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.s`;
