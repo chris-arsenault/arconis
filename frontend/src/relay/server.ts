@@ -5,6 +5,7 @@ import { AgentGateway, type McpConfig } from "./mcpHttp";
 import { Relay, TICK_MS } from "./relay";
 import { s3Pictures } from "./s3Pictures";
 import { Uploads } from "./uploads";
+import { reportFailure } from "./errors";
 
 // The EC2 entry point. A clean exit shuts the instance down (see the unit in user_data); a crash
 // restarts the process.
@@ -48,13 +49,17 @@ const server = createServer((request, response) => {
     response.statusCode = request.url === "/health" ? 200 : 404;
     response.end();
   })().catch((error: unknown) => {
-    console.error(error);
-    if (!response.headersSent) response.statusCode = 500;
-    response.end();
+    const errorId = reportFailure("http", error);
+    if (response.headersSent) return response.end();
+    response.writeHead(500, { "content-type": "application/json", "cache-control": "no-store" });
+    response.end(JSON.stringify({ error: "Arconis could not complete the request.", errorId }));
   });
 });
 attachRelay(server, () => relay, { allowedOrigin, accepting: () => true });
-server.listen(port, () => console.log(`Relay listening on ${port}`));
+server.listen(port, () => {
+  const address = server.address();
+  console.log(`Relay listening on ${typeof address === "object" ? address?.port : port}`);
+});
 setInterval(() => {
   relay.tick();
   agents?.sweep();

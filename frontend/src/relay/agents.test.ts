@@ -2,13 +2,15 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CollaborationProvider } from "../collaboration/provider";
 import type { ConnectionState, FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
 import { attachRelay } from "./attach";
 import { AgentGateway, type McpConfig } from "./mcpHttp";
 import { Relay } from "./relay";
+import { AgentSession } from "./agentSession";
+import { LANGUAGE_REFERENCE } from "../language/reference";
 
 const ROOM = "a".repeat(48);
 const config: McpConfig = {
@@ -76,6 +78,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+  vi.restoreAllMocks();
 });
 
 async function person(name = "Alice") {
@@ -143,6 +146,83 @@ describe("signing in", () => {
       body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/list" }),
     });
     expect(response.status).toBe(404);
+  });
+
+  it("reports a verifier outage as a logged service failure, without challenging the bearer", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    gateway.close();
+    gateway = new AgentGateway(
+      () => relay,
+      config,
+      () => {
+        throw new Error("Key service is unavailable");
+      }
+    );
+    const response = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: { authorization: "Bearer private-token" },
+      body: "{}",
+    });
+    expect(response.status).toBe(503);
+    expect(response.headers.has("www-authenticate")).toBe(false);
+    const body = (await response.json()) as { errorId: string };
+    expect(JSON.parse(String(log.mock.calls[0][0]))).toMatchObject({
+      operation: "verify_token",
+      errorId: body.errorId,
+      message: "Key service is unavailable",
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain("private-token");
+  });
+});
+
+describe("agent guidance and failures", () => {
+  it("discovers and retrieves complete language topics before opening a room", async () => {
+    const { client, call } = await agent();
+    expect(client.getInstructions()).toContain("canvas_help");
+    expect(client.getInstructions()).not.toContain(LANGUAGE_REFERENCE);
+    const index = await call("canvas_help");
+    expect(index).toContain("placement: Placement");
+    const guide = await call("canvas_help", { topic: "placement" });
+    expect(guide).toContain("## Placement");
+    expect(guide).toContain("Give a frame both axes");
+    expect(guide).not.toContain("## Arrangements");
+    expect(await call("canvas_help", { topic: "all" })).toBe(LANGUAGE_REFERENCE);
+    const missing = await client.callTool({ name: "canvas_help", arguments: { topic: "missing" } });
+    expect(missing).toMatchObject({ isError: true });
+    expect(JSON.stringify(missing)).toContain("Call canvas_help without a topic");
+  });
+
+  it("logs an unexpected tool failure and returns its reference without exposing internals", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(AgentSession.prototype, "openRoom").mockRejectedValueOnce(
+      new Error("Simulated internal failure")
+    );
+    const { client, call } = await agent();
+    const result = await client.callTool({ name: "open_room", arguments: { room: ROOM } });
+    expect(result).toMatchObject({ isError: true });
+    expect(log).toHaveBeenCalledTimes(1);
+    const record = JSON.parse(String(log.mock.calls[0][0])) as { errorId: string };
+    expect(record).toMatchObject({ operation: "open_room", message: "Simulated internal failure" });
+    expect(JSON.stringify(result)).toContain(record.errorId);
+    expect(JSON.stringify(result)).not.toContain("Simulated internal failure");
+    expect(JSON.stringify(log.mock.calls)).not.toContain(ROOM);
+    expect(await call("canvas_help")).toContain("placement");
+  });
+
+  it("marks expected refusals as tool errors and teaches discovery without logging a server fault", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await person();
+    const { client, call } = await agent();
+    const unopened = await client.callTool({ name: "read", arguments: {} });
+    expect(unopened).toMatchObject({ isError: true });
+    expect(JSON.stringify(unopened)).toContain("Open a room first");
+    await call("open_room", { room: ROOM });
+    const missing = await client.callTool({ name: "read", arguments: { items: ["missing"] } });
+    expect(missing).toMatchObject({ isError: true });
+    expect(JSON.stringify(missing)).toContain("Use describe_canvas");
+    const invalid = await client.callTool({ name: "write", arguments: { statements: "oops" } });
+    expect(invalid).toMatchObject({ isError: true });
+    expect(log).not.toHaveBeenCalled();
   });
 });
 

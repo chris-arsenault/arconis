@@ -37,3 +37,15 @@ storage, and drive the canvas with real pointer and keyboard input. Automated te
 fixtures only ([ADR-0006](adr/0006-automated-tests-use-local-fixtures.md)).
 
 Failure screenshots, traces and other generated output go to the ignored `frontend/test-results/`.
+
+## MCP integration
+
+`relay/agents.test.ts` exercises authenticated HTTP sessions, room collaboration, guidance discovery
+and error responses against a local relay. `relay/bundledRelay.test.ts` builds and starts the production
+CommonJS bundle, uses a local signing-key service and a real peer socket, then opens and edits a room
+over HTTP MCP. The drawing browser journey also uses HTTP MCP alongside independent browser contexts
+and pointer/keyboard edits.
+
+To diagnose an already-downloaded relay artifact locally, set `RELAY_TEST_BUNDLE` to its path relative
+to `frontend/` when running the bundled relay test. With no override, the test builds the current
+source. Neither route calls deployed AWS services; keep downloaded bundles in `test-results/`.

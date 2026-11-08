@@ -1,13 +1,44 @@
 import { expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { AgentSession } from "../relay/agentSession";
-import { createMcpServer } from "../relay/mcp";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { AgentGateway } from "../relay/mcpHttp";
 import { createRoomId } from "../collaboration/room";
 import { readCopy } from "../document/pngCopy";
 import { browser, errors, exported, fixture, open, row } from "./browserHarness";
 import type { Page } from "playwright";
+
+async function connectAgent() {
+  const gateway = new AgentGateway(
+    fixture.relay,
+    { resource: "https://relay.example/mcp", issuer: "https://auth.example/" },
+    async (token) =>
+      token === "local-test" ? { user: "artist", clientId: "test", scopes: ["edit:rooms"] } : null
+  );
+  const server = createServer((request, response) => {
+    void gateway.handle(request, response).then((handled) => {
+      if (!handled) response.writeHead(404).end();
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const client = new Client({ name: "Drawing journey", version: "1" });
+  await client.connect(
+    new StreamableHTTPClientTransport(
+      new URL(`http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`),
+      { requestInit: { headers: { authorization: "Bearer local-test" } } }
+    )
+  );
+  return {
+    client,
+    close: async () => {
+      await client.close();
+      gateway.close();
+      await new Promise((resolve) => server.close(resolve));
+    },
+  };
+}
 
 it("authors editable drawings through actual MCP tools, renders gradient PNGs and preserves human edits on agent Undo", async () => {
   const room = createRoomId();
@@ -16,15 +47,13 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
     room
   );
   const peer = await open(await browser.newContext(), room);
-  const session = new AgentSession(fixture.relay, "Artist");
-  const server = createMcpServer(session);
-  const client = new Client({ name: "Drawing journey", version: "1" });
-  const [local, remote] = InMemoryTransport.createLinkedPair();
-  await server.connect(remote);
-  await client.connect(local);
+  const agent = await connectAgent();
   const call = async (name: string, args: Record<string, unknown> = {}) =>
-    JSON.stringify(await client.callTool({ name, arguments: args }));
+    JSON.stringify(await agent.client.callTool({ name, arguments: args }));
   try {
+    expect(agent.client.getInstructions()).toContain("canvas_help");
+    expect(await call("canvas_help")).toContain("drawings-and-markup");
+    expect(await call("canvas_help", { topic: "drawings-and-markup" })).toContain("ink freehand");
     await call("open_room", { room });
     expect(
       await call("write", {
@@ -67,9 +96,7 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
     expect(colors.blue).toBeGreaterThan(100);
     expect(errors).toEqual([]);
   } finally {
-    await client.close();
-    await server.close();
-    session.leave();
+    await agent.close();
   }
 });
 

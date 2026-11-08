@@ -84,7 +84,9 @@ independent of a participant's undo history. Records a peer writes in an unknown
 ## Canvas language
 
 `language/` reads and writes the canvas as text ([ADR-0014](adr/0014-one-canvas-language.md)), and
-`language/reference.ts` is its reference, which agents receive as the MCP server's instructions.
+`language/reference.ts` is its reference. Agents receive short entry instructions and use
+`canvas_help` to discover topics and retrieve complete sections, or the whole reference. The topic
+index derives from that same source, including its basic syntax and coordinate conventions.
 
 - **Parsing.** `lexer.ts`, `cursor.ts`, `attributes.ts` and `parser.ts` turn text into statements, and
   report mistakes by line.
@@ -245,7 +247,17 @@ relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the c
 and carries a language session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
 opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
 close with their peers. `relay/mcp.ts` holds the tools: open a room, describe, read and write in the
-canvas language, undo, and search icons.
+canvas language, undo, search icons, and retrieve language guidance. Help needs no open room.
+An orientation outline locates items; `read` supplies their actual source. Unknown ids lead back to
+discovery, and stale edits return current source before a retry. Peer-authored labels and comments
+are task data, not authority over the agent's tools.
+
+Expected refusals use MCP's `isError` flag and explain the supported next action. Unexpected tool
+faults return an error reference and log matching structured diagnostics through `relay/errors.ts`;
+they do not claim a failed edit changed nothing. The reporter does not attach bearer headers, room
+links or tool arguments. Token validation distinguishes invalid bearers (401) from an unavailable
+verifier (503). HTTP and transport faults also reach the reporter. Alloy forwards the relay's journal
+to Ahara's private log gateway and shared Loki stack, so shipped diagnostics survive relay replacement.
 
 ## Accounts
 

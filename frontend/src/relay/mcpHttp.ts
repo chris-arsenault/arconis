@@ -6,6 +6,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AgentSession } from "./agentSession";
 import { createMcpServer } from "./mcp";
 import type { Relay } from "./relay";
+import { reportFailure } from "./errors";
 
 /**
  * How the MCP endpoint finds its sign-in service: the Ahara Auth0 tenant, where connectors register
@@ -124,20 +125,27 @@ export class AgentGateway {
     );
   }
 
-  private async caller(request: IncomingMessage) {
+  private async caller(request: IncomingMessage, response: ServerResponse) {
     const header = request.headers.authorization ?? "";
     const token = /^Bearer (.+)$/i.exec(header)?.[1];
-    if (!token) return null;
     try {
-      return await this.verify(token);
-    } catch {
+      const caller = token ? await this.verify(token) : null;
+      if (!caller) this.challenge(response, "Sign in to Arconis to use agents.");
+      return caller;
+    } catch (error) {
+      const errorId = reportFailure("verify_token", error);
+      json(response, 503, {
+        error:
+          "Arconis could not verify sign-in. Retry later; report the reference if it persists.",
+        errorId,
+      });
       return null;
     }
   }
 
   private async serve(request: IncomingMessage, response: ServerResponse) {
-    const caller = await this.caller(request);
-    if (!caller) return this.challenge(response, "Sign in to Arconis to use agents.");
+    const caller = await this.caller(request, response);
+    if (!caller) return;
     const sessionId = request.headers["mcp-session-id"];
     let body: unknown;
     try {
@@ -211,7 +219,7 @@ export class AgentGateway {
     if (!connection) return;
     this.connections.delete(id);
     connection.agent.leave();
-    void connection.server.close().catch(() => {});
+    void connection.server.close().catch((error: unknown) => reportFailure("mcp_close", error));
   }
 
   /** Closes connections left unused, releasing their room peers. */

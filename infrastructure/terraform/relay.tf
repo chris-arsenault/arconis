@@ -27,6 +27,18 @@ module "ctx" {
 
 data "aws_caller_identity" "current" {}
 
+# The shared EC2 log gateway forwards to Ahara's Loki stack, as it does for the NAT hosts.
+data "aws_instance" "log_gateway" {
+  filter {
+    name   = "tag:Name"
+    values = ["ahara-reverse-proxy"]
+  }
+  filter {
+    name   = "instance-state-name"
+    values = ["running"]
+  }
+}
+
 # The shared ALB security group is not exported by platform-context.
 data "aws_security_group" "alb" {
   filter {
@@ -208,6 +220,9 @@ resource "aws_launch_template" "relay" {
     max_uptime_minutes = local.max_uptime_minutes
     mcp_resource       = local.mcp_resource
     auth_issuer        = local.auth0_issuer
+    alloy_config = templatefile("${path.module}/templates/relay_alloy.alloy.tpl", {
+      loki_push_url = "http://${data.aws_instance.log_gateway.private_ip}:3100/loki/api/v1/push"
+    })
   }))
 
   tag_specifications {

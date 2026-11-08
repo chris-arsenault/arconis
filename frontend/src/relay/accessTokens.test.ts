@@ -45,6 +45,12 @@ it("accepts a token the tenant issued for this endpoint, as the person who signe
 
 it("refuses a token meant for another API or from another issuer", async () => {
   const verify = accessTokenVerifier({ resource: RESOURCE, issuer });
-  await expect(verify(await token({ aud: "https://other.example/api" }))).rejects.toThrow();
-  await expect(verify(await token({ iss: "https://elsewhere.example/" }))).rejects.toThrow();
+  await expect(verify(await token({ aud: "https://other.example/api" }))).resolves.toBeNull();
+  await expect(verify(await token({ iss: "https://elsewhere.example/" }))).resolves.toBeNull();
+  await expect(verify("malformed")).resolves.toBeNull();
+});
+
+it("propagates an unavailable key service instead of treating it as an invalid bearer", async () => {
+  const verify = accessTokenVerifier({ resource: RESOURCE, issuer: `${issuer}unavailable/` });
+  await expect(verify(await token({}))).rejects.toThrow();
 });

@@ -1,6 +1,6 @@
 /**
- * The canvas language as agents learn it. It is the MCP server's instructions, so it must match what
- * the parser and writer accept.
+ * The canvas language as agents learn it through canvas_help. Keep it exact with the parser and
+ * writer; the topic index below derives from this same reference.
  */
 export const LANGUAGE_REFERENCE = `# The Arconis canvas language
 
@@ -141,3 +141,25 @@ What you read is written in this same language: a file is the whole canvas in it
   kinesis.right -> s3.bottom
   s3 -> logic "Async Write"
 `;
+
+const [basics, ...sections] = LANGUAGE_REFERENCE.split(/^## /m);
+const topics = [
+  { topic: "basics", title: "Basics", content: basics.trimEnd() },
+  ...sections.map((section) => {
+    const title = section.slice(0, section.indexOf("\n"));
+    const topic = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return { topic, title, content: `## ${section.trimEnd()}` };
+  }),
+];
+
+/** Focused source content, or its discovery index; nothing is silently truncated. */
+export function languageHelp(topic?: string) {
+  if (!topic)
+    return [
+      "The Arconis canvas language. Call canvas_help with a topic below, or all for the complete reference.",
+      ...topics.map((entry) => `${entry.topic}: ${entry.title}`),
+      "Start with basics, items, placement and changing-what-exists for ordinary diagram edits.",
+    ].join("\n");
+  if (topic === "all") return LANGUAGE_REFERENCE;
+  return topics.find((entry) => entry.topic === topic)?.content ?? null;
+}

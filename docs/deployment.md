@@ -35,6 +35,18 @@ to roll, and the next start uses the new version.
 
 ## Operating the relay
 
+MCP tool and HTTP failures return an error reference. Search Grafana's Loki datasource with
+`{service_name="arconis-relay"} |= "<error reference>"` to find the corresponding operation, exception
+and stack. Expected language refusals are tool errors with recovery guidance; they are not server
+faults. Relay log forwarding uses Alloy and the existing private Ahara gateway, whose address is
+discovered by its `Name=ahara-reverse-proxy` tag. The gateway owns downstream ingest authentication.
+
+On a running relay instance, `journalctl -u arconis-relay.service --no-pager` reads the local fallback,
+and `journalctl -u alloy --no-pager` diagnoses shipping failures. Read these through SSM when needed;
+in this environment, run secret-backed CLI commands through `with-cred --`. Other installations use
+their ordinary AWS credential environment. The local journal ends with the instance; check Loki for
+older shipped errors. A deployment is needed before changes to reporting or Alloy reach a running relay.
+
 Raise the limit for the current month by setting the override, with the month and dollar amount:
 
 ```sh

@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, errors, jwtVerify } from "jose";
 import type { McpConfig, TokenVerifier } from "./mcpHttp";
 
 /**
@@ -8,14 +8,30 @@ import type { McpConfig, TokenVerifier } from "./mcpHttp";
 export function accessTokenVerifier(config: McpConfig): TokenVerifier {
   const keys = createRemoteJWKSet(new URL(".well-known/jwks.json", config.issuer));
   return async (token) => {
-    const { payload } = await jwtVerify(token, keys, {
-      issuer: config.issuer,
-      audience: config.resource,
-      algorithms: ["RS256"],
-    });
-    if (typeof payload.sub !== "string") return null;
-    const scopes = typeof payload.scope === "string" ? payload.scope.split(" ") : [];
-    const clientId = typeof payload.azp === "string" ? payload.azp : "";
-    return { user: payload.sub, clientId, scopes };
+    try {
+      const { payload } = await jwtVerify(token, keys, {
+        issuer: config.issuer,
+        audience: config.resource,
+        algorithms: ["RS256"],
+      });
+      if (typeof payload.sub !== "string") return null;
+      const scopes = typeof payload.scope === "string" ? payload.scope.split(" ") : [];
+      const clientId = typeof payload.azp === "string" ? payload.azp : "";
+      return { user: payload.sub, clientId, scopes };
+    } catch (error) {
+      if (error instanceof errors.JOSEError && TOKEN_REFUSALS.has(error.code)) return null;
+      throw error;
+    }
   };
 }
+
+/** A refused bearer is different from an unavailable key service or an internal verifier fault. */
+const TOKEN_REFUSALS = new Set([
+  "ERR_JWT_EXPIRED",
+  "ERR_JWT_CLAIM_VALIDATION_FAILED",
+  "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+  "ERR_JWS_INVALID",
+  "ERR_JWT_INVALID",
+  "ERR_JOSE_ALG_NOT_ALLOWED",
+  "ERR_JWKS_NO_MATCHING_KEY",
+]);

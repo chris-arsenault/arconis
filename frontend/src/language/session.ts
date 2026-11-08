@@ -237,12 +237,17 @@ export class LanguageSession {
     if (request.items?.length) {
       const missing = request.items.filter((id) => !all.some((item) => item.id === id));
       const quoted = missing.map((id) => quote(id)).join(", ");
-      if (missing.length) throw new LanguageError(`No item has the id ${quoted}.`);
+      if (missing.length)
+        throw new LanguageError(
+          `No item has the id ${quoted}. Use describe_canvas to discover current item ids, then read again.`
+        );
       return chosenItems(all, request.items);
     }
     if (request.inside) {
       if (!all.some((item) => item.id === request.inside))
-        throw new LanguageError(`No item has the id "${request.inside}".`);
+        throw new LanguageError(
+          `No item has the id "${request.inside}". Use describe_canvas to discover current holders, then read again.`
+        );
       return chosenItems(all, [request.inside]);
     }
     if (request.area) {

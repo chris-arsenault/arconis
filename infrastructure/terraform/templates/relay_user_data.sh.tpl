@@ -79,3 +79,32 @@ EOF
 
 systemctl daemon-reload
 systemctl enable --now arconis-relay.service
+
+# Use Ahara's host logging pattern: journal -> Alloy -> private edge gateway -> Loki.
+# This is separate from relay startup, so a collector installation failure leaves rooms usable
+# and remains visible in cloud-init output. No observability credential is needed at this hop.
+install_alloy() {
+  rpm --import https://rpm.grafana.com/gpg.key
+  cat > /etc/yum.repos.d/grafana.repo <<'GRAFANA'
+[grafana]
+name=grafana
+baseurl=https://rpm.grafana.com
+repo_gpgcheck=1
+enabled=1
+gpgcheck=1
+gpgkey=https://rpm.grafana.com/gpg.key
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+GRAFANA
+  dnf -y install alloy
+  usermod -aG systemd-journal alloy
+  cat > /etc/alloy/config.alloy <<'ALLOY'
+${alloy_config}
+ALLOY
+  cat > /etc/sysconfig/alloy <<'ALLOY_ENV'
+CONFIG_FILE=/etc/alloy/config.alloy
+CUSTOM_ARGS="--server.http.listen-addr=127.0.0.1:12345 --storage.path=/var/lib/alloy"
+ALLOY_ENV
+  systemctl enable --now alloy
+}
+install_alloy

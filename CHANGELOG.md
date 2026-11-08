@@ -4,6 +4,12 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Agents
+
+- Added discoverable canvas-language help with complete topic reads, replacing the full manual at
+  connection time. MCP refusals signal errors and explain recovery; unexpected failures return
+  references matched to server diagnostics. Relay journals ship to Ahara's shared logging stack.
+
 ### Canvas
 
 - Added shared markup with pen widths, highlighter, attached object outlines, drag-oriented
