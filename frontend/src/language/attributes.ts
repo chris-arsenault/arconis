@@ -89,6 +89,13 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   points: (cursor) => ({ kind: "points", points: cursor.points("the drawing's points") }),
   via: (cursor) => ({ kind: "via", points: cursor.points("bend points") }),
   free: () => ({ kind: "free" }),
+  deck: (cursor) => {
+    const deck = cursor.kindIs("string")
+      ? cursor.next().text
+      : cursor.expectWord("the deck's name");
+    const slide = cursor.kindIs("number") ? cursor.number("the slide's number") : undefined;
+    return { kind: "deck", deck, slide };
+  },
   "label-at": (cursor) => {
     const [x, y] = cursor.point("the label's position");
     return { kind: "label", x, y };

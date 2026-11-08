@@ -35,15 +35,13 @@ function editSelection(editor: EditorController) {
 function keyboard(editor: EditorController, event: KeyboardEvent) {
   const modifier = event.ctrlKey || event.metaKey;
   const key = event.key.toLowerCase();
+  // A presentation has its own keys, and nothing is being edited.
+  if (editor.presenter.active) return;
   if (isTyping(event.target) || activatesControl(event.target, key)) return;
   const actions: Record<string, () => void> = {
     delete: () => editor.remove(),
     backspace: () => editor.remove(),
-    escape: () => {
-      editor.editId = null;
-      editor.graph.clearSelection();
-      editor.setTool("select");
-    },
+    escape: () => editor.clearEditing(),
     v: () => editor.setTool("select"),
     h: () => editor.setTool("pan"),
     n: () => editor.setTool("note"),

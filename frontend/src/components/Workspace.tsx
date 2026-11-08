@@ -20,6 +20,7 @@ import { PasswordGate } from "./PasswordGate";
 import { LeftRail } from "./LeftRail";
 import { SelectionFrame } from "./SelectionFrame";
 import { WorkspaceHeader } from "./WorkspaceHeader";
+import { PresenterNotes, PresenterStage } from "./Presenter";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 
@@ -38,42 +39,91 @@ interface Props {
   onJoin: (id: string) => void;
 }
 
-export function Workspace(props: Readonly<Props>) {
-  const { session, name, onName, newRoom } = props;
+/** The room's editor as it arrives, and whether it is presenting, re-rendering as either changes. */
+function useEditor(session: RoomSession) {
   useSyncExternalStore(session.subscribe, session.snapshot);
   const [editor, setEditor] = useState<EditorController | null>(null);
   useSyncExternalStore(editor?.subscribe || subscribeEmpty, editor?.snapshot || snapshotEmpty);
+  const presenting = editor?.presenter.active ?? false;
+  return { editor, setEditor, presenting };
+}
+
+export function Workspace(props: Readonly<Props>) {
+  const { session, name, onName, newRoom } = props;
+  const { editor, setEditor, presenting } = useEditor(session);
   const [message, setMessage] = useState("");
   const [namePrompt, setNamePrompt] = useState(props.askName);
+  const [notes, setNotes] = useState(false);
   const closeNamePrompt = () => {
     onName(name.trim() || "Guest");
     setNamePrompt(false);
   };
+  const prompt =
+    namePrompt && !props.signedIn && !presenting ? (
+      <NamePrompt name={name} onName={onName} onClose={closeNamePrompt} />
+    ) : null;
   return (
-    <div className="workspace">
+    <div className={presenting ? "workspace presenting" : "workspace"}>
       <PasswordGate session={session} />
-      <WorkspaceHeader
-        {...props}
+      {!presenting && (
+        <WorkspaceHeader
+          {...props}
+          editor={editor}
+          onMessage={setMessage}
+          onEditName={() => setNamePrompt(true)}
+        />
+      )}
+      <WorkspaceBody
+        session={session}
         editor={editor}
-        onMessage={setMessage}
-        onEditName={() => setNamePrompt(true)}
-      />
-      <div className="workspace-body">
-        {editor && <LeftRail editor={editor} />}
-        <CanvasArea session={session} editor={editor} newRoom={newRoom} onEditor={setEditor}>
-          {namePrompt && !props.signedIn && (
-            <NamePrompt name={name} onName={onName} onClose={closeNamePrompt} />
-          )}
-        </CanvasArea>
-        {editor && <Inspector editor={editor} author={props.name} />}
-      </div>
-      <ConnectionStatus session={session} />
+        newRoom={newRoom}
+        onEditor={setEditor}
+        presenting={presenting}
+        notes={notes}
+        onToggleNotes={() => setNotes(!notes)}
+        author={props.name}
+      >
+        {prompt}
+      </WorkspaceBody>
+      {!presenting && <ConnectionStatus session={session} />}
       {message && (
         <div className="toast" role="status">
           {message}
           <button onClick={() => setMessage("")}>Dismiss</button>
         </div>
       )}
+    </div>
+  );
+}
+
+type BodyProps = Readonly<{
+  session: RoomSession;
+  editor: EditorController | null;
+  newRoom: boolean;
+  onEditor: (editor: EditorController | null) => void;
+  presenting: boolean;
+  notes: boolean;
+  onToggleNotes: () => void;
+  author: string;
+  children: ReactNode;
+}>;
+
+/**
+ * The rails around the canvas. Presenting shows the canvas alone with the notes beside it; the
+ * canvas keeps its place in the tree either way, so the editor lives on.
+ */
+function WorkspaceBody({ author, children, ...props }: BodyProps) {
+  const { editor, presenting, notes } = props;
+  return (
+    <div className="workspace-body">
+      {editor && !presenting && <LeftRail editor={editor} />}
+      <CanvasArea {...props}>{children}</CanvasArea>
+      {editor &&
+        (presenting ? (
+          notes && <PresenterNotes editor={editor} />
+        ) : (
+          <Inspector editor={editor} author={author} />
+        ))}
     </div>
   );
 }
@@ -112,18 +162,24 @@ function CanvasArea({
   editor,
   newRoom,
   onEditor,
+  presenting,
+  notes,
+  onToggleNotes,
   children,
 }: Readonly<{
   session: RoomSession;
   editor: EditorController | null;
   newRoom: boolean;
   onEditor: (editor: EditorController | null) => void;
+  presenting: boolean;
+  notes: boolean;
+  onToggleNotes: () => void;
   children: ReactNode;
 }>) {
   return (
     <main className="canvas-area">
       <Canvas session={session} onEditor={onEditor} />
-      {editor && (
+      {editor && !presenting && (
         <>
           <InlineEditor editor={editor} />
           <SelectionFrame editor={editor} />
@@ -131,7 +187,10 @@ function CanvasArea({
           <CanvasHUD editor={editor} />
         </>
       )}
-      {editor && session.document.list().length === 0 && (
+      {editor && presenting && (
+        <PresenterStage editor={editor} notes={notes} onToggleNotes={onToggleNotes} />
+      )}
+      {editor && !presenting && session.document.list().length === 0 && (
         <EmptyCanvasHint editor={editor} session={session} newRoom={newRoom} />
       )}
       {children}

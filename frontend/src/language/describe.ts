@@ -93,6 +93,15 @@ const DESCRIBE: { [K in Attribute["kind"]]?: Describer<K> } = {
   free: (item) => {
     delete item.arrange;
   },
+  deck: (item, attribute, { line }) => {
+    if (item.type !== "slide")
+      throw new LanguageError(
+        `Only a slide belongs to a deck; ${item.id} is a ${item.type}.`,
+        line
+      );
+    item.deck = attribute.deck;
+    if (attribute.slide !== undefined) item.slide = attribute.slide;
+  },
 };
 
 export function describeItem(item: Item, attributes: Attribute[], context: Describing) {

@@ -7,6 +7,7 @@ import {
   type Graph,
 } from "@maxgraph/core";
 import { labelIsLegible } from "./culling";
+import type { Marks } from "./marks";
 
 // maxGraph treats anything but http and data addresses as relative, which would prefix a picture's
 // object URL with the site's address and leave it unable to load.
@@ -29,10 +30,10 @@ export const LABEL_BADGE = "labelBadge";
 
 /**
  * A label's markup: the name, bold over a subtitle when there is one, after a badge when there is
- * one. Names and subtitles come from peers and are escaped; a badge is only ever a local icon's data
- * address, which `objectStyle` resolves from the icon sets.
+ * one, between its marks. Names, subtitles and a slide's deck come from peers and are escaped; a
+ * badge is only ever a local icon's data address, which `objectStyle` resolves from the icon sets.
  */
-function composeLabel(cell: Cell, marks: string) {
+function composeLabel(cell: Cell, marks: Marks) {
   const style = cell.getStyle() as Record<string, unknown>;
   const subtitle = typeof style[LABEL_SUBTITLE] === "string" ? style[LABEL_SUBTITLE] : "";
   const badge = typeof style[LABEL_BADGE] === "string" ? style[LABEL_BADGE] : "";
@@ -41,11 +42,11 @@ function composeLabel(cell: Cell, marks: string) {
     name = `<b>${name}</b><br><span style="font-weight:normal;font-size:0.85em;opacity:0.85">${escapeLabel(subtitle)}</span>`;
   if (badge.startsWith("data:image/"))
     name = `<img src="${badge.replaceAll('"', "%22")}" alt="" style="width:1.3em;height:1.3em;vertical-align:middle;margin-right:0.4em">${name}`;
-  return [name, marks].filter(Boolean).join(" ");
+  return [escapeLabel(marks.before), name, marks.after].filter(Boolean).join(" ");
 }
 
-/** `marks` adds signs to a label, such as that an object holds more than is drawn. */
-export function configureRendering(graph: Graph, marks: (cell: Cell) => string) {
+/** `marks` surrounds a label with signs, such as that an object holds more than is drawn. */
+export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
   HandleConfig.fillColor = "#f4f2fd";
   HandleConfig.strokeColor = SELECTION_COLOR;
   VertexHandlerConfig.selectionColor = SELECTION_COLOR;
@@ -54,7 +55,7 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => string) 
   // so every label is escaped before it reaches the DOM.
   graph.setHtmlLabels(true);
   graph.getLabel = (cell) => {
-    if (!cell || !labelIsLegible(cell, graph.view.scale)) return "";
+    if (!cell || cell.getStyle().noLabel || !labelIsLegible(cell, graph.view.scale)) return "";
     return composeLabel(cell, marks(cell));
   };
   // Measuring each shape with getBBox forces layout per cell and dominated zoom time.

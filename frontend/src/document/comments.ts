@@ -2,7 +2,8 @@ import type { CanvasDocument } from "./canvasDocument";
 import { LOCAL } from "./types";
 import { newId } from "./ids";
 
-export const MAX_COMMENT_LENGTH = 4000;
+/** Long enough for a slide's speaker notes, which run to pages. */
+export const MAX_COMMENT_LENGTH = 20000;
 
 /**
  * One comment. Each is its own record, so concurrent comments never conflict; a discussion is a

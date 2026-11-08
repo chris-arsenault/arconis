@@ -134,6 +134,24 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     // A drawing moves and transforms as one item, not as hundreds of waypoints.
     bendable: false,
   },
+  // A viewport over the canvas: an outline that covers nothing, labelled above itself so a
+  // presentation masking everything outside the box shows neither.
+  slide: {
+    fillColor: "none",
+    strokeColor: "#7863d4",
+    rounded: false,
+    aspect: "fixed",
+    rotatable: false,
+    verticalLabelPosition: "top",
+    verticalAlign: "bottom",
+    align: "left",
+    whiteSpace: "nowrap",
+    overflow: "visible",
+    fontSize: 12,
+    fontStyle: 1,
+    fontColor: "#5443b3",
+    spacing: 4,
+  },
   // Shows as a plain frame until its bytes arrive.
   picture: {
     fillColor: "#eef0f5",
@@ -271,7 +289,8 @@ function baseStyle(item: Item, look: Look): Style {
   return base;
 }
 
-export function objectStyle(item: Item, named: Look = {}): CellStyle {
+/** `presenting` draws slides as nothing at all: a presentation shows only what lies on them. */
+export function objectStyle(item: Item, named: Look = {}, presenting = false): CellStyle {
   const look = resolvedLook(item, named);
   const base = baseStyle(item, look);
   const style: Style = { ...base, ...lookStyle(look, base) };
@@ -280,6 +299,8 @@ export function objectStyle(item: Item, named: Look = {}): CellStyle {
   if (isLockedIcon(item)) delete style.rotation;
   if (item.icon && (item.type === "node" || item.type === "card")) applyIcon(item, style, look);
   if (item.type === "picture") applyPicture(item, style);
+  if (presenting && item.type === "slide")
+    Object.assign(style, { strokeColor: "none", noLabel: true });
   applyLabel(item, style, look);
   return style;
 }

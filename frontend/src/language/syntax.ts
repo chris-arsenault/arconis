@@ -25,6 +25,7 @@ export type Attribute =
   | { kind: "points"; points: PathPoint[] }
   | { kind: "via"; points: PathPoint[] }
   | { kind: "label"; x: number; y: number }
+  | { kind: "deck"; deck: string; slide?: number }
   | { kind: "free" };
 
 export interface Located {

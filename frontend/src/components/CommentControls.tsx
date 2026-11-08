@@ -5,6 +5,7 @@ import {
   deleteComment,
   groupThreads,
   listComments,
+  MAX_COMMENT_LENGTH,
   setResolved,
   type CanvasComment,
 } from "../document/comments";
@@ -38,27 +39,38 @@ function CommentBody({
   );
 }
 
+/** A multi-line comment box: Enter sends, Shift Enter breaks a line, as speaker notes need. */
 function CommentBox({
   label,
   placeholder,
   onSubmit,
 }: Readonly<{ label: string; placeholder: string; onSubmit: (text: string) => void }>) {
   const [text, setText] = useState("");
+  const send = () => {
+    if (!text.trim()) return;
+    onSubmit(text.trim());
+    setText("");
+  };
   return (
     <form
       className="comment-box"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!text.trim()) return;
-        onSubmit(text.trim());
-        setText("");
+        send();
       }}
     >
-      <input
+      <textarea
         aria-label={label}
         placeholder={placeholder}
         value={text}
+        rows={Math.min(8, text.split("\n").length)}
+        maxLength={MAX_COMMENT_LENGTH}
         onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || event.shiftKey) return;
+          event.preventDefault();
+          send();
+        }}
       />
     </form>
   );

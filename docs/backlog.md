@@ -18,6 +18,12 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Let connectors register through client metadata documents as well as dynamic client registration,
   once a released Auth0 Terraform provider sets dynamic registration by metadata document.
 
+## Slides
+
+- Export a deck as PDF or PPTX, one page per slide.
+- Let participants follow the presenter's slide, and show notes on a second screen.
+- Wrap the selection in a slide that adopts it.
+
 ## Platform
 
 - Remove Arconis's AppSync permissions from its Ahara registration once the relay replaces AppSync.

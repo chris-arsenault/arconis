@@ -11,7 +11,8 @@ Yjs holds the canonical document ([ADR-0001](adr/0001-yjs-canonical-maxgraph-pro
 items are the canvas language's items field for field ([ADR-0014](adr/0014-one-canvas-language.md)).
 `document/types.ts` declares them. Each item is a map keyed by a short id people can type, holding its
 type, a `Y.Text` name, a subtitle, its holder (`inside`), box, stacking order, a named style and a look
-in plain terms, and by type a stencil, icon, line ends and ports, points or a picture. Named styles,
+in plain terms, and by type a stencil, icon, line ends and ports, points, a picture or a deck and slide
+number. Named styles,
 views and comments sit in maps beside the items. Undo tracks local origins, so remote edits stay
 independent of a participant's undo history. Records a peer writes in an unknown shape are ignored.
 
@@ -35,6 +36,10 @@ independent of a participant's undo history. Records a peer writes in an unknown
   and settles in one pass, so peers' results agree.
 - **Junctions.** A junction is a node with the `junction` stencil where lines meet, which lets several
   lines share a trunk.
+- **Slides.** A slide is a box item with a `deck` name and a `slide` number
+  ([ADR-0016](adr/0016-slides-are-canvas-items.md)). `document/slides.ts` orders a deck's slides by
+  number then id, numbers a new slide after the deck's highest, and gives it the deck's size and a
+  place behind everything. A deck has no record of its own.
 - **Topics.** Branches and references are line types, and a line joins them through an anchor node
   kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)). `document/relations.ts`
   holds the tree, layout and alignment logic.
@@ -87,6 +92,12 @@ maxGraph is an editing and rendering projection of the document.
   dots, stroke precision and the size of new objects.
 - `document/transform.ts` computes collective scale and rotation over a gesture's starting snapshot,
   and `components/SelectionFrame.tsx` drives it.
+- **Presenting.** `editor/presenter.ts` is one person's walk through a deck, local to the browser:
+  it reads the deck's slides from the document on every call, so peers' changes show, fits the
+  shown slide to the window and suspends the editor's shortcuts. While it runs, `Workspace` renders
+  the canvas alone, in the same place in the tree so the editor lives on, `components/Presenter.tsx`
+  masks everything outside the slide and takes the pointer, and slides project with no outline or
+  label.
 
 ## Collaboration
 

@@ -8,6 +8,7 @@ import {
   MoveUpRight,
   PanelTop,
   Pencil,
+  Presentation,
   Server,
   Square,
   StickyNote,
@@ -74,6 +75,7 @@ export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [
       { shape: "ellipse", name: "Ellipse", label: "Ellipse", icon: Circle },
       { shape: "decision", name: "Decision", label: "Decision (D)", icon: Diamond },
       { shape: "frame", name: "Frame", label: "Frame", icon: PanelTop },
+      { shape: "slide", name: "Slide", label: "Slide", icon: Presentation },
     ],
   },
   {

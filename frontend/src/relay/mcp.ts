@@ -70,7 +70,7 @@ function registerReading(server: McpServer, session: AgentSession) {
     {
       title: "Describe the canvas",
       description:
-        "Orientation: title, who is here, counts, bounds, styles, an outline of every item and line by id and name, open discussions and saved views.",
+        "Orientation: title, who is here, counts, bounds, styles, an outline of every item and line by id and name, each deck's slides in order, open discussions and saved views.",
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },

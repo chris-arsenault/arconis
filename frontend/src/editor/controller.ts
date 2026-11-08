@@ -4,9 +4,10 @@ import {
   RubberBandHandler,
   PanningHandler,
   VertexHandlerConfig,
+  type ConnectionHandler,
 } from "@maxgraph/core";
 import { CanvasDocument } from "../document/canvasDocument";
-import { LOCAL, isBox, isFrame, isLink, type Item, type View } from "../document/types";
+import { LOCAL, isBox, isFrame, isLink, type Item, type ItemType } from "../document/types";
 import { defaultName, newItemSize, shapeItem, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
@@ -21,7 +22,8 @@ import { LabelMarks } from "./marks";
 import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
 import { configureComposition, endpointFor, syncLineAnchors } from "./topics";
 import type { ScreenSize } from "../document/screens";
-import { createView, fitContents, flyToView } from "./views";
+import { newSlideValues } from "../document/slides";
+import { fitContents } from "./views";
 import { subscribeIcons } from "./icons";
 import { subscribePictures } from "./pictureSource";
 import { configurePanels, containerAt } from "./panels";
@@ -29,6 +31,7 @@ import { compareStacking } from "../document/geometry";
 import { newId } from "../document/ids";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 import { CanvasGrid } from "./grid";
+import { editorStage, Presenter } from "./presenter";
 import { RateLimitedWrite } from "./rateLimitedWrite";
 
 /** How often a selection-frame gesture writes to the document, and so reaches peers. */
@@ -45,6 +48,8 @@ export class EditorController {
   armedScreen: ScreenSize | null = null;
   referencesVisible = false;
   connectionSource = "";
+  /** The deck the last slide placed here joined, which the next one joins too. */
+  lastDeck = "";
   version = 0;
   /** Receives in-progress move and resize boxes so peers can see a drag before it lands. */
   onPreview: (boxes: PreviewBox[] | null) => void = () => {};
@@ -61,6 +66,8 @@ export class EditorController {
   private band: RubberBandHandler;
 
   readonly grid: CanvasGrid;
+  /** This person's presentation of a deck, when one is running. */
+  readonly presenter: Presenter;
   private marks: LabelMarks;
   constructor(
     readonly element: HTMLDivElement,
@@ -70,6 +77,13 @@ export class EditorController {
     VertexHandlerConfig.rotationEnabled = true;
     this.graph = new Graph(element);
     this.grid = new CanvasGrid(this.graph, element);
+    this.presenter = new Presenter(
+      editorStage(this.graph, element, document, {
+        clear: () => this.clearEditing(),
+        project: () => this.project(),
+        emit: this.emit,
+      })
+    );
     this.graph.getDataModel().createId = () => newId((id) => this.document.items.has(id));
     this.graph.setPanning(true);
     this.graph.setConnectable(true);
@@ -179,7 +193,7 @@ export class EditorController {
   private project() {
     this.projecting = true;
     try {
-      projectDocument(this.graph, this.document);
+      projectDocument(this.graph, this.document, this.presenter.active);
     } finally {
       this.projecting = false;
     }
@@ -220,18 +234,28 @@ export class EditorController {
     const left = x ?? centerX + (offset - 80) * size;
     const top = y ?? centerY + (offset - 45) * size;
     const { type, stencil } = shapeItem(shape);
-    const dimensions = newItemSize(shape, view.scale, screen);
+    const slide = this.slideValues(type);
+    const dimensions = newItemSize(shape, view.scale, screen, slide);
     const id = this.document.create(type, left, top, {
       name: screen?.name ?? icon?.title ?? defaultName(shape),
       inside: containerAt(this.document, left, top, dimensions),
       stencil,
       ...creationValues(type, view.scale, stencil),
+      ...slide,
       ...dimensions,
       ...(icon ? { icon: icon.key } : {}),
     });
     this.select(id);
     this.setTool("select");
     return id;
+  }
+
+  /** A new slide's deck, number, place at the back and, in an existing deck, that deck's size. */
+  private slideValues(type: ItemType): Partial<Item> {
+    if (type !== "slide") return {};
+    const values = newSlideValues(this.document.list(), this.selected(), this.lastDeck);
+    this.lastDeck = values.deck ?? "";
+    return values;
   }
 
   selected() {
@@ -261,6 +285,13 @@ export class EditorController {
   closeEditor() {
     this.editId = null;
     this.emit();
+  }
+  /** Leaves selection, inline editing and any armed tool behind, as Escape does. */
+  clearEditing() {
+    this.editId = null;
+    this.graph.clearSelection();
+    this.graph.getPlugin<ConnectionHandler>("ConnectionHandler")?.constraintHandler.reset();
+    this.setTool("select");
   }
   /** Moves the selection above or below everything else in the room. */
   stack(direction: "front" | "back") {
@@ -364,27 +395,6 @@ export class EditorController {
   fit() {
     fitContents(this.graph, this.element, this.document.list());
     this.emit();
-  }
-  savedViews() {
-    return [...this.document.views.values()];
-  }
-  private writeView(view: View) {
-    this.document.doc.transact(() => this.document.views.set(view.id, view), LOCAL);
-  }
-  saveView(name: string) {
-    this.writeView({
-      ...createView(this.graph, this.element, name),
-      id: newId((id) => this.document.views.has(id)),
-    });
-  }
-  renameView(view: View, name: string) {
-    this.writeView({ ...view, name });
-  }
-  removeView(id: string) {
-    this.document.doc.transact(() => this.document.views.delete(id), LOCAL);
-  }
-  goToView(view: View) {
-    flyToView(this.graph, this.element, view);
   }
   destroy() {
     this.destroyed = true;

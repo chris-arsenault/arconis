@@ -61,8 +61,9 @@ room open. The agent appears in the room under its own name, its changes merge l
 anyone's, and its comments are signed with that name. Password rooms and rooms on this device stay
 closed to agents.
 
-Agents can use named styles, subtitles, cards and bands. Named styles show in the property panel's Style
-list, where anyone can apply one, and a subtitle field appears for nodes, cards and bands.
+Agents can use named styles, subtitles, cards, bands and slides, so an agent can write a whole deck in
+one call. Named styles show in the property panel's Style list, where anyone can apply one, and a
+subtitle field appears for nodes, cards and bands.
 
 ## Password rooms
 
@@ -80,12 +81,29 @@ Paste a picture to place it at the pointer, or drop an image file on the canvas.
 proportions when resized. While collaboration is off, a picture stays on this device and uploads when
 it returns. In a device-only room, pictures never leave the browser. Exported files carry their pictures.
 
+## Slides and presenting
+
+A slide is a fixed-size viewport over the canvas. Click the Slide stencil, then the canvas, to place
+one behind everything there; it joins the deck of the selected slide, or the deck you last added to,
+with the next number, and takes that deck's size. Drag and resize it over whatever it should show;
+resizing keeps its proportions, and the property panel's Slide section sets its deck, number and
+size, Wide 16:9 or Standard 4:3. Its label shows the deck and number before its name. Objects placed
+or dropped on a slide move with it, and deleting a slide deletes them, as with any object that holds
+others.
+
+The Slides list in the left rail shows each deck's slides in number order; click one to fly to it.
+Present, on a deck in the rail or in a slide's property panel, shows the canvas alone with the slide
+filling the window and everything outside it dark. Left and right arrows, Page Up and Page Down, and
+the bar's buttons move through the deck, the bar counts your place, Notes shows the slide's comments
+beside it, and Escape returns to the editor. Changes others make appear while you present.
+
 ## Comments
 
 Select an object or line to comment on it in the property panel, reply, resolve or delete. A line's
-comments sit on the line itself. Everyone in
-the room sees comments, signed with the display name at the time. A label shows `💬` and a count of open
-threads. Comments stay out of undo, and return with their object if its deletion is undone.
+comments sit on the line itself. Enter sends a comment and Shift Enter starts a new line, so a
+slide's speaker notes can run to pages. Everyone in the room sees comments, signed with the display
+name at the time. A label shows `💬` and a count of open threads. Comments stay out of undo, and
+return with their object if its deletion is undone.
 
 ## Icons
 
@@ -126,6 +144,8 @@ to reorder, and adding or removing items closes up the arrangement.
 | Enter | Edit the selection's text |
 | Tab, Alt Enter | Add a branch, add a sibling |
 | Z, with Shift to go back | Zoom into the selection |
+| Left, Right, Page Up, Page Down | Previous and next slide while presenting |
+| Escape | Finish editing, or leave a presentation |
 
 ## Rooms and sharing
 

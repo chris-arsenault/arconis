@@ -1,6 +1,7 @@
 import { defaultSize, type CanvasDocument } from "../document/canvasDocument";
 import { branchPlacement, tidyBranch } from "../document/relations";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
+import { DEFAULT_DECK, nextSlideNumber } from "../document/slides";
 import { declareStyle, describeItem, matchSizes } from "./describe";
 import { routeLineAround } from "./routes";
 import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
@@ -160,6 +161,7 @@ class Writer {
     };
     draft.add(item, statement.id);
     this.describe(item, statement.attributes, statement.line);
+    if (item.type === "slide") this.placeInDeck(item);
     this.defaultSize(item);
     this.matchSizes(item, statement.attributes, statement.line);
     // A band over items is sized once they are all placed; one read from a file has its own box.
@@ -177,6 +179,15 @@ class Writer {
       width: this.explicitSize.has(`${item.id} width`),
       height: this.explicitSize.has(`${item.id} height`),
     };
+  }
+
+  /** A new slide joins the default deck unless told otherwise, and takes the next number. */
+  private placeInDeck(item: Item) {
+    item.deck ||= DEFAULT_DECK;
+    item.slide ??= nextSlideNumber(
+      [...this.draft.items.values()].filter((other) => other.id !== item.id),
+      item.deck
+    );
   }
 
   private defaultSize(item: Item) {

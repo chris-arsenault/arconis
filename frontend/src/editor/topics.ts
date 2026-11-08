@@ -16,13 +16,14 @@ import {
 } from "../document/relations";
 import { LOCAL, isBox, type Item } from "../document/types";
 import type { EditorController } from "./controller";
-import { flyToView } from "./views";
-import { clampScale, creationSize, creationValues } from "./zoom";
+import { fittingView, flyToView } from "./views";
+import { creationSize, creationValues } from "./zoom";
 
 const ANCHOR_PIXELS = 14;
 /** How much of the window an object fills after zooming into it. */
 const ZOOM_FILL = 0.8;
 const JUMP_FILL = 0.3;
+const SLIDE_FILL = 0.9;
 
 function isLine(item: Item) {
   return !isBox(item);
@@ -157,11 +158,7 @@ export function tidySelection(editor: EditorController) {
 
 function flyTo(editor: EditorController, item: Item, fill: number) {
   const { element, graph } = editor;
-  const zoom = clampScale(
-    Math.min((element.clientWidth * fill) / item.width, (element.clientHeight * fill) / item.height)
-  );
-  const center = { x: item.x + item.width / 2, y: item.y + item.height / 2 };
-  flyToView(graph, element, { id: "", name: "", center, zoom });
+  flyToView(graph, element, fittingView(item, element, fill));
 }
 
 /** Zooms until the selection fills the window, revealing whatever it holds. */
@@ -187,6 +184,14 @@ export function jumpTo(editor: EditorController, id: string) {
   if (!item) return;
   editor.select(id);
   flyTo(editor, item, JUMP_FILL);
+}
+
+/** Selects a slide and flies to it with a little canvas showing around it. */
+export function goToSlide(editor: EditorController, id: string) {
+  const slide = editor.document.get(id);
+  if (!slide) return;
+  editor.select(id);
+  flyTo(editor, slide, SLIDE_FILL);
 }
 
 /** Moves objects with anything they hold, as one undo step. */

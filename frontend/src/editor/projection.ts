@@ -17,7 +17,7 @@ function safeParent(item: Item, all: Map<string, Item>) {
   return item.inside;
 }
 
-export function projectDocument(graph: Graph, document: CanvasDocument) {
+export function projectDocument(graph: Graph, document: CanvasDocument, presenting = false) {
   const model = graph.getDataModel();
   const all = new Map(document.list().map((item) => [item.id, item]));
   const parent = graph.getDefaultParent();
@@ -40,7 +40,7 @@ export function projectDocument(graph: Graph, document: CanvasDocument) {
     const paths = [...all.values()].filter((item) => !isBox(item));
     for (const item of [...boxes, ...paths]) {
       const parentId = safeParent(item, all);
-      updateCell(graph, document, item, model.getCell(parentId) || parent, all);
+      updateCell(graph, document, item, model.getCell(parentId) || parent, all, presenting);
     }
     applyStacking(graph, all);
   } finally {
@@ -66,13 +66,14 @@ function updateCell(
   document: CanvasDocument,
   item: Item,
   parent: Cell,
-  all: Map<string, Item>
+  all: Map<string, Item>,
+  presenting: boolean
 ) {
   const model = graph.getDataModel();
   const cell = model.getCell(item.id)!;
   if (cell.parent !== parent) model.add(parent, cell);
   if (cell.value !== item.name) model.setValue(cell, item.name);
-  const style = objectStyle(item, document.namedStyle(item.style));
+  const style = objectStyle(item, document.namedStyle(item.style), presenting);
   if (!stylesEqual(style, cell.getStyle())) model.setStyle(cell, style);
   if (isLink(item)) attachTerminals(graph, item, cell);
   const origin = all.get(cell.parent!.id!) || { x: 0, y: 0 };

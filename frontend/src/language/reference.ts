@@ -85,6 +85,12 @@ An item's own look applies over its style. Restating a style replaces it everywh
 - tidy <id> lays out a mind map's topics under the given topic.
 - title "Canvas name" renames the canvas.
 
+## Slides
+
+  slide [id] ["name"] deck <deck> [N] [placement] [{ items }]
+
+A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. Its block places items inside it, and it keeps its size. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes.
+
 ## Discussions and views
 
   comment on <id> "text"          start a discussion on an item

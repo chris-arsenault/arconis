@@ -21,6 +21,8 @@ import { objectStyle } from "../editor/styles";
 import { ConnectionControls, Section } from "./ConnectionControls";
 import { AlignControls, ScreenSizeControl, TopicControls } from "./TopicControls";
 import { CommentControls } from "./CommentControls";
+import { SlideControls } from "./SlideControls";
+import { isSlide } from "../document/slides";
 
 type ItemProps = Readonly<{ editor: EditorController; item: Item }>;
 type ChangeLook = (values: Look) => void;
@@ -110,6 +112,7 @@ function SingleItemControls({ editor, item, author }: ItemProps & Readonly<{ aut
           onChange={(event) => editor.document.patch(item.id, { subtitle: event.target.value })}
         />
       )}
+      <SlideControls editor={editor} item={item} />
       <PositionControls editor={editor} item={item} />
       <ScreenSizeControl editor={editor} item={item} />
       <CommentControls editor={editor} item={item} author={author} />
@@ -363,9 +366,9 @@ const GEOMETRY = [
 ] as const;
 
 function GeometryControls({ editor, item }: ItemProps) {
-  const locked = isLockedIcon(item);
+  const locked = isLockedIcon(item) || isSlide(item);
   const setSize = (key: "width" | "height", value: number) => {
-    // Vendor icons scale evenly, so either size field sets both.
+    // Vendor icons and slides scale evenly, so either size field sets both.
     const ratio = key === "width" ? item.height / item.width : item.width / item.height;
     const other = key === "width" ? "height" : "width";
     editor.updateGeometry(item.id, { [key]: value, [other]: value * ratio });

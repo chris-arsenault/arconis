@@ -6,6 +6,10 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Added slides: fixed-proportion viewports placed over the canvas, each in a deck with a number, in
+  the canvas language too, and a presentation of a deck that hides everything but the slide, moves
+  with arrows and shows the slide's comments as speaker notes.
+- Changed comments to allow 20000 characters and several lines.
 - Added Ahara accounts, signed in at auth.ahara.io, with email activation, whose name replaces the
   one typed into rooms.
 - Added saved workspaces available on any device; a password room's saved copy stays encrypted under

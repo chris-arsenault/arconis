@@ -1,6 +1,7 @@
 import * as Y from "yjs";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments } from "../document/comments";
+import { decks } from "../document/slides";
 import { isBox, isLink, type Item } from "../document/types";
 import { LanguageError } from "./lexer";
 import { footprint, intersects, union, type Box } from "./layout";
@@ -73,6 +74,8 @@ export class LanguageSession {
           `// Bounds: at ${round(bounds.x)},${round(bounds.y)} size ${round(bounds.width)},${round(bounds.height)}`
         );
       lines.push(...styleStatements(this.document), "// Outline:", ...outline(items));
+      for (const { deck, slides } of decks(items))
+        lines.push(`// Deck ${quote(deck)}: ${slides.map(slideSummary).join(", ")}`);
       const open = listComments(this.document).filter(
         (comment) => !comment.thread && !comment.resolved
       );
@@ -299,6 +302,13 @@ function changesBetween(before: Snapshot, after: Snapshot) {
 }
 
 const OUTLINE_ARROWS: Partial<Record<Item["type"], string>> = { branch: "=>", reference: "..>" };
+
+/** A slide in a deck listing: its number, id and name. */
+function slideSummary(slide: Item) {
+  const parts = [String(slide.slide ?? 0), slide.id];
+  if (slide.name) parts.push(quote(slide.name));
+  return parts.join(" ");
+}
 
 function outline(items: Item[]) {
   const present = new Set(items.map((item) => item.id));

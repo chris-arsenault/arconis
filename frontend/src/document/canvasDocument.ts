@@ -27,6 +27,7 @@ const BLANK: Omit<Item, "id" | "type"> = {
 export function defaultSize(type: ItemType, stencil = "rectangle"): [number, number] {
   if (type === "note") return [190, 170];
   if (type === "frame") return [320, 220];
+  if (type === "slide") return [1280, 720];
   if (type === "card") return [260, 72];
   if (type === "node" && stencil === "icon") return [64, 64];
   if (type === "node" && stencil === "junction") return [10, 10];

@@ -25,6 +25,13 @@ result into a structured diagram, all in one document with no conversion between
 - Draw freehand on the same canvas, with drawings moving and transforming like other objects.
 - Save named viewport positions.
 
+## Slides
+
+- Place slides over any part of the canvas: fixed-proportion viewports that belong to a deck and
+  carry a number, so a room becomes a deck without copying anything.
+- Present a deck full screen, moving between its slides in order, with the slide's comments as
+  speaker notes.
+
 ## Relationships
 
 Connectors join shape to shape, sticky to sticky and sticky to shape. Every object lives in one

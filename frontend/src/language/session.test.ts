@@ -71,6 +71,19 @@ describe("an agent's session", () => {
     );
     expect(read).toMatch(/\/\/ a overlaps b/);
   });
+
+  it("lists each deck's slides in order when describing the canvas", () => {
+    const document = new CanvasDocument();
+    const session = new LanguageSession(document, "Agent");
+    session.write(`
+      slide s2 "Solution" deck pitch 2 at 1400,0
+      slide s1 "Problem" deck pitch 1 at 0,0 { node a "Pain" }
+      slide intro deck "Q4 Review"
+    `);
+    const described = session.describe();
+    expect(described).toContain('// Deck "Q4 Review": 1 intro');
+    expect(described).toContain('// Deck "pitch": 1 s1 "Problem", 2 s2 "Solution"');
+  });
 });
 
 describe("the reference architecture", () => {

@@ -12,6 +12,7 @@ export type ItemType =
   | "text"
   | "note"
   | "picture"
+  | "slide"
   | "line"
   | "branch"
   | "reference"
@@ -132,6 +133,9 @@ export interface Item {
   picture?: PictureRef;
   /** For frames and groups that keep their contents arranged. */
   arrange?: Arrangement;
+  /** For slides: the deck this slide belongs to, and its number in that deck. */
+  deck?: string;
+  slide?: number;
 }
 
 export interface View {
@@ -153,6 +157,7 @@ const BOX_TYPES = new Set<ItemType>([
   "text",
   "note",
   "picture",
+  "slide",
 ]);
 const LINK_TYPES = new Set<ItemType>(["line", "branch", "reference"]);
 
@@ -188,6 +193,7 @@ const TYPE_LABELS: Record<ItemType, string> = {
   text: "Text",
   note: "Sticky note",
   picture: "Picture",
+  slide: "Slide",
   line: "Line",
   branch: "Branch",
   reference: "Reference",

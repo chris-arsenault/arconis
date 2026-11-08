@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Pencil, Plus, X } from "lucide-react";
+import { Pencil, Play, Plus, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import type { View } from "../document/types";
+import { decks } from "../document/slides";
+import { goToSlide } from "../editor/topics";
+import { flyToView, removeView, renameView, saveCurrentView, savedViews } from "../editor/views";
 import { StencilBrowser } from "./StencilBrowser";
 import { TOOLS } from "./stencils";
 
@@ -23,15 +26,53 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
         ))}
       </div>
       <StencilBrowser editor={editor} />
+      <Decks editor={editor} />
       <SavedViews editor={editor} />
     </aside>
+  );
+}
+
+/** Every deck in the room with its slides in order; clicking a slide flies to it. */
+function Decks({ editor }: Readonly<{ editor: EditorController }>) {
+  const all = decks(editor.document.list());
+  if (!all.length) return null;
+  return (
+    <section className="saved-views" aria-label="Slides">
+      <h3>Slides</h3>
+      {all.map(({ deck, slides }) => (
+        <div className="deck" key={deck} data-testid="deck">
+          <div className="deck-title">
+            <span>{deck}</span>
+            <button
+              className="saved-view-action deck-present"
+              title={`Present ${deck}`}
+              aria-label={`Present ${deck}`}
+              onClick={() => editor.presenter.start(deck)}
+            >
+              <Play size={13} />
+            </button>
+          </div>
+          <div className="saved-view-list">
+            {slides.map((slide) => (
+              <button
+                key={slide.id}
+                className="saved-view-name"
+                onClick={() => goToSlide(editor, slide.id)}
+              >
+                {slide.slide ?? 0} · {slide.name || "Slide"}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
   );
 }
 
 function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
   const [name, setName] = useState("");
   const [renaming, setRenaming] = useState("");
-  const views = editor.savedViews();
+  const views = savedViews(editor.document);
   return (
     <section className="saved-views" aria-label="Saved views">
       <h3>Saved views</h3>
@@ -41,7 +82,10 @@ function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
             <RenameView key={view.id} view={view} editor={editor} onDone={() => setRenaming("")} />
           ) : (
             <div className="saved-view" key={view.id}>
-              <button className="saved-view-name" onClick={() => editor.goToView(view)}>
+              <button
+                className="saved-view-name"
+                onClick={() => flyToView(editor.graph, editor.element, view)}
+              >
                 {view.name}
               </button>
               <button
@@ -56,7 +100,7 @@ function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
                 className="saved-view-action"
                 title={`Remove ${view.name}`}
                 aria-label={`Remove view ${view.name}`}
-                onClick={() => editor.removeView(view.id)}
+                onClick={() => removeView(editor.document, view.id)}
               >
                 <X size={13} />
               </button>
@@ -68,7 +112,7 @@ function SavedViews({ editor }: Readonly<{ editor: EditorController }>) {
         className="save-view"
         onSubmit={(event) => {
           event.preventDefault();
-          editor.saveView(name.trim() || `View ${views.length + 1}`);
+          saveCurrentView(editor, name.trim() || `View ${views.length + 1}`);
           setName("");
         }}
       >
@@ -95,7 +139,7 @@ function RenameView({
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.select(), []);
   const commit = () => {
-    if (name.trim()) editor.renameView(view, name.trim());
+    if (name.trim()) renameView(editor.document, view, name.trim());
     onDone();
   };
   return (

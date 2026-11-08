@@ -33,6 +33,7 @@ const ITEM_TYPES = new Set<string>([
   "text",
   "note",
   "picture",
+  "slide",
   "drawing",
 ]);
 const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both?: boolean }> = {

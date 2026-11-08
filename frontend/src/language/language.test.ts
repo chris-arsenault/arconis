@@ -186,6 +186,50 @@ describe("bands and mistakes", () => {
   });
 });
 
+describe("slides", () => {
+  it("numbers slides in their deck, places their contents inside and keeps their size", () => {
+    const document = canvas(`
+      slide s1 "Problem" deck pitch at 0,0 {
+        node a "Pain"
+        note n "Quote" below a
+      }
+      slide s2 "Solution" deck pitch right of s1
+      slide s3 "Agenda" deck "Q4 Review" 7
+      slide s4 "Plain"
+      slide s5 "Second plain"
+    `);
+    const [s1, s2, s3, s4, s5] = ["s1", "s2", "s3", "s4", "s5"].map((id) => get(document, id));
+    expect(s1).toMatchObject({ deck: "pitch", slide: 1, width: 1280, height: 720 });
+    expect(s2).toMatchObject({ deck: "pitch", slide: 2 });
+    expect(s3).toMatchObject({ deck: "Q4 Review", slide: 7 });
+    expect(s4).toMatchObject({ deck: "deck", slide: 1 });
+    expect(s5).toMatchObject({ deck: "deck", slide: 2 });
+    expect(get(document, "a").inside).toBe("s1");
+    expect(get(document, "n").inside).toBe("s1");
+    expect(get(document, "a").x).toBeGreaterThan(0);
+    expect(s2.x).toBe(1280 + 40);
+  });
+
+  it("refuses a deck on anything but a slide", () => {
+    const document = new CanvasDocument();
+    expect(() => write(document, 'node a "A" deck pitch')).toThrow(/Only a slide/);
+    expect(document.list()).toHaveLength(0);
+  });
+
+  it("prints slides with their deck and number, and reads them back", () => {
+    const document = canvas(`
+      slide s1 "Problem" deck "Q4 Review" 3 at 0,0 { node a "Pain" }
+      edit s1 deck pitch
+    `);
+    const text = printCanvas(document);
+    expect(text).toContain('slide s1 "Problem" deck pitch 3 at 0,0 size 1280,720 {');
+    const copy = new CanvasDocument();
+    importDocument(copy, text);
+    expect(get(copy, "s1")).toMatchObject({ deck: "pitch", slide: 3, width: 1280, height: 720 });
+    expect(get(copy, "a").inside).toBe("s1");
+  });
+});
+
 describe("files", () => {
   const SOURCE = `
     style region line #00a1c9 dashed title top text-color #00a1c9

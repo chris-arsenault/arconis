@@ -229,8 +229,14 @@ h1 em {
 .comment-box {
   flex: 1;
 }
-.comment-box input {
+.comment-box textarea {
+  display: block;
   width: 100%;
+  min-height: 30px;
+  padding: 5px 7px;
+  font-size: 12px;
+  line-height: 1.35;
+  resize: vertical;
 }
 .reference-list {
   list-style: none;
@@ -664,6 +670,147 @@ h1 em {
 .saved-view:hover .saved-view-action,
 .saved-view-action:focus-visible {
   opacity: 1;
+}
+.deck + .deck {
+  margin-top: 6px;
+}
+.deck-present {
+  opacity: 1;
+  color: #5443b3;
+}
+/* Presenting: the canvas alone, with everything outside the slide darkened. */
+.presenting .canvas-surface {
+  background-image: none;
+}
+.presenter-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 4;
+}
+.presenter-mask {
+  position: absolute;
+  box-shadow: 0 0 0 4000px #111219;
+  pointer-events: none;
+}
+.presenter-bar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #1f2130;
+  color: #e6e7ef;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.presenter-bar:hover,
+.presenter-bar:focus-within {
+  opacity: 1;
+}
+.presenter-bar button {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+}
+.presenter-bar button:hover:not(:disabled) {
+  background: #343750;
+}
+.presenter-bar button:disabled {
+  opacity: 0.35;
+}
+.presenter-bar button[aria-pressed="true"] {
+  color: #b6a3ec;
+}
+.presenter-bar > span {
+  min-width: 56px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.presenter-bar > .presenter-divider {
+  min-width: 1px;
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: #3b3e55;
+}
+.presenter-notes {
+  width: 320px;
+  flex-shrink: 0;
+  overflow: auto;
+  padding: 18px 20px;
+  background: #1a1b25;
+  color: #e6e7ef;
+  border-left: 1px solid #2b2d3d;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.presenter-notes h3 {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ea3bd;
+}
+.presenter-notes p {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.presenter-empty {
+  color: #9ea3bd;
+}
+.presenter-note + .presenter-note {
+  padding-top: 10px;
+  border-top: 1px solid #2b2d3d;
+}
+.deck-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  color: #5443b3;
+  font-weight: 600;
+}
+.deck-title span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slide-fields {
+  display: flex;
+  gap: 6px;
+}
+.slide-field {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #7c8497;
+}
+.slide-field input {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.slide-number {
+  flex: 0 0 72px;
 }
 .save-view {
   display: flex;

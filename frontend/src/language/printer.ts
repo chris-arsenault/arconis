@@ -1,5 +1,6 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments, type CanvasComment } from "../document/comments";
+import { deckOf } from "../document/slides";
 import {
   isLink,
   type Arrangement,
@@ -142,7 +143,12 @@ function identity(item: Item) {
   if (item.onLine) parts.push("on", item.onLine);
   if (item.picture) parts.push("hash", item.picture.hash, "format", item.picture.format);
   if (item.picture?.stored) parts.push("stored");
-  return parts;
+  return [...parts, ...deckWords(item)];
+}
+
+/** A slide's deck and number; nothing for other items. */
+function deckWords(item: Item) {
+  return item.type === "slide" ? ["deck", word(deckOf(item)), number(item.slide ?? 0)] : [];
 }
 
 /** A kept arrangement: `row`, `column` or `grid N`, then how members line up and their gap. */
