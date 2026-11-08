@@ -15,7 +15,7 @@ export function refreshInkView(
 ) {
   const items = [...underlays(document.list()), ...document.list()];
   const byId = new Map(items.map((item) => [item.id, item]));
-  const clips = drawingClips(graph, items, document.doc.clientID);
+  const clips = drawingClips(graph, items, document);
   const gradients = createDefinitions(graph, "ink-gradients");
   const selected = new Set(graph.getSelectionCells().map((cell) => cell.id));
   for (const item of items) {
@@ -61,14 +61,14 @@ function passesPointer(item: Item, parent: Item | null, lasso: boolean, active: 
 }
 
 /** SVG clipping is derived from canonical bounds and world coordinates, never saved as document data. */
-function drawingClips(graph: Graph, items: Item[], clientId: number) {
+function drawingClips(graph: Graph, items: Item[], document: CanvasDocument) {
   const defs = createDefinitions(graph, "ink-clips");
   const ids = new Map<string, string>();
   for (const item of items.filter((item) => item.type === "sketch")) {
     const cell = graph.getDataModel().getCell(item.id);
     const state = cell ? graph.view.getState(cell) : null;
     if (!state) continue;
-    const id = `drawing-${clientId}-${item.id}`;
+    const id = `drawing-${document.doc.clientID}-${item.id}`;
     const clip = window.document.createElementNS(defs.namespaceURI, "clipPath");
     clip.setAttribute("id", id);
     clip.setAttribute("clipPathUnits", "userSpaceOnUse");
@@ -77,7 +77,7 @@ function drawingClips(graph: Graph, items: Item[], clientId: number) {
       rect.setAttribute(key, String(state[key]));
     rect.setAttribute(
       "transform",
-      `rotate(${item.look.rotation ?? 0} ${state.x + state.width / 2} ${state.y + state.height / 2})`
+      `rotate(${effectiveAppearance(item, document.namedStyle(item.style)).rotation} ${state.x + state.width / 2} ${state.y + state.height / 2})`
     );
     clip.append(rect);
     defs.append(clip);

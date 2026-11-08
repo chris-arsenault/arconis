@@ -11,8 +11,9 @@ it("projects clipped, gradient Drawing contents into slide templates without cre
     name: "template-drawing.arconis",
     mimeType: "text/plain",
     buffer: Buffer.from(`arconis 1
+    style turned rotate 90
     slide template "Template" deck pitch 0 at 0,0 size 500,300 {
-      sketch sketch "Diagram" at 40,40 size 300,200 {
+      sketch sketch "Diagram" at 40,40 size 300,200 turned {
         drawing stroke points 50,50 380,50 380,160 50,160 50,50 closed fill #ff0000 gradient #0000ff
       }
     }
@@ -22,6 +23,13 @@ it("projects clipped, gradient Drawing contents into slide templates without cre
   const canvas = page.getByTestId("canvas");
   await expect.poll(() => canvas.locator("defs.ink-clips clipPath").count()).toBe(2);
   await expect.poll(() => canvas.locator("defs.ink-gradients linearGradient").count()).toBe(2);
+  expect(
+    await canvas
+      .locator("defs.ink-clips rect")
+      .evaluateAll((nodes) =>
+        nodes.every((node) => node.getAttribute("transform")?.startsWith("rotate(90 "))
+      )
+  ).toBe(true);
   const clips = await canvas
     .locator("g[clip-path]")
     .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("clip-path")));

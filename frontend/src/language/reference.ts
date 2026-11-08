@@ -109,6 +109,8 @@ ink freehand|line|arrow|double-arrow|rectangle|ellipse|polygon|bracket|brace|clo
 
 Markup is shared, saved and undoable, with no expiration. Visibility and the currently edited Drawing are personal editor state, not shared language fields. Drawing edits use the existing atomic write and agent-local undo. A saved file and MCP read return these exact records.
 
+Editing an existing sketch's size or rotation transforms its contents with it; file declarations keep their points exactly as written. Markup and paths held by a sketch cannot be connector endpoints. Remove their connectors in the same write before converting connected paths; an invalid conversion rejects the whole write without changing the canvas.
+
 ## Slides
 
   slide [id] ["name"] deck <deck> [N] [placement] [{ items }]

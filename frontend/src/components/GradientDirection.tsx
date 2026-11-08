@@ -35,7 +35,9 @@ export function GradientDirection({ editor }: Readonly<{ editor: EditorControlle
     const gesture = gradientGesture(editor.document, item.id);
     const move = (pointer: PointerEvent) => {
       const point = editor.worldPoint(pointer);
-      const degrees = (Math.atan2(point.y - cy, point.x - cx) * 180) / Math.PI;
+      const degrees =
+        (Math.atan2((point.y - cy) / (box.height || 1), (point.x - cx) / (box.width || 1)) * 180) /
+        Math.PI;
       gesture.move(pointer.shiftKey ? Math.round(degrees / 15) * 15 : degrees);
     };
     const finish = () => {

@@ -1,5 +1,5 @@
 import { isBox, type InkKind, type Item, type Look, type PathPoint } from "./types";
-import { authoredLook } from "./appearance";
+import { authoredLook, effectiveAppearance } from "./appearance";
 
 export const INK_KINDS: InkKind[] = [
   "freehand",
@@ -39,6 +39,22 @@ export function inkBounds(points: PathPoint[]) {
     bottom = Math.max(bottom, py);
   }
   return { x, y, width: right - x, height: bottom - y };
+}
+
+/** Painted bounds include stroke width and arrowheads, resolved through semantic appearance. */
+export function inkPaintBounds(items: Item[], lookOf: (item: Item) => Look = (item) => item.look) {
+  return inkBounds(
+    items.flatMap((item): PathPoint[] => {
+      const box = inkBounds(item.points);
+      const look = effectiveAppearance(item, lookOf(item));
+      const arrow = look.arrow !== "none" || look.startArrow !== "none" ? 6 : 0;
+      const inset = look.line === "none" ? 0 : (look.lineWidth / 2 + arrow) * look.scale;
+      return [
+        [box.x - inset, box.y - inset],
+        [box.x + box.width + inset, box.y + box.height + inset],
+      ];
+    })
+  );
 }
 
 /** A highlight derives its outline from the target; stored target geometry is never copied. */

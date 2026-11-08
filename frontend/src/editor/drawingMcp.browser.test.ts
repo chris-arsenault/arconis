@@ -100,6 +100,51 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
   }
 });
 
+it("uses collective Drawing transforms through MCP and rejects connected markup transitions atomically", async () => {
+  const room = createRoomId();
+  const page = await open(await browser.newContext(), room);
+  const peer = await open(await browser.newContext(), room);
+  const agent = await connectAgent();
+  const call = async (name: string, args: Record<string, unknown> = {}) =>
+    JSON.stringify(await agent.client.callTool({ name, arguments: args }));
+  try {
+    await call("open_room", { room });
+    expect(
+      await call("write", {
+        statements: `sketch s at 0,0 size 100,100 {
+      drawing p points 10,10 90,90 closed fill #ff0000 gradient #0000ff gradient-angle 20
+    }
+    drawing legacy points 300,300 400,400
+    note n "Human note" at 500,300
+    legacy -> n as wire`,
+      })
+    ).toContain("Done");
+    await expect.poll(async () => (await exported(peer)).objects.length).toBe(5);
+    const original = (await exported(page)).text;
+    expect(await call("write", { statements: "edit legacy markup" })).toContain(
+      "Remove connector wire"
+    );
+    expect((await exported(peer)).text).toBe(original);
+    expect(
+      await call("write", { statements: "edit s size 200,100 rotate 90 at 200,300" })
+    ).toContain("Done");
+    await expect
+      .poll(async () => (await exported(peer)).objects.find((item) => item.id === "p")?.points)
+      .toEqual([
+        [340, 270],
+        [260, 430],
+      ]);
+    expect((await exported(peer)).objects.find((item) => item.id === "p")?.look.gradientAngle).toBe(
+      110
+    );
+    await call("undo");
+    await expect.poll(async () => (await exported(peer)).text).toBe(original);
+    expect(errors).toEqual([]);
+  } finally {
+    await agent.close();
+  }
+});
+
 function gradientPixels(page: Page, png: Buffer) {
   return page.evaluate(async (data) => {
     const image = new Image();

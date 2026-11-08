@@ -1,6 +1,8 @@
 import { expect, it } from "vitest";
 import { CanvasDocument } from "./canvasDocument";
 import { highlighted } from "./ink";
+import { pointInBox } from "./geometry";
+import { effectiveAppearance } from "./appearance";
 
 it("derives highlight bounds and stroke scale from tiny targets while preserving explicit style overrides", () => {
   const canvas = new CanvasDocument();
@@ -18,4 +20,14 @@ it("derives highlight bounds and stroke scale from tiny targets while preserving
   expect(derived.look).toMatchObject({ scale: 0.001, rotation: 45 });
   expect(outline.look).toEqual({});
   expect(highlighted(outline, targets, new Set(), { scale: 0.5 }).look.scale).toBe(0.5);
+});
+
+it("picks the displayed rotated target and rejects its former unrotated footprint", () => {
+  const canvas = new CanvasDocument();
+  const target = canvas.build("node", 200, 200, { width: 200, height: 40 });
+  const look = effectiveAppearance(target, { rotation: 90 });
+  expect(pointInBox(target, [300, 150], look)).toBe(true);
+  expect(pointInBox(target, [250, 220], look)).toBe(false);
+  expect(pointInBox(target, [300, 300], look)).toBe(true);
+  canvas.destroy();
 });

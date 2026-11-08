@@ -1,8 +1,8 @@
 import type { CanvasDocument } from "../document/canvasDocument";
-import { inkBounds, isMarkup } from "../document/ink";
+import { inkPaintBounds, isMarkup } from "../document/ink";
 import type { Item } from "../document/types";
 import { inkAction } from "./inkCommands";
-import { transformObjects } from "../document/transform";
+import { drawingTransform, transformObjects } from "../document/transform";
 import { selectedItems } from "../document/relations";
 import { authoredLook } from "../document/appearance";
 import { creationOffset, creationValues } from "./zoom";
@@ -17,7 +17,7 @@ export function makeDrawing(
   const factor = creationOffset(scale),
     padding = 12 * factor;
   const bounds = paths.length
-    ? inkBounds(paths.flatMap((item) => item.points))
+    ? inkPaintBounds(paths, (item) => canvas.namedStyle(item.style))
     : {
         x: position.x - 200 * factor,
         y: position.y - 150 * factor,
@@ -52,7 +52,7 @@ export function fitDrawing(canvas: CanvasDocument, sketch: Item) {
     .list()
     .filter((item) => item.inside === sketch.id && item.type === "drawing");
   if (!paths.length) return;
-  const box = inkBounds(paths.flatMap((item) => item.points));
+  const box = inkPaintBounds(paths, (item) => canvas.namedStyle(item.style));
   const padding = 12 * (authoredLook(sketch, canvas.namedStyle(sketch.style)).scale ?? 1);
   inkAction(canvas, () =>
     canvas.patch(sketch.id, {
@@ -73,22 +73,15 @@ export function resizeDrawing(
   value: number
 ) {
   const items = selectedItems(canvas.list(), [sketch.id]);
+  const look = authoredLook(sketch, canvas.namedStyle(sketch.style));
   const transformed = transformObjects(
     items,
-    {
-      anchor: { x: sketch.x, y: sketch.y },
-      scaleX: key === "width" ? value / sketch.width : 1,
-      scaleY: key === "height" ? value / sketch.height : 1,
-      angle: 0,
-    },
+    drawingTransform(sketch, { ...sketch, [key]: value }, look, look),
     (item) => authoredLook(item, canvas.namedStyle(item.style))
   );
   inkAction(canvas, () =>
-    transformed.forEach(({ rotation, gradientAngle, ...geometry }, id) =>
-      canvas.patch(id, {
-        ...geometry,
-        look: { rotation, ...(gradientAngle === undefined ? {} : { gradientAngle }) },
-      })
+    transformed.forEach(({ x, y, width, height, points }, id) =>
+      canvas.patch(id, { x, y, width, height, points })
     )
   );
 }

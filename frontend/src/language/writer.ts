@@ -31,8 +31,8 @@ import type {
 } from "./syntax";
 import { isConversation, type Conversation } from "./effects";
 import { attributesFor } from "./attributeRouting";
-import { drawingIssue } from "../document/ink";
 import { canConnect } from "../document/capabilities";
+import { checkDrawings, reshapeDrawing } from "./drawing";
 
 export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
@@ -114,15 +114,8 @@ class Writer {
       const line = draft.items.get(id)!;
       Object.assign(line, routeLineAround(all, line, (item) => draft.lookOf(item)) ?? {});
     }
-    this.checkDrawings();
+    checkDrawings(draft);
     return { ...draft.commit(), pictures: this.pictures };
-  }
-
-  private checkDrawings() {
-    for (const item of this.draft.items.values()) {
-      const problem = drawingIssue(item, this.draft.items.get(item.inside));
-      if (problem) throw new LanguageError(`${item.id}: ${problem}`, 1);
-    }
   }
 
   statement(statement: Statement, scope: Scope) {
@@ -361,6 +354,7 @@ class Writer {
       );
     const { draft } = this;
     const item = draft.item(statement.ref, statement.line);
+    const before = item.type === "sketch" ? { ...item, look: draft.lookOf(item) } : null;
     if (statement.name !== undefined) item.name = statement.name;
     if (statement.subtitle !== undefined) item.subtitle = statement.subtitle;
     if (isLink(item)) {
@@ -369,6 +363,7 @@ class Writer {
     }
     this.describe(item, statement.attributes, statement.line);
     this.matchSizes(item, statement.attributes, statement.line);
+    reshapeDrawing(draft, before, item);
     const movesIn = scope.nested && item.inside !== scope.holder;
     if (movesIn) item.inside = scope.holder;
     if (movesIn || attributesFor(statement.attributes, "item", "holder").length)

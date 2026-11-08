@@ -1,9 +1,9 @@
 import type { EditorController } from "./controller";
 import { isClosedInk, shapePoints } from "../document/ink";
-import { pathDistance } from "../document/inkHit";
-import { simplifyPath } from "../document/geometry";
+import { pointInBox, simplifyPath } from "../document/geometry";
+import { effectiveAppearance } from "../document/appearance";
 import { isBox, type InkKind, type PathPoint } from "../document/types";
-import { addInk, inkAction, eraseInk, type InkSettings } from "./inkCommands";
+import { addInk, eraseWholeInk, eraseInk, type InkSettings } from "./inkCommands";
 import { creationOffset, roundForScale } from "./zoom";
 
 /** Pointer previews are local; completed gestures call application commands. */
@@ -96,10 +96,11 @@ class DrawingGesture {
           isBox(item) &&
           !item.markup &&
           item.type !== "highlight" &&
-          point[0] >= item.x &&
-          point[1] >= item.y &&
-          point[0] <= item.x + item.width &&
-          point[1] <= item.y + item.height
+          pointInBox(
+            item,
+            point,
+            effectiveAppearance(item, this.editor.document.namedStyle(item.style))
+          )
       );
     this.editor.drawing.click(point, target?.id);
   }
@@ -127,7 +128,13 @@ class DrawingGesture {
     const { editor } = this,
       { mode, shape } = editor.drawing.settings;
     if (mode === "lasso") editor.drawing.lasso(this.points, event.shiftKey);
-    else if (mode === "eraser") this.erase();
+    else if (mode === "eraser")
+      eraseWholeInk(
+        editor.document,
+        editor.drawing.candidates(),
+        this.points,
+        editor.drawing.radius()
+      );
     else if (mode === "precision")
       eraseInk(editor.document, editor.drawing.candidates(), this.points, editor.drawing.radius(2));
     else if (this.points.length > 1)
@@ -140,15 +147,6 @@ class DrawingGesture {
       );
     this.cancel();
   };
-  private erase() {
-    const { editor } = this;
-    const radius = editor.drawing.radius();
-    const ids = editor.drawing
-      .candidates()
-      .filter((item) => this.points.some((point) => pathDistance(point, item.points) <= radius))
-      .map((item) => item.id);
-    inkAction(editor.document, () => editor.document.remove(ids));
-  }
   private key = (event: KeyboardEvent) => {
     if (event.key === "Enter" && this.polygon.length) {
       event.preventDefault();

@@ -80,3 +80,56 @@ it.each(["ink", "target", "markup", "workspace"])(
     expect(serializeDocument(restored)).toBe(text);
   }
 );
+
+it.each(["edit p markup", "sketch s at 0,0 { edit p workspace }"])(
+  "rejects a connected path's invalid transition atomically: %s",
+  (statement) => {
+    const canvas = new CanvasDocument();
+    const agent = new LanguageSession(canvas, "Artist");
+    expect(agent.write("drawing p points 10,10 90,90\nnote n at 300,0\np -> n as wire")).toContain(
+      "Done"
+    );
+    const before = serializeDocument(canvas);
+    expect(agent.write(statement)).toContain("Remove connector wire");
+    expect(serializeDocument(canvas)).toBe(before);
+    expect(agent.write("delete wire\nedit p markup")).toContain("Done");
+    const clean = serializeDocument(canvas, [], undefined, false);
+    expect(clean).not.toContain("wire");
+    const restored = new CanvasDocument();
+    importDocument(restored, clean);
+    expect(restored.list().map((item) => item.type)).toEqual(["note"]);
+    restored.destroy();
+    canvas.destroy();
+  }
+);
+
+it("transforms Drawing contents, gradient and placement together through agent edits and Undo", () => {
+  const canvas = new CanvasDocument();
+  const agent = new LanguageSession(canvas, "Artist");
+  agent.write(`sketch s at 0,0 size 100,100 {
+    drawing p points 10,10 90,90 closed fill #ff0000 gradient #0000ff gradient-angle 20
+  }`);
+  const before = serializeDocument(canvas);
+  expect(agent.write("edit s size 200,100 rotate 90 at 200,300")).toContain("Done");
+  expect(canvas.get("s")).toMatchObject({
+    x: 200,
+    y: 300,
+    width: 200,
+    height: 100,
+    look: { rotation: 90 },
+  });
+  expect(canvas.get("p")?.points).toEqual([
+    [340, 270],
+    [260, 430],
+  ]);
+  expect(canvas.get("p")?.look.gradientAngle).toBe(110);
+  agent.undoLast();
+  expect(serializeDocument(canvas)).toBe(before);
+  expect(agent.write("style turned rotate 90\nedit s turned")).toContain("Done");
+  expect(canvas.get("p")?.points).toEqual([
+    [90, 10],
+    [10, 90],
+  ]);
+  expect(canvas.get("s")?.look).toEqual({});
+  canvas.destroy();
+});

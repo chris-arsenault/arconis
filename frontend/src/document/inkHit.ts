@@ -11,6 +11,7 @@ export function inPolygon([x, y]: PathPoint, polygon: PathPoint[]) {
 }
 
 export function pathDistance(point: PathPoint, points: PathPoint[]) {
+  if (points.length === 1) return Math.hypot(point[0] - points[0][0], point[1] - points[0][1]);
   let best = Infinity;
   for (let i = 1; i < points.length; i++) {
     const [x, y] = points[i - 1],
@@ -28,6 +29,8 @@ export function pathDistance(point: PathPoint, points: PathPoint[]) {
 
 /** Segment crossings count even when neither path has a sampled point at the crossing. */
 export function pathsTouch(first: PathPoint[], second: PathPoint[], radius: number) {
+  if (first.length === 1) return pathDistance(first[0], second) <= radius;
+  if (second.length === 1) return pathDistance(second[0], first) <= radius;
   for (let i = 1; i < first.length; i++)
     for (let j = 1; j < second.length; j++) {
       const a = first[i - 1],

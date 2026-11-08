@@ -413,3 +413,26 @@ Prerequisite branch `ad34ba2e-a7af-40ed-b002-856ffb4576d2` is complete. Shared t
 return only geometry and explicit paint changes; command consumers apply gradient direction
 through Look in the existing transaction. The real rotation gesture restores points and paint
 together in one Undo. Focused domain/command tests and all affected browser journeys pass.
+
+## Post-review corrections
+
+The three independent reviews of `93c63af` found eight correctness gaps despite the initial
+passing checks. The user authorized fixing all eight. Correction plan:
+`183b2e4c-2ad9-4920-accd-e5d9ea3ae53e`; the architecture contract above remains binding.
+
+1. Validate final Draft endpoint eligibility, including existing connectors, before committing
+   markup or Drawing-content conversions. Reject invalid writes atomically; removing a connector
+   and converting in the same write is supported.
+2. Route existing Drawing edits through shared collective transforms, preserving world-coordinate
+   contents, gradient direction and agent Undo. Include actual stroke widths and semantic scale
+   in promotion/Fit bounds. Numeric UI resizing must preserve sparse authored appearance.
+3. Use segment intersection for whole-stroke erasing, inverse-rotated target geometry for
+   highlighting, drawing-path eligibility for recoloring, normalized coordinates for gradient
+   dragging and resolved named appearance for Drawing clips.
+4. Exercise these outcomes through domain/application regressions, real pointer gestures,
+   rendered pixels, template underlays and MCP HTTP across independent browser contexts.
+   Run required CI/build checks and have the original three reviewers inspect the fixes.
+
+All eight corrections are implemented. The three original reviewers clear their assigned
+findings, including the related numeric-resize appearance correction. Final `make ci` passes
+416 unit tests, `make build` passes, and all 30 affected browser tests across eight files pass.

@@ -1,4 +1,4 @@
-import type { Item, PathPoint } from "./types";
+import type { Item, Look, PathPoint } from "./types";
 
 export const ICON_VENDORS = ["aws", "azure", "gcp"] as const;
 export type IconVendor = (typeof ICON_VENDORS)[number];
@@ -16,6 +16,17 @@ export function isLockedIcon(item: Pick<Item, "icon">) {
 export function offsetPoints(points: PathPoint[], x: number, y: number): PathPoint[] {
   if (!x && !y) return points;
   return points.map(([px, py]) => [px + x, py + y]);
+}
+
+/** Tests the displayed box by undoing its semantic rotation around the center. */
+export function pointInBox(item: Item, [x, y]: PathPoint, look: Look = item.look) {
+  const angle = isLockedIcon(item) ? 0 : -((look.rotation ?? 0) * Math.PI) / 180;
+  const dx = x - item.x - item.width / 2,
+    dy = y - item.y - item.height / 2;
+  return (
+    Math.abs(dx * Math.cos(angle) - dy * Math.sin(angle)) <= item.width / 2 &&
+    Math.abs(dx * Math.sin(angle) + dy * Math.cos(angle)) <= item.height / 2
+  );
 }
 
 export function compareStacking(left: Item, right: Item) {

@@ -88,7 +88,23 @@ export function clearInk(canvas: CanvasDocument) {
 }
 
 export function recolorInk(canvas: CanvasDocument, items: Item[], color: string) {
-  inkAction(canvas, () => items.forEach((item) => canvas.patchLook(item.id, { line: color })));
+  inkAction(canvas, () =>
+    items
+      .filter((item) => item.type === "drawing")
+      .forEach((item) => canvas.patchLook(item.id, { line: color }))
+  );
+}
+
+export function eraseWholeInk(
+  canvas: CanvasDocument,
+  items: Item[],
+  sweep: PathPoint[],
+  radius: number
+) {
+  const ids = items
+    .filter((item) => item.type === "drawing" && pathsTouch(item.points, sweep, radius))
+    .map((item) => item.id);
+  inkAction(canvas, () => canvas.remove(ids));
 }
 
 export function fillInk(canvas: CanvasDocument, item: Item, settings: InkSettings) {

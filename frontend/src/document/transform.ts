@@ -8,6 +8,8 @@ export interface SelectionTransform {
   scaleY: number;
   /** Clockwise degrees around the anchor. */
   angle: number;
+  /** Translation after scaling and rotation, used when a holder's center changes. */
+  offset?: { x: number; y: number };
 }
 export type TransformedObject = Pick<Item, "x" | "y" | "width" | "height" | "points"> & {
   rotation: number;
@@ -45,14 +47,37 @@ export function transformObjects(
   return result;
 }
 
-function pointTransform({ anchor, scaleX, scaleY, angle }: SelectionTransform) {
+/** Reshaping a Drawing carries its ink from the old bounds into the new bounds. */
+export function drawingTransform(
+  before: Item,
+  after: Item,
+  beforeLook: Look,
+  afterLook: Look
+): SelectionTransform {
+  const anchor = { x: before.x + before.width / 2, y: before.y + before.height / 2 };
+  return {
+    anchor,
+    scaleX: before.width ? after.width / before.width : 1,
+    scaleY: before.height ? after.height / before.height : 1,
+    angle: (afterLook.rotation ?? 0) - (beforeLook.rotation ?? 0),
+    offset: { x: after.x + after.width / 2 - anchor.x, y: after.y + after.height / 2 - anchor.y },
+  };
+}
+
+function pointTransform({
+  anchor,
+  scaleX,
+  scaleY,
+  angle,
+  offset = { x: 0, y: 0 },
+}: SelectionTransform) {
   const radians = (angle * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
   return ([x, y]: PathPoint): PathPoint => {
     const dx = (x - anchor.x) * scaleX;
     const dy = (y - anchor.y) * scaleY;
-    return [anchor.x + dx * cos - dy * sin, anchor.y + dx * sin + dy * cos];
+    return [anchor.x + dx * cos - dy * sin + offset.x, anchor.y + dx * sin + dy * cos + offset.y];
   };
 }
 

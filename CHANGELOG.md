@@ -12,6 +12,10 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Fix Drawing transforms through MCP, connector isolation during markup conversion, wide-stroke
+  promotion bounds, sparse eraser sweeps, rotated highlight picking, drawing-only recolor,
+  gradient handles and named-style clipping. Numeric resizing preserves inherited appearance.
+
 - Added shared markup with pen widths, highlighter, attached object outlines, drag-oriented
   arrows and common shapes, lasso selection and whole/partial erasing. Promote markup into
   editable Drawing objects, use closed fills and gradients, and export with or without markup.
