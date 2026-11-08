@@ -6,6 +6,11 @@ All notable user-visible changes are recorded here.
 
 ### Agents
 
+- Added explicit room sessions: `open_room` returns `session_id`, required by describe, read, write,
+  undo and the new `close_room` tool. Room and edit history survive MCP reconnections and repeated
+  initialization; tool calls also work without an initialization handshake or transport session header.
+  Sessions remain caller-owned and memory-only, expiring after 30 minutes unused or relay replacement.
+
 - Added discoverable canvas-language help with complete topic reads, replacing the full manual at
   connection time. MCP refusals signal errors and explain recovery; unexpected failures return
   references matched to server diagnostics. Relay journals ship to Ahara's shared logging stack.

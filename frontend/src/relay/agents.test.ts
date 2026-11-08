@@ -1,120 +1,8 @@
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CollaborationProvider } from "../collaboration/provider";
-import type { ConnectionState, FrameChannel } from "../collaboration/channel";
-import { CanvasDocument } from "../document/canvasDocument";
-import { attachRelay } from "./attach";
-import { AgentGateway, type McpConfig } from "./mcpHttp";
-import { Relay } from "./relay";
+import { describe, expect, it, vi } from "vitest";
+import { AgentGateway } from "./mcpHttp";
 import { AgentSession } from "./agentSession";
 import { LANGUAGE_REFERENCE } from "../language/reference";
-
-const ROOM = "a".repeat(48);
-const config: McpConfig = {
-  resource: "https://relay.example/mcp",
-  issuer: "https://auth.example/",
-};
-const TOKENS: Record<string, string> = { alice: "user-alice", bob: "user-bob" };
-
-/** A person's browser in miniature: the real provider over a real socket to the relay. */
-class SocketTransport implements FrameChannel {
-  onMessage: (message: string) => void = () => {};
-  onReady = () => {};
-  onStatus: (state: ConnectionState, detail?: string) => void = () => {};
-  private socket: WebSocket | null = null;
-  constructor(private url: string) {}
-  connect() {
-    this.socket = new WebSocket(this.url);
-    this.socket.onopen = () => this.onReady();
-    this.socket.onmessage = (event: MessageEvent<string>) => {
-      if (!event.data.startsWith('{"relay"')) this.onMessage(event.data);
-    };
-  }
-  send(message: string) {
-    if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(message);
-  }
-  close() {
-    this.socket?.close();
-  }
-}
-
-let server: Server;
-let base = "";
-let relay: Relay;
-let gateway: AgentGateway;
-const cleanups: (() => unknown)[] = [];
-
-beforeEach(async () => {
-  vi.spyOn(console, "info").mockImplementation(() => {});
-  vi.spyOn(console, "warn").mockImplementation(() => {});
-  relay = new Relay({
-    now: Date.now,
-    stop: () => {},
-    withinBudget: () => Promise.resolve(true),
-    uploads: null,
-  });
-  gateway = new AgentGateway(
-    () => relay,
-    config,
-    (token) =>
-      Promise.resolve(
-        TOKENS[token] ? { user: TOKENS[token], clientId: "agents", scopes: [] } : null
-      )
-  );
-  server = createServer((request, response) => {
-    void gateway.handle(request, response).then((handled) => {
-      if (!handled) response.writeHead(404).end();
-    });
-  });
-  const sockets = attachRelay(server, () => relay, { allowedOrigin: null, accepting: () => true });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  cleanups.push(() => {
-    gateway.close();
-    sockets.clients.forEach((socket) => socket.terminate());
-    return new Promise((resolve) => server.close(resolve));
-  });
-});
-afterEach(async () => {
-  for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
-  vi.restoreAllMocks();
-});
-
-async function person(name = "Alice") {
-  const document = new CanvasDocument();
-  const provider = new CollaborationProvider(
-    document.doc,
-    new SocketTransport(`${base.replace("http", "ws")}/rooms/${ROOM}`),
-    () => {}
-  );
-  provider.awareness.setLocalStateField("user", { name, color: "#000" });
-  provider.connect();
-  await expect.poll(() => relay.peopleIn(ROOM)).toBeGreaterThan(0);
-  cleanups.push(() => {
-    provider.destroy();
-    document.destroy();
-  });
-  return { document, provider };
-}
-
-async function agent(token = "alice") {
-  const client = new Client({ name: "Test Agent", version: "1.0.0" });
-  const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
-    requestInit: { headers: { authorization: `Bearer ${token}` } },
-  });
-  await client.connect(transport);
-  cleanups.push(() => client.close());
-  const call = async (name: string, args: Record<string, unknown> = {}) => {
-    const result = (await client.callTool({ name, arguments: args })) as {
-      content: { text: string }[];
-    };
-    return result.content[0].text;
-  };
-  return { client, call };
-}
+import { ROOM, config, base, relay, agent, person, replaceGateway } from "./agentTestHarness";
 
 function loggedEvents() {
   return [...vi.mocked(console.info).mock.calls, ...vi.mocked(console.warn).mock.calls].map(
@@ -141,30 +29,25 @@ describe("signing in", () => {
   });
 
   it("keeps one user's session from another", async () => {
-    const { client } = await agent("alice");
-    const sessionId = (client.transport as StreamableHTTPClientTransport).sessionId!;
-    const response = await fetch(`${base}/mcp`, {
-      method: "POST",
-      headers: {
-        authorization: "Bearer bob",
-        "mcp-session-id": sessionId,
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-      },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/list" }),
-    });
-    expect(response.status).toBe(404);
+    await person();
+    const alice = await agent("alice");
+    await alice.call("open_room", { room: ROOM });
+    const bob = await agent("bob");
+    expect(await bob.call("read", { session_id: alice.sessionId })).toContain(
+      "unknown or has ended"
+    );
   });
 
   it("reports a verifier outage as a logged service failure, without challenging the bearer", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    gateway.close();
-    gateway = new AgentGateway(
-      () => relay,
-      config,
-      () => {
-        throw new Error("Key service is unavailable");
-      }
+    replaceGateway(
+      new AgentGateway(
+        () => relay,
+        config,
+        () => {
+          throw new Error("Key service is unavailable");
+        }
+      )
     );
     const response = await fetch(`${base}/mcp`, {
       method: "POST",
@@ -190,15 +73,15 @@ it("correlates room state, refusals and closure without logging content or sessi
   const second = await agent();
   expect(await first.call("open_room", { room: ROOM })).toContain("PRIVATE CANVAS CONTENT");
   expect(await first.call("describe_canvas")).toContain("PRIVATE CANVAS CONTENT");
-  expect(await second.call("describe_canvas")).toContain("Open a room first");
-  const sessionId = (first.client.transport as StreamableHTTPClientTransport).sessionId!;
-  await (first.client.transport as StreamableHTTPClientTransport).terminateSession();
+  expect(await second.call("describe_canvas")).toContain("Call open_room");
+  const sessionId = first.sessionId;
+  await first.call("close_room");
   const events = loggedEvents();
-  const created = events.filter((event) => event.event === "mcp_session_created");
-  expect(created).toHaveLength(2);
-  expect(created[0].session).not.toBe(created[1].session);
-  expect(created[0].actorTag).toBe(created[1].actorTag);
-  const finished = events.filter((event) => event.event === "tool_finished");
+  const created = events.filter((event) => event.event === "room_session_created");
+  expect(created).toHaveLength(1);
+  const finished = events.filter(
+    (event) => event.event === "tool_finished" && event.operation !== "close_room"
+  );
   expect(finished).toMatchObject([
     { session: created[0].session, operation: "open_room", outcome: "succeeded", roomOpen: true },
     {
@@ -208,7 +91,7 @@ it("correlates room state, refusals and closure without logging content or sessi
       roomOpen: true,
     },
     {
-      session: created[1].session,
+      session: "none",
       operation: "describe_canvas",
       outcome: "refused",
       roomOpen: false,
@@ -227,9 +110,9 @@ it("correlates room state, refusals and closure without logging content or sessi
   }
   expect(events).toContainEqual(
     expect.objectContaining({
-      event: "mcp_session_ended",
+      event: "room_session_ended",
       session: created[0].session,
-      reason: "client_delete",
+      reason: "client_close",
       roomOpen: true,
     })
   );
@@ -238,17 +121,21 @@ it("correlates room state, refusals and closure without logging content or sessi
     expect(recorded).not.toContain(secret);
 });
 
-it("logs malformed and expired-session requests even when no tool handler runs", async () => {
-  const headers = { authorization: "Bearer alice", "content-type": "application/json" };
+it("logs malformed requests and accepts transport headers without using them as room handles", async () => {
+  const headers = {
+    authorization: "Bearer alice",
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+  };
   expect((await fetch(`${base}/mcp`, { method: "POST", headers, body: "not-json" })).status).toBe(
     400
   );
   const response = await fetch(`${base}/mcp`, {
     method: "POST",
     headers: { ...headers, "mcp-session-id": "private-session-value" },
-    body: "{}",
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
   });
-  expect(response.status).toBe(404);
+  expect(response.status).toBe(200);
   const events = loggedEvents();
   expect(events).toContainEqual(
     expect.objectContaining({
@@ -258,14 +145,7 @@ it("logs malformed and expired-session requests even when no tool handler runs",
     })
   );
   expect(events).toContainEqual(
-    expect.objectContaining({
-      event: "mcp_request_refused",
-      reason: "unknown_or_foreign_session",
-      level: "warn",
-    })
-  );
-  expect(events).toContainEqual(
-    expect.objectContaining({ event: "mcp_http_finished", status: 404 })
+    expect.objectContaining({ event: "mcp_http_finished", status: 200 })
   );
   expect(JSON.stringify(events)).not.toContain("private-session-value");
 });
@@ -310,13 +190,10 @@ describe("agent guidance and failures", () => {
     const { client, call } = await agent();
     const unopened = await client.callTool({ name: "read", arguments: {} });
     expect(unopened).toMatchObject({ isError: true });
-    expect(JSON.stringify(unopened)).toContain("Open a room first");
+    expect(JSON.stringify(unopened)).toContain("session_id");
     await call("open_room", { room: ROOM });
-    const missing = await client.callTool({ name: "read", arguments: { items: ["missing"] } });
-    expect(missing).toMatchObject({ isError: true });
-    expect(JSON.stringify(missing)).toContain("Use describe_canvas");
-    const invalid = await client.callTool({ name: "write", arguments: { statements: "oops" } });
-    expect(invalid).toMatchObject({ isError: true });
+    expect(await call("read", { items: ["missing"] })).toContain("Use describe_canvas");
+    expect(await call("write", { statements: "oops" })).toContain("Nothing was changed");
     expect(log).not.toHaveBeenCalled();
   });
 });
@@ -376,7 +253,7 @@ describe("rooms an agent cannot use", () => {
     expect(await call("open_room", { room: `https://arconis.ahara.io/#local=${ROOM}` })).toMatch(
       /only in one browser/
     );
-    expect(await call("read")).toMatch(/Open a room first with open_room\./);
+    expect(await call("read")).toMatch(/Call open_room/);
   });
 
   it("stops editing once everyone has left, since nothing would be kept", async () => {

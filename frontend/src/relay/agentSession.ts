@@ -37,7 +37,7 @@ const REFUSALS: Record<Exclude<PeerReadiness, "ready">, string> = {
     "Nobody in the room answered. It may be a password room, which agents cannot open, or the people there may have just left.",
 };
 
-/** One agent's connection: the room it has open and its language session there. */
+/** One agent's room and language history, independent of MCP transport connections. */
 export class AgentSession {
   /** Diagnostic correlation only; never an MCP session credential or room identifier. */
   readonly logId = randomUUID();
@@ -58,14 +58,18 @@ export class AgentSession {
     const roomId = parseRoomLink(link);
     this.leave();
     const peer = new ServerPeer(this.relay(), roomId, this.name);
-    const readiness = await peer.start();
-    if (readiness !== "ready") {
-      peer.close();
-      throw new LanguageError(REFUSALS[readiness]);
-    }
     this.peer = peer;
-    this.domain = new LanguageSession(peer.document, this.name);
-    return this.describe();
+    try {
+      const readiness = await peer.start();
+      if (this.peer !== peer)
+        throw new LanguageError("This room session ended while opening. Call open_room again.");
+      if (readiness !== "ready") throw new LanguageError(REFUSALS[readiness]);
+      this.domain = new LanguageSession(peer.document, this.name);
+      return this.describe();
+    } catch (error) {
+      this.leave();
+      throw error;
+    }
   }
 
   describe() {
@@ -106,6 +110,15 @@ export class AgentSession {
     this.domain = null;
     this.peer = null;
   }
+}
+
+/** The participant name supplied when opening a room, independent of initialize metadata. */
+export function agentName(value: string) {
+  const name = value
+    .replace(/[^\w .()-]/g, "")
+    .trim()
+    .slice(0, 40);
+  return `${name || "Agent"} (agent)`;
 }
 
 /** Stencils, and icon keys matching a search, for the icon stencil. */

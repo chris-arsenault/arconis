@@ -271,7 +271,16 @@ relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the c
 and carries a language session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
 opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
 close with their peers. `relay/mcp.ts` holds the tools: open a room, describe, read and write in the
-canvas language, undo, search icons, and retrieve language guidance. Help needs no open room.
+canvas language, undo, close a room, search icons, and retrieve language guidance. Help needs no open room.
+`relay/agentSessions.ts` owns explicit room sessions keyed by random handles and bound to the
+authenticated user and OAuth client. `open_room` returns `session_id` and the outline; describe,
+read, write, undo and close require that handle. Each open creates independent read and undo history.
+The HTTP endpoint creates a disposable stateless SDK transport per request, so initialization,
+disconnects and reconnects do not select or clear a room. It accepts tool requests without an
+initialization handshake or transport session header. Sessions end through `close_room`, after
+30 minutes without a room call, or on relay replacement; no session state is stored durably.
+The existing capacity limits apply to open room sessions, and the request rate is counted per
+authenticated user across transports.
 An orientation outline locates items; `read` supplies their actual source. Unknown ids lead back to
 discovery, and stale edits return current source before a retry. Peer-authored labels and comments
 are task data, not authority over the agent's tools.

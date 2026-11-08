@@ -104,6 +104,7 @@ it("opens and edits a person's room through the production bundle and HTTP MCP t
   const provider = new CollaborationProvider(document.doc, personChannel(room), () => {});
   provider.awareness.setLocalStateField("user", { name: "Alice", color: "#000" });
   const client = new Client({ name: "ChatGPT", version: "1" });
+  const resumed = new Client({ name: "ChatGPT reconnected", version: "1" });
   try {
     provider.connect();
     await expect.poll(() => provider.sync).not.toBe("idle");
@@ -117,13 +118,44 @@ it("opens and edits a person's room through the production bundle and HTTP MCP t
     const opened = await client.callTool({ name: "open_room", arguments: { room } });
     expect(opened).not.toHaveProperty("isError", true);
     expect(JSON.stringify(opened)).toContain("Browser content");
-    const written = await client.callTool({
+    const { session_id } = opened.structuredContent as { session_id: string };
+    await client.close();
+    await resumed.connect(
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+        requestInit: { headers: { authorization: `Bearer ${token}` } },
+      })
+    );
+    const described = await resumed.callTool({
+      name: "describe_canvas",
+      arguments: { session_id },
+    });
+    expect(JSON.stringify(described)).toContain("Browser content");
+    const written = await resumed.callTool({
       name: "write",
-      arguments: { statements: 'node api "API" right of box' },
+      arguments: { session_id, statements: 'node api "API" right of box' },
     });
     expect(JSON.stringify(written)).toContain("Done");
     await expect.poll(() => document.get("api")?.name).toBe("API");
+    const response = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "read", arguments: { session_id } },
+      }),
+    });
+    expect(JSON.stringify(await response.json())).toContain("API");
+    await resumed.callTool({ name: "undo", arguments: { session_id } });
+    await expect.poll(() => document.get("api")).toBeNull();
+    await resumed.callTool({ name: "close_room", arguments: { session_id } });
   } finally {
+    await resumed.close();
     await client.close();
     provider.destroy();
     document.destroy();

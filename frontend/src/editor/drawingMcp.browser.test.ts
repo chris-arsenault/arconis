@@ -23,16 +23,36 @@ async function connectAgent() {
     });
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const client = new Client({ name: "Drawing journey", version: "1" });
-  await client.connect(
+  let client = new Client({ name: "Drawing journey", version: "1" });
+  const transport = () =>
     new StreamableHTTPClientTransport(
       new URL(`http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`),
       { requestInit: { headers: { authorization: "Bearer local-test" } } }
-    )
-  );
+    );
+  await client.connect(transport());
+  let sessionId = "";
+  const call = async (name: string, args: Record<string, unknown> = {}) => {
+    const roomTool = ["describe_canvas", "read", "write", "undo", "close_room"].includes(name);
+    const result = await client.callTool({
+      name,
+      arguments: roomTool ? { session_id: sessionId, ...args } : args,
+    });
+    if (name === "open_room" && !result.isError)
+      sessionId = (result.structuredContent as { session_id: string }).session_id;
+    return JSON.stringify(result);
+  };
   return {
-    client,
+    get client() {
+      return client;
+    },
+    call,
+    reconnect: async () => {
+      await client.close();
+      client = new Client({ name: "Drawing journey resumed", version: "1" });
+      await client.connect(transport());
+    },
     close: async () => {
+      if (sessionId) await call("close_room");
       await client.close();
       gateway.close();
       await new Promise((resolve) => server.close(resolve));
@@ -48,13 +68,14 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
   );
   const peer = await open(await browser.newContext(), room);
   const agent = await connectAgent();
-  const call = async (name: string, args: Record<string, unknown> = {}) =>
-    JSON.stringify(await agent.client.callTool({ name, arguments: args }));
+  const call = agent.call;
   try {
     expect(agent.client.getInstructions()).toContain("canvas_help");
     expect(await call("canvas_help")).toContain("drawings-and-markup");
     expect(await call("canvas_help", { topic: "drawings-and-markup" })).toContain("ink freehand");
     await call("open_room", { room });
+    await agent.reconnect();
+    expect(await call("describe_canvas")).toContain("Outline");
     expect(
       await call("write", {
         statements: `
@@ -69,6 +90,7 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
     await row(page, "Agent Drawing").click();
     await page.getByLabel("Object text", { exact: true }).fill("Human Drawing");
     await page.getByLabel("Object text", { exact: true }).press("Control+Enter");
+    await agent.reconnect();
     expect(await call("read", { items: ["p"] })).toContain("gradient #0000ff");
     expect(await call("write", { statements: "edit p line #ffcc00 line-width 6" })).toContain(
       "Done"
@@ -105,8 +127,7 @@ it("uses collective Drawing transforms through MCP and rejects connected markup 
   const page = await open(await browser.newContext(), room);
   const peer = await open(await browser.newContext(), room);
   const agent = await connectAgent();
-  const call = async (name: string, args: Record<string, unknown> = {}) =>
-    JSON.stringify(await agent.client.callTool({ name, arguments: args }));
+  const call = agent.call;
   try {
     await call("open_room", { room });
     expect(
