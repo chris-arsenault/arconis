@@ -42,12 +42,32 @@ resource "auth0_connection" "arconis" {
 
   options {
     disable_signup         = false
-    requires_username      = false
     brute_force_protection = true
     password_policy        = "fair"
 
     password_complexity_options {
       min_length = 12
+    }
+
+    # People sign in with their email, and sign-up asks for the code Auth0 emails them before it
+    # finishes, so a new account arrives verified (ahara-infra turns on identifier-first login).
+    attributes {
+      email {
+        profile_required    = true
+        verification_method = "otp"
+
+        identifier {
+          active = true
+        }
+
+        signup {
+          status = "required"
+
+          verification {
+            active = true
+          }
+        }
+      }
     }
   }
 }
@@ -176,7 +196,6 @@ resource "auth0_connection_clients" "arconis" {
   connection_id   = auth0_connection.arconis.id
   enabled_clients = [auth0_client.web.client_id]
 }
-
 locals {
   lifecycle_secrets = {
     AUTH0_DOMAIN        = local.auth0_tenant_domain
@@ -186,7 +205,8 @@ locals {
 }
 
 # Actions run for the whole tenant, and this one acts only on Arconis's connection: Auth0's standard
-# way to require a verified email before sign-in.
+# way to require a verified email before sign-in. Sign-up verifies new accounts; this refuses any
+# account that never was.
 locals {
   # Compiled by `tsc` from frontend/src/accounts/auth0-actions, as Auth0 documents for TypeScript.
   auth0_actions_bundle = "${path.module}/../../frontend/dist-relay/auth0-actions/post-login.js"
