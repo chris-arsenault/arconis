@@ -188,7 +188,8 @@ locals {
 # Actions run for the whole tenant, and this one acts only on Arconis's connection: Auth0's standard
 # way to require a verified email before sign-in.
 locals {
-  auth0_actions_bundle = "${path.module}/../../frontend/dist-relay/auth0-actions/index.js"
+  # Compiled by `tsc` from frontend/src/accounts/auth0-actions, as Auth0 documents for TypeScript.
+  auth0_actions_bundle = "${path.module}/../../frontend/dist-relay/auth0-actions/post-login.js"
 }
 
 resource "auth0_action" "require_activation" {

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build && pnpm build:relay && pnpm build:control && pnpm build:accounts && pnpm build:auth0-actions",
-    "build:auth0-actions": "esbuild src/accounts/auth0Actions.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist-relay/auth0-actions/index.js",
+    "build:auth0-actions": "tsc -p src/accounts/auth0-actions",
     "build:accounts": "esbuild src/accounts/lambda.ts --bundle --minify --platform=node --target=node24 --format=cjs --external:@aws-sdk/* --outfile=dist-relay/accounts/index.js",
     "build:relay": "esbuild src/relay/server.ts --bundle --minify --platform=node --target=node24 --format=cjs --outfile=dist-relay/server.cjs",
     "build:control": "esbuild src/relay/lambda.ts --bundle --minify --platform=node --target=node24 --format=cjs --external:@aws-sdk/* --outfile=dist-relay/control/index.js",
@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@ahara/standards": "github:chris-arsenault/ahara-standards",
+    "@auth0/actions": "0.35.0",
     "@aws-sdk/client-auto-scaling": "^3.1164.0",
     "@aws-sdk/client-cloudwatch": "^3.1164.0",
     "@aws-sdk/client-dynamodb": "^3.1164.0",
