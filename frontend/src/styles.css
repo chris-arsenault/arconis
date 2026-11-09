@@ -2163,6 +2163,14 @@ input.outline-name {
   fill: var(--text);
   pointer-events: none;
 }
+/* The mode the current tool belongs to keeps a purple rim in the Mode arc. */
+.ring-mode.current path {
+  stroke: var(--purple);
+  stroke-width: 2;
+}
+.ring-mode.current text {
+  font-weight: 600;
+}
 .context-menu {
   margin: 0;
   padding: 4px;

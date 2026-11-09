@@ -13,30 +13,65 @@ async function heldRing(page: Page, x = 500, y = 500) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-it("changes radial tool families during a held drag and shares the resulting objects and connector", async () => {
+/** A point at a compass angle (degrees clockwise from the top) and radius from the ring's centre. */
+const at = (centre: { x: number; y: number }, degrees: number, radius: number) => ({
+  x: centre.x + radius * Math.sin((degrees * Math.PI) / 180),
+  y: centre.y - radius * Math.cos((degrees * Math.PI) / 180),
+});
+/** The canvas ring's Mode wedge, south-west, and the arc's segments beside it. */
+const MODE_WEDGE = 225;
+const SEGMENTS = { Select: 180, Add: 210, Draw: 240, Connect: 270 };
+
+/** Rests a held right button on the Mode wedge, then releases on one of the arc's modes. */
+async function chooseMode(page: Page, mode: keyof typeof SEGMENTS, x = 500, y = 500) {
+  const centre = await heldRing(page, x, y);
+  const ring = page.getByTestId("command-ring");
+  const wedge = at(centre, MODE_WEDGE, 84);
+  await page.mouse.move(wedge.x, wedge.y);
+  await ring.getByRole("menuitemradio", { name: mode, exact: true }).waitFor();
+  const segment = at(centre, SEGMENTS[mode], 149);
+  await page.mouse.move(segment.x, segment.y);
+  await page.mouse.up({ button: "right" });
+}
+
+it("opens the mode arc from the Mode wedge without changing the ring, and switches modes", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const peerContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const room = createRoomId();
   const page = await open(context, room);
   const peer = await open(peerContext, room);
   await add(page, "Sticky note (N)", "Source", 200, 200);
-  let centre = await heldRing(page);
-  await page.mouse.move(centre.x, centre.y - 152);
   const ring = page.getByTestId("command-ring");
-  await ring.getByRole("menuitem", { name: "Rectangle", exact: true }).waitFor();
+
+  // The ring holds its commands, and no arc, until the Mode wedge is reached.
+  const centre = await heldRing(page);
+  expect(await ring.getByRole("menuitemradio").count()).toBe(0);
+  const wedge = at(centre, MODE_WEDGE, 84);
+  await page.mouse.move(wedge.x, wedge.y);
+  await ring.getByRole("menuitemradio", { name: "Draw", exact: true }).waitFor();
+  const note = ring.getByRole("menuitem", { name: "Add note here", exact: true });
+  expect(await note.count()).toBe(1);
+  expect(
+    await ring
+      .getByRole("menuitemradio", { name: "Select", exact: true })
+      .getAttribute("aria-checked")
+  ).toBe("true");
   await page.screenshot({ path: "test-results/radial-modes.png" });
-  await page.mouse.move(centre.x + 84, centre.y);
+  // Crossing the arc changes nothing until release.
+  const draw = at(centre, SEGMENTS.Draw, 149);
+  await page.mouse.move(draw.x, draw.y);
+  expect(await note.count()).toBe(1);
+  // Releasing on Add offers the shapes to place.
+  const adding = at(centre, SEGMENTS.Add, 149);
+  await page.mouse.move(adding.x, adding.y);
   await page.mouse.up({ button: "right" });
+  await ring.getByRole("menuitem", { name: "Rectangle", exact: true }).click();
   expect(await page.getByTestId("canvas").getAttribute("data-tool")).toBe("rectangle");
   await page.getByTestId("canvas").click({ position: { x: 550, y: 250 } });
   await page.getByLabel("Object text", { exact: true }).fill("Target");
   await page.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
 
-  centre = await heldRing(page, 500, 550);
-  await page.mouse.move(centre.x, centre.y + 152);
-  await ring.getByRole("menuitem", { name: "Connector: click two objects", exact: true }).waitFor();
-  await page.mouse.move(centre.x, centre.y - 84);
-  await page.mouse.up({ button: "right" });
+  await chooseMode(page, "Connect", 500, 550);
   expect(await page.getByTestId("canvas").getAttribute("data-tool")).toBe("connect");
   await row(page, "Source").click();
   await row(page, "Target").click();
@@ -66,22 +101,10 @@ it("switches to drawing from the radial and hides workspace handles while preser
     .poll(() => canvas.locator('image[*|href$="/connection-point.svg"]').count())
     .toBeGreaterThan(0);
   const before = (await exported(page)).objects[0];
-  // Right press on the selected object retains the selection while choosing a drawing instrument.
-  const target = (await row(page, "Keep still").boundingBox())!;
   const bounds = (await canvas.boundingBox())!;
-  const centre = await heldRing(
-    page,
-    target.x + target.width / 2 - bounds.x,
-    target.y + target.height / 2 - bounds.y
-  );
-  await page.mouse.move(centre.x + 152, centre.y);
-  await page
-    .getByTestId("command-ring")
-    .getByRole("menuitem", { name: "Pen", exact: true })
-    .waitFor();
-  await page.mouse.move(centre.x, centre.y - 84);
-  await page.mouse.up({ button: "right" });
+  await chooseMode(page, "Draw", 700, 500);
   expect(await canvas.getAttribute("data-tool")).toBe("draw");
+  expect(await page.getByTestId("command-ring").count()).toBe(0);
   await expect.poll(() => resize.count()).toBe(0);
   expect(await page.getByTestId("quick-create").count()).toBe(0);
   expect(await page.getByTestId("selection-frame").count()).toBe(0);

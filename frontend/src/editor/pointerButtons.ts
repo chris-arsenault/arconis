@@ -6,7 +6,7 @@ import { commandContext } from "./registry";
 import {
   chooseRingEntry,
   chooseRingMode,
-  modeSubRing,
+  MODE_WEDGE,
   ringEntries,
   RING_MODES,
 } from "./contextMenu";
@@ -29,8 +29,25 @@ export const RING_RADIUS = 84;
 export const RING_INNER = 48;
 export const RING_OUTER = 120;
 export const RING_COUNT = 8;
-export const MODE_INNER = 128;
-export const MODE_OUTER = 176;
+/** The Mode wedge's arc sits just outside the ring, centred on that wedge, one segment per mode. */
+export const MODE_INNER = 126;
+export const MODE_OUTER = 172;
+export const MODE_SPAN = Math.PI / 6;
+
+/** The first mode segment's starting angle, clockwise from the top, so the arc centres on its wedge. */
+export function modeArcStart() {
+  return (MODE_WEDGE * Math.PI * 2) / RING_COUNT - (MODE_SPAN * RING_MODES.length) / 2;
+}
+
+/** The mode segment under a pointer relative to the ring's centre, or null. */
+export function modeAt(dx: number, dy: number) {
+  const distance = Math.hypot(dx, dy);
+  if (distance < MODE_INNER || distance > MODE_OUTER) return null;
+  const angle = Math.atan2(dx, -dy);
+  const turn = (angle < 0 ? angle + Math.PI * 2 : angle) - modeArcStart();
+  const index = Math.floor(turn / MODE_SPAN);
+  return index >= 0 && index < RING_MODES.length ? index : null;
+}
 
 /** The clamped centre used by both the rendered ring and a held pointer's hit test. */
 export function ringCentre(at: { x: number; y: number }, width: number, height: number) {
@@ -108,13 +125,9 @@ function releaseRing(editor: EditorController, event: PointerEvent) {
   if (!menu?.ring) return;
   const area = editor.element.getBoundingClientRect();
   const centre = ringCentre(menu.at, area.width, area.height);
-  const mode = wedgeAt(
-    event.clientX - area.left - centre.x,
-    event.clientY - area.top - centre.y,
-    RING_MODES.length,
-    MODE_INNER,
-    MODE_OUTER
-  );
+  const mode = menu.modes
+    ? modeAt(event.clientX - area.left - centre.x, event.clientY - area.top - centre.y)
+    : null;
   if (mode !== null) {
     chooseRingMode(editor, RING_MODES[mode]);
     return;
@@ -131,6 +144,25 @@ function releaseRing(editor: EditorController, event: PointerEvent) {
     menu.wedge = null;
     editor.emit();
   }
+}
+
+/**
+ * Follows a held pointer over the ring: the wedge under it, and the Mode arc's segment once
+ * resting on the Mode wedge has revealed the arc. The ring's own wedges never change on the way.
+ */
+function trackRing(editor: EditorController, event: PointerEvent) {
+  const menu = editor.ui.menu!;
+  const area = editor.element.getBoundingClientRect();
+  const centre = ringCentre(menu.at, area.width, area.height);
+  const px = event.clientX - area.left - centre.x;
+  const py = event.clientY - area.top - centre.y;
+  const wedge = wedgeAt(px, py, RING_COUNT);
+  const entry = wedge === null ? null : ringEntries(commandContext(editor), menu.subRing)[wedge];
+  const modes = Boolean(menu.modes || entry?.modes);
+  const mode = modes ? modeAt(px, py) : null;
+  if (wedge === menu.wedge && modes === Boolean(menu.modes) && mode === (menu.mode ?? null)) return;
+  Object.assign(menu, { wedge, modes, mode });
+  editor.emit();
 }
 
 function menuWithRightButton(editor: EditorController, event: PointerEvent) {
@@ -164,18 +196,7 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
     const dx = moveEvent.clientX - event.clientX;
     const dy = moveEvent.clientY - event.clientY;
     if (Math.hypot(dx, dy) >= DEAD_ZONE) showRing();
-    const area = element.getBoundingClientRect();
-    const centre = ringCentre(menu.at, area.width, area.height);
-    const px = moveEvent.clientX - area.left - centre.x;
-    const py = moveEvent.clientY - area.top - centre.y;
-    const mode = menu.ring ? wedgeAt(px, py, RING_MODES.length, MODE_INNER, MODE_OUTER) : null;
-    const subRing = mode === null ? menu.subRing : modeSubRing(RING_MODES[mode]);
-    const wedge = menu.ring ? wedgeAt(px, py, RING_COUNT) : null;
-    if (wedge !== menu.wedge || subRing !== menu.subRing) {
-      menu.wedge = wedge;
-      menu.subRing = subRing;
-      editor.emit();
-    }
+    if (menu.ring) trackRing(editor, moveEvent);
   };
   const finish = (finishEvent: PointerEvent) => {
     clearTimeout(hold);

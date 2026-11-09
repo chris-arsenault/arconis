@@ -9,7 +9,7 @@ connect as part of the diagram.
 Press **P** or choose **Draw** in the left rail. Each instrument has an icon and guidance for its
 gesture. The panel shows the settings that apply to that instrument.
 
-The drag radial's **Draw** arc offers the same instruments. While drawing, workspace connection
+The drag radial's **Mode** arc switches to drawing as well. While drawing, workspace connection
 points, connected-copy controls and resize handles stay hidden. Lassoed ink retains its own
 transform handles.
 

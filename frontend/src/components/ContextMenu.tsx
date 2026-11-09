@@ -5,8 +5,8 @@ import type { EditorController } from "../editor/controller";
 import {
   chooseRingEntry,
   chooseRingMode,
+  currentMode,
   menuGroups,
-  modeSubRing,
   ringEntries,
   RING_MODES,
   type RingMode,
@@ -21,15 +21,16 @@ import {
   RING_COUNT,
   MODE_INNER,
   MODE_OUTER,
+  MODE_SPAN,
+  modeArcStart,
   ringCentre,
 } from "../editor/pointerButtons";
 
-function wedgePath(index: number, count: number, inner = RING_INNER, outer = RING_OUTER) {
-  const span = (Math.PI * 2) / count;
-  const start = index * span - span / 2 - Math.PI / 2;
-  const end = start + span;
-  const point = (radius: number, angle: number) =>
-    `${(radius * Math.cos(angle)).toFixed(1)},${(radius * Math.sin(angle)).toFixed(1)}`;
+const point = (radius: number, angle: number) =>
+  `${(radius * Math.cos(angle)).toFixed(1)},${(radius * Math.sin(angle)).toFixed(1)}`;
+
+/** A band between two radii from one screen angle to another, clockwise. */
+function bandPath(start: number, end: number, inner: number, outer: number) {
   return [
     `M ${point(inner, start)}`,
     `A ${inner} ${inner} 0 0 1 ${point(inner, end)}`,
@@ -37,6 +38,12 @@ function wedgePath(index: number, count: number, inner = RING_INNER, outer = RIN
     `A ${outer} ${outer} 0 0 0 ${point(outer, start)}`,
     "Z",
   ].join(" ");
+}
+
+function wedgePath(index: number, count: number) {
+  const span = (Math.PI * 2) / count;
+  const start = index * span - span / 2 - Math.PI / 2;
+  return bandPath(start, start + span, RING_INNER, RING_OUTER);
 }
 
 /** The ring: eight wedges around the press point, a stroke or a click on each runs it. */
@@ -53,15 +60,17 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
       height={size}
       viewBox={`${-size / 2} ${-size / 2} ${size} ${size}`}
     >
-      {RING_MODES.map((mode, index) => (
-        <ModeArc
-          key={mode}
-          mode={mode}
-          index={index}
-          active={menu.subRing === modeSubRing(mode)}
-          onChoose={() => chooseRingMode(editor, mode)}
-        />
-      ))}
+      {menu.modes &&
+        RING_MODES.map((mode, index) => (
+          <ModeSegment
+            key={mode}
+            mode={mode}
+            index={index}
+            current={currentMode(editor.tool) === mode}
+            active={menu.mode === index}
+            onChoose={() => chooseRingMode(editor, mode)}
+          />
+        ))}
       {entries.map((entry, index) =>
         entry ? (
           <Wedge
@@ -82,23 +91,28 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-function ModeArc({
+/** One mode in the arc beside the Mode wedge; the current tool's mode is marked. */
+function ModeSegment({
   mode,
   index,
+  current,
   active,
   onChoose,
 }: Readonly<{
   mode: RingMode;
   index: number;
+  current: boolean;
   active: boolean;
   onChoose: () => void;
 }>) {
-  const angle = (index * Math.PI) / 2 - Math.PI / 2;
+  const start = modeArcStart() + index * MODE_SPAN - Math.PI / 2;
+  const angle = start + MODE_SPAN / 2;
   const radius = (MODE_INNER + MODE_OUTER) / 2;
   return (
     <g
-      className={`ring-mode ${active ? "active" : ""}`}
-      role="menuitem"
+      className={`ring-mode${active ? " active" : ""}${current ? " current" : ""}`}
+      role="menuitemradio"
+      aria-checked={current}
       tabIndex={0}
       aria-label={mode}
       data-hint={mode}
@@ -110,7 +124,7 @@ function ModeArc({
         }
       }}
     >
-      <path d={wedgePath(index, RING_MODES.length, MODE_INNER, MODE_OUTER)} />
+      <path d={bandPath(start, start + MODE_SPAN, MODE_INNER, MODE_OUTER)} />
       <text
         x={radius * Math.cos(angle)}
         y={radius * Math.sin(angle)}
@@ -283,10 +297,10 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
   useEffect(() => {
     ref.current
       ?.querySelector<HTMLElement>(
-        ".ring-wedge[role=menuitem]:not([aria-disabled=true]), .context-menu [role=menuitem]:not([aria-disabled=true])"
+        ".ring-mode, .ring-wedge[role=menuitem]:not([aria-disabled=true]), .context-menu [role=menuitem]:not([aria-disabled=true])"
       )
       ?.focus();
-  }, [menu?.ring, menu?.subRing]);
+  }, [menu?.ring, menu?.subRing, menu?.modes]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {

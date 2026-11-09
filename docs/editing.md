@@ -101,11 +101,12 @@ keeps the selection. Empty-space right-click opens canvas actions even when an o
 The browser's own menu never appears over the canvas. Tab and arrows navigate the open menu;
 Escape closes it and preserves the selection.
 
-An outer arc offers **Add**, **Draw**, **Connect** and **Select**. Click a mode to show its tools
-in the inner ring, or keep the right button held, move out to a mode, then back into the inner
-ring and release on a tool. Add arms a shape for the next canvas click; Draw offers the eight
-drawing instruments; Connect offers a connector and the available relationship commands.
-Select returns to ordinary selection. Escape cancels an unfinished radial choice.
+The canvas ring's south-west wedge, **Mode**, switches what the pointer does. Choose it, or rest
+a held right button on it, and a small arc of **Select**, **Add**, **Draw** and **Connect** opens
+beside it, with the current mode outlined. The ring's own wedges stay as they are. Release a held
+button on a mode, or click one, to switch: Select, Draw and Connect change the tool and close the
+ring; Add shows shapes in the ring for the next canvas click. **Select all** is in the canvas
+menu and on its shortcut. Escape cancels an unfinished radial choice.
 
 The ring on an object reads like a compass, so a stroke can be learned once:
 

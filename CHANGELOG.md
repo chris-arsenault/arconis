@@ -25,9 +25,9 @@ All notable user-visible changes are recorded here.
   view history, including drawings and routed lines.
 - Added guest usability feedback saved to private S3 storage with diagnostic metadata and tags.
   An unchecked screenshot option attaches the standard whole-canvas PNG export only when selected.
-- Added an outer mode arc to the drag radial for Add, Draw, Connect and Select, with tool choices
-  in the inner ring. Drawing hides workspace connection and resize widgets while retaining
-  transform handles for lassoed ink.
+- Added a Mode wedge to the canvas radial that opens a small arc of Select, Add, Draw and Connect
+  beside it, without changing the ring's commands; Add shows shapes in the ring. Drawing hides
+  workspace connection and resize widgets while retaining transform handles for lassoed ink.
 - Attached object indicators directly to the painted edge, centered so lone badges stay close to
   curved stencils. Connected-copy handles move only when they overlap the indicator strip.
 - Added Settings with independent Show, Selected and Hide preferences for comments, tags, markers,

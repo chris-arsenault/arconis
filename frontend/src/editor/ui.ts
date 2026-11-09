@@ -62,4 +62,7 @@ export interface MenuState {
   subRing: string | null;
   /** Whether the ring shows: a held or dragged right button brings it; a click leaves the menu. */
   ring: boolean;
+  /** Whether the Mode wedge's arc of editing modes shows, and which of its modes a held pointer is on. */
+  modes?: boolean;
+  mode?: number | null;
 }

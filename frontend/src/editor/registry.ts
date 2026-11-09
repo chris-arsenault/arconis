@@ -127,6 +127,7 @@ export function openSubRing(editor: EditorController, id: string) {
   if (!editor.ui.menu) return;
   editor.ui.menu.subRing = id;
   editor.ui.menu.wedge = null;
+  editor.ui.menu.modes = false;
   editor.emit();
 }
 

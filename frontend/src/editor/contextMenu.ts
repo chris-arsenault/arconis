@@ -111,6 +111,8 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
 
 /** Opens the menu where the ring was, in place of the ring. */
 const MORE = "ring.more";
+/** Opens the arc of editing modes beside its wedge. */
+export const MODES = "ring.mode";
 
 /**
  * The eight wedges, clockwise from the top. On anything selected the compass holds: north grows
@@ -124,7 +126,7 @@ const RINGS: Record<MenuContext, string[]> = {
     "create.frameHere",
     "edit.pasteHere",
     "create.capture",
-    "select.all",
+    MODES,
     "view.fit",
     "view.find",
   ],
@@ -172,17 +174,6 @@ export const SUB_RINGS: Record<string, string[]> = {
     "tool.service",
     "tool.database",
   ],
-  "ring.draw": [
-    "draw.pen",
-    "draw.highlighter",
-    "draw.highlight",
-    "draw.lasso",
-    "draw.eraser",
-    "draw.precision",
-    "draw.fill",
-    "draw.eyedropper",
-  ],
-  "ring.connect": ["tool.connect", "structure.relate", "structure.connect"],
   "ring.colour": [
     "colour.0",
     "colour.1",
@@ -208,23 +199,31 @@ const SUB_RING_LABELS: Record<string, string> = {
   "ring.shape": "Shape",
 };
 
-/** An outer arc chooses the tools offered by the inner ring. */
-export const RING_MODES = ["Add", "Draw", "Connect", "Select"] as const;
+/**
+ * The canvas ring's Mode wedge opens a small arc beside it with the editing modes. Nothing else
+ * in the ring changes until a mode is chosen: Select, Draw and Connect switch the tool, and Add
+ * shows the shapes to place in the ring.
+ */
+export const RING_MODES = ["Select", "Add", "Draw", "Connect"] as const;
 export type RingMode = (typeof RING_MODES)[number];
+/** The Mode wedge's place in the canvas ring, where its arc opens. */
+export const MODE_WEDGE = 5;
 
-export function modeSubRing(mode: RingMode) {
-  return mode === "Select" ? null : `ring.${mode.toLowerCase()}`;
+/** The mode the current tool belongs to, for marking it in the arc. */
+export function currentMode(tool: string): RingMode | null {
+  if (tool === "select" || tool === "draw" || tool === "connect")
+    return RING_MODES.find((mode) => mode.toLowerCase() === tool) ?? null;
+  return null;
 }
 
 export function chooseRingMode(editor: EditorController, mode: RingMode) {
-  if (mode === "Select") {
-    closeMenu(editor);
-    runCommand(editor, "tool.select");
+  if (mode === "Add") {
+    if (editor.ui.menu) editor.ui.menu.modes = false;
+    openSubRing(editor, "ring.add");
     return;
   }
-  if (mode !== "Add") runCommand(editor, `tool.${mode.toLowerCase()}`);
-  openSubRing(editor, modeSubRing(mode)!);
-  editor.element.focus({ preventScroll: true });
+  closeMenu(editor);
+  runCommand(editor, `tool.${mode.toLowerCase()}`);
 }
 
 export interface MenuEntry {
@@ -238,10 +237,13 @@ export interface MenuEntry {
   submenu?: MenuEntry[];
   /** A shorter name for a ring wedge, which still carries the full label for assistive tech. */
   short?: string;
+  /** Opens the arc of editing modes beside this wedge. */
+  modes?: boolean;
 }
 
 function entryFor(id: string, context: CommandContext): MenuEntry | null {
   if (id === MORE) return { id, label: "More…", more: true };
+  if (id === MODES) return { id, label: "Switch mode", short: "Mode", modes: true };
   if (id in SUB_RINGS) {
     const inner = SUB_RINGS[id].filter((sub) => isAvailable(findCommand(sub), context));
     return inner.length ? { id, label: SUB_RING_LABELS[id], opens: inner } : null;
@@ -306,6 +308,12 @@ export function chooseRingEntry(editor: EditorController, entry: MenuEntry) {
   const menu = editor.ui.menu;
   if (entry.opens) {
     openSubRing(editor, entry.id);
+    return;
+  }
+  if (entry.modes && menu) {
+    menu.modes = true;
+    menu.wedge = null;
+    editor.emit();
     return;
   }
   if (entry.more && menu) {
