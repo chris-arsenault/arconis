@@ -85,9 +85,18 @@ it("exports the whole canvas as a picture that loads back in another room", asyn
   };
   await canvas.click({ position: { x: 40, y: 40 } });
   await palette("Copy canvas as PNG");
-  await expect
-    .poll(() => page.getByTestId("sync-status").textContent())
-    .toContain("Picture copied");
+  await page.getByTestId("sync-status").filter({ hasText: "Picture copied." }).waitFor();
+  const clipboardPng = await page.evaluate(async () => {
+    const items = await navigator.clipboard.read();
+    const picture = items.find((item) => item.types.includes("image/png"));
+    if (!picture) throw new Error("The clipboard has no PNG image.");
+    const blob = await picture.getType("image/png");
+    return [...new Uint8Array(await blob.arrayBuffer())];
+  });
+  const copied = await inspect(page, Buffer.from(clipboardPng));
+  expect(copied.width).toBe(width);
+  expect(copied.height).toBe(height);
+  expect(copied.inked).toBeGreaterThan(100);
   const pending = page.waitForEvent("download");
   await palette("Export canvas as SVG");
   const svg = await readFile((await (await pending).path())!, "utf8");
