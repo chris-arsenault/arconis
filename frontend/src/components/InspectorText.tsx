@@ -1,4 +1,4 @@
-import type { CanvasDocument } from "../document/canvasDocument";
+import type { EditorController } from "../editor/controller";
 import type { CompletedActions } from "../document/actions";
 import type { Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";
@@ -8,9 +8,11 @@ import { markdownKey } from "../text/sourceKeys";
 import { MarkdownTools } from "./MarkdownTools";
 import { useCollaborativeText } from "./useCollaborativeText";
 import { useCompletedField } from "./useCompletedField";
+import { CanvasObjectLink } from "./CanvasObjectLink";
 
 /** Canonical editor binding; display-only Markdown controls receive commands. */
-export function ObjectText({ canvas, item }: Readonly<{ canvas: CanvasDocument; item: Item }>) {
+export function ObjectText({ editor, item }: Readonly<{ editor: EditorController; item: Item }>) {
+  const canvas = editor.document;
   const textRef = useCollaborativeText(canvas, item.id);
   return (
     <>
@@ -31,6 +33,7 @@ export function ObjectText({ canvas, item }: Readonly<{ canvas: CanvasDocument; 
         textarea={textRef}
         expanded={false}
         compact={false}
+        objectLink={<CanvasObjectLink editor={editor} sourceId={item.id} textarea={textRef} />}
       />
     </>
   );

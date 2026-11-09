@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Compass, Pencil, Play, Plus, Shapes, Presentation } from "lucide-react";
+import { Compass, Layers, Pencil, Play, Plus, Shapes, Presentation } from "lucide-react";
+import { LayersPanel } from "./LayersPanel";
 import type { EditorController } from "../editor/controller";
 import type { Item } from "../document/types";
 import { decks, isTemplate, type Deck } from "../document/slides";
@@ -28,10 +29,11 @@ const SECTION_DEFAULTS = {
 };
 
 type Sections = ReturnType<typeof useRailSections>;
-type Panel = "add" | "draw" | "explore" | "slides";
+type Panel = "add" | "draw" | "layers" | "explore" | "slides";
 const PANELS = [
   { id: "add", label: "Add", icon: Shapes },
   { id: "draw", label: "Draw", icon: Pencil },
+  { id: "layers", label: "Layers", icon: Layers },
   { id: "explore", label: "Explore", icon: Compass },
   { id: "slides", label: "Slides", icon: Presentation },
 ] as const;
@@ -129,6 +131,7 @@ export function LeftRail({
       <div className="rail-content" id="rail-content">
         {panel === "add" && <StencilBrowser editor={editor} />}
         {panel === "draw" && <DrawingSection editor={editor} />}
+        {panel === "layers" && <LayersPanel editor={editor} />}
         {panel === "explore" && <ExploreSection editor={editor} sections={sections} />}
         {panel === "slides" && <SlidesSection editor={editor} />}
       </div>

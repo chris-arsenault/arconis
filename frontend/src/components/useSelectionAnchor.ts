@@ -1,5 +1,6 @@
-import { useLayoutEffect, type RefObject } from "react";
+import { useLayoutEffect, useSyncExternalStore, type RefObject } from "react";
 import type { EditorController } from "../editor/controller";
+import { displayPreferences } from "../editor/displayPreferences";
 
 // Rotation and connected-copy handles occupy the first 40 pixels outside an object.
 const HANDLE_CLEARANCE = 48;
@@ -9,6 +10,7 @@ export function useSelectionAnchor(
   editor: EditorController,
   ref: RefObject<HTMLDivElement | null>
 ) {
+  useSyncExternalStore(displayPreferences.subscribe, displayPreferences.snapshot);
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -32,14 +34,22 @@ export function useSelectionAnchor(
         );
         return node ? [node] : [];
       });
+      const handles = [
+        ...(editor.element.parentElement?.querySelectorAll<HTMLElement>(".quick-create button") ??
+          []),
+      ]
+        .filter((button) => button.style.visibility !== "hidden")
+        .map((button) => button.getBoundingClientRect());
       const above =
         Math.min(
           top - HANDLE_CLEARANCE,
-          ...chrome.map((node) => node.getBoundingClientRect().top - area.top - 14)
+          ...chrome.map((node) => node.getBoundingClientRect().top - area.top - 4),
+          ...handles.map((box) => box.top - area.top - 4)
         ) - box.height;
       const below = Math.max(
         bottom + HANDLE_CLEARANCE,
-        ...chrome.map((node) => node.getBoundingClientRect().bottom - area.top + 14)
+        ...chrome.map((node) => node.getBoundingClientRect().bottom - area.top + 4),
+        ...handles.map((box) => box.bottom - area.top + 4)
       );
       const titleCovered = coversContainerTitle(editor, {
         left: area.left + x,

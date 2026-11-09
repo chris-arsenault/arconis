@@ -49,15 +49,6 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
   styles that map depth to colour and size and survive reparenting.
 - Keep the last few account-saved copies with timestamps, as the only history beyond undo.
 
-## Layers
-
-- Support layers as collections of objects, extending the existing workspace/markup split.
-  Keep the markup/annotation layer as the top temporary layer and allow additional content layers.
-- Provide a Photoshop/GIMP-style layer browser for creating, selecting, ordering, showing/hiding,
-  deleting and merging layers, and moving objects between them.
-- Let agents select the appropriate layer for their work and create a new layer when appropriate,
-  often keeping a new addition in its own layer.
-
 ## Slides
 
 - Export a deck as PDF or PPTX, one page per slide.

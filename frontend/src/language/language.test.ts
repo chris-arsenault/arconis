@@ -187,7 +187,7 @@ describe("bands and mistakes", () => {
 });
 
 describe("slides", () => {
-  it("numbers slides in their deck, places their contents inside and keeps their size", () => {
+  it("numbers slides in their deck, places their block within them and keeps their size", () => {
     const document = canvas(`
       slide s1 "Problem" deck pitch at 0,0 {
         node a "Pain"
@@ -204,10 +204,43 @@ describe("slides", () => {
     expect(s3).toMatchObject({ deck: "Q4 Review", slide: 7 });
     expect(s4).toMatchObject({ deck: "deck", slide: 1 });
     expect(s5).toMatchObject({ deck: "deck", slide: 2 });
-    expect(get(document, "a").inside).toBe("s1");
-    expect(get(document, "n").inside).toBe("s1");
-    expect(get(document, "a").x).toBeGreaterThan(0);
+    // A slide is a viewport: its block places items over it, and they stay at the top level.
+    for (const id of ["a", "n"]) {
+      const item = get(document, id);
+      expect(item.inside).toBe("");
+      expect(item.x).toBeGreaterThan(s1.x);
+      expect(item.y + item.height).toBeLessThan(s1.y + s1.height);
+    }
     expect(s2.x).toBe(1280 + 40);
+  });
+
+  it("moves a slide's block with it while placing, but not afterwards", () => {
+    const document = canvas(`
+      node far "Far" at 2000,0
+      slide s1 "Problem" deck pitch below far { node a "Pain" }
+    `);
+    const [s1, a] = [get(document, "s1"), get(document, "a")];
+    expect(a.x).toBeGreaterThan(s1.x);
+    expect(a.y).toBeGreaterThan(s1.y);
+    write(document, "edit s1 at 0,5000");
+    expect(get(document, "a")).toMatchObject({ x: a.x, y: a.y });
+    write(document, "delete s1");
+    expect(get(document, "a").id).toBe("a");
+  });
+
+  it("refuses to put an item in a slide", () => {
+    const document = canvas('slide s1 "One" deck pitch\nnode a "A"');
+    expect(() => write(document, "edit a in s1")).toThrow(/viewport and holds nothing/);
+    expect(get(document, "a").inside).toBe("");
+  });
+
+  it("reads contents a slide once held as top-level items, where they were", () => {
+    const document = canvas('slide s1 "One" deck pitch at 0,0\nnode a "A" at 100,100');
+    document.items.get("a")!.set("inside", "s1");
+    expect(get(document, "a")).toMatchObject({ inside: "", x: 100, y: 100 });
+    expect(printCanvas(document)).not.toContain("{");
+    write(document, "delete s1");
+    expect(get(document, "a").id).toBe("a");
   });
 
   it("refuses a deck on anything but a slide", () => {
@@ -222,11 +255,11 @@ describe("slides", () => {
       edit s1 deck pitch
     `);
     const text = printCanvas(document);
-    expect(text).toContain('slide s1 "Problem" deck pitch 3 at 0,0 size 1280,720 {');
+    expect(text).toContain('slide s1 "Problem" deck pitch 3 at 0,0 size 1280,720\n');
     const copy = new CanvasDocument();
     importDocument(copy, text);
     expect(get(copy, "s1")).toMatchObject({ deck: "pitch", slide: 3, width: 1280, height: 720 });
-    expect(get(copy, "a").inside).toBe("s1");
+    expect(get(copy, "a")).toMatchObject({ inside: "", x: get(document, "a").x });
   });
 });
 

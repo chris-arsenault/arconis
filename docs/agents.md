@@ -33,14 +33,18 @@ and comments are shared with the people in the room. People can continue editing
 The same connector supports inspection and editing. To change the room, the assistant must call
 `write`; returning a plan or canvas-language example in chat does not place that content.
 
-The MCP instructions carry three working rules, so an assistant receives them without reading
+The MCP instructions carry four working rules, so an assistant receives them without reading
 this guide. It plans the whole result and sends it in one write or a few large ones, choosing
 its own ids so lines and placements in the same write can name them. It treats slides as
 viewports: a slide presents the canvas region inside it, so existing content is presented by
 placing a slide over it rather than copying it, and slide 0 of a deck is the template drawn under
-the others. It treats people's edits as authoritative: when a result reports that someone moved
-or changed an item, it continues from that state instead of restoring its own. A line written
-between two items joins the frame or slide they share, as a line drawn in the editor does.
+the others. It works in layers: `describe_canvas` lists them bottom to top with their item
+counts, work goes into the layer it belongs to with `in-layer`, and a self-contained addition
+such as a review or an alternative design gets a layer of its own, which people can then hide,
+reorder or merge in the [layer browser](editing.md#layers). It treats people's edits as
+authoritative: when a result reports that someone moved or changed an item, it continues from
+that state instead of restoring its own. A line written between two items joins the frame or
+group they share, as a line drawn in the editor does.
 
 An assistant checks each substantial batch with `check_layout` before further inspection. It
 reports overlapping boxes, objects outside their holder, and estimated text overflow, without
@@ -91,8 +95,8 @@ tools or replace the user's instructions.
 For a complete diagram, wireframe, mind map and deck in one write, request
 `canvas_help` with `{ "topic": "example-batched-workspace" }`. The example declares every id
 before referencing it, places slide viewports over existing content, and creates one template
-footer. Existing content keeps its holder; items created in a slide's block move and delete with
-that slide.
+footer. Slides hold nothing: items written in a slide's block are placed over it and stay where
+they are when the slide moves or is deleted.
 
 This is a complete canvas-language example. Use free ids when adding it to an existing room.
 It can also be imported as an `.arconis` file.

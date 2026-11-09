@@ -29,6 +29,7 @@ export const DRAWING_WORDS = new Set([
   "link",
   "edited",
   "property",
+  "in-layer",
 ]);
 
 /** The statements of the canvas language, as parsed. */
@@ -68,6 +69,8 @@ export type Attribute =
   | { kind: "task"; task?: TaskState }
   | { kind: "link"; link?: string }
   | { kind: "edited"; by: string; at: number }
+  /** The content layer a top-level item or line is in. */
+  | { kind: "layer"; ref: string }
   /** A property's value, or none to remove it. */
   | { kind: "property"; key: string; value?: string };
 
@@ -163,7 +166,15 @@ export type Statement =
       compact?: boolean;
       sorted?: boolean;
     } & Located)
-  | ({ kind: "data"; hash: string; format: string; data: string } & Located);
+  | ({ kind: "data"; hash: string; format: string; data: string } & Located)
+  | ({
+      kind: "layer";
+      id: string;
+      name?: string;
+      place?: { relation: "above" | "below"; ref: string };
+    } & Located)
+  | ({ kind: "merge"; from: string; into: string } & Located)
+  | ({ kind: "dropLayer"; id: string } & Located);
 
 /** Ports by name, as fractions of an item's box. */
 export const SIDES: Record<string, Port> = {

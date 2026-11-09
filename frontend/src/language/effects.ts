@@ -50,6 +50,15 @@ const EFFECTS: Effects = {
     kind: "pictures",
     reason: "File picture bytes are returned separately from items.",
   }),
+  layer: () => ({ kind: "metadata", reason: "Layer records retain last-write-wins semantics." }),
+  merge: () => ({
+    kind: "metadata",
+    reason: "Merging moves a layer's items as a consequence, as a holder carries its contents.",
+  }),
+  dropLayer: () => ({
+    kind: "metadata",
+    reason: "Deleting a layer removes its items as a consequence, as deleting a holder does.",
+  }),
   view: () => ({ kind: "conversation", reason: "Views have no item stale-check policy." }),
   discussion: () => ({
     kind: "conversation",

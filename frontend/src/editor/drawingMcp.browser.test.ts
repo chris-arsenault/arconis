@@ -222,6 +222,38 @@ it("builds the batched workspace in two browsers and preserves a person's slide 
   }
 });
 
+it("shows an agent's addition in its own layer, which a person can hide in their view", async () => {
+  const room = createRoomId();
+  const page = await open(
+    await browser.newContext({ viewport: { width: 1440, height: 1000 } }),
+    room
+  );
+  const agent = await connectAgent();
+  try {
+    expect(agent.client.getInstructions()).toContain("declare its own layer");
+    await agent.call("open_room", { room });
+    expect(
+      await agent.call("write", {
+        statements:
+          'node api "Orders API"\nlayer review "Review notes"\nnote n1 "Retry?" in-layer review',
+      })
+    ).toContain("Done:");
+    await page.getByRole("button", { name: "Layers", exact: true }).click();
+    const names = page.locator('[data-testid="layer"] .layer-name');
+    await expect
+      .poll(() => names.allTextContents())
+      .toEqual(["Markup", "Review notes", "Workspace"]);
+    await expect.poll(() => row(page, "Retry?").count()).toBe(1);
+    await page.getByRole("button", { name: "Hide Review notes", exact: true }).click();
+    await expect.poll(() => row(page, "Retry?").count()).toBe(0);
+    expect(await row(page, "Orders API").count()).toBe(1);
+    expect(errors).toEqual([]);
+  } finally {
+    await agent.close();
+    await page.context().close();
+  }
+});
+
 function gradientPixels(page: Page, png: Buffer) {
   return page.evaluate(async (data) => {
     const image = new Image();

@@ -13,7 +13,8 @@ and imports them; account saving creates a saved workspace. These paths serve di
 ## Export an editable document
 
 Choose **File**, then **Export document**. It downloads the canvas in the Arconis canvas language,
-including pictures and shared metadata. It is readable text, with `arconis 1` as its header.
+including pictures, shared metadata and every layer, including layers you have hidden. It is
+readable text, with `arconis 1` as its header.
 The [canonical language reference](../frontend/src/language/reference.ts) is also available to
 assistants through `canvas_help`.
 
@@ -27,12 +28,14 @@ or account-saved copy.
 2. Open **File** and choose whether to **Include markup**.
 3. Choose **Export PNG**.
 
-Selected holders include their contents and internal relationships. Merely overlapping a slide
-or frame does not make an object its content. Export includes the chosen items rather than a
+Selected holders include their contents and internal relationships. Merely overlapping a frame
+does not make an object its content, and slides hold nothing. Export includes the chosen items rather than a
 screenshot of your current viewport, and leaves out selection handles and interface controls.
 
-The PNG's editable copy matches its export selection and markup choice. Hidden markup can still
-be included when Include markup is checked. A clean export omits annotations from the pixels,
+The PNG's editable copy matches its export selection and markup choice. Layers you have hidden
+are left out of the pixels and the editable copy, as are pictures you copy or export as SVG; if
+every layer with content is hidden, the export reports it. Hidden markup can still be included
+when Include markup is checked. A clean export omits annotations from the pixels,
 editable copy and bounds. Text fonts, Markdown styling, math and Drawing fills are rendered into
 the picture.
 

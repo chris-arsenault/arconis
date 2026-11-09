@@ -136,11 +136,12 @@ it("owns File menu keyboard navigation, includes its checkbox and returns focus 
     expect(await page.getByTestId("selection-count").textContent()).toContain("Sticky note");
     await trigger.press("ArrowDown");
     await first.waitFor();
+    // Tab closes the menu and continues to the next header control, Settings.
     await page.keyboard.press("Tab");
     expect(await page.getByRole("menu", { name: "File", exact: true }).count()).toBe(0);
     expect(
       await page
-        .getByRole("button", { name: "Participants", exact: true })
+        .getByRole("button", { name: "Settings", exact: true })
         .evaluate((button) => document.activeElement === button)
     ).toBe(true);
     expect(errors).toEqual([]);

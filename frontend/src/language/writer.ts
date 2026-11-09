@@ -1,8 +1,9 @@
 import { BLANK, defaultSize, type CanvasDocument } from "../document/canvasDocument";
-import { branchPlacement, tidyBranch } from "../document/relations";
-import { layoutTree } from "../document/treeLayout";
+import { branchPlacement } from "../document/relations";
+import { tidyMoves } from "../document/treeLayout";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
-import { DEFAULT_DECK, nextSlideNumber } from "../document/slides";
+import { placeInDeck, resolveHolder, slideArea } from "./slideWriting";
+import { checkLayers, writeLayer } from "./layerWriting";
 import { declareStyle, describeItem, matchSizes } from "./describe";
 import { routeLineAround } from "../document/routeLine";
 import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
@@ -70,6 +71,9 @@ const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } 
   tidy: (writer, statement) => writer.tidy(statement),
   data: (writer, statement) =>
     writer.pictures.push({ hash: statement.hash, format: statement.format, data: statement.data }),
+  layer: (writer, statement) => writer.layer(statement),
+  merge: (writer, statement) => writer.layer(statement),
+  dropLayer: (writer, statement) => writer.layer(statement),
 };
 
 /** Applies statements of the canvas language to a document, all of them or none. */
@@ -124,7 +128,12 @@ class Writer {
       Object.assign(line, routeLineAround(all, line, (item) => draft.lookOf(item)) ?? {});
     }
     checkDrawings(draft);
+    checkLayers(draft);
     return { ...draft.commit(), pictures: this.pictures };
+  }
+
+  layer(statement: Extract<Statement, { kind: "layer" | "merge" | "dropLayer" }>) {
+    writeLayer(this.draft, statement, Boolean(this.options.importing));
   }
 
   statement(statement: Statement, scope: Scope) {
@@ -175,7 +184,7 @@ class Writer {
     draft.add(item, statement.id);
     if (item.type === "highlight") item.markup = true;
     this.describe(item, statement.attributes, statement.line);
-    if (item.type === "slide") this.placeInDeck(item);
+    if (item.type === "slide") placeInDeck(this.draft, item);
     this.defaultSize(item);
     this.matchSizes(item, statement.attributes, statement.line);
     // A band over items is sized once they are all placed; one read from a file has its own box.
@@ -191,7 +200,7 @@ class Writer {
 
   private pathHolder(item: Item, attributes: Attribute[], line: number) {
     const holder = attributesFor(attributes, "item", "holder")[0];
-    if (holder) item.inside = holder.ref === "none" ? "" : this.draft.resolve(holder.ref, line);
+    if (holder) item.inside = resolveHolder(this.draft, holder.ref, line);
   }
 
   private given(item: Item) {
@@ -199,15 +208,6 @@ class Writer {
       width: this.explicitSize.has(`${item.id} width`),
       height: this.explicitSize.has(`${item.id} height`),
     };
-  }
-
-  /** A new slide joins the default deck unless told otherwise, and takes the next number. */
-  private placeInDeck(item: Item) {
-    item.deck ||= DEFAULT_DECK;
-    item.slide ??= nextSlideNumber(
-      [...this.draft.items.values()].filter((other) => other.id !== item.id),
-      item.deck
-    );
   }
 
   private defaultSize(item: Item) {
@@ -244,7 +244,7 @@ class Writer {
     const inset = own.box.x - own.space.x;
     const previous = scope.previous ? draft.spaceOf(scope.previous) : null;
     if (previous) return { x: previous.x + previous.width + DEFAULT_GAP + inset, y: previous.y };
-    const holder = draft.items.get(item.inside);
+    const holder = draft.items.get(scope.area || item.inside);
     if (holder) return spotInside(draft, holder, item, inset);
     this.start ??= canvasStart(draft);
     return { x: this.start.x + inset, y: this.start.y };
@@ -274,7 +274,7 @@ class Writer {
   ) {
     const { draft } = this;
     const inside = attributesFor(attributes, "item", "holder")[0];
-    if (inside) item.inside = inside.ref === "none" ? "" : draft.resolve(inside.ref, line);
+    if (inside) item.inside = resolveHolder(draft, inside.ref, line);
     const rules = this.rules(attributes, line, body !== undefined);
     if (scope.members) scope.members.push(item.id);
     else this.placeFirst(item, rules, scope, fresh, follow);
@@ -282,8 +282,11 @@ class Writer {
       (attribute) => attribute.kind === "by"
     );
     if (by && !scope.members) draft.moveTo(item, item.x + by.dx, item.y + by.dy);
-    if (body) this.body(item, attributes, body);
+    const carried = body ? this.body(item, attributes, body) : [];
+    const [x, y] = [item.x, item.y];
     if (!scope.members) this.settle(item, rules, attributes);
+    draft.shift(carried, item.x - x, item.y - y);
+    scope.carried?.push(item.id);
     scope.previous = item.id;
   }
 
@@ -308,8 +311,14 @@ class Writer {
     }
   }
 
-  private body(item: Item, attributes: Attribute[], body: Statement[]) {
+  /** Lays out what an item's block declares; returns what a slide's block placed. */
+  private body(item: Item, attributes: Attribute[], body: Statement[]): string[] {
     const { draft } = this;
+    if (item.type === "slide") {
+      const area = slideArea(item);
+      body.forEach((statement) => this.statement(statement, area));
+      return area.carried;
+    }
     const arrange = attributesFor(attributes, "item", "arrange")[0];
     const inner: Scope = { holder: item.id, previous: "", nested: true };
     // A file says where each member is; it is not arranged again on the way in.
@@ -323,6 +332,7 @@ class Writer {
     // A file says exactly where everything is, even a child left outside its frame.
     if (isFrame(item) && !this.options.importing)
       fitFrame(draft, item, draft.createdHere.has(item.id), this.given(item));
+    return [];
   }
 
   arrangement(statement: ArrangeStatement, scope: Scope) {
@@ -385,18 +395,10 @@ class Writer {
     this.place(item, statement.attributes, scope, statement, movesIn && !placed && isBox(item));
   }
 
-  tidy({ ref, line, direction, compact, sorted }: Extract<Statement, { kind: "tidy" }>) {
+  tidy(statement: Extract<Statement, { kind: "tidy" }>) {
     const { draft } = this;
-    const root = draft.item(ref, line);
-    const items = this.itemsWithPendingLinks();
-    const moves =
-      direction || compact || sorted
-        ? layoutTree(items, root.id, {
-            direction: direction ?? "sides",
-            compact: Boolean(compact),
-            sorted: Boolean(sorted),
-          })
-        : tidyBranch(items, root.id);
+    const root = draft.item(statement.ref, statement.line);
+    const moves = tidyMoves(this.itemsWithPendingLinks(), root.id, statement);
     moves.forEach(({ x, y }, id) => draft.moveTo(draft.items.get(id)!, x, y));
   }
 

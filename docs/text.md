@@ -32,6 +32,7 @@ while peers' completed edits continue to merge.
 | Bold, italic, strike      | `**important**`, `_emphasis_`, `~~removed~~`        |
 | Inline code               | `` `request.id` ``                                  |
 | Link                      | `[Runbook](https://example.com/runbook)`            |
+| Canvas object link        | `[Storage](canvas://object-id)`                     |
 | Bullets and numbering     | `- item` or `1. item`, with indentation for nesting |
 | Quote                     | `> observation`                                     |
 | Underline                 | `<u>underlined</u>`                                 |
@@ -45,6 +46,20 @@ Within lists, Enter continues the list; Enter on an empty item exits or outdents
 Tab and Shift Tab indent and outdent list items and code. Shift Enter inserts a continuation
 line in a list. Outside those contexts, topic text retains Tab to add a branch and Alt Enter
 to add a sibling; see [topic trees](editing.md#topics-and-depth).
+
+### Link to another canvas object
+
+Select text and choose **Object** in the Markdown toolbar, then click the destination on the
+canvas. This works for unnamed objects too. **Search objects** finds destinations by name, tag or
+id when they are farther away; use the arrows and Enter to choose a result. Without a text
+selection, insertion uses the destination's name or kind. Escape or right-click cancels picking,
+and middle-drag pans while picking.
+
+Object links use ordinary Markdown: `[Storage](canvas://object-id)`. `local://object-id` is also
+accepted. The id is case-sensitive and stays the same when the object is renamed. Link labels
+remain the text you wrote. Follow a link from the canvas or Markdown preview to select its target
+and move the view there. **Ctrl/Command [** returns to the previous view. A deleted destination
+shows a notice instead of opening another tab.
 
 ### Text-editing shortcuts
 

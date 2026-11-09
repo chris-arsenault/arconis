@@ -1,4 +1,10 @@
-import { useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { displayPreferences } from "../editor/displayPreferences";
 import type { EditorController } from "../editor/controller";
 import { connectedClone } from "../editor/treeEdits";
 import type { Direction } from "../editor/walking";
@@ -86,8 +92,33 @@ function protectCanvasTargets(editor: EditorController, item: Item, overlay: HTM
   }
 }
 
+function rectanglesOverlap(a: DOMRect, b: DOMRect) {
+  return a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
+}
+
+/** Move only a handle that actually meets the object's attached indicator strip. */
+function avoidMetadata(editor: EditorController, item: Item, overlay: HTMLElement) {
+  const metadata = editor.element.parentElement?.querySelector<HTMLElement>(
+    `.object-metadata[data-object-id="${CSS.escape(item.id)}"]`
+  );
+  const strip = metadata?.getBoundingClientRect();
+  const area = overlay.getBoundingClientRect();
+  for (const side of ["up", "down"] as const) {
+    const button = overlay.querySelector<HTMLButtonElement>(`.quick-dot.${side}`);
+    if (!button) continue;
+    const property = side === "up" ? "top" : "bottom";
+    button.style[property] = "";
+    if (!strip) continue;
+    const dot = button.getBoundingClientRect();
+    if (!rectanglesOverlap(dot, strip)) continue;
+    button.style[property] =
+      `${side === "up" ? strip.top - 4 - dot.height - area.top : area.bottom - strip.bottom - 4 - dot.height}px`;
+  }
+}
+
 /** A dot on each side of the one selected object: click for a connected copy that way, drag to place it. */
 export function QuickCreate({ editor }: Readonly<{ editor: EditorController }>) {
+  useSyncExternalStore(displayPreferences.subscribe, displayPreferences.snapshot);
   const [item] = editor.selected();
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -99,11 +130,13 @@ export function QuickCreate({ editor }: Readonly<{ editor: EditorController }>) 
       width: `${item.width * scale}px`,
       height: `${item.height * scale}px`,
     });
+    avoidMetadata(editor, item, ref.current);
     protectCanvasTargets(editor, item, ref.current);
   });
   if (!item || editor.selected().length !== 1 || !isBox(item) || item.locked || item.onLine)
     return null;
-  if (editor.ui.dragging || editor.editId || item.type === "slide") return null;
+  if (editor.tool === "draw" || editor.ui.dragging || editor.editId || item.type === "slide")
+    return null;
   return (
     <div ref={ref} className="quick-create" data-testid="quick-create">
       {SIDES.map((direction) => (

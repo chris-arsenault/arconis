@@ -28,7 +28,7 @@ beforeAll(async () => {
   server = await createServer({ server: { port: 0, host: "127.0.0.1" } });
   await server.listen();
   siteUrl = server.resolvedUrls!.local[0];
-  fixture = await startRelayFixture();
+  fixture = await startRelayFixture(new URL(siteUrl).origin);
   browser = await engines[(process.env.BROWSER || "chromium") as keyof typeof engines].launch({
     headless: true,
   });

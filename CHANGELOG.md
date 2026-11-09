@@ -4,8 +4,35 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Layers and slides
+
+- Added content layers beneath markup, with a Layers task area to create, choose, rename, drag
+  or step reorder, hide locally, merge down and delete them, and to move the selection between
+  layers. Properties gains a Layer field. PNG and SVG exports follow the layers you can see;
+  canvas files keep every layer.
+- Added layers to the canvas language (`layer`, `merge … into`, `delete layer`, `in-layer`) and
+  to assistants, which list layers in `describe_canvas` and give self-contained additions their
+  own layer.
+- Changed slides into viewports that hold nothing: objects placed on a slide stay free, and
+  moving or deleting a slide leaves them in place. Earlier rooms and files read slide contents as
+  top-level objects where they were. Templates repeat the objects centred within them.
+
 ### Canvas interactions
 
+- Added Markdown object links using `[label](canvas://object-id)`, with a `local://` alias.
+  The Markdown toolbar can pick a target directly on the canvas or search by name, tag or id,
+  preserving the text selection through peer edits. Following a link uses canvas navigation and
+  view history, including drawings and routed lines.
+- Added guest usability feedback saved to private S3 storage with diagnostic metadata and tags.
+  An unchecked screenshot option attaches the standard whole-canvas PNG export only when selected.
+- Added an outer mode arc to the drag radial for Add, Draw, Connect and Select, with tool choices
+  in the inner ring. Drawing hides workspace connection and resize widgets while retaining
+  transform handles for lassoed ink.
+- Attached object indicators directly to the painted edge, centered so lone badges stay close to
+  curved stencils. Connected-copy handles move only when they overlap the indicator strip.
+- Added Settings with independent Show, Selected and Hide preferences for comments, tags, markers,
+  relationships and task/lock indicators. Indicators follow their object's paint order, rise on
+  selection and use compact icons until selected. Markup and grid visibility share the display screen.
 - Reduced default text padding from 14 to 8 units on ordinary objects and from 20 to 8 on sticky
   notes; free text and frame headers use 4. Cards reserve an image gutter only when they have an icon.
   Short objects retain usable text space while explicit padding stays intact. Frame titles retain

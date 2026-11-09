@@ -3,6 +3,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   ExternalLink,
+  LocateFixed,
   Eye,
   EyeOff,
   ListOrdered,
@@ -14,6 +15,7 @@ import {
 import { MARKERS, TASK_STATES, type Item, type Marker, type TaskState } from "../document/types";
 import { branchChildren, holdsOthers } from "../document/relations";
 import { isWebLink } from "../language/fields";
+import { isCanvasObjectUrl } from "../text/objectLinks";
 import { MARKER_SIGNS } from "../editor/marks";
 import { MARKER_LABELS } from "../editor/fieldCommands";
 
@@ -221,7 +223,9 @@ function LinkControl({
   onFollow: (link: string) => void;
 }>) {
   const link = value ?? "";
-  const followLabel = isWebLink(link) ? "Open link" : "Go to linked item";
+  const external = isWebLink(link) && !isCanvasObjectUrl(link);
+  const followLabel = external ? "Open link" : "Go to linked item";
+  const LinkIcon = external ? ExternalLink : LocateFixed;
   return (
     <div className="control-row link-row">
       <CommittedField
@@ -239,7 +243,7 @@ function LinkControl({
           data-hint={followLabel}
           onClick={() => onFollow(link)}
         >
-          <ExternalLink size={14} />
+          <LinkIcon size={14} />
         </button>
       )}
       {(value === null || link) && (

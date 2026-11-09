@@ -36,10 +36,19 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
   in workspace containment; edit their contents with the same drawing tools.
 - Hide markup locally, clear it with Undo, or omit it from portable exports.
 
+## Layers
+
+- Organize the canvas in named content layers beneath markup, with frames and groups keeping
+  their contents on one layer.
+- Create, choose, rename, reorder, hide, merge and delete layers in a layer browser, and move
+  selected objects between layers; hiding a layer changes only your view.
+- Let assistants read the layers, work in the right one and give a new addition its own layer.
+
 ## Slides
 
-- Place bounded slides over the canvas and organize them into named, numbered decks.
-- Author a template slide whose contents appear beneath the deck's other slides.
+- Place bounded slide viewports over the canvas, holding nothing themselves, and organize them
+  into named, numbered decks.
+- Author a template slide whose framed content appears beneath the deck's other slides.
 - Present locally with slide navigation, full-screen controls, speaker notes and markup visibility.
 - Keep receiving peers' edits while presenting.
 

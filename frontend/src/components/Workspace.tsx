@@ -220,14 +220,14 @@ function EditingOverlays({
   useSyncExternalStore(editor.subscribeView, editor.viewSnapshot);
   return (
     <>
+      <ObjectMetadata editor={editor} />
+      <QuickCreate editor={editor} />
       <InlineEditor editor={editor} />
       <SelectionFrame editor={editor} />
       <GradientDirection editor={editor} />
       <Cursors editor={editor} session={session} />
       <CanvasHUD editor={editor} />
-      <QuickCreate editor={editor} />
       <TextOverflow editor={editor} />
-      <ObjectMetadata editor={editor} />
       <Measure editor={editor} />
       <Announcer editor={editor} />
       {editor.ui.palette && <CommandPalette editor={editor} />}

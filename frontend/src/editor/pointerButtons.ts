@@ -3,7 +3,13 @@ import type { EditorController } from "./controller";
 import { cellAt } from "./input";
 import { closeMenu, openMenu } from "./registry";
 import { commandContext } from "./registry";
-import { chooseRingEntry, ringEntries } from "./contextMenu";
+import {
+  chooseRingEntry,
+  chooseRingMode,
+  modeSubRing,
+  ringEntries,
+  RING_MODES,
+} from "./contextMenu";
 import { syncZoom } from "./zoom";
 
 /**
@@ -23,10 +29,12 @@ export const RING_RADIUS = 84;
 export const RING_INNER = 48;
 export const RING_OUTER = 120;
 export const RING_COUNT = 8;
+export const MODE_INNER = 128;
+export const MODE_OUTER = 176;
 
 /** The clamped centre used by both the rendered ring and a held pointer's hit test. */
 export function ringCentre(at: { x: number; y: number }, width: number, height: number) {
-  const half = RING_OUTER + 2;
+  const half = MODE_OUTER + 2;
   return {
     x: Math.max(8 + half, Math.min(at.x, width - half - 8)),
     y: Math.max(8 + half, Math.min(at.y, height - half - 8)),
@@ -34,9 +42,15 @@ export function ringCentre(at: { x: number; y: number }, width: number, height: 
 }
 
 /** The visible wedge under a pointer relative to the ring's centre, clockwise from the top. */
-export function wedgeAt(dx: number, dy: number, count: number) {
+export function wedgeAt(
+  dx: number,
+  dy: number,
+  count: number,
+  inner = RING_INNER,
+  outer = RING_OUTER
+) {
   const distance = Math.hypot(dx, dy);
-  if (distance < RING_INNER || distance > RING_OUTER) return null;
+  if (distance < inner || distance > outer) return null;
   const angle = Math.atan2(dx, -dy);
   const turn = ((angle < 0 ? angle + Math.PI * 2 : angle) / (Math.PI * 2)) * count;
   return Math.floor((turn + 0.5) % count);
@@ -89,6 +103,36 @@ function selectUnderPointer(editor: EditorController, event: PointerEvent) {
     editor.select(item.id);
 }
 
+function releaseRing(editor: EditorController, event: PointerEvent) {
+  const menu = editor.ui.menu;
+  if (!menu?.ring) return;
+  const area = editor.element.getBoundingClientRect();
+  const centre = ringCentre(menu.at, area.width, area.height);
+  const mode = wedgeAt(
+    event.clientX - area.left - centre.x,
+    event.clientY - area.top - centre.y,
+    RING_MODES.length,
+    MODE_INNER,
+    MODE_OUTER
+  );
+  if (mode !== null) {
+    chooseRingMode(editor, RING_MODES[mode]);
+    return;
+  }
+  if (menu.wedge === null) {
+    // Released on the centre: the ring folds away and the menu stays for a click.
+    menu.ring = false;
+    editor.emit();
+    return;
+  }
+  const entry = ringEntries(commandContext(editor), menu.subRing)[menu.wedge];
+  if (entry) chooseRingEntry(editor, entry);
+  else {
+    menu.wedge = null;
+    editor.emit();
+  }
+}
+
 function menuWithRightButton(editor: EditorController, event: PointerEvent) {
   const { element } = editor;
   event.preventDefault();
@@ -122,15 +166,14 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
     if (Math.hypot(dx, dy) >= DEAD_ZONE) showRing();
     const area = element.getBoundingClientRect();
     const centre = ringCentre(menu.at, area.width, area.height);
-    const wedge = menu.ring
-      ? wedgeAt(
-          moveEvent.clientX - area.left - centre.x,
-          moveEvent.clientY - area.top - centre.y,
-          RING_COUNT
-        )
-      : null;
-    if (wedge !== menu.wedge) {
+    const px = moveEvent.clientX - area.left - centre.x;
+    const py = moveEvent.clientY - area.top - centre.y;
+    const mode = menu.ring ? wedgeAt(px, py, RING_MODES.length, MODE_INNER, MODE_OUTER) : null;
+    const subRing = mode === null ? menu.subRing : modeSubRing(RING_MODES[mode]);
+    const wedge = menu.ring ? wedgeAt(px, py, RING_COUNT) : null;
+    if (wedge !== menu.wedge || subRing !== menu.subRing) {
       menu.wedge = wedge;
+      menu.subRing = subRing;
       editor.emit();
     }
   };
@@ -144,21 +187,7 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
       closeMenu(editor);
       return;
     }
-    const menu = editor.ui.menu;
-    if (!menu?.ring) return;
-    if (menu.wedge === null) {
-      // Released on the centre: the ring folds away and the menu stays for a click.
-      menu.ring = false;
-      editor.emit();
-      return;
-    }
-    const entry = ringEntries(commandContext(editor), menu.subRing)[menu.wedge];
-    if (!entry) {
-      menu.wedge = null;
-      editor.emit();
-      return;
-    }
-    chooseRingEntry(editor, entry);
+    releaseRing(editor, finishEvent);
   };
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", finish);
@@ -170,7 +199,7 @@ export function bindPointerButtons(editor: EditorController, signal: AbortSignal
     const dx = editor.graph.getPanDx();
     const dy = editor.graph.getPanDy();
     const overlays = editor.element.parentElement?.querySelectorAll<HTMLElement>(
-      ".selection-frame, .object-metadata, .contextual-tools, .selection-popover, .text-overflow-indicator, .gradient-direction, .cursors, .find-pulse, .comment-modal, .quick-create, .measure, :scope > .laser"
+      ".selection-frame, .contextual-tools, .selection-popover, .text-overflow-indicator, .gradient-direction, .cursors, .find-pulse, .comment-modal, .quick-create, .measure, :scope > .laser"
     );
     overlays?.forEach((node) => {
       node.style.translate = dx || dy ? `${dx}px ${dy}px` : "";

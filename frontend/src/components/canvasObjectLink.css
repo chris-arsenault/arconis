@@ -1,0 +1,70 @@
+.markdown-toolbar .canvas-link-picker {
+  order: 1;
+  flex: 1 0 100%;
+  min-width: 0;
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+.canvas-link-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.canvas-link-picker p {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+.canvas-link-picker input {
+  width: 100%;
+  height: 30px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+.canvas-link-picker ul {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  max-height: 190px;
+  overflow: auto;
+}
+.markdown-toolbar .canvas-link-picker li button {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  text-align: left;
+  border: none;
+}
+.canvas-link-picker li[aria-selected="true"] button {
+  background: var(--hover);
+}
+.canvas-link-picker li button > span:not(.canvas-link-swatch) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.canvas-link-picker small {
+  flex: none;
+  color: var(--text-soft);
+}
+.canvas-link-swatch {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--object-link-fill);
+}
+.workspace:has(.canvas-link-picker) .canvas-surface,
+.workspace:has(.canvas-link-picker) .canvas-surface * {
+  cursor: crosshair !important;
+}

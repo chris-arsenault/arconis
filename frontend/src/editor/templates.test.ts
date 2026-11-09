@@ -3,7 +3,7 @@ import { CanvasDocument } from "../document/canvasDocument";
 import { underlays } from "./templates";
 
 describe("template underlays", () => {
-  it("repeats what a template holds under each other slide of its deck, at the same place", () => {
+  it("repeats what lies within a template under each other slide of its deck, at the same place", () => {
     const document = new CanvasDocument();
     const slide = (id: string, number: number, x: number, deck = "pitch") =>
       document.insert(document.build("slide", x, 0, { id, deck, slide: number }));
@@ -11,26 +11,38 @@ describe("template underlays", () => {
     slide("s1", 1, 2000);
     slide("s2", 2, 4000);
     slide("elsewhere", 1, 6000, "agenda");
-    document.insert(
-      document.build("text", 1100, 680, { id: "brand", inside: "t", width: 160, height: 30 })
-    );
-    document.insert(document.build("node", 40, 40, { id: "box", inside: "t" }));
+    document.insert(document.build("text", 1100, 680, { id: "brand", width: 160, height: 30 }));
+    document.insert(document.build("node", 40, 40, { id: "box" }));
     document.insert(document.build("node", 50, 50, { id: "inner", inside: "box" }));
     document.insert(document.build("line", 0, 0, { id: "l", from: "box", to: "brand" }));
     // A line to something outside the template has no place on the other slides.
     document.insert(document.build("node", 9000, 0, { id: "far" }));
     document.insert(document.build("line", 0, 0, { id: "out", from: "box", to: "far" }));
+    // Content centred outside the template, and markup, are not part of it; content poking out
+    // past an edge from within is.
+    document.insert(document.build("node", 1250, 100, { id: "edge", width: 100, height: 60 }));
+    document.insert(document.build("text", 1200, 300, { id: "poke", width: 120, height: 30 }));
+    document.insert(
+      document.build("drawing", 0, 0, {
+        id: "ink",
+        markup: true,
+        points: [
+          [10, 10],
+          [20, 20],
+        ],
+      })
+    );
 
     const ghosts = underlays(document.list());
     expect(ghosts.map((item) => item.id).sort((a, b) => a.localeCompare(b))).toEqual(
       ["s1", "s2"].flatMap((slide) =>
-        ["box", "brand", "inner", "l"].map((id) => `underlay:${slide}:${id}`)
+        ["box", "brand", "inner", "l", "poke"].map((id) => `underlay:${slide}:${id}`)
       )
     );
     const on = (slide: string, id: string) =>
       ghosts.find((item) => item.id === `underlay:${slide}:${id}`)!;
-    expect(on("s1", "brand")).toMatchObject({ inside: "s1", x: 3100, y: 680, width: 160 });
-    expect(on("s2", "brand")).toMatchObject({ inside: "s2", x: 5100 });
+    expect(on("s1", "brand")).toMatchObject({ inside: "", x: 3100, y: 680, width: 160 });
+    expect(on("s2", "brand")).toMatchObject({ inside: "", x: 5100 });
     expect(on("s1", "inner").inside).toBe("underlay:s1:box");
     expect(on("s1", "l")).toMatchObject({ from: "underlay:s1:box", to: "underlay:s1:brand" });
     // Nothing of the underlays is in the document.

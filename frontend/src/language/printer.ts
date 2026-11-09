@@ -1,6 +1,7 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments, type CanvasComment } from "../document/comments";
 import { deckOf } from "../document/slides";
+import { BASE_LAYER, BASE_LAYER_NAME, type Layer } from "../document/layers";
 import {
   isLink,
   type Arrangement,
@@ -218,6 +219,22 @@ export function styleStatements(document: CanvasDocument, used?: Set<string>) {
     .map(([name, look]) => ["style", name, ...lookWords(look)].join(" "));
 }
 
+/**
+ * Layer declarations bottom to top. Each new layer goes on top when read back, so only the base
+ * layer, which always exists, says where it sits; it is left out while it is plain and lowest.
+ */
+export function layerStatements(layers: Layer[], used?: Set<string>) {
+  const lines: string[] = [];
+  layers.forEach((layer, index) => {
+    if (used && !used.has(layer.id)) return;
+    if (layer.id === BASE_LAYER && index === 0 && layer.name === BASE_LAYER_NAME) return;
+    const words = ["layer", layer.id, quote(layer.name)];
+    if (layer.id === BASE_LAYER && index > 0) words.push("above", layers[index - 1]!.id);
+    lines.push(words.join(" "));
+  });
+  return lines;
+}
+
 /** Items in stacking order, nested by what holds them, with their links after. */
 export function printItems(items: Item[]) {
   const lines: string[] = [];
@@ -236,12 +253,19 @@ export interface PrintOptions {
 /** The canvas, or part of it, as a complete text: the saved file and what agents read. */
 export function printCanvas(document: CanvasDocument, options: PrintOptions = {}) {
   const all = document.list();
-  const chosen = exportItems(all, options.ids ?? [], options.includeMarkup !== false);
+  const layers = document.layerList();
+  const known = new Set(layers.map((layer) => layer.id));
+  // A layer a peer deleted while another moved items into it reads, and prints, as the base layer.
+  const chosen = exportItems(all, options.ids ?? [], options.includeMarkup !== false).map((item) =>
+    item.layer && !known.has(item.layer) ? { ...item, layer: undefined } : item
+  );
   const ids = new Set(chosen.map((item) => item.id));
   const used = new Set(chosen.map((item) => item.style).filter(Boolean));
   const whole = !options.ids?.length;
   const lines = [`arconis ${LANGUAGE_VERSION}`, `title ${quote(document.title())}`];
   lines.push(...styleStatements(document, whole ? undefined : used));
+  const layersUsed = new Set(chosen.filter((item) => !item.inside).map((item) => item.layer ?? ""));
+  lines.push(...layerStatements(layers, whole ? undefined : layersUsed));
   printTree(chosen, lines);
   lines.push(...discussionStatements(listComments(document).filter((c) => ids.has(c.on))));
   if (whole) lines.push(...[...document.views.values()].map(viewStatement));

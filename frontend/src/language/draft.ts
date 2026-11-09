@@ -7,6 +7,7 @@ import { LanguageError } from "./lexer";
 import { footprint, type Box } from "../document/layout";
 import type { Extent } from "./placement";
 import { authoredLook } from "../document/appearance";
+import type { LayerRecord } from "../document/layers";
 
 const GEOMETRY = ["x", "y", "width", "height"] as const;
 
@@ -39,6 +40,9 @@ export class Draft {
   /** Nodes sitting on lines, whose lines are found once every line exists. */
   readonly anchors: { id: string; ref: string; line: number }[] = [];
   readonly highlights: { id: string; ref: string; line: number }[] = [];
+  /** Content layers as this write leaves them, and the items it named a layer for. */
+  readonly layers = new Map<string, LayerRecord>();
+  readonly layered: { id: string; line: number }[] = [];
   title: string | null = null;
   private readonly original = new Map<string, string>();
   private order: number;
@@ -49,6 +53,7 @@ export class Draft {
       this.original.set(item.id, JSON.stringify(item));
     }
     document.styles.forEach((look, name) => this.styles.set(name, look));
+    document.layers.forEach((record, id) => this.layers.set(id, { ...record }));
     this.order = document.nextOrder();
   }
 
@@ -177,6 +182,7 @@ export class Draft {
     }
     if (this.title !== null) document.rename(this.title);
     this.changedStyles.forEach((look, name) => document.setStyle(name, look));
+    commitLayerRecords(this);
     this.removed.forEach((id) => {
       if (this.original.has(id)) document.items.delete(id);
     });
@@ -198,6 +204,16 @@ export class Draft {
       removed: [...this.removed].filter((id) => this.original.has(id)),
     };
   }
+}
+
+/** Writes the layer records this write added, changed or dropped. */
+function commitLayerRecords(draft: Draft) {
+  const { layers } = draft.document;
+  for (const id of [...layers.keys()]) if (!draft.layers.has(id)) layers.delete(id);
+  draft.layers.forEach((record, id) => {
+    const before = layers.get(id);
+    if (before?.name !== record.name || before.order !== record.order) layers.set(id, record);
+  });
 }
 
 /** The fields of `after` that differ from `before`, with cleared ones as undefined. */

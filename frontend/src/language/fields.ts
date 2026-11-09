@@ -1,5 +1,6 @@
 import { FLAGS, type Item } from "../document/types";
 import { isId } from "../document/ids";
+import { BASE_LAYER } from "../document/layers";
 import type { Attribute } from "./syntax";
 import { quote } from "./printer";
 
@@ -72,7 +73,7 @@ export function isWebLink(link: string) {
 
 /** The field words of an item's statement, in canonical order, after what it is and before its look. */
 export function fieldWords(item: Item) {
-  const parts: string[] = FLAGS.filter((flag) => item[flag]);
+  const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
   if (item.tags?.length) parts.push("tags", item.tags.join(", "));
   if (item.marker) parts.push("marker", item.marker);
   if (item.task) parts.push("task", item.task);
@@ -82,6 +83,11 @@ export function fieldWords(item: Item) {
   ))
     parts.push("property", key, quote(value));
   return parts;
+}
+
+/** Contents are in their holder's layer, so only top-level items outside the base name one. */
+function layerWords(item: Item) {
+  return !item.inside && item.layer && item.layer !== BASE_LAYER ? ["in-layer", item.layer] : [];
 }
 
 /** Who last edited the item, at the end of its statement. */

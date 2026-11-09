@@ -25,7 +25,7 @@ export interface Deck {
 }
 
 /**
- * The number of a deck's template. What a template holds is drawn under every other slide of its
+ * The number of a deck's template. What a template frames is drawn under every other slide of its
  * deck, at the same place within each, and a presentation skips the template itself.
  */
 export const TEMPLATE_NUMBER = 0;

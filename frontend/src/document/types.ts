@@ -180,6 +180,11 @@ export interface Item {
   slide?: number;
   /** Shared annotation above the workspace, rather than workspace content. */
   markup?: boolean;
+  /**
+   * The content layer a top-level item is in, or absent for the base layer. What a holder holds
+   * is in the holder's layer; markup and slides belong to none (`document/layers.ts`).
+   */
+  layer?: string;
   /** Geometry convention for an editable drawing path. */
   ink?: InkKind;
   /** A highlight follows this item's geometry without changing its style. */

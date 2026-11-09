@@ -2,6 +2,7 @@ import * as Y from "yjs";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments } from "../document/comments";
 import { decks } from "../document/slides";
+import { layerRoots } from "../document/layerCommands";
 import { isBox, isLink, type Item } from "../document/types";
 import { LanguageError } from "./lexer";
 import { footprint, intersects, union, type Box } from "../document/layout";
@@ -53,8 +54,8 @@ export class LanguageSession {
     readonly author: string
   ) {
     this.baseline = this.snapshot();
-    const { items, meta, styles, views, comments } = document;
-    this.undo = new Y.UndoManager([items, meta, styles, views, comments], {
+    const { items, meta, styles, views, comments, layers } = document;
+    this.undo = new Y.UndoManager([items, meta, styles, views, comments, layers], {
       trackedOrigins: new Set([this.origin]),
       captureTimeout: 0,
     });
@@ -77,7 +78,8 @@ export class LanguageSession {
         lines.push(
           `// Bounds: at ${round(bounds.x)},${round(bounds.y)} size ${round(bounds.width)},${round(bounds.height)}`
         );
-      lines.push(...styleStatements(this.document), "// Outline:", ...outline(items));
+      lines.push(...styleStatements(this.document), layerSummary(this.document, items));
+      lines.push("// Outline:", ...outline(items));
       for (const { deck, slides } of decks(items))
         lines.push(`// Deck ${quote(deck)}: ${slides.map(slideSummary).join(", ")}`);
       const open = listComments(this.document).filter(
@@ -309,6 +311,14 @@ function changesBetween(before: Snapshot, after: Snapshot) {
 }
 
 const OUTLINE_ARROWS: Partial<Record<Item["type"], string>> = { branch: "=>", reference: "..>" };
+
+/** The content layers bottom to top, each with how many top-level items it has. */
+function layerSummary(document: CanvasDocument, items: Item[]) {
+  const layers = document
+    .layerList()
+    .map((layer) => `${layer.id} ${quote(layer.name)} (${layerRoots(items, layer.id).length})`);
+  return `// Layers, bottom to top, beneath markup: ${layers.join(", ")}`;
+}
 
 /** A slide in a deck listing: its number, id and name. */
 function slideSummary(slide: Item) {

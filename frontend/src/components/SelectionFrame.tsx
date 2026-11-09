@@ -80,6 +80,12 @@ function frameSelection(editor: EditorController) {
 }
 
 export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }>) {
+  if (
+    editor.tool === "draw" &&
+    (editor.drawing.settings.mode !== "lasso" ||
+      editor.selected().some((item) => item.type !== "drawing"))
+  )
+    return null;
   const { cells, first, onlyGroup, drawn } = frameSelection(editor);
   if (cells.length < 2 && !onlyGroup && !drawn) return null;
   const box = editor.graph.getBoundingBox(cells);

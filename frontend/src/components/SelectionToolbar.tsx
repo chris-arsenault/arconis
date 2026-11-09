@@ -9,6 +9,7 @@ import { runCommand, showComments } from "../editor/registry";
 import { openMenuOverSelection as openOverSelection } from "../editor/contextMenu";
 import { MarkdownTools } from "./MarkdownTools";
 import { useSelectionAnchor } from "./useSelectionAnchor";
+import { CanvasObjectLink } from "./CanvasObjectLink";
 
 /** Text sizes the toolbar steps through. */
 const TEXT_SIZES = [10, 12, 14, 16, 18, 22, 28, 36, 48];
@@ -112,6 +113,9 @@ export function SelectionToolbar({
             textarea={textarea}
             expanded
             compact
+            objectLink={
+              <CanvasObjectLink editor={editor} sourceId={editing.id} textarea={textarea} />
+            }
           />
         </>
       ) : (

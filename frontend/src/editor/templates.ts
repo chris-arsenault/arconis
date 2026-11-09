@@ -6,7 +6,7 @@ import { isBox, isLink, type Item, type PathPoint } from "../document/types";
 const UNDERLAY = "underlay:";
 
 /**
- * What a deck's templates hold, drawn again under each of the deck's other slides. Underlays are
+ * What a deck's templates frame, drawn again under each of the deck's other slides. Underlays are
  * items of the graph alone, never of the document: they are computed from it on every projection,
  * placed within each slide as they sit within the template, and nothing can select, move, hold or
  * connect to them.
@@ -28,12 +28,9 @@ export function isUnderlay(cell: Cell) {
 }
 
 function underlay(items: Item[], template: Item, slide: Item): Item[] {
-  const held = contents(items, template.id);
+  const held = framed(items, template);
   const ids = new Set(held.map((item) => item.id));
-  const mapId = (id: string) => {
-    if (id === template.id) return slide.id;
-    return ids.has(id) ? `${UNDERLAY}${slide.id}:${id}` : id;
-  };
+  const mapId = (id: string) => (ids.has(id) ? `${UNDERLAY}${slide.id}:${id}` : id);
   // A slide usually has its template's size; when it does not, the template scales to fit it.
   const scale = template.width ? slide.width / template.width : 1;
   const place = ([x, y]: PathPoint): PathPoint => [
@@ -59,10 +56,36 @@ function underlay(items: Item[], template: Item, slide: Item): Item[] {
     });
 }
 
-/** Everything held inside an item, at any depth, plus the lines between those items. */
-function contents(items: Item[], root: string) {
-  const ids = new Set([root]);
-  const held: Item[] = [];
+/**
+ * What a template frames: top-level workspace items centred within its bounds, so text placed near
+ * an edge still counts, with what they hold at any depth and the lines among them. Markup is
+ * temporary and is never repeated.
+ */
+function framed(items: Item[], template: Item) {
+  const within = ([x, y]: PathPoint) =>
+    x >= template.x &&
+    y >= template.y &&
+    x <= template.x + template.width &&
+    y <= template.y + template.height;
+  const roots = items.filter(
+    (item) =>
+      !item.inside && !item.markup && item.type !== "slide" && !isLink(item) && within(centre(item))
+  );
+  return contents(items, roots);
+}
+
+function centre(item: Item): PathPoint {
+  if (isBox(item)) return [item.x + item.width / 2, item.y + item.height / 2];
+  if (!item.points.length) return [Number.NaN, Number.NaN];
+  const xs = item.points.map(([x]) => x);
+  const ys = item.points.map(([, y]) => y);
+  return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+}
+
+/** The given items and everything they hold, at any depth, plus the lines among all of them. */
+function contents(items: Item[], roots: Item[]) {
+  const ids = new Set(roots.map((item) => item.id));
+  const held: Item[] = [...roots];
   let grew = true;
   while (grew) {
     grew = false;

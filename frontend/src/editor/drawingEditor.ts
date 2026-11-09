@@ -1,4 +1,9 @@
-import { InternalEvent, type Cell } from "@maxgraph/core";
+import {
+  InternalEvent,
+  type Cell,
+  type ConnectionHandler,
+  type SelectionCellsHandler,
+} from "@maxgraph/core";
 import { refreshInkView } from "./inkView";
 import { closeInk, paintInk } from "./inkCommands";
 import { effectiveAppearance } from "../document/appearance";
@@ -39,6 +44,7 @@ export class DrawingEditor {
     { ...DEFAULT, mode: "highlighter", color: "#ffcc00", width: 24 },
   ];
   recent: string[] = [];
+  private drawing = false;
   private instruments = {
     pen: { color: DEFAULT.color, width: 3 },
     highlighter: { color: "#ffcc00", width: 24 },
@@ -61,6 +67,11 @@ export class DrawingEditor {
     }
     const selectable = editor.graph.isCellSelectable.bind(editor.graph);
     editor.graph.isCellSelectable = (cell) => selectable(cell) && this.selectable(cell);
+    const handles = editor.graph.getPlugin<SelectionCellsHandler>("SelectionCellsHandler");
+    if (handles) {
+      const selected = handles.getHandledSelectionCells.bind(handles);
+      handles.getHandledSelectionCells = () => (editor.tool === "draw" ? [] : selected());
+    }
     editor.graph.getSelectionModel().addListener(InternalEvent.CHANGE, () => this.refresh());
   }
 
@@ -78,6 +89,16 @@ export class DrawingEditor {
     return true;
   }
   refresh() {
+    const drawing = this.editor.tool === "draw";
+    if (drawing !== this.drawing) {
+      this.drawing = drawing;
+      const graph = this.editor.graph;
+      graph.setConnectable(!drawing);
+      const connection = graph.getPlugin<ConnectionHandler>("ConnectionHandler");
+      connection?.constraintHandler.setEnabled(!drawing);
+      connection?.reset();
+      graph.getPlugin<SelectionCellsHandler>("SelectionCellsHandler")?.refresh();
+    }
     refreshInkView(
       this.editor.graph,
       this.editor.document,

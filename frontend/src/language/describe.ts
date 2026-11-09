@@ -5,6 +5,7 @@ import { LanguageError } from "./lexer";
 import type { Attribute } from "./syntax";
 import { attributesFor, checkAttributes, type RoutedAttribute } from "./attributeRouting";
 import { FIELD_DESCRIBERS } from "./fields";
+import { assignLayer } from "./layerWriting";
 
 /** What an item is and how it looks, from the attributes that say so. */
 
@@ -59,6 +60,7 @@ const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
     if (item.type !== "drawing") throw new LanguageError("Only a drawing has ink geometry.", line);
     item.ink = attribute.ink;
   },
+  layer: (item, attribute, { draft, line }) => assignLayer(draft, item, attribute.ref, line),
   target: (item, attribute, { draft, line }) => {
     if (item.type !== "highlight") throw new LanguageError("Only a highlight has a target.", line);
     draft.highlights.push({ id: item.id, ref: attribute.ref, line });

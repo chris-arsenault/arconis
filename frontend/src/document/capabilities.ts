@@ -26,9 +26,15 @@ export const keepsAspectOnResize = (item: Item) => isLockedIcon(item) || item.ty
 /** Collective transforms historically preserve picture dimensions as well as vendor icons. */
 export const keepsAspectOnTransform = (item: Item) => isLockedIcon(item) || item.type === "picture";
 
-/** Ordinary placement excludes annotations and the Drawing's focused ink surface. */
+/**
+ * Ordinary placement excludes annotations and the Drawing's focused ink surface. A slide is a
+ * viewport over the canvas, so it holds nothing.
+ */
 export const canHoldWorkspace = (item: Item) =>
-  isBox(item) && !item.markup && !["band", "highlight", "sketch"].includes(item.type);
+  isBox(item) && !item.markup && !["band", "highlight", "sketch", "slide"].includes(item.type);
+
+/** Nothing can be inside a slide; a record naming one as its holder is read as top level. */
+export const canHoldAnything = (type: unknown) => type !== "slide";
 
 export const canConnect = (item: Item, holder?: Item) =>
   !isMarkup(item) && holder?.type !== "sketch";

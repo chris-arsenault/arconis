@@ -19,19 +19,18 @@ Gaps in slide numbers are valid; matching numbers are ordered by item id.
 
 ## Put content on a slide
 
-Position a slide around an existing diagram to frame it for presenting. Creating a slide over
-existing content leaves those objects in their current holders.
-
-Objects created or dropped onto a slide become its contents. Moving that slide moves its
-contents, and deleting it deletes them. Objects merely overlapping the viewport remain separate.
-Undo restores a deleted slide and its contents. [Using the canvas](editing.md#containers-and-groups)
-explains containment and grouping.
+A slide holds nothing. Position it around content to frame that content for presenting, or
+place objects over it. Moving a slide moves only the viewport, and deleting it leaves the content
+it framed in place. To move a slide's content with it, put the content in a frame or group and
+move both. [Using the canvas](editing.md#containers-and-groups) explains containment and grouping.
 
 ## Reuse a template
 
 1. Create a slide in the deck and enable **Template under the deck's slides** in its properties.
    Its number becomes 0.
-2. Place shared content inside it: a title region, footer, logo or background drawing.
+2. Place shared content over it: a title region, footer, logo or background drawing. Objects
+   whose centre lies within the template, with what they hold, form the template. Markup is not
+   repeated.
 3. Open another slide in the same deck to see the template content beneath it.
 
 Template copies are dimmed while editing and shown at full strength while presenting. Edit the

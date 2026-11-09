@@ -36,6 +36,15 @@ independent of a participant's undo history. Records a peer writes in an unknown
   keeps its ids where they are free.
 - **Stacking.** Each item's `order` sets its stacking position, with its id breaking ties, because
   `Y.Map` iteration differs between peers.
+- **Layers.** The `layers` map holds content layers' names and stacking orders
+  ([ADR-0017](adr/0017-content-layers.md)), and an item's `layer` names its own; absent is the
+  base layer. `document/layers.ts` resolves an item's layer from its outermost holder, orders
+  slides, then each layer, then markup for the projection, and computes what a person's hidden
+  layers take off their graph. `document/layerCommands.ts` plans create, rename, move, merge,
+  delete and move-to-layer once for both the editor and `language/layerWriting.ts`.
+  `CanvasDocument.patch` keeps the layer of an item leaving its holders. `editor/layerView.ts`
+  holds each person's hidden layers and active layer, which `CanvasDocument.build` applies to new
+  top-level objects; picture exports cover only what that person sees.
 - **Lines.** A line names the items at its ends and any ports where it attaches. A line with a missing
   end stays in Yjs, hidden from the graph, so out-of-order updates can complete it.
 - **Holders.** `inside` relates contents to their holder while preserving world coordinates.
@@ -55,10 +64,13 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Slides.** A slide is a box item with a `deck` name and a `slide` number
   ([ADR-0016](adr/0016-slides-are-canvas-items.md)). `document/slides.ts` orders a deck's slides by
   number then id, numbers a new slide after the deck's highest, and gives it the deck's size and a
-  place behind everything. A deck has no record of its own. Its slide 0 is its template:
-  `editor/templates.ts` computes, on every projection, copies of what the template holds under each
-  other slide of the deck, which exist only as graph cells that mutation capture skips and nothing
-  can select, hold or connect to.
+  place behind everything. A slide is a viewport and holds nothing: `document/capabilities.ts`
+  excludes it from placement, the writer places a slide block's items over it at the top level,
+  and `CanvasDocument` reads a stored holder that names a slide as the top level. A deck has no
+  record of its own. Its slide 0 is its template: `editor/templates.ts` computes, on every
+  projection, copies of the top-level workspace items centred within the template, with their
+  contents, under each other slide of the deck. The copies exist only as graph cells that
+  mutation capture skips and nothing can select, hold or connect to.
 - **Topics.** Branches and references are line types, and a line joins them through an anchor node
   kept at its midpoint ([ADR-0010](adr/0010-topics-as-general-abilities.md)). `document/relations.ts`
   holds the tree, layout and alignment logic.

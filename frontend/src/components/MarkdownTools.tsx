@@ -1,4 +1,4 @@
-import { useState, type RefObject } from "react";
+import { useState, type RefObject, type ReactNode } from "react";
 import { sourceAction, type SourceEdit, type TextAction } from "../text/commands";
 import type { Appearance } from "../document/appearance";
 import { markdownPlainText } from "../text/markdown";
@@ -30,6 +30,7 @@ export function MarkdownTools({
   textarea,
   expanded,
   compact,
+  objectLink,
 }: Readonly<{
   source: string;
   appearance: Appearance;
@@ -37,6 +38,7 @@ export function MarkdownTools({
   textarea: RefObject<HTMLTextAreaElement | null>;
   expanded: boolean;
   compact: boolean;
+  objectLink: ReactNode;
 }>) {
   const [preview, setPreview] = useState(false);
   const [language, setLanguage] = useState("typescript");
@@ -64,7 +66,7 @@ export function MarkdownTools({
   return (
     <details className="markdown-tools" data-text-tools="true" open={expanded || undefined}>
       <summary>Markdown tools</summary>
-      <MarkdownActions act={act} />
+      <MarkdownActions act={act} objectLink={objectLink} />
       <details className="markdown-extra" open={compact ? undefined : true}>
         <summary hidden={!compact}>Code, preview and copy</summary>
         <CodeActions
@@ -93,7 +95,7 @@ export function MarkdownTools({
 
 type Act = (action: TextAction, language?: string) => void;
 
-function MarkdownActions({ act }: Readonly<{ act: Act }>) {
+function MarkdownActions({ act, objectLink }: Readonly<{ act: Act; objectLink: ReactNode }>) {
   return (
     <div className="markdown-toolbar" role="toolbar" aria-label="Markdown formatting">
       {ACTIONS.map(({ action, label, text }) => (
@@ -108,6 +110,7 @@ function MarkdownActions({ act }: Readonly<{ act: Act }>) {
           {text}
         </button>
       ))}
+      {objectLink}
       <details className="markdown-more">
         <summary>More</summary>
         <div>

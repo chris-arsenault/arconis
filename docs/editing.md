@@ -5,9 +5,9 @@ the right. The same room holds diagrams, notes, topic trees, pictures, Drawings 
 
 For a first walkthrough, start with [your first shared canvas](getting-started.md).
 
-The rail has four task areas: **Add** for shapes and icon libraries, **Draw** for ink and
-annotations, **Explore** for saved views, topic outlines, tags and history, and **Slides** for
-building and presenting decks. Select, Pan and Connect stay above these areas. **Hide panel**
+The rail has five task areas: **Add** for shapes and icon libraries, **Draw** for ink and
+annotations, **Layers** for organising the canvas in layers, **Explore** for saved views, topic
+outlines, tags and history, and **Slides** for building and presenting decks. Select, Pan and Connect stay above these areas. **Hide panel**
 leaves the tools and task buttons available while giving the canvas more space. On phones, the
 panel starts hidden; choosing a task opens it over the canvas. On phones and tablets, choosing a
 stencil closes the panel for placement. **Properties** opens the selected object's controls;
@@ -15,6 +15,25 @@ tools and properties share that space so the canvas stays available.
 
 Hover or focus a control for contextual help; on touch screens, hold it to read the help without
 activating it. Escape dismisses the help before affecting the canvas selection.
+
+Open **Settings** in the header to control your canvas display. Comments, tags, markers,
+relationships and task/lock indicators each offer **Show**, **Selected** and **Hide**. These
+preferences stay in your browser; hidden indicators leave their information available in Properties.
+Unselected objects use compact icons, with tag names and single-item counts expanding on selection.
+Indicators stack with their objects and rise while selected. Settings also offers markup and grid
+visibility, alongside their existing drawing and view controls.
+
+## Send usability feedback
+
+Open **Feedback** in the header and describe what you tried and what was confusing. Guests can
+submit without signing in. Reports are stored privately with your display name, available account
+email, app version, browser and viewport, room details, connection state and editor diagnostics.
+Passwords, room keys and authentication tokens are excluded.
+
+**Include a screenshot of the canvas** starts unchecked. Selecting it attaches the standard PNG
+export of the visible canvas, including markup and editable content, even when an object is selected.
+This is a readable export outside the room's password protection. If submission fails, the form
+keeps your text and screenshot choice so you can retry.
 
 ## Place and name objects
 
@@ -82,6 +101,12 @@ keeps the selection. Empty-space right-click opens canvas actions even when an o
 The browser's own menu never appears over the canvas. Tab and arrows navigate the open menu;
 Escape closes it and preserves the selection.
 
+An outer arc offers **Add**, **Draw**, **Connect** and **Select**. Click a mode to show its tools
+in the inner ring, or keep the right button held, move out to a mode, then back into the inner
+ring and release on a tool. Add arms a shape for the next canvas click; Draw offers the eight
+drawing instruments; Connect offers a connector and the available relationship commands.
+Select returns to ordinary selection. Escape cancels an unfinished radial choice.
+
 The ring on an object reads like a compass, so a stroke can be learned once:
 
 | Direction | Command                     | Direction | Command             |
@@ -148,12 +173,34 @@ belongs to your browser. Fine drawing paths follow the pointer rather than snapp
 
 ## Containers and groups
 
-Shapes, notes, pictures, frames, groups and slides can hold workspace items. Place a smaller
+Shapes, notes, pictures, frames and groups can hold workspace items. Slides are viewports and
+hold nothing. Place a smaller
 object inside a larger one, or drag an existing object onto it, to give it that holder.
 Drag an object out to release it. Moving a holder moves its contents.
 
 Ordinary container resizing leaves its children at their stored positions. A Drawing's resize
 transforms its ink, and a frame with an active arrangement reflows its members.
+
+## Layers
+
+Layers stack the canvas in named collections. Open **Layers** in the rail to see them top first:
+**Markup** is always on top, then each content layer, down to **Workspace**, where existing
+objects start. Slides sit beneath every layer and show whatever is visible within them.
+
+- Click a layer's name to choose it. New objects go into the chosen layer.
+- **New layer** adds a layer above the chosen one and chooses it. Double-click a name, or use
+  **Rename**, to rename it.
+- Drag a layer onto another to put it above that layer, or use **Move up** and **Move down**.
+- The eye button hides or shows a layer in your view only. Other people keep their own view.
+  Hiding Markup is the same as clearing **Show annotations**.
+- **Merge down** moves the chosen layer's objects into the layer beneath, keeping how they stack,
+  and removes the layer. **Delete** removes the layer and its objects for everyone. Undo restores
+  either. Workspace stays; it cannot be merged away or deleted.
+- **Move selection to** a layer puts the selected objects on top of the chosen layer. The
+  **Layer** field in Properties does the same for the selection.
+
+A frame, group or other holder keeps its contents on its own layer. Move the holder to move them,
+or drag an object out of its holder first; it keeps the layer it was in.
 
 A **Frame** is a titled container. **Screens** in the stencil rail creates frames at common
 device sizes; **Screen size** in the property panel changes them. A **Band** supplied through

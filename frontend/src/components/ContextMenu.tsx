@@ -2,7 +2,16 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { COLORS } from "../document/types";
 import type { EditorController } from "../editor/controller";
-import { chooseRingEntry, menuGroups, ringEntries, type MenuEntry } from "../editor/contextMenu";
+import {
+  chooseRingEntry,
+  chooseRingMode,
+  menuGroups,
+  modeSubRing,
+  ringEntries,
+  RING_MODES,
+  type RingMode,
+  type MenuEntry,
+} from "../editor/contextMenu";
 import { closeMenu, commandContext, findCommand, runCommand } from "../editor/registry";
 import { shortcutLabel } from "../editor/shortcuts";
 import {
@@ -10,20 +19,22 @@ import {
   RING_INNER,
   RING_OUTER,
   RING_COUNT,
+  MODE_INNER,
+  MODE_OUTER,
   ringCentre,
 } from "../editor/pointerButtons";
 
-function wedgePath(index: number, count: number) {
+function wedgePath(index: number, count: number, inner = RING_INNER, outer = RING_OUTER) {
   const span = (Math.PI * 2) / count;
   const start = index * span - span / 2 - Math.PI / 2;
   const end = start + span;
   const point = (radius: number, angle: number) =>
     `${(radius * Math.cos(angle)).toFixed(1)},${(radius * Math.sin(angle)).toFixed(1)}`;
   return [
-    `M ${point(RING_INNER, start)}`,
-    `A ${RING_INNER} ${RING_INNER} 0 0 1 ${point(RING_INNER, end)}`,
-    `L ${point(RING_OUTER, end)}`,
-    `A ${RING_OUTER} ${RING_OUTER} 0 0 0 ${point(RING_OUTER, start)}`,
+    `M ${point(inner, start)}`,
+    `A ${inner} ${inner} 0 0 1 ${point(inner, end)}`,
+    `L ${point(outer, end)}`,
+    `A ${outer} ${outer} 0 0 0 ${point(outer, start)}`,
     "Z",
   ].join(" ");
 }
@@ -33,7 +44,7 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
   const menu = editor.ui.menu!;
   const entries = ringEntries(commandContext(editor), menu.subRing);
   const count = RING_COUNT;
-  const size = RING_OUTER * 2 + 4;
+  const size = MODE_OUTER * 2 + 4;
   return (
     <svg
       className="command-ring"
@@ -42,6 +53,15 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
       height={size}
       viewBox={`${-size / 2} ${-size / 2} ${size} ${size}`}
     >
+      {RING_MODES.map((mode, index) => (
+        <ModeArc
+          key={mode}
+          mode={mode}
+          index={index}
+          active={menu.subRing === modeSubRing(mode)}
+          onChoose={() => chooseRingMode(editor, mode)}
+        />
+      ))}
       {entries.map((entry, index) =>
         entry ? (
           <Wedge
@@ -59,6 +79,47 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
         )
       )}
     </svg>
+  );
+}
+
+function ModeArc({
+  mode,
+  index,
+  active,
+  onChoose,
+}: Readonly<{
+  mode: RingMode;
+  index: number;
+  active: boolean;
+  onChoose: () => void;
+}>) {
+  const angle = (index * Math.PI) / 2 - Math.PI / 2;
+  const radius = (MODE_INNER + MODE_OUTER) / 2;
+  return (
+    <g
+      className={`ring-mode ${active ? "active" : ""}`}
+      role="menuitem"
+      tabIndex={0}
+      aria-label={mode}
+      data-hint={mode}
+      onClick={onChoose}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onChoose();
+        }
+      }}
+    >
+      <path d={wedgePath(index, RING_MODES.length, MODE_INNER, MODE_OUTER)} />
+      <text
+        x={radius * Math.cos(angle)}
+        y={radius * Math.sin(angle)}
+        textAnchor="middle"
+        dominantBaseline="middle"
+      >
+        {mode}
+      </text>
+    </g>
   );
 }
 
@@ -220,7 +281,11 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
     Object.assign(ref.current.style, { left: `${x}px`, top: `${y}px` });
   });
   useEffect(() => {
-    ref.current?.querySelector<HTMLElement>("[role=menuitem]:not([aria-disabled=true])")?.focus();
+    ref.current
+      ?.querySelector<HTMLElement>(
+        ".ring-wedge[role=menuitem]:not([aria-disabled=true]), .context-menu [role=menuitem]:not([aria-disabled=true])"
+      )
+      ?.focus();
   }, [menu?.ring, menu?.subRing]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

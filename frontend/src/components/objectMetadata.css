@@ -1,6 +1,5 @@
 .object-metadata {
   position: absolute;
-  z-index: 5;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -16,15 +15,18 @@
   justify-content: center;
   gap: 4px;
   flex: none;
-  min-height: 24px;
-  padding: 3px 5px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
+  min-height: 20px;
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   background: var(--panel);
   color: var(--text-soft);
   font-size: 11px;
   line-height: 16px;
   pointer-events: auto;
+}
+.object-metadata.selected .metadata-badge {
+  border-color: var(--line);
 }
 .object-metadata .metadata-tags {
   min-width: 0;

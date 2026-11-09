@@ -4,6 +4,8 @@ import { compareStacking } from "./geometry";
 import { newId } from "./ids";
 import { CompletedActions } from "./actions";
 import { removalClosure } from "./relations";
+import { canHoldAnything } from "./capabilities";
+import { BASE_LAYER, inLayers, layerOf, orderedLayers, type LayerRecord } from "./layers";
 
 /** Fields every item has, with the values an item starts from. */
 export const BLANK: Omit<Item, "id" | "type"> = {
@@ -46,6 +48,11 @@ export class CanvasDocument {
    * the item's last editor; empty names nobody, as on the relay, where sessions stamp their own.
    */
   author = "";
+  /**
+   * The layer this participant's new top-level objects go into. Local, like `author`; an agent's
+   * writes name their layer instead.
+   */
+  activeLayer = BASE_LAYER;
   private unstamped = 0;
   private listed: Item[] | null = null;
   private snapshots = new Map<string, Item>();
@@ -56,9 +63,11 @@ export class CanvasDocument {
   /** Named looks that items refer to by name. */
   readonly styles = this.doc.getMap<Look>("styles");
   readonly views = this.doc.getMap<View>("views");
+  /** Content layers by id; see `document/layers.ts`. */
+  readonly layers = this.doc.getMap<LayerRecord>("layers");
   /** A conversation, not an edit, so comments stay out of undo. */
   readonly comments = this.doc.getMap<string>("comments");
-  readonly undo = new Y.UndoManager([this.items, this.meta, this.styles, this.views], {
+  readonly undo = new Y.UndoManager([this.items, this.meta, this.styles, this.views, this.layers], {
     trackedOrigins: new Set([LOCAL]),
     captureTimeout: 400,
   });
@@ -106,7 +115,7 @@ export class CanvasDocument {
   /** A complete new item, not yet in the document, for inserting several in one undo step. */
   build(type: ItemType, x: number, y: number, extras: Partial<Item> = {}): Item {
     const [width, height] = defaultSize(type, extras.stencil);
-    return {
+    const item: Item = {
       ...BLANK,
       id: this.freshId(),
       type,
@@ -117,6 +126,9 @@ export class CanvasDocument {
       order: this.nextOrder(),
       ...extras,
     };
+    const active = this.layers.has(this.activeLayer) ? this.activeLayer : "";
+    if (active && !("layer" in extras) && !item.inside && inLayers(item)) item.layer = active;
+    return item;
   }
 
   insert(item: Item) {
@@ -175,6 +187,9 @@ export class CanvasDocument {
     const stored = record.toJSON() as Partial<Item>;
     // Peers write records, so one without a known shape is left out rather than trusted.
     if (typeof stored.type !== "string") return null;
+    // Slides once held what was dropped on them; such contents now sit at the top level.
+    if (stored.inside && !canHoldAnything(this.items.get(stored.inside)?.get("type")))
+      stored.inside = "";
     return { ...BLANK, ...stored, id } as Item;
   }
 
@@ -200,10 +215,20 @@ export class CanvasDocument {
   }
 
   /** Changes fields of an item. An undefined value clears an optional field. */
+  /** Every content layer, bottom to top, the base layer included. */
+  layerList() {
+    return orderedLayers(this.layers.entries());
+  }
+
   patch(id: string, values: Partial<Item>) {
     const record = this.items.get(id);
     if (!record) return;
     const current = this.get(id)!;
+    // Contents are in their holder's layer; one leaving its holders stays in the layer it was in.
+    if (values.inside !== undefined && values.inside !== current.inside && !("layer" in values)) {
+      const layer = values.inside ? "" : layerOf(current, (holder) => this.get(holder));
+      values = { ...values, layer: layer && layer !== BASE_LAYER ? layer : undefined };
+    }
     this.doc.transact(() => {
       let changed = false;
       Object.entries(values as Record<string, unknown>).forEach(([key, value]) => {

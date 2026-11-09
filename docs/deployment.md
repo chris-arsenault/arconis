@@ -25,12 +25,24 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 - The website, through Ahara's `website` module: private S3 with S3-managed encryption, behind
   CloudFront and ACM TLS, at `arconis.ahara.io`.
 - Runtime configuration, delivered to browsers as `config.js`.
+- Feedback: a separate private, S3-encrypted bucket, `arconis-feedback-<account-id>`, with public
+  access blocked. The existing control Lambda accepts guest reports through `/control/feedback`
+  and issues checksum-bound screenshot PUTs through `/control/feedback/upload`; it never provides
+  read or listing URLs. Feedback remains available while the relay is stopped.
 
 State uses the shared bucket at `projects/arconis.tfstate`. Arconis registers no login client.
 
 Run infrastructure deployment through the shared CI/CD workflow. Local validation builds and
 test fixtures exercise application behavior without deploying or calling real AWS services.
 The [development guide](development.md) lists those checks.
+
+Each feedback submission occupies `submissions/<feedback-id>/report.json` in the feedback bucket,
+plus `canvas.png` when the person opted in. The JSON includes client diagnostics and the server's
+receipt timestamp. S3 tags identify the project, report kind, app revision, room type and whether
+a screenshot is attached; report object metadata includes the feedback id and receipt time. Screenshots
+use the normal PNG export, including its editable canvas copy. Private storage is readable through
+authorized AWS access; no public feedback browser is exposed. The `feedback_bucket` Terraform
+output identifies the bucket. Report and screenshot content are excluded from application logs.
 
 Instances are disposable, and replacing one loses nothing: usage comes from CloudWatch by group name,
 alerts and limits are in SSM, pictures are in S3, and documents are in browsers. Agent sessions end

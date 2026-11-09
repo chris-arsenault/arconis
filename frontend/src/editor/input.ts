@@ -10,6 +10,7 @@ import { nextInStack } from "./selectBy";
 import { changeFields } from "./commands";
 import { canConnect } from "../document/capabilities";
 import { relateTo } from "./topics";
+import { bindMarkdownLinks } from "./links";
 
 function isTyping(target: EventTarget | null) {
   return (
@@ -63,13 +64,15 @@ function keyboard(editor: EditorController, event: KeyboardEvent) {
 
 /** The object under the pointer, looking through templates' underlays to what lies beneath. */
 export function cellAt(editor: EditorController, event: MouseEvent) {
+  const owner = metadataOwner(editor, event.target);
+  if (owner) return owner;
   if (event.target instanceof Node) {
     for (const [cell, state] of editor.graph.view.states)
       if (!isUnderlay(cell) && state.text?.node?.contains(event.target)) return cell;
   }
   const bounds = editor.element.getBoundingClientRect();
-  const x = event.clientX - bounds.left;
-  const y = event.clientY - bounds.top;
+  const x = event.clientX - bounds.left + editor.element.scrollLeft;
+  const y = event.clientY - bounds.top + editor.element.scrollTop;
   return editor.graph.getCellAt(
     x,
     y,
@@ -79,6 +82,13 @@ export function cellAt(editor: EditorController, event: MouseEvent) {
     (state: CellState) =>
       isUnderlay(state.cell) || editor.document.get(state.cell.id ?? "")?.type === "highlight"
   );
+}
+
+function metadataOwner(editor: EditorController, target: EventTarget | null) {
+  if (!(target instanceof Element)) return null;
+  const id = target.closest<HTMLElement>(".object-metadata")?.dataset.objectId;
+  const cell = id ? editor.graph.getDataModel().getCell(id) : null;
+  return cell && !isUnderlay(cell) ? cell : null;
 }
 
 /** How far a pointer may move before an Alt click becomes an Alt drag. */
@@ -204,6 +214,7 @@ function bindRelateInput(editor: EditorController, options: { signal: AbortSigna
 export function bindCanvasInput(editor: EditorController) {
   const abort = new AbortController();
   const options = { signal: abort.signal };
+  bindMarkdownLinks(editor, abort.signal);
   bindRelateInput(editor, options);
   bindDrawingInput(editor, abort.signal);
   bindPointerTools(editor, options);

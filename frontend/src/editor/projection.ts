@@ -5,7 +5,8 @@ import { collapsedHeight, objectStyle, underlayStyle } from "./styles";
 import { offsetPoints } from "../document/geometry";
 import { visibleItems } from "../document/relations";
 import { underlays } from "./templates";
-import { highlighted, isMarkup } from "../document/ink";
+import { highlighted } from "../document/ink";
+import { hiddenByLayers, layeredStack } from "../document/layers";
 import { effectiveAppearance } from "../document/appearance";
 
 /** How the document is drawn: as a presentation or not, with these ids drawn as underlays. */
@@ -61,12 +62,17 @@ export function projectDocument(
   document: CanvasDocument,
   presenting = false,
   bright: Set<string> | null = null,
-  force = true
+  force = true,
+  hiddenLayers: ReadonlySet<string> = new Set()
 ) {
   const model = graph.getDataModel();
-  // Hidden items and what collapsed ones fold away stay in the document and out of the graph.
-  const items = visibleItems(document.list());
-  // Underlays come first, so within a slide they stack under what the slide holds itself.
+  const layers = document.layerList();
+  // Hidden items, what collapsed ones fold away and this person's hidden layers stay in the
+  // document and out of the graph.
+  const shown = visibleItems(document.list());
+  const offLayers = hiddenByLayers(shown, hiddenLayers, layers);
+  const items = offLayers.size ? shown.filter((item) => !offLayers.has(item.id)) : shown;
+  // Underlays come first, so they stack under the content placed over each slide.
   const underlaid = underlays(items);
   const targetIds = new Set(
     items.filter((item) => item.type === "highlight").map((item) => item.target)
@@ -79,9 +85,9 @@ export function projectDocument(
         { ...item, look: effectiveAppearance(item, document.namedStyle(item.style)) },
       ])
   );
-  const ordered = [...underlaid, ...items].sort(
-    (a, b) => Number(isMarkup(a)) - Number(isMarkup(b))
-  );
+  // Template copies beneath slides, so a click on one reaches the slide; then slides, each layer
+  // bottom to top, and markup. Copies come from shown items, so a hidden layer's are gone too.
+  const ordered = [...underlaid, ...layeredStack(items, layers)];
   const seenHighlights = new Set<string>();
   const all = new Map(
     ordered.map((item) => [

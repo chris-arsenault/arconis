@@ -1,6 +1,7 @@
 import MarkdownIt, { type Token } from "markdown-it";
 import { katex } from "@mdit/plugin-katex";
 import hljs from "highlight.js/lib/common";
+import { canvasObjectId, isCanvasObjectUrl } from "./objectLinks";
 
 /** Text stays Markdown in Y.Text. This module only derives safe presentation from it. */
 const markdown = new MarkdownIt({
@@ -41,8 +42,21 @@ markdown.renderer.rules.canvas_tag_close = (tokens, index) => `</${tokens[index]
 
 const defaultLink = markdown.renderer.rules.link_open;
 markdown.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
-  tokens[index].attrSet("target", "_blank");
-  tokens[index].attrSet("rel", "noopener noreferrer");
+  const token = tokens[index];
+  const href = String(token.attrGet("href") ?? "");
+  if (isCanvasObjectUrl(href)) {
+    const id = canvasObjectId(href);
+    token.attrSet("data-hint", id ? "Go to linked object" : "Invalid object link");
+    token.attrSet(
+      "data-hint-detail",
+      id
+        ? "Jump to this object. Use Back to return to your previous view."
+        : "Use canvas:// followed by an object id."
+    );
+  } else {
+    token.attrSet("target", "_blank");
+    token.attrSet("rel", "noopener noreferrer");
+  }
   return defaultLink
     ? defaultLink(tokens, index, options, env, renderer)
     : renderer.renderToken(tokens, index, options);

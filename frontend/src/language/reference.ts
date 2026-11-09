@@ -105,7 +105,7 @@ Attributes after the ends apply to every line in the statement: a style, look pr
 around places a line's points so it goes around the items and labels between its ends: a -> b around. It is placement, worked out once like below or right of; afterwards the line is an ordinary line whose points anyone can move. Use it for lines through busy areas, and write it again after moving things to route afresh.
 shared after a fan-out runs one trunk from the start to a junction, a small dot, and splits there: api -> bus "Async", logic "Sync" shared. A junction is a node with stencil junction, and you can declare and join one yourself.
 Any item can be a line's end, including a frame or a band.
-A new line joins the innermost frame, group or slide both of its ends are in, as a line drawn in the editor does, so a diagram inside one moves and presents as a unit; in <id> puts it in another holder and in none at the top level.
+A new line joins the innermost frame or group both of its ends are in, as a line drawn in the editor does, so a diagram inside one moves and presents as a unit; in <id> puts it in another holder and in none at the top level.
 
 An end can be declared in place, which builds chains in one statement:
   users -> node cdn "CDN" icon aws:Amazon-CloudFront -> node edge "Edge" service
@@ -162,11 +162,23 @@ Markup is shared, saved and undoable, with no expiration. Visibility and the cur
 
 Editing an existing sketch's size or rotation transforms its contents with it; file declarations keep their points exactly as written. Markup and paths held by a sketch cannot be connector endpoints. Remove their connectors in the same write before converting connected paths; an invalid conversion rejects the whole write without changing the canvas.
 
+## Layers
+
+  layer <id> ["name"] [above <id> | below <id>]
+  <item or line> in-layer <id>
+  merge <id> into <id>
+  delete layer <id>
+
+Content layers stack the workspace in named collections, bottom to top, beneath markup; slides sit beneath every layer. A new layer goes on top unless placed above or below another, and restating an existing layer renames or moves it. The base layer, id base and named Workspace until renamed, always exists and holds items that name no layer. in-layer <id> puts a top-level item or line in a layer, on top of what is already there in stacking order; in-layer base returns it. What a frame, group or other holder holds is in the holder's layer, so in-layer on a held item is refused: move the holder, or the item out of it, which keeps the layer it was in. merge a into b moves a's items onto the top of b and removes a. delete layer a removes a with everything in it. The base layer cannot be merged away or deleted. Each person hides layers and picks the layer for new objects in their own browser; reads always include every layer.
+
+  layer notes "Review notes"
+  note n1 "Check the retry policy" in-layer notes right of api
+
 ## Slides
 
   slide [id] ["name"] deck <deck> [N] [placement] [{ items }]
 
-A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. To present existing content, place a slide over its region; this does not copy the content or change its holder. Its block places new items inside it, and it keeps its size. Moving or deleting a slide carries what it holds, while independently overlapping content stays separate. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes. A slide numbered 0 is the deck's template: what it holds is drawn under every other slide of the deck, at the same place within each, and a presentation skips it. slide t deck pitch 0 at 0,0 { text "Acme" at 1100,680 size 160,30 } puts the company name at the bottom right of every slide in pitch.
+A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. To present existing content, place a slide over its region; this does not copy the content or change its holder. A slide holds nothing: its block places new items over it, within its area, but they stay where they are when the slide later moves or is deleted, and in <slide> is refused. It keeps its size. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes. A slide numbered 0 is the deck's template: the top-level items centred within it, with what they hold, are drawn under every other slide of the deck, at the same place within each, and a presentation skips it. slide t deck pitch 0 at 0,0 { text "Acme" at 1100,680 size 160,30 } puts the company name at the bottom right of every slide in pitch.
 
 ## Discussions and views
 

@@ -162,6 +162,27 @@ const RINGS: Record<MenuContext, string[]> = {
 
 /** The sub-rings a ring opens: the fills, and the shapes an object can become. */
 export const SUB_RINGS: Record<string, string[]> = {
+  "ring.add": [
+    "tool.note",
+    "tool.text",
+    "tool.rectangle",
+    "tool.ellipse",
+    "tool.decision",
+    "tool.frame",
+    "tool.service",
+    "tool.database",
+  ],
+  "ring.draw": [
+    "draw.pen",
+    "draw.highlighter",
+    "draw.highlight",
+    "draw.lasso",
+    "draw.eraser",
+    "draw.precision",
+    "draw.fill",
+    "draw.eyedropper",
+  ],
+  "ring.connect": ["tool.connect", "structure.relate", "structure.connect"],
   "ring.colour": [
     "colour.0",
     "colour.1",
@@ -182,7 +203,29 @@ export const SUB_RINGS: Record<string, string[]> = {
     "shape.text",
   ],
 };
-const SUB_RING_LABELS: Record<string, string> = { "ring.colour": "Colour", "ring.shape": "Shape" };
+const SUB_RING_LABELS: Record<string, string> = {
+  "ring.colour": "Colour",
+  "ring.shape": "Shape",
+};
+
+/** An outer arc chooses the tools offered by the inner ring. */
+export const RING_MODES = ["Add", "Draw", "Connect", "Select"] as const;
+export type RingMode = (typeof RING_MODES)[number];
+
+export function modeSubRing(mode: RingMode) {
+  return mode === "Select" ? null : `ring.${mode.toLowerCase()}`;
+}
+
+export function chooseRingMode(editor: EditorController, mode: RingMode) {
+  if (mode === "Select") {
+    closeMenu(editor);
+    runCommand(editor, "tool.select");
+    return;
+  }
+  if (mode !== "Add") runCommand(editor, `tool.${mode.toLowerCase()}`);
+  openSubRing(editor, modeSubRing(mode)!);
+  editor.element.focus({ preventScroll: true });
+}
 
 export interface MenuEntry {
   id: string;
@@ -227,7 +270,10 @@ export function menuGroups(context: CommandContext): MenuEntry[][] {
 
 /** The ring's wedges in order; a wedge that does not apply is left empty rather than shifted. */
 export function ringEntries(context: CommandContext, subRing: string | null): (MenuEntry | null)[] {
-  if (subRing) return SUB_RINGS[subRing].map((id) => entryFor(id, context));
+  if (subRing) {
+    const entries = SUB_RINGS[subRing].map((id) => entryFor(id, context));
+    return Array.from({ length: 8 }, (_, index) => entries[index] ?? null);
+  }
   const kind = menuContextOf(context.selected);
   return RINGS[kind].map((id) => {
     const entry = entryFor(id, context);

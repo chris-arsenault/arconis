@@ -61,6 +61,20 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
 
   // Clicking empty canvas inside a slide selects the slide, as with a frame.
   await canvas(page).click({ position: { x: 300, y: 500 } });
+  await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
+  await canvas(page).press("Escape");
+
+  // A slide is a viewport: what is placed on it stays free, and moving the slide leaves it.
+  await add(page, "Rectangle (R)", "Framed", 500, 450);
+  const framed = async () => (await exported(page)).objects.find((item) => item.name === "Framed")!;
+  const placed = await framed();
+  expect(placed.inside).toBe("");
+  await page.getByRole("button", { name: "Slides", exact: true }).click();
+  await page.getByTestId("deck").getByRole("button", { name: "1 · Problem" }).click();
+  await page.getByLabel("Object x", { exact: true }).fill("9000");
+  await page.getByLabel("Object x", { exact: true }).press("Tab");
+  await expect.poll(async () => (await slides(page)).some((slide) => slide.x === 9000)).toBe(true);
+  expect(await framed()).toMatchObject({ x: placed.x, y: placed.y, inside: "" });
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -144,9 +158,8 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   await expect.poll(() => row(page, "Acme").count()).toBe(2);
   const objects = (await exported(page)).objects;
   expect(objects.filter((item) => item.name === "Acme")).toHaveLength(1);
-  expect(objects.find((item) => item.name === "Acme")!.inside).toBe(
-    objects.find((item) => item.name === "Layout")!.id
-  );
+  // The template is a viewport too: it frames the text rather than holding it.
+  expect(objects.find((item) => item.name === "Acme")!.inside).toBe("");
 
   // On the other slide the copy cannot be picked: clicking it selects the slide beneath.
   await page.getByRole("button", { name: "Slides", exact: true }).click();

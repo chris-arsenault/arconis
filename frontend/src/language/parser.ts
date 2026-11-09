@@ -66,7 +66,26 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     attributes: attributes(cursor, false),
     line,
   }),
-  delete: (cursor, line) => ({ kind: "delete", refs: cursor.refList(), line }),
+  delete: (cursor, line) =>
+    cursor.word("layer")
+      ? { kind: "dropLayer", id: cursor.ref("a layer's id"), line }
+      : { kind: "delete", refs: cursor.refList(), line },
+  layer: (cursor, line) => {
+    const statement: Extract<Statement, { kind: "layer" }> = {
+      kind: "layer",
+      id: cursor.ref("a layer's id"),
+      line,
+    };
+    if (cursor.kindIs("string")) statement.name = cursor.next().text;
+    for (const relation of ["above", "below"] as const)
+      if (cursor.word(relation)) statement.place = { relation, ref: cursor.ref("a layer's id") };
+    return statement;
+  },
+  merge: (cursor, line) => {
+    const from = cursor.ref("a layer's id");
+    cursor.keyword("into");
+    return { kind: "merge", from, into: cursor.ref("a layer's id"), line };
+  },
   view: (cursor, line) => {
     const id = cursor.isWord() ? cursor.next().text : undefined;
     const name = cursor.expectString("the view's name");

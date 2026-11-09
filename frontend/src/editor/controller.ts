@@ -21,6 +21,7 @@ import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
 import { clampScale, creationOffset, creationValues, syncZoom, observeViewport } from "./zoom";
+import { worldPointOf } from "./zoom";
 import { configureCulling } from "./culling";
 import { SelectionReferences } from "./relate";
 import { LabelMarks } from "./marks";
@@ -32,6 +33,7 @@ import { fitContents } from "./views";
 import { subscribeIcons } from "../assets/icons/catalog";
 import { subscribePictures } from "./pictureSource";
 import { configurePanels, containerAt } from "./panels";
+import { LayerView } from "./layerView";
 import { newId } from "../document/ids";
 import { stackSelection } from "./stacking";
 import { trackViewHistory, type ViewHistory } from "./viewHistory";
@@ -94,6 +96,8 @@ export class EditorController {
   readonly history: ViewHistory;
   /** This person's presentation of a deck, when one is running. */
   readonly presenter: Presenter;
+  /** This person's hidden layers and the layer new objects go into. */
+  readonly layers: LayerView;
   private marks: LabelMarks;
   constructor(
     readonly element: HTMLDivElement,
@@ -101,6 +105,7 @@ export class EditorController {
   ) {
     InternalEvent.disableContextMenu(element);
     VertexHandlerConfig.rotationEnabled = true;
+    this.layers = new LayerView(document, this.redraw);
     this.graph = new Graph(element);
     this.grid = new CanvasGrid(this.graph, element);
     this.presenter = new Presenter(
@@ -125,10 +130,7 @@ export class EditorController {
     configureConnectionPoints(this.graph, this.document);
     configurePanels(this.graph, this.document);
     configureComposition(this.graph, this.document);
-    this.drawing = new DrawingEditor(this, () => {
-      this.project();
-      this.emit();
-    });
+    this.drawing = new DrawingEditor(this, this.redraw);
     this.graph.addMouseListener({
       mouseDown: () => {},
       mouseMove: () => this.publishPreview(),
@@ -215,12 +217,7 @@ export class EditorController {
   };
   /** World coordinates of a pointer event, free of the grid snap used for placing objects. */
   worldPoint(event: { clientX: number; clientY: number }) {
-    const bounds = this.element.getBoundingClientRect();
-    const { scale, translate } = this.graph.view;
-    return {
-      x: (event.clientX - bounds.left - this.graph.getPanDx()) / scale - translate.x,
-      y: (event.clientY - bounds.top - this.graph.getPanDy()) / scale - translate.y,
-    };
+    return worldPointOf(this.graph, this.element, event);
   }
   private publishPreview() {
     if (performance.now() - this.lastPreview < 80) return;
@@ -238,21 +235,25 @@ export class EditorController {
     this.onPreview(null);
     this.emit();
   }
-  setFocus(id: string | null) {
-    this.focus = id;
+  /** Redraws the whole canvas and tells the interface, after a change to how it is shown. */
+  private readonly redraw = () => {
     this.project();
     this.emit();
+  };
+  setFocus(id: string | null) {
+    this.focus = id;
+    this.redraw();
   }
   setFilter(filter: Filter) {
     this.filter = filter;
-    this.project();
-    this.emit();
+    this.redraw();
   }
   private project(force = true) {
     this.projecting = true;
     try {
       const bright = brightSet(this.document.list(), this.focus, this.filter);
-      projectDocument(this.graph, this.document, this.presenter.active, bright, force);
+      const { graph, document, presenter, layers } = this;
+      projectDocument(graph, document, presenter.active, bright, force, layers.hidden);
     } finally {
       this.projecting = false;
     }

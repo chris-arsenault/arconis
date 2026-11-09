@@ -64,6 +64,7 @@ function cloneDrawPane(graph: Graph, cells: Set<Cell>) {
   const pane = graph.view.getDrawPane()!.cloneNode(true) as Element;
   hidden.forEach((node) => node.removeAttribute(HIDE_ATTRIBUTE));
   pane.querySelectorAll(`[${HIDE_ATTRIBUTE}]`).forEach((node) => node.remove());
+  pane.querySelectorAll("[data-canvas-chrome]").forEach((node) => node.remove());
   return pane;
 }
 

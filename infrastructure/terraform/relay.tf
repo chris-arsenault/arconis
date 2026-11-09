@@ -424,6 +424,15 @@ resource "aws_iam_role_policy_attachment" "control_vpc" {
 }
 
 data "aws_iam_policy_document" "control" {
+  statement {
+    actions   = ["s3:PutObject", "s3:PutObjectTagging"]
+    resources = ["${aws_s3_bucket.feedback.arn}/submissions/*"]
+  }
+  # HeadObject verifies the signed upload before a report can reference it.
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.feedback.arn}/submissions/*/canvas.png"]
+  }
   # Neither of these supports resource-level scoping.
   statement {
     actions   = ["autoscaling:DescribeAutoScalingGroups", "cloudwatch:GetMetricData"]
@@ -481,6 +490,7 @@ module "control" {
     ALARM_TOPIC_ARN    = nonsensitive(data.aws_ssm_parameter.alarm_topic.value)
     MCP_RESOURCE       = local.mcp_resource
     AUTH_ISSUER        = local.auth0_issuer
+    FEEDBACK_BUCKET    = aws_s3_bucket.feedback.id
   }
 
   depends_on = [aws_iam_role_policy.control, aws_iam_role_policy_attachment.control_vpc]

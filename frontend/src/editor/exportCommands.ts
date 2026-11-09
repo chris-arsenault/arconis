@@ -4,6 +4,7 @@ import { downloadFile } from "../files/download";
 import type { Command, CommandContext } from "./registry";
 import { renderPng, renderSvgFile } from "./pngExport";
 import { treeRootOf } from "./outline";
+import { pictureScope } from "./layerView";
 
 /** Taking work out: a PNG to the clipboard, an SVG file, a tree as Markdown. */
 
@@ -30,8 +31,12 @@ const heads = ({ selected, items }: CommandContext) =>
 
 async function copyPng({ editor, selected }: CommandContext) {
   const room = editor.room!;
-  const ids = selected.length ? editor.selectionClosure() : [];
-  const png = await renderPng(editor.graph, ids, editor.document.list());
+  const ids = pictureScope(
+    editor.document,
+    editor.layers,
+    selected.length ? editor.selectionClosure() : []
+  );
+  const png = ids && (await renderPng(editor.graph, ids, editor.document.list()));
   if (!png) {
     room.setNotice("Add something to the canvas first.");
     return;
@@ -48,9 +53,14 @@ async function copyPng({ editor, selected }: CommandContext) {
 
 async function exportSvg({ editor, selected }: CommandContext) {
   const room = editor.room!;
-  const ids = selected.length ? editor.selectionClosure() : [];
-  const copy = await room.files.canvas(ids);
-  const svg = await renderSvgFile(editor.graph, ids, editor.document.list(), copy);
+  const ids = pictureScope(
+    editor.document,
+    editor.layers,
+    selected.length ? editor.selectionClosure() : []
+  );
+  const svg =
+    ids &&
+    (await renderSvgFile(editor.graph, ids, editor.document.list(), await room.files.canvas(ids)));
   if (!svg) {
     room.setNotice("Add something to the canvas first.");
     return;

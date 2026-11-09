@@ -118,6 +118,8 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   markup: () => ({ kind: "markup", value: true }),
   workspace: () => ({ kind: "markup", value: false }),
   target: (cursor) => ({ kind: "target", ref: cursor.ref() }),
+  // Not bare `layer`: canvases already use that word as a style's name.
+  "in-layer": (cursor) => ({ kind: "layer", ref: cursor.ref("a layer's id") }),
   ink: (cursor) => {
     const ink = cursor.expectWord("a drawing geometry");
     const found = INK_KINDS.find((kind) => kind === ink);

@@ -43,8 +43,7 @@ until the email is verified; otherwise Auth0's defaults apply, including its att
 - **An OAuth proxy in the relay in front of Cognito.** The established pattern for providers without
   registration (FastMCP's OAuth proxy), built on the MCP SDK's authorization-server routes. It keeps
   Cognito, but Arconis would own consent, codes, token issuing and refresh, the security-sensitive code
-  the owner wanted to avoid; FastMCP's own proxy needed a High-severity fix for a confused-deputy flaw in
-  2026.
+  the owner wanted to avoid; FastMCP's own proxy needed a High-severity fix for a confused-deputy flaw in 2026.
 - **WorkOS AuthKit or Descope.** Both support registration natively. Neither configures MCP registration
   through Terraform, which Ahara requires; Auth0's official provider does.
 - **Keeping a Cognito pool that federates Auth0.** It would let the ALB keep validating AWS-issued tokens,

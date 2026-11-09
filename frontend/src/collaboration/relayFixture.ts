@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { FIXTURE_CLIENT_ID, accountFixture } from "./accountFixture";
+import { feedbackFixture } from "./feedbackFixture";
 import { attachRelay } from "../relay/attach";
 import { Relay, type StopReason } from "../relay/relay";
 import { STORAGE_LIMIT_BYTES, type StoredPictures } from "../relay/uploads";
@@ -86,17 +87,34 @@ function fullEntry(): [string, number][] {
   return [["full", STORAGE_LIMIT_BYTES]];
 }
 
+function fixtureServer(
+  accounts: ReturnType<typeof accountFixture>,
+  feedback: ReturnType<typeof feedbackFixture>,
+  storage: ReturnType<typeof pictureStorage>,
+  control: (request: IncomingMessage, response: ServerResponse) => void
+) {
+  return createServer((request, response) => {
+    allowBrowsers(response);
+    if (request.method === "OPTIONS") response.end();
+    else if (accounts.handle(request, response)) return;
+    else if (feedback.handle(request, response)) return;
+    else if (request.method === "PUT") void storage.accept(request, response);
+    else control(request, response);
+  });
+}
+
 /**
  * Test-only: the real relay on a local port, with stand-ins for the control Lambda and picture
  * storage. Product builds import no server code.
  */
-export async function startRelayFixture() {
+export async function startRelayFixture(siteOrigin = "") {
   let status: RelayStatus = "running";
   let startDelay = 0;
   let starts = 0;
   let base = "";
   const storage = pictureStorage(() => base);
   const accounts = accountFixture(() => base);
+  const feedback = feedbackFixture(() => base, siteOrigin);
   const makeRelay = () => newRelay(storage.stored);
   let relay = makeRelay();
   const control = (request: IncomingMessage, response: ServerResponse) => {
@@ -113,13 +131,7 @@ export async function startRelayFixture() {
     }
     response.end(JSON.stringify({ status }));
   };
-  const server = createServer((request, response) => {
-    allowBrowsers(response);
-    if (request.method === "OPTIONS") response.end();
-    else if (accounts.handle(request, response)) return;
-    else if (request.method === "PUT") void storage.accept(request, response);
-    else control(request, response);
-  });
+  const server = fixtureServer(accounts, feedback, storage, control);
   const sockets = attachRelay(server, () => relay, {
     allowedOrigin: null,
     accepting: () => status === "running",
@@ -131,6 +143,8 @@ export async function startRelayFixture() {
     /** Tests attach real MCP sessions to this same relay without an external service. */
     relay: () => relay,
     savedObjects: () => [...accounts.objects.values()],
+    feedback: feedback.records,
+    feedbackScreenshot: feedback.screenshot,
     get starts() {
       return starts;
     },

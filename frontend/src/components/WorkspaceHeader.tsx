@@ -11,6 +11,7 @@ import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { downloadFile } from "../files/download";
 import { renderPng } from "../editor/pngExport";
+import { pictureScope } from "../editor/layerView";
 import { RoomControls } from "./RoomControls";
 import { ChangePassword } from "./PasswordGate";
 import { AccountButton } from "./AccountControls";
@@ -19,6 +20,8 @@ import { Participants } from "./Presence";
 import type { CanvasDocument } from "../document/canvasDocument";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
+import { Settings } from "./Settings";
+import { Feedback } from "./Feedback";
 
 interface Props {
   session: RoomSession;
@@ -65,6 +68,10 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         )}
         <ChangePassword session={session} />
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
+        {props.editor && <Settings editor={props.editor} />}
+        {props.editor && (
+          <Feedback session={session} editor={props.editor} name={name} account={props.account} />
+        )}
         <button
           className="participant-badge"
           data-hint="Participants"
@@ -147,7 +154,11 @@ async function loadFile({ session, editor, onMessage }: FileProps, file: File) {
 async function exportPng({ session, editor, onMessage }: FileProps, includeMarkup: boolean) {
   if (!editor) return;
   try {
-    const ids = editor.selectionClosure();
+    const ids = pictureScope(session.document, editor.layers, editor.selectionClosure());
+    if (!ids) {
+      onMessage("Every layer with content is hidden.");
+      return;
+    }
     const png = await session.files.png(
       ids,
       () => renderPng(editor.graph, ids, session.document.list(), includeMarkup),

@@ -16,6 +16,20 @@ export function viewportSize(element: ViewportElement) {
   return viewportSizes.get(element) ?? { width: element.clientWidth, height: element.clientHeight };
 }
 
+/** World coordinates of a pointer event, free of the grid snap used for placing objects. */
+export function worldPointOf(
+  graph: Graph,
+  element: HTMLElement,
+  event: { clientX: number; clientY: number }
+) {
+  const bounds = element.getBoundingClientRect();
+  const { scale, translate } = graph.view;
+  return {
+    x: (event.clientX - bounds.left - graph.getPanDx()) / scale - translate.x,
+    y: (event.clientY - bounds.top - graph.getPanDy()) / scale - translate.y,
+  };
+}
+
 export function observeViewport(element: HTMLElement, changed: () => void) {
   viewportSizes.set(element, { width: element.clientWidth, height: element.clientHeight });
   const observer = new ResizeObserver(([entry]) => {

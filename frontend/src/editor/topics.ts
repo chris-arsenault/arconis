@@ -253,7 +253,23 @@ export function jumpTo(editor: EditorController, id: string) {
   const item = editor.document.get(id);
   if (!item) return;
   editor.select(id);
-  flyTo(editor, item, JUMP_FILL);
+  if (isBox(item)) return flyTo(editor, item, JUMP_FILL);
+  const cell = editor.graph.getDataModel().getCell(id);
+  const box = cell ? editor.graph.getBoundingBox([cell]) : null;
+  if (!box) return;
+  const { scale, translate } = editor.graph.view;
+  const width = Math.max(box.width, ANCHOR_PIXELS);
+  const height = Math.max(box.height, ANCHOR_PIXELS);
+  flyTo(
+    editor,
+    {
+      x: (box.x + (box.width - width) / 2) / scale - translate.x,
+      y: (box.y + (box.height - height) / 2) / scale - translate.y,
+      width: width / scale,
+      height: height / scale,
+    },
+    JUMP_FILL
+  );
 }
 
 /** Selects a slide and flies to it with a little canvas showing around it. */

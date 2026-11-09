@@ -1047,6 +1047,60 @@ details[open] > summary::before {
   padding: 2px 6px;
   font-size: 12px;
 }
+/* The layer browser: one row per layer, top first, with a toolbar for the chosen layer. */
+.layer-list {
+  max-height: 280px;
+  border: 1px solid var(--line, #e2e5eb);
+  border-radius: 6px;
+}
+.layer-row .rail-count {
+  flex: none;
+  margin-right: 6px;
+}
+.layer-row[data-active="true"] {
+  background: var(--pressed);
+}
+.layer-row[data-active="true"] .layer-name {
+  color: var(--pressed-text);
+  font-weight: 600;
+}
+.markup-row .layer-name {
+  color: var(--muted);
+  font-style: italic;
+}
+.layer-rename {
+  flex: 1;
+  min-width: 0;
+}
+.layer-toolbar {
+  display: flex;
+  gap: 2px;
+  margin: 6px 0;
+}
+.layer-toolbar .rail-action:disabled {
+  opacity: 0.35;
+}
+.layer-move-selection {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.layer-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 12px;
+  font-size: 12px;
+}
+.layer-field select {
+  flex: 1;
+  min-width: 0;
+}
 .tag-list .rail-row .rail-count {
   flex: none;
   margin-right: 4px;
@@ -2079,7 +2133,8 @@ input.outline-name {
   overflow: visible;
   filter: drop-shadow(0 4px 14px #35324c2e);
 }
-.ring-wedge path {
+.ring-wedge path,
+.ring-mode path {
   fill: var(--panel);
   stroke: var(--line);
   stroke-width: 1;
@@ -2089,13 +2144,21 @@ input.outline-name {
   fill: #ffffff88;
   cursor: default;
 }
+.ring-wedge:focus,
+.ring-mode:focus {
+  outline: none;
+}
 .ring-wedge:not(.empty):hover path,
 .ring-wedge.active path,
-.ring-wedge:focus-visible path {
+.ring-wedge:focus-visible path,
+.ring-mode:hover path,
+.ring-mode.active path,
+.ring-mode:focus-visible path {
   fill: var(--pressed);
   stroke: var(--purple);
 }
-.ring-wedge text {
+.ring-wedge text,
+.ring-mode text {
   font-size: 10px;
   fill: var(--text);
   pointer-events: none;

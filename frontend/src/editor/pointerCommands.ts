@@ -14,6 +14,7 @@ import { pasteFromClipboard } from "./clipboardInput";
 import { creationSize, creationValues } from "./zoom";
 import { containerAt } from "./panels";
 import { showComments } from "./registry";
+import type { InkSettings } from "./inkCommands";
 
 /** Commands the pointer reaches for: the ring's colours and shapes, verbs for lines and frames. */
 
@@ -63,6 +64,23 @@ const changeable = ({ selected }: CommandContext) =>
   selected.some((item) => item.type === "node" || ["note", "text", "card"].includes(item.type));
 
 export const POINTER_COMMANDS: Command[] = [
+  ...(
+    [
+      ["pen", "Pen"],
+      ["highlighter", "Highlighter"],
+      ["highlight", "Highlight object"],
+      ["lasso", "Lasso"],
+      ["eraser", "Eraser"],
+      ["precision", "Precision eraser"],
+      ["fill", "Fill"],
+      ["eyedropper", "Eyedropper"],
+    ] satisfies [InkSettings["mode"], string][]
+  ).map(([mode, label]): Command => ({
+    id: `draw.${mode}`,
+    label,
+    group: "tools",
+    run: ({ editor }) => editor.drawing.update({ mode }),
+  })),
   {
     id: "create.noteHere",
     label: "Add note here",

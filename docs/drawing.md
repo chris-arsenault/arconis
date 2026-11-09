@@ -9,6 +9,10 @@ connect as part of the diagram.
 Press **P** or choose **Draw** in the left rail. Each instrument has an icon and guidance for its
 gesture. The panel shows the settings that apply to that instrument.
 
+The drag radial's **Draw** arc offers the same instruments. While drawing, workspace connection
+points, connected-copy controls and resize handles stay hidden. Lassoed ink retains its own
+transform handles.
+
 ![Drawing palette, lassoed gradient shape and direction handle](images/drawing.png)
 
 | Instrument       | Use                                                                       |
@@ -105,7 +109,9 @@ holder are removed with it. Undo restores the Drawing and its relationships.
 ## Show, share and export
 
 - **Show annotations**, under **Canvas annotations**, changes only your view. Presentations use
-  the **Show markup** control for the same setting. It does not hide markup
+  the **Show markup** control, and the [layer browser](editing.md#layers) the eye on its
+  **Markup** row, for the same setting. Markup always draws above every layer and belongs to
+  none, whichever layer is chosen. It does not hide markup
   from other participants or remove it from the document.
 - **Include markup** controls document and PNG exports independently of what you currently see.
   A clean PNG excludes markup from its pixels and embedded editable copy.

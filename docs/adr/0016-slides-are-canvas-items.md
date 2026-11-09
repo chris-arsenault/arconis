@@ -1,6 +1,6 @@
 # 0016 — Slides are canvas items, and a deck is the name its slides share
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-07
 
 ## Context
@@ -19,9 +19,16 @@ or drag, nothing on the canvas to point at, and comments attach to items by id.
 A slide is an item type: a box with a fixed aspect ratio, a `deck` name and a `slide` number, drawn
 as an outline with its label above it and nothing else while presenting. A deck is only the name its
 slides share, with no record of its own; presenting orders a deck's slides by number, then id. A
-deck's template is its slide number 0, the owner's suggestion: what it holds is projected again under
-each other slide of the deck as cells of the graph alone, never items of the document, so one edit to
-the template reaches every slide and the file carries it once. Presenting is local state in the browser that shows the canvas alone, fits the slide to the window,
+deck's template is its slide number 0, the owner's suggestion: the top-level workspace items centred
+within it, with what they hold, are projected again under each other slide of the deck as cells of
+the graph alone, never items of the document, so one edit to the template reaches every slide and
+the file carries it once.
+
+A slide holds nothing. On 2026-11-09 the owner directed that slides are viewports, "a meta object
+that follows layers hidden/shown/composition", while panels such as frames and groups hold content
+on one layer. Placement never makes a slide a holder, `in <slide>` is refused, and a stored holder
+that names a slide is read as the top level, so earlier rooms keep every object where it was
+without a migration write. Presenting is local state in the browser that shows the canvas alone, fits the slide to the window,
 masks everything outside it and suspends editing, while remote changes keep projecting.
 
 ## Alternatives considered
@@ -32,10 +39,10 @@ masks everything outside it and suspends editing, while remote changes keep proj
 
 ## Consequences
 
-Slides take part in everything items do: handles, undo, nesting, the canvas language, files, PNG
-export, culling and agents' reads and writes. Like every holder, deleting a slide deletes what it
-holds; slides are created behind everything and adopt nothing by themselves, so a slide drawn over
-existing content leaves that content free, and only items dropped or placed on a slide move with it.
+Slides take part in everything items do except holding: handles, undo, the canvas language, files,
+PNG export, culling and agents' reads and writes. Slides are created behind everything; moving or
+deleting one changes only the viewport, and content that should travel with a slide goes in a frame
+or group placed over it. Content parked within a template's area repeats on every slide of its deck.
 A stored number means gaps and ties are possible, so the presenter shows position in the deck rather
 than the number. Comments grew to 20000 characters and a multi-line box for everyone, not only for
 slides.

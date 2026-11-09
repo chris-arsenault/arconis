@@ -17,4 +17,5 @@
 | [0013](0013-agents-work-through-domain-tools-on-the-relay.md) | Agents work through domain tools on the relay                        | Accepted; amended by ADR-0014, superseded in part by ADR-0015 | 2026-11-07 |
 | [0014](0014-one-canvas-language.md)                           | One canvas language for the document, files and agents               | Accepted                                                      | 2026-11-07 |
 | [0015](0015-auth0-accounts-and-connector-sign-in.md)          | Accounts live in Ahara's Auth0 tenant, and connectors register there | Accepted                                                      | 2026-11-07 |
-| [0016](0016-slides-are-canvas-items.md)                       | Slides are canvas items, and a deck is the name its slides share     | Proposed                                                      | 2026-11-07 |
+| [0016](0016-slides-are-canvas-items.md)                       | Slides are canvas items, and a deck is the name its slides share     | Accepted                                                      | 2026-11-07 |
+| [0017](0017-content-layers.md)                                | Content layers are document records beneath markup                   | Accepted                                                      | 2026-11-09 |

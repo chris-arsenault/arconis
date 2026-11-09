@@ -9,6 +9,8 @@ import { GetParameterCommand, PutParameterCommand, SSMClient } from "@aws-sdk/cl
 import { RelayControl, capacityState } from "./control";
 import { McpProxy, type AlbRequest } from "./mcpProxy";
 import { accessTokenVerifier } from "./accessTokens";
+import { FeedbackApi } from "./feedback";
+import { feedbackStorage } from "./feedbackStorage";
 
 // The ALB-facing Lambda: POST /control/start and GET /control/status. Usage comes from CloudWatch's
 // metrics for the Auto Scaling group, which outlive any instance, and nothing a client or the relay
@@ -18,6 +20,7 @@ const siteOrigin = process.env.SITE_ORIGIN ?? "";
 const overrideParameter = process.env.OVERRIDE_PARAMETER ?? "";
 const alertParameter = process.env.ALERT_PARAMETER ?? "";
 const alarmTopic = process.env.ALARM_TOPIC_ARN ?? "";
+const feedback = new FeedbackApi(siteOrigin, feedbackStorage(process.env.FEEDBACK_BUCKET ?? ""));
 
 const FIVE_MINUTES = 300;
 const BYTES_PER_GB = 1024 ** 3;
@@ -117,6 +120,8 @@ function reply(statusCode: number, body: object) {
 
 export async function handler(event: AlbRequest) {
   try {
+    const submitted = await feedback.handle(event);
+    if (submitted) return submitted;
     const proxied = await mcp.handle(event);
     if (proxied) return proxied;
     if (event.httpMethod === "POST" && event.path === "/control/start")

@@ -1,0 +1,128 @@
+.settings-button.icon-action {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  color: var(--text-soft);
+}
+.settings-dialog {
+  width: min(480px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 12px 48px #17152c33;
+  font-size: 13px;
+}
+.settings-dialog::backdrop {
+  background: #17152c55;
+}
+.settings-dialog header,
+.settings-dialog footer {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+}
+.settings-dialog header {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+.settings-dialog header .icon-action {
+  flex: none;
+  width: 28px;
+  color: inherit;
+}
+.settings-dialog h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.settings-dialog h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.settings-dialog p {
+  margin: 0 0 12px;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.settings-content {
+  padding: 16px;
+}
+.settings-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 24px;
+}
+.settings-toggles label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+}
+.indicator-setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+}
+.indicator-setting > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.indicator-options {
+  display: flex;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.indicator-options label {
+  position: relative;
+  cursor: pointer;
+}
+.indicator-options input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.indicator-options span {
+  display: block;
+  padding: 6px 9px;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.indicator-options input:checked + span {
+  color: var(--pressed-text);
+  background: var(--hover);
+  font-weight: 600;
+}
+.indicator-options input:focus-visible + span {
+  outline: 2px solid var(--purple);
+  outline-offset: -2px;
+}
+.settings-dialog footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+}
+.settings-dialog footer button {
+  padding: 6px 16px;
+}
+@media (max-width: 420px) {
+  .indicator-setting {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .indicator-setting > span {
+    flex: 1;
+    min-width: 110px;
+  }
+}

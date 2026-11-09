@@ -7,8 +7,9 @@ import { LanguageError } from "./lexer";
 import { BAND_TITLE_ROOM, FRAME_PADDING, footprint, union } from "../document/layout";
 import type { Attribute, LinkStatement, Segment, Statement } from "./syntax";
 import type { Conversation } from "./effects";
-import { attributesFor, checkAttributes } from "./attributeRouting";
+import { attributesFor, checkAttributes, type RoutedAttribute } from "./attributeRouting";
 import { describeField, isFieldAttribute } from "./fields";
+import { assignLayer } from "./layerWriting";
 
 export interface PendingLink {
   from: string;
@@ -63,11 +64,25 @@ export function describeLink(draft: Draft, item: Item, attributes: Attribute[], 
     else if (attribute.kind === "label") {
       item.x = attribute.x;
       item.y = attribute.y;
-    } else if (isFieldAttribute(attribute)) describeField(item, attribute);
-    else {
-      const unhandled: never = attribute;
-      throw new Error(`Unhandled line attribute: ${unhandled}`);
-    }
+    } else describeLinkField(draft, item, attribute, line);
+  }
+}
+
+/** The fields a line carries as every item does, and its layer. */
+function describeLinkField(
+  draft: Draft,
+  item: Item,
+  attribute: Exclude<
+    RoutedAttribute<"link", "link">,
+    { kind: "word" | "look" | "via" | "in" | "label" }
+  >,
+  line: number
+) {
+  if (attribute.kind === "layer") assignLayer(draft, item, attribute.ref, line);
+  else if (isFieldAttribute(attribute)) describeField(item, attribute);
+  else {
+    const unhandled: never = attribute;
+    throw new Error(`Unhandled line attribute: ${unhandled}`);
   }
 }
 

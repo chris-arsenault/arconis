@@ -7,6 +7,7 @@ import { isLink, typeLabel, type Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";
 import { hasSubtitle, hasText } from "../document/capabilities";
 import { ConnectionControls } from "./ConnectionControls";
+import { LayerField } from "./LayersPanel";
 import { StyleControls, GeometryControls } from "./ObjectProperties";
 import { AlignControls, Relationships, ScreenSizeControl } from "./TopicControls";
 import { itemName } from "../editor/relate";
@@ -65,6 +66,7 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
     <aside className="inspector" aria-label="Object properties">
       <InspectorHeader editor={editor} selected={selected} />
       <PrimaryControls key={selectionKey} {...props} />
+      <LayerField editor={editor} selected={selected} />
       <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
       <LayoutSection key={`layout ${selectionKey}`} {...props} />
       <RelationsSection {...props} />
@@ -162,7 +164,7 @@ function Content({
           onToggle={sections.toggle}
           className="source-section"
         >
-          <ObjectText canvas={canvas} item={item} />
+          <ObjectText editor={editor} item={item} />
         </RailSection>
       )}
     </>

@@ -1,4 +1,4 @@
-import { branchChildren } from "./relations";
+import { branchChildren, tidyBranch } from "./relations";
 import type { Item } from "./types";
 
 /**
@@ -123,6 +123,20 @@ function layoutDown(
   };
   place(root);
   return result;
+}
+
+/**
+ * What `tidy` moves: the whole tree laid out as asked, or with no options each branch tidied on
+ * the side it already lies.
+ */
+export function tidyMoves(items: Item[], rootId: string, options: Partial<TreeLayoutOptions>) {
+  const { direction, compact, sorted } = options;
+  if (!direction && !compact && !sorted) return tidyBranch(items, rootId);
+  return layoutTree(items, rootId, {
+    direction: direction ?? "sides",
+    compact: Boolean(compact),
+    sorted: Boolean(sorted),
+  });
 }
 
 /** New positions for every topic under a root, as the options ask; the root stays. */

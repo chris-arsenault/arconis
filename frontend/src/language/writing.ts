@@ -25,6 +25,10 @@ export interface Scope {
   previous: string;
   /** Inside a block, items named there move into its holder. */
   nested: boolean;
+  /** A slide's block: its items take default spots within the slide but stay out of it. */
+  area?: string;
+  /** Items a slide's block placed, which move with the slide while this write settles it. */
+  carried?: string[];
   /** Inside an arrangement, which places its members itself. */
   members?: string[];
 }
