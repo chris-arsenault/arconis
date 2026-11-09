@@ -177,6 +177,7 @@ it("zooms across the 1000x range and keeps editing usable at both ends", async (
     await canvas(page).click({ position: emptySpot });
     expect(parseFloat(await dots())).toBeGreaterThanOrEqual(19);
     expect(parseFloat(await dots())).toBeLessThanOrEqual(201);
+    await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("button", { name: "Sticky note (N)", exact: true }).click();
     await canvas(page).click({ position: { x: 300, y: 200 } });
     await page.keyboard.type(`Zoomed ${name}`);

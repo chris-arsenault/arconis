@@ -33,6 +33,14 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Reorganized the rail into Add, Draw, Explore and Slides. All shape and icon libraries share
+  collapsible headers; saved views, outlines, tags and history live in Explore, while slide
+  creation and presentation share one area. Drawing instruments now have icons and gesture
+  guidance, brush presets have explicit recall and save buttons, and annotation controls explain
+  local visibility and shared deletion. Stroke recoloring appears only for selected strokes.
+  The panel can fold away and starts folded on phones; library labels wrap within their cells.
+  Restoring annotation visibility now redraws hidden ink immediately.
+
 - Changed the property panel to one order for every selection: its name with a More menu,
   folded Markdown source, then Relationships, Tags and status, Appearance, Layout, Slide and
   Comments, each folding and remembered on the device, with sections that do not apply left out.

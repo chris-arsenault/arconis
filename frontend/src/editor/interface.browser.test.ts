@@ -72,6 +72,7 @@ it("finds, places, connects and syncs icons from the stencil rail", async () => 
   await search.fill("zzzzzz");
   await a.getByText("No stencils match.", { exact: true }).waitFor();
   await search.fill("");
+  await a.locator("details[aria-label='Technology'] > summary").click();
   await a.getByRole("button", { name: "Icon: Docker", exact: true }).waitFor();
   const saved = await exported(a);
   const icons = saved.objects.filter((item) => item.stencil === "icon" && item.type === "node");
@@ -224,6 +225,7 @@ it("saves a place, lists it, returns to it on another window size and syncs it",
     return box.x + box.width / 2 - (bounds.x + bounds.width / 2);
   };
   const expected = await offsetFromCenter(a);
+  await a.getByRole("button", { name: "Explore", exact: true }).click();
   await a.getByRole("button", { name: "Save current view", exact: true }).click();
   const saved = a.getByRole("button", { name: "View 1", exact: true });
   await saved.waitFor();
@@ -232,6 +234,7 @@ it("saves a place, lists it, returns to it on another window size and syncs it",
   await a.getByLabel("New name for View 1", { exact: true }).fill("Far corner");
   await a.keyboard.press("Enter");
   const b = await open(second, room);
+  await b.getByRole("button", { name: "Explore", exact: true }).click();
   const named = b.getByRole("button", { name: "Far corner", exact: true });
   await named.waitFor({ timeout: 15000 });
   await named.click();
@@ -260,6 +263,7 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
     150
   );
   await canvas(page).click({ position: emptySpot });
+  await page.getByRole("button", { name: "Explore", exact: true }).click();
   await page
     .getByLabel("View name", { exact: true })
     .fill("Overview of the whole platform at a glance");
@@ -302,6 +306,7 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
   // The undo history does not survive a reload, so only the saved views panel is there to check.
   await page.reload();
   await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Explore", exact: true }).click();
   expect(await views.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
   await views.locator("summary").click();
   await page.getByLabel("View name", { exact: true }).waitFor();
@@ -353,6 +358,7 @@ it("tags from the ring, filters from the rail's tags, and grows compact branches
 
   // The rail lists the room's tags; choosing one filters the canvas to what carries it.
   await canvas(page).click({ position: emptySpot });
+  await page.getByRole("button", { name: "Explore", exact: true }).click();
   await page
     .locator(".left-rail details[aria-label='Tags']")
     .getByRole("button", { name: "#growth" })

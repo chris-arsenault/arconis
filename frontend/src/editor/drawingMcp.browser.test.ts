@@ -187,6 +187,7 @@ it("builds the batched workspace in two browsers and preserves a person's slide 
     await agent.call("open_room", { room });
     expect(await agent.call("write", { statements: BATCH_EXAMPLE })).toContain("29 created");
     await expect.poll(async () => (await exported(peer)).objects.length).toBe(29);
+    await page.getByRole("button", { name: "Slides", exact: true }).click();
     const deck = page.getByTestId("deck");
     await deck.getByRole("button", { name: "1 · Network", exact: true }).click();
     const canvas = page.getByTestId("canvas");

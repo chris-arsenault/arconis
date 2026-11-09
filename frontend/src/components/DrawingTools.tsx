@@ -1,5 +1,19 @@
 import type { InkSettings } from "../editor/inkCommands";
-import type { InkKind } from "../document/types";
+import { BrushControls, SHAPES } from "./BrushControls";
+import {
+  Circle,
+  Eraser,
+  Highlighter,
+  Lasso,
+  PaintBucket,
+  Pencil,
+  Pipette,
+  Save,
+  ScanLine,
+  Scissors,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react";
 
 export interface DrawingActions {
   change: (settings: Partial<InkSettings>) => void;
@@ -21,103 +35,142 @@ interface Props {
   activeSketch: string;
   favorites: InkSettings[];
   recent: string[];
-  selection: { canPromote: boolean; hasDrawing: boolean };
+  selection: { canPromote: boolean; hasDrawing: boolean; strokes: number };
+  markupCount: number;
   actions: DrawingActions;
 }
-interface BrushProps {
-  settings: InkSettings;
-  change: DrawingActions["change"];
-}
-const MODES: [InkSettings["mode"], string][] = [
-  ["pen", "Pen"],
-  ["highlighter", "Highlighter"],
-  ["highlight", "Highlight object"],
-  ["lasso", "Lasso"],
-  ["eraser", "Eraser"],
-  ["fill", "Fill"],
-  ["eyedropper", "Eyedropper"],
-  ["precision", "Precision eraser"],
+const MODES: [InkSettings["mode"], string, LucideIcon, string][] = [
+  ["pen", "Pen", Pencil, "Drag to draw. Hold Shift to constrain a shape."],
+  ["highlighter", "Highlighter", Highlighter, "Drag to draw translucent strokes or shapes."],
+  [
+    "highlight",
+    "Highlight object",
+    ScanLine,
+    "Click an object to add or remove an outline that follows it.",
+  ],
+  ["lasso", "Lasso", Lasso, "Drag around whole strokes to select them. Hold Shift to add more."],
+  ["eraser", "Eraser", Eraser, "Drag across a stroke to erase the whole stroke."],
+  [
+    "precision",
+    "Precision eraser",
+    Scissors,
+    "Drag to cut away only the parts of strokes you touch.",
+  ],
+  [
+    "fill",
+    "Fill",
+    PaintBucket,
+    "Click inside a closed path to fill it with the current ink color.",
+  ],
+  ["eyedropper", "Eyedropper", Pipette, "Click a drawing or object to pick its color."],
 ];
-const SHAPES: [InkKind, string][] = [
-  ["freehand", "Freehand"],
-  ["line", "Line"],
-  ["arrow", "Arrow"],
-  ["rectangle", "Box"],
-  ["ellipse", "Circle"],
-  ["double-arrow", "Double arrow"],
-  ["polygon", "Polygon"],
-  ["bracket", "Bracket"],
-  ["brace", "Brace"],
-  ["cloud", "Revision cloud"],
-];
-const COLORS = ["#6554c0", "#e64980", "#ffcc00", "#2f9e44", "#1971c2", "#212529", "#ffffff"];
-
 /** Leaf controls receive semantic preferences and a focused drawing command port. */
 export function DrawingTools(props: Readonly<Props>) {
   const { settings, actions } = props;
   const change = actions.change;
   return (
     <div className="drawing-tools">
+      {props.activeSketch && (
+        <button className="finish-drawing" onClick={actions.leave}>
+          Finish drawing
+        </button>
+      )}
+      <div className="drawing-instruments" role="group" aria-label="Drawing instruments">
+        {MODES.map(([mode, label, Icon, hint]) => (
+          <button
+            key={mode}
+            title={hint}
+            aria-pressed={settings.mode === mode}
+            onClick={() => change({ mode })}
+          >
+            <Icon size={18} strokeWidth={1.6} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+      <p className="drawing-hint instrument-hint">
+        {MODES.find(([mode]) => mode === settings.mode)?.[3]}
+      </p>
+      <BrushControls
+        settings={settings}
+        change={change}
+        recent={props.recent}
+        selected={props.selection.strokes > 0}
+        onFill={actions.fill}
+        onClose={actions.close}
+      />
+      <SavedBrushes favorites={props.favorites} actions={actions} />
+      {props.selection.strokes > 0 && (
+        <section className="drawing-selection" aria-label="Selected strokes">
+          <h3>
+            {props.selection.strokes} selected{" "}
+            {props.selection.strokes === 1 ? "stroke" : "strokes"}
+          </h3>
+          <button onClick={actions.recolor}>
+            <Circle size={14} fill={settings.color} color={settings.color} />
+            Apply ink color to strokes
+          </button>
+          <p className="drawing-hint">Changes the outline color of the selected strokes.</p>
+        </section>
+      )}
       <DrawingObjectActions
         active={!!props.activeSketch}
         selection={props.selection}
         actions={actions}
       />
-      <div className="drawing-options" role="toolbar" aria-label="Drawing instruments">
-        {MODES.map(([mode, label]) => (
-          <button key={mode} aria-pressed={settings.mode === mode} onClick={() => change({ mode })}>
-            {label}
-          </button>
-        ))}
-      </div>
-      <label className="drawing-field">
-        Geometry
-        <select
-          aria-label="Drawing geometry"
-          value={settings.shape}
-          onChange={(event) => change({ shape: event.target.value as InkKind })}
-        >
-          {SHAPES.map(([kind, label]) => (
-            <option key={kind} value={kind}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <BrushWidths settings={settings} change={change} />
-      <BrushColors settings={settings} change={change} recent={props.recent} />
-      <PaintControls
-        settings={settings}
-        change={change}
-        onFill={actions.fill}
-        onClose={actions.close}
-      />
-      <div className="drawing-field">
-        <span>Favorites</span>
-        <div className="drawing-options" role="group" aria-label="Favorite brushes">
-          {props.favorites.map((favorite, index) => (
-            <button
-              key={index}
-              aria-label={`Favorite ${index + 1}`}
-              title={`${favorite.mode}, ${favorite.width}. Shift-click to save the current brush.`}
-              onClick={(event) => actions.favorite(index, event.shiftKey)}
-            >
-              {index + 1}
-            </button>
-          ))}
-        </div>
-      </div>
-      <p className="drawing-hint">
-        Shift constrains shapes. Enter finishes a polygon. Shift-click a favorite to save the brush.
-      </p>
-      <div className="drawing-options">
-        <button aria-pressed={props.visible} onClick={actions.toggle}>
-          Show markup
-        </button>
-        <button onClick={actions.recolor}>Recolor selection</button>
-        <button onClick={actions.clear}>Clear markup</button>
-      </div>
+      {!props.activeSketch && (
+        <AnnotationActions
+          visible={props.visible}
+          markupCount={props.markupCount}
+          actions={actions}
+        />
+      )}
     </div>
+  );
+}
+
+function SavedBrushes({ favorites, actions }: Readonly<Pick<Props, "favorites" | "actions">>) {
+  return (
+    <details className="drawing-group saved-brushes">
+      <summary>Saved brushes</summary>
+      <p className="drawing-hint">
+        Click a brush to use it. Save replaces that brush with your current settings, on this
+        device.
+      </p>
+      {favorites.map((favorite, index) => (
+        <div className="saved-brush" key={index}>
+          <button
+            aria-label={`Use saved brush ${index + 1}`}
+            onClick={() => actions.favorite(index, false)}
+          >
+            <svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true">
+              <path
+                d="M4 17 Q14 3 21 12 T36 7"
+                fill="none"
+                stroke={favorite.color}
+                strokeWidth={Math.min(favorite.width, 12)}
+                strokeOpacity={favorite.mode === "highlighter" ? 0.4 : 1}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span>
+              {MODES.find(([mode]) => mode === favorite.mode)?.[1]}
+              <small>
+                {SHAPES.find(([shape]) => shape === favorite.shape)?.[1]}, {favorite.width} px
+              </small>
+            </span>
+          </button>
+          <button
+            aria-label={`Replace saved brush ${index + 1}`}
+            title="Save current settings in this slot"
+            onClick={() => actions.favorite(index, true)}
+          >
+            <Save size={13} />
+            Save
+          </button>
+        </div>
+      ))}
+    </details>
   );
 }
 
@@ -131,137 +184,48 @@ function DrawingObjectActions({
   actions: Pick<DrawingActions, "make" | "blank" | "fit" | "demote" | "leave">;
 }>) {
   return (
-    <div className="drawing-options">
+    <div className="drawing-object-actions">
       {selection.canPromote && <button onClick={actions.make}>Make Drawing</button>}
-      <button onClick={actions.blank}>New Drawing</button>
+      {!active && (
+        <>
+          <button onClick={actions.blank}>
+            <Pencil size={14} />
+            New Drawing
+          </button>
+          <p className="drawing-hint">
+            A drawing object keeps editable strokes together so you can move and connect them.
+          </p>
+        </>
+      )}
       {selection.hasDrawing && (
         <>
           <button onClick={actions.fit}>Fit bounds to drawing</button>
           <button onClick={actions.demote}>Return to markup</button>
         </>
       )}
-      {active && <button onClick={actions.leave}>Finish Drawing</button>}
     </div>
   );
 }
 
-function BrushWidths({ settings, change }: Readonly<BrushProps>) {
-  const widths = settings.mode === "highlighter" ? [8, 16, 24, 36, 48] : [1, 3, 6, 10, 16];
+function AnnotationActions(props: Readonly<Pick<Props, "visible" | "markupCount" | "actions">>) {
+  const { actions } = props;
   return (
-    <div className="drawing-field stacked">
-      <span>Width</span>
-      <div className="drawing-options" role="group" aria-label="Brush sizes">
-        {widths.map((width) => (
-          <button
-            key={width}
-            aria-label={`Brush size ${width}`}
-            aria-pressed={settings.width === width}
-            onClick={() => change({ width })}
-          >
-            {width}
-          </button>
-        ))}
-        <input
-          aria-label="Brush width"
-          type="number"
-          min="0.1"
-          step="0.5"
-          value={settings.width}
-          onChange={(event) => {
-            const width = Number(event.target.value);
-            if (width > 0) change({ width });
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function BrushColors({ settings, change, recent }: Readonly<BrushProps & { recent: string[] }>) {
-  return (
-    <div className="drawing-options" role="group" aria-label="Ink colors">
-      {[...new Set([...COLORS, ...recent])].map((color) => (
-        <button
-          key={color}
-          aria-label={`Ink ${color}`}
-          aria-pressed={settings.color === color}
-          className="ink-swatch"
-          onClick={() => change({ color })}
-        >
-          <svg width="18" height="18" aria-hidden="true">
-            <circle cx="9" cy="9" r="8" fill={color} />
-          </svg>
-        </button>
-      ))}
-      <input
-        aria-label="Ink color"
-        type="color"
-        value={settings.color}
-        onChange={(event) => change({ color: event.target.value })}
-      />
-    </div>
-  );
-}
-
-function PaintControls({
-  settings,
-  change,
-  onFill,
-  onClose,
-}: Readonly<BrushProps & { onFill: () => void; onClose: () => void }>) {
-  return (
-    <details className="drawing-group">
-      <summary>Fill and gradient</summary>
-      <div className="drawing-tools">
-        <label className="drawing-field">
-          Shape fill
-          <span className="drawing-options">
-            <input
-              aria-label="Shape fill"
-              type="color"
-              value={settings.fill === "none" ? "#ffffff" : settings.fill}
-              onChange={(event) => change({ fill: event.target.value })}
-            />
-            <button type="button" onClick={() => change({ fill: "none" })}>
-              No shape fill
-            </button>
-          </span>
-        </label>
-        <label className="drawing-field">
-          Gradient color
-          <span className="drawing-options">
-            <input
-              aria-label="Gradient color"
-              type="color"
-              value={settings.gradient === "none" ? "#ffffff" : settings.gradient}
-              onChange={(event) => change({ gradient: event.target.value })}
-            />
-            <button type="button" onClick={() => change({ gradient: "none" })}>
-              Solid fill
-            </button>
-          </span>
-        </label>
-        <label className="drawing-field">
-          Gradient angle
-          <input
-            aria-label="Gradient angle"
-            type="number"
-            value={settings.gradientAngle}
-            onChange={(event) => change({ gradientAngle: Number(event.target.value) })}
-          />
-        </label>
-        <div className="drawing-options">
-          <button type="button" onClick={onClose}>
-            Close or open selected path
-          </button>
-          <button type="button" onClick={onFill}>
-            Fill selection
-          </button>
-        </div>
-        <p className="drawing-hint">
-          Fill uses the ink color. Select a gradient-filled path to drag its direction handle.
-        </p>
-      </div>
-    </details>
+    <section className="annotation-actions" aria-label="Canvas annotations">
+      <h3>
+        Canvas annotations <span className="rail-count">{props.markupCount}</span>
+      </h3>
+      <label className="annotation-visibility">
+        <input type="checkbox" checked={props.visible} onChange={actions.toggle} />
+        Show annotations
+      </label>
+      <p className="drawing-hint">Visibility changes only your view.</p>
+      <button className="delete-annotations" disabled={!props.markupCount} onClick={actions.clear}>
+        <Trash2 size={14} />
+        Delete all annotations
+      </button>
+      <p className="drawing-hint">
+        Removes annotations for everyone. Drawing objects stay. Undo restores annotations.
+      </p>
+    </section>
   );
 }

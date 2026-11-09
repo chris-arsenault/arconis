@@ -26,9 +26,21 @@ import {
 import { PanelTop } from "lucide-react";
 import { SCREEN_SIZES, type ScreenSize } from "../document/screens";
 import { INFRASTRUCTURE_ICONS, STENCIL_GROUPS, type Stencil } from "./stencils";
+import { RailSection } from "./RailSection";
+import { useRailSections } from "./useRailSections";
 
 const DRAG_THRESHOLD = 4;
 const MAX_RESULTS = 60;
+const LIBRARIES = {
+  Basics: true,
+  Architecture: true,
+  Screens: false,
+  Infrastructure: false,
+  Technology: false,
+  aws: false,
+  azure: false,
+  gcp: false,
+};
 
 function pointInCanvas(editor: EditorController, event: PointerEvent) {
   const bounds = editor.element.getBoundingClientRect();
@@ -165,15 +177,6 @@ function IconStencil({ editor, entry }: Readonly<{ editor: EditorController; ent
   );
 }
 
-function Group({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
-  return (
-    <section aria-label={title}>
-      <h3>{title}</h3>
-      <div className="stencil-grid">{children}</div>
-    </section>
-  );
-}
-
 /** Memoized because large icon sets would otherwise re-render on every editor update. */
 const IconButtons = memo(function IconButtons({
   editor,
@@ -192,8 +195,18 @@ function VendorGroup({
   editor,
   vendor,
   version,
-}: Readonly<{ editor: EditorController; vendor: IconVendor; version: number }>) {
-  const [open, setOpen] = useState(false);
+  open,
+  onToggle,
+}: Readonly<{
+  editor: EditorController;
+  vendor: IconVendor;
+  version: number;
+  open: boolean;
+  onToggle: (id: string, open: boolean) => void;
+}>) {
+  useEffect(() => {
+    if (open) void loadVendor(vendor);
+  }, [open, vendor]);
   const entries = useMemo(
     () => (open ? vendorEntries(vendor) : []),
     // A new icon set arriving changes the version, not the arguments.
@@ -201,21 +214,18 @@ function VendorGroup({
     [open, vendor, version]
   );
   return (
-    <details
-      className="vendor-group"
-      onToggle={(event) => {
-        const isOpen = event.currentTarget.open;
-        setOpen(isOpen);
-        if (isOpen) void loadVendor(vendor);
-      }}
-    >
-      <summary>{VENDOR_TITLES[vendor]}</summary>
+    <RailSection id={vendor} title={VENDOR_TITLES[vendor]} open={open} onToggle={onToggle}>
       {open && (
         <div className="stencil-grid">
+          {!entries.length && (
+            <p className="stencil-empty" role="status">
+              Loading icons…
+            </p>
+          )}
           <IconButtons editor={editor} entries={entries} armedKey={editor.armedIcon?.key ?? ""} />
         </div>
       )}
-    </details>
+    </RailSection>
   );
 }
 
@@ -232,38 +242,37 @@ function SearchResults({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [query, version]
   );
-  if (!shapes.length && !icons.length) return <p className="stencil-empty">No stencils match.</p>;
+  const screens = SCREEN_SIZES.filter((screen) => screen.name.toLowerCase().includes(query));
+  if (!shapes.length && !icons.length && !screens.length)
+    return <p className="stencil-empty">No stencils match.</p>;
   return (
-    <Group title="Results">
+    <section aria-label="Search results" className="stencil-grid search-results">
       {shapes.map((stencil) => (
         <ShapeStencil key={stencil.shape} editor={editor} stencil={stencil} />
       ))}
       <IconButtons editor={editor} entries={icons} armedKey={editor.armedIcon?.key ?? ""} />
-    </Group>
+      {screens.map((screen) => (
+        <ScreenStencil key={screen.name} editor={editor} screen={screen} />
+      ))}
+    </section>
   );
 }
 
 export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }>) {
   const [query, setQuery] = useState("");
+  const sections = useRailSections(LIBRARIES, "arconis.libraries");
   const version = useSyncExternalStore(subscribeIcons, iconsVersion);
   useEffect(() => void loadIcons(), []);
   const search = query.trim().toLowerCase();
   useEffect(() => {
     if (search) void loadAllVendors();
   }, [search]);
-  const armedKey = editor.armedIcon?.key ?? "";
-  const infrastructure = useMemo(
-    () => INFRASTRUCTURE_ICONS.flatMap((key) => iconEntry(key) ?? []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [version]
-  );
-  const technology = useMemo(
-    () => iconEntries().filter((entry) => entry.key.startsWith("brand:")),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [version]
-  );
   return (
     <div className="stencil-browser">
+      <div className="rail-heading">
+        <h2>Add to canvas</h2>
+        <p>Drag an item onto the canvas, or choose it and click to place.</p>
+      </div>
       <input
         className="stencil-search"
         type="search"
@@ -277,33 +286,86 @@ export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }
           <SearchResults editor={editor} query={search} version={version} />
         ) : (
           <>
-            {STENCIL_GROUPS.map((group) => (
-              <Group key={group.title} title={group.title}>
-                {group.stencils.map((stencil) => (
-                  <ShapeStencil key={stencil.shape} editor={editor} stencil={stencil} />
-                ))}
-              </Group>
-            ))}
-            <Group title="Screens">
-              {SCREEN_SIZES.map((screen) => (
-                <ScreenStencil key={screen.name} editor={editor} screen={screen} />
-              ))}
-            </Group>
-            <section aria-label="Cloud providers">
-              <h3>Cloud providers</h3>
-              {ICON_VENDORS.map((vendor) => (
-                <VendorGroup key={vendor} editor={editor} vendor={vendor} version={version} />
-              ))}
-            </section>
-            <Group title="Infrastructure">
-              <IconButtons editor={editor} entries={infrastructure} armedKey={armedKey} />
-            </Group>
-            <Group title="Technology">
-              <IconButtons editor={editor} entries={technology} armedKey={armedKey} />
-            </Group>
+            <Libraries editor={editor} sections={sections} version={version} />
           </>
         )}
       </div>
     </div>
+  );
+}
+
+interface LibraryProps {
+  editor: EditorController;
+  sections: ReturnType<typeof useRailSections>;
+  version: number;
+}
+function Libraries({ editor, sections, version }: Readonly<LibraryProps>) {
+  const armedKey = editor.armedIcon?.key ?? "";
+  const infrastructure = useMemo(
+    () => INFRASTRUCTURE_ICONS.flatMap((key) => iconEntry(key) ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [version]
+  );
+  const technology = useMemo(
+    () => iconEntries().filter((entry) => entry.key.startsWith("brand:")),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [version]
+  );
+  return (
+    <>
+      {STENCIL_GROUPS.map((group) => (
+        <RailSection
+          key={group.title}
+          id={group.title}
+          title={group.title}
+          open={sections.open[group.title]}
+          onToggle={sections.toggle}
+        >
+          <div className="stencil-grid">
+            {group.stencils.map((stencil) => (
+              <ShapeStencil key={stencil.shape} editor={editor} stencil={stencil} />
+            ))}
+          </div>
+        </RailSection>
+      ))}
+      <RailSection
+        id="Screens"
+        title="Screens"
+        open={sections.open.Screens}
+        onToggle={sections.toggle}
+      >
+        <div className="stencil-grid">
+          {SCREEN_SIZES.map((screen) => (
+            <ScreenStencil key={screen.name} editor={editor} screen={screen} />
+          ))}
+        </div>
+      </RailSection>
+      {[
+        { title: "Infrastructure", entries: infrastructure },
+        { title: "Technology", entries: technology },
+      ].map(({ title, entries }) => (
+        <RailSection
+          key={title}
+          id={title}
+          title={title}
+          open={sections.open[title]}
+          onToggle={sections.toggle}
+        >
+          <div className="stencil-grid">
+            <IconButtons editor={editor} entries={entries} armedKey={armedKey} />
+          </div>
+        </RailSection>
+      ))}
+      {ICON_VENDORS.map((vendor) => (
+        <VendorGroup
+          key={vendor}
+          editor={editor}
+          vendor={vendor}
+          version={version}
+          open={sections.open[vendor]}
+          onToggle={sections.toggle}
+        />
+      ))}
+    </>
   );
 }

@@ -122,6 +122,7 @@ it("exports only the selection, in the picture and in its copy", async () => {
 
 it("draws icons in the picture", async () => {
   const page = await open(await browser.newContext(VIEWPORT), createRoomId());
+  await page.locator("details[aria-label='Infrastructure'] > summary").click();
   await page.getByRole("button", { name: "Icon: Server", exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x: 300, y: 240 } });
   await expect.poll(() => objectCount(page)).toBe(1);

@@ -50,6 +50,7 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   await page.getByLabel("Edit canvas text").fill("Edited on canvas");
   await page.getByLabel("Edit canvas text").press("Escape");
   await expect.poll(() => row(page, "Edited on canvas").count()).toBe(1);
+  await page.getByRole("button", { name: "Explore", exact: true }).click();
   await page.getByLabel("View name", { exact: true }).fill("Overview");
   await page.getByRole("button", { name: "Save current view", exact: true }).click();
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
@@ -57,6 +58,7 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   await page.screenshot({ path: "test-results/mixed-canvas.png" });
   await page.reload();
   await row(page, "Edited on canvas").waitFor();
+  await page.getByRole("button", { name: "Explore", exact: true }).click();
   await page.getByRole("button", { name: "Overview", exact: true }).waitFor();
   expect(await objectCount(page)).toBe(3);
   expect(errors).toEqual([]);
@@ -145,6 +147,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   await selectConnector(page);
   await page.getByLabel("Line type").selectOption("diagonal");
   await page.getByLabel("Object text", { exact: true }).fill("Relationship");
+  await page.getByRole("button", { name: "Explore", exact: true }).click();
   await page.getByLabel("View name", { exact: true }).fill("Portable view");
   await page.getByRole("button", { name: "Save current view", exact: true }).click();
   const saved = await exported(page);

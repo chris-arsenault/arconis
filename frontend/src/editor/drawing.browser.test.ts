@@ -42,7 +42,7 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
   expect(clean.objects.map((item) => item.type)).toEqual(["note"]);
   await fileMenu(page);
   await page.getByRole("checkbox", { name: "Include markup" }).check();
-  await page.getByRole("button", { name: "Clear markup", exact: true }).click();
+  await page.getByRole("button", { name: "Delete all annotations", exact: true }).click();
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);
   await page.keyboard.press("Control+z");
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(3);
@@ -82,9 +82,13 @@ it("promotes lassoed ink into an editable Drawing and keeps it when markup is cl
   expect(saved.objects.filter((item) => item.inside === sketch.id)).toHaveLength(2);
   await stroke(page, [210, 170], [250, 200]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(4);
-  await page.getByRole("button", { name: "Clear markup", exact: true }).click();
-  expect((await exported(page)).objects).toHaveLength(4);
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  expect(
+    await page.getByRole("button", { name: "Delete all annotations", exact: true }).isDisabled()
+  ).toBe(true);
+  expect((await exported(page)).objects).toHaveLength(4);
+  await page.getByRole("button", { name: "Select (V)", exact: true }).click();
   await row(page, "Drawing").dblclick();
   await page.getByRole("button", { name: "Fit bounds to drawing", exact: true }).click();
   await page.getByRole("button", { name: "Return to markup", exact: true }).click();

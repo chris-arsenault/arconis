@@ -5,11 +5,19 @@ the right. The same room holds diagrams, notes, topic trees, pictures, Drawings 
 
 For a first walkthrough, start with [your first shared canvas](getting-started.md).
 
+The rail has four task areas: **Add** for shapes and icon libraries, **Draw** for ink and
+annotations, **Explore** for saved views, topic outlines, tags and history, and **Slides** for
+building and presenting decks. Select, Pan and Connect stay above these areas. **Hide panel**
+leaves the tools and task buttons available while giving the canvas more space. On phones, the
+panel starts hidden; choosing a task opens it over the canvas.
+
 ## Place and name objects
 
-Click a stencil, then click the canvas, or drag the stencil directly onto it. Basics include notes,
-free text, rectangles, ellipses, decisions, frames and slides. Architecture stencils include
-services, databases, clouds and people.
+Open **Add**. Click a stencil, then click the canvas, or drag the stencil directly onto it.
+Basics include notes, free text, rectangles, ellipses, decisions and frames. Architecture stencils
+include services, databases, clouds and people. Every library, including Screens and cloud
+providers, opens and closes from its header and remembers that choice on this device. Search
+finds items across libraries even when they are closed. Create slides from **Slides**.
 
 Notes and free text open ready for typing. Double-click another object or select it and press
 Enter to edit its label. Use **Ctrl/Command Enter**, Escape, or leave the source/tools to finish
@@ -67,12 +75,12 @@ elsewhere closes.
 
 The ring on an object reads like a compass, so a stroke can be learned once:
 
-| Direction | Command                     | Direction  | Command                  |
-| --------- | --------------------------- | ---------- | ------------------------ |
-| North     | Add branch                  | South      | Delete                   |
-| East      | Relate to another object    | West       | Tag                      |
-| Northeast | Colour, a sub-ring of fills | Southwest  | More: the full menu      |
-| Southeast | Comment                     | Northwest  | Shape, a sub-ring        |
+| Direction | Command                     | Direction | Command             |
+| --------- | --------------------------- | --------- | ------------------- |
+| North     | Add branch                  | South     | Delete              |
+| East      | Relate to another object    | West      | Tag                 |
+| Northeast | Colour, a sub-ring of fills | Southwest | More: the full menu |
+| Southeast | Comment                     | Northwest | Shape, a sub-ring   |
 
 **Shape** changes the object's kind in place, keeping its text, size, contents and lines. A line's
 ring keeps delete south, tag west and the menu south-west, with comment, colour, reverse, route
@@ -219,7 +227,7 @@ The keyboard walks and edits a tree without the pointer:
 - **.** focuses on the selection: its tree, contents and references stay bright while all else
   dims. Escape or **.** again leaves focus. Clicking a label's `▸N` count expands it.
 
-**Outline**, in the left rail, shows the selected tree as text, or every tree when nothing is
+**Outline**, under **Explore**, shows the selected tree as text, or every tree when nothing is
 selected: the chevrons fold and unfold, a click flies to a topic, a double click or F2 renames
 it, and with a row focused, Tab indents it under the topic above, Shift Tab promotes it, Enter
 adds a branch, Shift Enter a sibling, and Alt Up or Down reorders it.
@@ -284,7 +292,7 @@ assistants carry them as `property owner "Ada"`.
 
 ## History
 
-**History**, in the left rail, lists your undo steps by what they did, newest first: "Move 3
+**History**, under **Explore**, lists your undo steps by what they did, newest first: "Move 3
 objects", "Edit text of Orders API", "Delete 2 objects". Click an earlier step to return to just
 after it; the steps you passed move to the top as redo steps you can click to go forward
 again. Each object's **Last edited by** names who changed it most recently. There is no history
@@ -334,7 +342,7 @@ While typing a label, `#word` adds a tag, `[]` or `[x]` at the start makes it an
 task, and `:p1` to `:p5` or `:q0` to `:q4` set a marker. The shorthand leaves the label when the
 edit finishes and becomes the fields above.
 
-**Tags**, in the left rail, lists the room's tags with how many objects carry each; choosing one
+**Tags**, under **Explore**, lists the room's tags with how many objects carry each; choosing one
 filters the canvas to it. **Ctrl/Command Shift F** opens the filter bar at the top left, with a chip for every tag,
 marker, task state and editor on the canvas. Chosen chips keep their objects bright, with the
 lines among them, and dim everything else; chips of one kind are alternatives, and kinds
@@ -357,8 +365,8 @@ see [files and pictures](files.md#add-and-move-pictures).
 
 ## Saved views
 
-At the bottom of the left rail, use the plus button to save the current position and zoom.
-Click a saved view to fly there; hover its entry to rename or remove it.
+Open **Explore**, name the current position and zoom under **Saved views**, and choose **Save view**.
+Click a saved view to fly there. The buttons beside its name rename or remove it.
 
 Saved views are shared document data, while following one changes only your viewport. Use
 [slides](slides.md) for bounded presentation regions rather than navigation bookmarks.

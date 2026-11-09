@@ -161,12 +161,17 @@ export async function open(context: BrowserContext, room = "", join = false, sta
     await page.getByRole("button", { name: "Create a room", exact: true }).click();
     expect(new URL(page.url()).hash).toMatch(/^#room=[a-f0-9]{48}$/);
   }
-  await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
+  await page.getByRole("navigation", { name: "Workspace panels" }).waitFor();
   await page.getByTestId("connection-status").filter({ hasText: status }).waitFor();
   return page;
 }
 export async function add(page: Page, tool: string, label: string, x: number, y: number) {
-  await page.getByRole("button", { name: tool, exact: true }).click();
+  await page
+    .getByRole("button", { name: tool === "Slide" ? "Slides" : "Add", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: tool === "Slide" ? "Add slide" : tool, exact: true })
+    .click();
   await page.getByTestId("canvas").click({ position: { x, y } });
   await page.getByLabel("Object text", { exact: true }).fill(label);
   await page.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");

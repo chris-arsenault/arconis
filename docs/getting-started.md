@@ -20,15 +20,16 @@ The welcome screen also offers **Create a password room** and **Work on this dev
 
 1. Press **N** and click the canvas to add a note. Type an idea and press **Ctrl/Command Enter**
    to finish. Enter by itself inserts a line.
-2. Choose **Rectangle** in the left rail, then click the canvas. Double-click the rectangle to
+2. Open **Add** in the left rail and choose **Rectangle**, then click the canvas. Double-click the rectangle to
    name it, and finish the edit.
 3. Choose **Connector: click two objects** and click the note followed by the rectangle.
 4. Press **V** to select. Drag either object; the connector stays attached.
 5. Select an object to see the property panel on the right: its relationships, tags and status,
    appearance and layout. Right-click it for the menu, or hold the right button for a ring of
-   the most-used commands. If the panel is hidden on a narrow screen, widen the window.
+   the most-used commands. On narrow screens, **Hide panel** folds the left panel to give the canvas room.
 
 You can also drag stencils directly from the rail. Search the rail to find architecture icons.
+Use **Explore** for saved views, topic outlines, tags and history, and **Slides** to create and present decks.
 The [canvas guide](editing.md) covers selection, containers, connectors and keyboard navigation.
 
 ## Mark it up

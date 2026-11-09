@@ -92,6 +92,7 @@ it("nests by dropping onto any larger object, and moving the parent moves childr
   const peer = await open(await browser.newContext(VIEWPORT), room);
   await add(page, "Rectangle (R)", "Child", 100, 100);
   await canvas(page).click({ position: emptySpot });
+  await page.locator("details[aria-label='Screens'] > summary").click();
   await page.getByRole("button", { name: "Screen: Phone, 390 by 844", exact: true }).click();
   await canvas(page).click({ position: { x: 500, y: 120 } });
   await expect.poll(() => objectCount(page)).toBe(2);

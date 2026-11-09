@@ -122,6 +122,7 @@ export class DrawingEditor {
   toggle() {
     this.visible = !this.visible;
     this.editor.graph.clearSelection();
+    this.editor.graph.view.revalidate();
     this.changed();
   }
   make(blank = false) {

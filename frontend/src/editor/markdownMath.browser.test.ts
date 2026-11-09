@@ -46,6 +46,7 @@ it("renders agent-authored Markdown and math during a presentation and reflects 
   await b.getByTestId("canvas").locator("h1").dblclick();
   const peerSource = b.getByLabel("Edit canvas text", { exact: true });
   await peerSource.waitFor();
+  await a.getByRole("button", { name: "Slides", exact: true }).click();
   await a.getByRole("button", { name: "Present pitch", exact: true }).click();
   await a.getByTestId("presenter").waitFor();
   expect(await a.getByTestId("canvas").locator(".katex-display").count()).toBe(1);

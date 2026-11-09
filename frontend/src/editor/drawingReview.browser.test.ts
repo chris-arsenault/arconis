@@ -73,8 +73,11 @@ it("erases sparse sweep crossings and single clicks without touching workspace o
   await page.keyboard.press("v");
   await row(page, "Workspace").click();
   await page.keyboard.press("p");
+  await page.getByRole("button", { name: "Pen", exact: true }).click();
   await page.getByRole("button", { name: "Ink #e64980", exact: true }).click();
-  await page.getByRole("button", { name: "Recolor selection", exact: true }).click();
+  expect(
+    await page.getByRole("button", { name: "Apply ink color to strokes", exact: true }).count()
+  ).toBe(0);
   expect((await exported(page)).objects.find((item) => item.id === "n")).toEqual(original);
   expect((await exported(peer)).objects.find((item) => item.id === "n")).toEqual(original);
   expect(errors).toEqual([]);
@@ -138,7 +141,7 @@ it("preserves visible wide ink through promotion and Fit", async () => {
   const { page } = await scene(`drawing p markup points 200,200 400,200 line-width 48`);
   await selectDrawing(page);
   await page.getByLabel("Ink color", { exact: true }).fill("#ff0000");
-  await page.getByRole("button", { name: "Recolor selection", exact: true }).click();
+  await page.getByRole("button", { name: "Apply ink color to strokes", exact: true }).click();
   const box = await bounds(page, "#ff0000");
   const x = box.x + box.width / 2,
     y = box.y - (22 * box.width) / 200;

@@ -75,6 +75,7 @@ it("presents a deck with the chrome gone, moving by key and button, with notes a
   await a.keyboard.press("Enter");
   await expect.poll(() => a.getByTestId("comment-thread").count()).toBe(1);
   await canvas(a).press("Escape");
+  await b.getByRole("button", { name: "Slides", exact: true }).click();
   await expect.poll(() => b.getByTestId("deck").count()).toBe(1);
 
   await a.getByRole("button", { name: "Present deck", exact: true }).click();
@@ -147,6 +148,7 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   );
 
   // On the other slide the copy cannot be picked: clicking it selects the slide beneath.
+  await page.getByRole("button", { name: "Slides", exact: true }).click();
   await page.getByTestId("deck").getByRole("button", { name: "1 · Body" }).click();
   await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
   await page.keyboard.press("Escape");

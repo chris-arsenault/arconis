@@ -6,7 +6,8 @@ connect as part of the diagram.
 
 ## Choose an instrument
 
-Press **P** or choose **Draw** in the left rail. The palette stays in the same rail as the stencils.
+Press **P** or choose **Draw** in the left rail. Each instrument has an icon and guidance for its
+gesture. The panel shows the settings that apply to that instrument.
 
 ![Drawing palette, lassoed gradient shape and direction handle](images/drawing.png)
 
@@ -22,13 +23,14 @@ Press **P** or choose **Draw** in the left rail. The palette stays in the same r
 | Eyedropper       | Pick a drawing or object's color into the current ink color.              |
 
 Pen and Highlighter remember separate colors and widths. Choose a width preset or enter a
-finer value in **Width**. Use a swatch, a recent color or the color picker. The numbered favorite
-buttons recall brush settings; **Shift-click** one to replace it with the current settings.
-Brush preferences and favorites are stored in your browser.
+finer value in **Width**. Use a swatch, a recent color or the color picker. Open **Saved brushes**
+to see a stroke preview, instrument, shape and width for each brush. Click its preview to use
+it, or its **Save** button to replace it with the current settings. Brush preferences and saved
+brushes are stored in your browser.
 
 ## Draw quick shapes
 
-Choose a shape from **Geometry**, then draw with Pen or Highlighter:
+Choose a **Stroke shape**, then draw with Pen or Highlighter:
 
 | Geometry                       | Gesture                                                                |
 | ------------------------------ | ---------------------------------------------------------------------- |
@@ -55,15 +57,17 @@ annotation should follow an object.
 
 1. Choose **Lasso** and drag around strokes or shapes. Hold **Shift** to add to the selection.
 2. Drag the selection to move it, or use its corner and top handles to scale and rotate it.
-3. Choose an ink color and **Recolor selection**, or use Duplicate and Delete as for other items.
+3. Choose an ink color and **Apply ink color to strokes** in **Selected strokes**, or use Duplicate
+   and Delete as for other items. The color action appears only when ink strokes are selected.
 
 Ordinary workspace selection reaches the diagram beneath markup. Inside an open Drawing,
 Lasso and erasers work on that Drawing's contents. Outside it, they work on markup.
 
 **Eraser** removes whole strokes, including when a fast sweep crosses between pointer samples.
 **Precision eraser** leaves the surviving pieces editable. Undo reverses a completed eraser gesture.
-**Clear markup** removes annotations together in one undoable operation, retaining workspace
-objects and promoted Drawings.
+**Delete all annotations**, under **Canvas annotations**, removes the canvas's annotations for
+everyone in one undoable operation, retaining workspace objects and promoted Drawings. This
+canvas-wide action is available outside an open Drawing; it is disabled when there are no annotations.
 
 ## Fill a closed path
 
@@ -100,7 +104,8 @@ holder are removed with it. Undo restores the Drawing and its relationships.
 
 ## Show, share and export
 
-- **Show markup** changes your view, including during a presentation. It does not hide markup
+- **Show annotations**, under **Canvas annotations**, changes only your view. Presentations use
+  the **Show markup** control for the same setting. It does not hide markup
   from other participants or remove it from the document.
 - **Include markup** controls document and PNG exports independently of what you currently see.
   A clean PNG excludes markup from its pixels and embedded editable copy.

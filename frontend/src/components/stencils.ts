@@ -8,7 +8,6 @@ import {
   MoveUpRight,
   PanelTop,
   Pencil,
-  Presentation,
   Server,
   Square,
   StickyNote,
@@ -92,7 +91,6 @@ export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [
       stencil("ellipse", "Ellipse", Circle),
       stencil("decision", "Decision", Diamond),
       stencil("frame", "Frame", PanelTop),
-      stencil("slide", "Slide", Presentation),
     ],
   },
   {

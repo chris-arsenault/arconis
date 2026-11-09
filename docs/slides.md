@@ -5,7 +5,7 @@ presentation, ordered by **Slide number**. Content stays in the same workspace w
 
 ## Build a deck
 
-1. Choose **Slide** in the stencil rail and click the canvas.
+1. Open **Slides** in the left rail, choose **Add slide**, and click the canvas.
 2. Select the slide and use the property panel's **Slide** section to set its deck and number.
 3. Choose **Wide 16:9**, **Standard 4:3**, or keep a custom size. Drag its handles to resize
    while preserving proportions.
@@ -13,7 +13,8 @@ presentation, ordered by **Slide number**. Content stays in the same workspace w
 5. Add more slides. A new slide uses the selected slide's deck, otherwise the last used or an
    existing deck, and follows its highest number. It adopts that deck's slide size.
 
-The **Slides** list in the left rail groups slides by deck. Click an entry to fly to it.
+The **Slides** task area groups slides by deck, with a **Present** button beside each deck name.
+Click a slide entry to fly to it.
 Gaps in slide numbers are valid; matching numbers are ordered by item id.
 
 ## Put content on a slide
