@@ -15,6 +15,22 @@ All notable user-visible changes are recorded here.
   connection time. MCP refusals signal errors and explain recovery; unexpected failures return
   references matched to server diagnostics. Relay journals ship to Ahara's shared logging stack.
 
+- Changed the MCP instructions to the way assistants work best: plan the result and write it in
+  large batches with chosen ids, treat slides as viewports with slide 0 as the deck's template,
+  and keep people's edits when a result reports them. A line written in the language now joins
+  the frame, group or slide its ends share, as a drawn line does; `in none` keeps it at the top
+  level. Tools carry read-only and destructive hints for connector clients.
+
+- Added `check_layout`, which reports overlaps, objects outside their holder and text that may
+  not fit, without drawing anything. Findings are advisory, text overflow is estimated, and
+  slide viewports and hidden or folded content do not produce overlap warnings. The instructions
+  ask assistants to check after substantial batches; a complete batched-workspace example covers
+  two diagrams, a wireframe, a mind map, four slide viewports and one template footer.
+
+- Routed public MCP through the control Lambda so discovery, sign-in and clear availability
+  messages work while the relay is stopped or starting. Room operations still execute on the
+  relay, with the same authentication and session ownership. Forwarded writes are never retried.
+
 ### Canvas
 
 - Reduced UI work on larger canvases: navigation reuses label contents, middle-button drags use
@@ -30,8 +46,10 @@ All notable user-visible changes are recorded here.
   draws. The chrome follows the system's dark mode; canvas colours stay as authored. A live
   region announces the selection and tool for assistive technology.
 
-- Changed the pointer buttons to the standard mapping: the middle button pans and the right
-  button opens a command ring with a context menu beside it; a right drag strokes a wedge.
+- Changed the pointer buttons to the standard mapping: the middle button pans, a right click
+  opens the context menu, and holding or dragging the right button brings the command ring, where
+  a drag strokes a wedge. Only one menu mode is visible at a time. The browser's own menu stays
+  away over the canvas and the ring.
   Comments now open on purpose, from the mark, Shift C or the menu, into a modal above the
   object instead of the property panel. Added a selection toolbar, quick-create dots
   that grow connected copies, connectors that make their target when dropped in space,

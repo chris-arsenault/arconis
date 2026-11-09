@@ -43,6 +43,11 @@ function lineStyle(draft: Draft, word: string, line: number) {
   return word;
 }
 
+/** The holder `in` names, with `none` meaning the top level. */
+function holderOf(draft: Draft, ref: string, line: number) {
+  return ref === "none" ? "" : draft.resolve(ref, line);
+}
+
 /** Applies a line's attributes: style, look, bend points, fields and where its label sits. */
 export function describeLink(draft: Draft, item: Item, attributes: Attribute[], line: number) {
   checkAttributes("link", attributes, line);
@@ -54,7 +59,7 @@ export function describeLink(draft: Draft, item: Item, attributes: Attribute[], 
       item.look = { ...item.look, ...attribute.look };
       attribute.cleared.forEach((key) => delete item.look[key]);
     } else if (attribute.kind === "via") item.points = attribute.points;
-    else if (attribute.kind === "in") item.inside = draft.resolve(attribute.ref, line);
+    else if (attribute.kind === "in") item.inside = holderOf(draft, attribute.ref, line);
     else if (attribute.kind === "label") {
       item.x = attribute.x;
       item.y = attribute.y;
@@ -130,10 +135,23 @@ export function finishLinks(draft: Draft, links: PendingLink[], importing: boole
     joinEnds(draft, item, pending);
     applyArrow(item, segment);
     describeLink(draft, item, statement.attributes, statement.line);
+    if (draft.createdHere.has(item.id) && !statement.attributes.some((a) => a.kind === "in"))
+      item.inside = sharedHolder(draft, item);
     if (statement.attributes.some((a) => a.kind === "word" && a.word === "around"))
       around.push(item.id);
   }
   return around;
+}
+
+/**
+ * The innermost item holding both of a line's ends, as a line drawn in the editor joins it, so a
+ * diagram inside a frame or slide moves, folds and presents as one.
+ */
+function sharedHolder(draft: Draft, item: Item) {
+  const ends = [item.from, item.to].map((id) => draft.items.get(id));
+  if (ends.some((end) => !end)) return "";
+  const chains = ends.map((end) => draft.ancestors(end!));
+  return chains[0].find((holder) => chains.every((chain) => chain.includes(holder))) ?? "";
 }
 
 /** A line's ends, ports and label. Ports a restatement leaves out stay as they were. */

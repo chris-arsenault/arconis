@@ -8,12 +8,15 @@ import { syncZoom } from "./zoom";
 
 /**
  * The standard mapping: the left button selects, moves and marquees; the middle button drags the
- * view; the right button opens the command ring and context menu, and dragging past the dead
- * zone strokes a wedge of the ring. maxGraph never sees the middle or right button.
+ * view; a right click opens the context menu, and holding or dragging the right button brings the
+ * command ring, where dragging past the dead zone strokes a wedge. maxGraph never sees the middle
+ * or right button.
  */
 
 /** How far the right button moves before a press becomes a stroke, in pixels. */
 export const DEAD_ZONE = 6;
+/** How long the right button rests before the ring appears around the pointer. */
+export const RING_HOLD_MS = 250;
 /** The ring's radius to the middle of its wedges, in pixels, for stroke angles. */
 export const RING_RADIUS = 56;
 
@@ -75,27 +78,50 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
   selectUnderPointer(editor, event);
   const bounds = element.getBoundingClientRect();
   const at = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
-  openMenu(editor, { at, world: editor.worldPoint(event), wedge: null, subRing: null });
+  openMenu(editor, {
+    at,
+    world: editor.worldPoint(event),
+    wedge: null,
+    subRing: null,
+    ring: false,
+  });
   element.setPointerCapture(event.pointerId);
+  // A click is the menu alone; resting or moving the held button brings the ring around it.
+  const showRing = () => {
+    const menu = editor.ui.menu;
+    if (menu && !menu.ring) {
+      menu.ring = true;
+      editor.emit();
+    }
+  };
+  const hold = setTimeout(showRing, RING_HOLD_MS);
   const move = (moveEvent: PointerEvent) => {
     const menu = editor.ui.menu;
     if (!menu) return;
     const dx = moveEvent.clientX - event.clientX;
     const dy = moveEvent.clientY - event.clientY;
+    if (Math.hypot(dx, dy) >= DEAD_ZONE) showRing();
     const count = ringEntries(commandContext(editor), menu.subRing).length;
-    const wedge = Math.hypot(dx, dy) < DEAD_ZONE ? null : wedgeAt(dx, dy, count);
+    const wedge = menu.ring && Math.hypot(dx, dy) >= DEAD_ZONE ? wedgeAt(dx, dy, count) : null;
     if (wedge !== menu.wedge) {
       menu.wedge = wedge;
       editor.emit();
     }
   };
   const finish = () => {
+    clearTimeout(hold);
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", finish);
     element.removeEventListener("pointercancel", finish);
     if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
     const menu = editor.ui.menu;
-    if (!menu || menu.wedge === null) return;
+    if (!menu?.ring) return;
+    if (menu.wedge === null) {
+      // Released on the centre: the ring folds away and the menu stays for a click.
+      menu.ring = false;
+      editor.emit();
+      return;
+    }
     const entry = ringEntries(commandContext(editor), menu.subRing)[menu.wedge];
     if (!entry) {
       menu.wedge = null;
@@ -139,6 +165,17 @@ export function bindPointerButtons(editor: EditorController, signal: AbortSignal
     },
     { signal, capture: true }
   );
-  // The browser's own menu never shows over the canvas; the page's menu takes its place.
-  editor.element.addEventListener("contextmenu", (event) => event.preventDefault(), { signal });
+  // The browser's own menu never shows over the canvas; the page's menu takes its place. Browsers
+  // fire contextmenu on release as well as on press, by which time the ring sits under the
+  // pointer, so the whole canvas area and an open ring count, while typing keeps the browser's.
+  window.addEventListener(
+    "contextmenu",
+    (event) => {
+      if (editor.editId) return;
+      const area = editor.element.parentElement ?? editor.element;
+      const overCanvas = event.target instanceof Node && area.contains(event.target);
+      if (overCanvas || editor.ui.menu !== null) event.preventDefault();
+    },
+    { signal, capture: true }
+  );
 }

@@ -325,18 +325,25 @@ to close its sockets with that reason. Counting by month re-enables it automatic
 month-scoped SSM parameter raises the limit by hand. Each level alerts once through Ahara's alarm
 topic.
 
-**Agents.** `relay/mcpHttp.ts` serves MCP over HTTP at `/mcp` on the relay host, with the protected
-resource metadata that points MCP clients at the Ahara Auth0 tenant. Connectors register there and the
+**Agents.** The control Lambda owns public `/mcp` and protected-resource metadata, so discovery,
+sign-in challenges and availability explanations work while the relay is stopped.
+`relay/mcpProxy.ts` validates the existing bearer and forwards each request through the ALB to
+`/mcp/relay`, where `relay/mcpHttp.ts` validates the bearer again and executes MCP. The forwarding
+path has the same authentication and room-session ownership checks as direct relay requests.
+The proxy keeps no canvas or session state and never retries writes. Bare load-balancer failures
+become MCP explanations for stopped, starting, stopping or budget-limited relays; a lost response
+leaves an edit's outcome unverified. Healthy requests do not query control status or usage.
+Protected-resource metadata points MCP clients at the Ahara Auth0 tenant. Connectors register there and the
 person signs in and consents; `relay/accessTokens.ts` accepts only the tenant's tokens whose audience is
 this endpoint ([ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Opening a room adds a peer in the
 relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the canvas from someone there
 and carries a language session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
 opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
 close with their peers. `relay/mcp.ts` holds the tools: open a room, describe, read and write in the
-canvas language, undo, close a room, search icons, and retrieve language guidance. Help needs no open room.
+canvas language, check layout, undo, close a room, search icons, and retrieve language guidance. Help needs no open room.
 `relay/agentSessions.ts` owns explicit room sessions keyed by random handles and bound to the
 authenticated user and OAuth client. `open_room` returns `session_id` and the outline; describe,
-read, write, undo and close require that handle. Each open creates independent read and undo history.
+read, write, check layout, undo and close require that handle. Each open creates independent read and undo history.
 The HTTP endpoint creates a disposable stateless SDK transport per request, so initialization,
 disconnects and reconnects do not select or clear a room. It accepts tool requests without an
 initialization handshake or transport session header. Sessions end through `close_room`, after

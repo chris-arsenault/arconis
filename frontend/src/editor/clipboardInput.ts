@@ -90,14 +90,16 @@ export function bindClipboardInput(editor: EditorController, session: RoomSessio
     },
     options
   );
-  // On X11 a middle click pastes the primary selection; here the middle button pans the view.
-  window.addEventListener(
-    "pointerdown",
-    (event) => {
-      if (event.button === 1) middleUntil = performance.now() + MIDDLE_CLICK_WINDOW_MS;
-    },
-    { ...options, capture: true }
-  );
+  // On X11 a middle click pastes the primary selection, on press or on release after a drag;
+  // here the middle button pans the view.
+  for (const type of ["pointerdown", "pointerup"] as const)
+    window.addEventListener(
+      type,
+      (event) => {
+        if (event.button === 1) middleUntil = performance.now() + MIDDLE_CLICK_WINDOW_MS;
+      },
+      { ...options, capture: true }
+    );
   window.addEventListener(
     "copy",
     (event) => {

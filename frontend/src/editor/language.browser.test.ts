@@ -29,7 +29,7 @@ it("keeps a frame's row arranged as people drag its items", async () => {
   const order = async () => {
     const { objects } = await exported(page);
     return objects
-      .filter((item) => item.inside === "f")
+      .filter((item) => item.inside === "f" && item.type !== "line")
       .sort((left, right) => left.x - right.x)
       .map((item) => [item.name, item.x, item.y]);
   };

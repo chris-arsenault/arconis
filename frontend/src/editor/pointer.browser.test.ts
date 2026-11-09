@@ -35,7 +35,25 @@ it("moves the collective selection frame with the native middle-pan preview", as
   await context.close();
 });
 
-it("maps the buttons the standard way: middle pans, right opens the ring and menu, and comments open above the object", async () => {
+it("keeps a context menu inside the canvas at its far corner", async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const page = await open(context, createRoomId());
+  const canvas = page.getByTestId("canvas");
+  const bounds = (await canvas.boundingBox())!;
+  await canvas.click({
+    button: "right",
+    position: { x: bounds.width - 12, y: bounds.height - 12 },
+  });
+  const menuBox = (await page.getByTestId("context-menu").boundingBox())!;
+  const currentBounds = (await canvas.boundingBox())!;
+  expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(currentBounds.x + currentBounds.width);
+  expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(currentBounds.y + currentBounds.height);
+  await canvas.press("Escape");
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+it("keeps right-click and radial menus exclusive, pans with middle drag, and opens comments above objects", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
   await add(page, "Rectangle (R)", "Target", 300, 200);
@@ -54,11 +72,26 @@ it("maps the buttons the standard way: middle pans, right opens the ring and men
   expect(Math.round(after.x - before.x)).toBe(100);
   expect(await page.getByTestId("zoom-level").textContent()).toBe("100%");
 
-  // A right click on an object selects it and opens the ring and menu; the menu's items run.
+  // A right click on an object selects it and opens the ring and menu; the menu's items run, and
+  // the browser's own menu stays away, whether it fires on press or on release over the ring.
+  await page.evaluate(() => {
+    const seen: boolean[] = [];
+    (window as unknown as { contextMenus: boolean[] }).contextMenus = seen;
+    window.addEventListener("contextmenu", (event) => seen.push(event.defaultPrevented));
+  });
   await row(page, "Target").click({ button: "right" });
   await page.getByTestId("context-menu").waitFor();
+  await page.getByTestId("context-menu").dispatchEvent("contextmenu", { bubbles: true });
+  expect(
+    await page.evaluate(() => (window as unknown as { contextMenus: boolean[] }).contextMenus)
+  ).toEqual([true, true]);
+  // A click brings the menu alone; the ring comes only while the button rests or moves.
+  expect(await page.getByTestId("command-ring").count()).toBe(0);
   await expect.poll(() => selectionLabel(page)).toBe("Rectangle");
-  await page.getByRole("menuitem", { name: "Duplicate", exact: true }).last().click();
+  await page
+    .getByRole("menuitem", { name: /^Duplicate/ })
+    .last()
+    .click();
   await expect.poll(() => objectCount(page)).toBe(3);
   await expect.poll(() => page.getByTestId("context-menu").count()).toBe(0);
 
@@ -70,8 +103,17 @@ it("maps the buttons the standard way: middle pans, right opens the ring and men
   await page.mouse.up({ button: "right" });
   await expect.poll(() => objectCount(page)).toBe(2);
 
-  // Escape closes a menu opened on empty canvas, which lists canvas commands.
-  await canvas.click({ position: { x: 40, y: 40 }, button: "right" });
+  // Holding the button on empty canvas brings the ring; releasing in its centre leaves the menu,
+  // which lists canvas commands, and Escape closes it.
+  await page.mouse.move(bounds.x + 40, bounds.y + 40);
+  await page.mouse.down({ button: "right" });
+  await page.getByTestId("command-ring").waitFor();
+  expect(await page.getByRole("menu", { name: "Canvas menu" }).count()).toBe(0);
+  const ringBox = (await page.getByTestId("command-ring").boundingBox())!;
+  expect(ringBox.x).toBeGreaterThanOrEqual(bounds.x);
+  expect(ringBox.y).toBeGreaterThanOrEqual(bounds.y);
+  await page.mouse.up({ button: "right" });
+  await expect.poll(() => page.getByTestId("command-ring").count()).toBe(0);
   await page.getByRole("menuitem", { name: "Add note here", exact: true }).last().waitFor();
   await canvas.press("Escape");
   await expect.poll(() => page.getByTestId("context-menu").count()).toBe(0);

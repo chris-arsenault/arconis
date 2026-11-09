@@ -7,6 +7,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { AgentGateway } from "../relay/mcpHttp";
 import { createRoomId } from "../collaboration/room";
 import { readCopy } from "../document/pngCopy";
+import { BATCH_EXAMPLE } from "../language/reference";
 import { browser, errors, exported, fixture, open, row } from "./browserHarness";
 import type { Page } from "playwright";
 
@@ -32,7 +33,14 @@ async function connectAgent() {
   await client.connect(transport());
   let sessionId = "";
   const call = async (name: string, args: Record<string, unknown> = {}) => {
-    const roomTool = ["describe_canvas", "read", "write", "undo", "close_room"].includes(name);
+    const roomTool = [
+      "describe_canvas",
+      "read",
+      "write",
+      "undo",
+      "close_room",
+      "check_layout",
+    ].includes(name);
     const result = await client.callTool({
       name,
       arguments: roomTool ? { session_id: sessionId, ...args } : args,
@@ -87,6 +95,7 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
       })
     ).toContain("Done");
     await expect.poll(async () => (await exported(peer)).objects.length).toBe(3);
+    expect(await call("check_layout")).toContain("Layout check: 3 objects looked at");
     await row(page, "Agent Drawing").click();
     await page.getByLabel("Object text", { exact: true }).fill("Human Drawing");
     await page.getByLabel("Object text", { exact: true }).press("Control+Enter");
@@ -163,6 +172,52 @@ it("uses collective Drawing transforms through MCP and rejects connected markup 
     expect(errors).toEqual([]);
   } finally {
     await agent.close();
+  }
+});
+
+it("builds the batched workspace in two browsers and preserves a person's slide move and deletion", async () => {
+  const room = createRoomId();
+  const page = await open(
+    await browser.newContext({ viewport: { width: 1440, height: 1000 } }),
+    room
+  );
+  const peer = await open(await browser.newContext(), room);
+  const agent = await connectAgent();
+  try {
+    await agent.call("open_room", { room });
+    expect(await agent.call("write", { statements: BATCH_EXAMPLE })).toContain("29 created");
+    await expect.poll(async () => (await exported(peer)).objects.length).toBe(29);
+    const deck = page.getByTestId("deck");
+    await deck.getByRole("button", { name: "1 · Network", exact: true }).click();
+    const canvas = page.getByTestId("canvas");
+    await canvas.press("Control+ArrowRight");
+    await expect
+      .poll(
+        async () => (await exported(peer)).objects.find((item) => item.id === "network_view")?.x
+      )
+      .not.toBe(40);
+    const moved = (await exported(peer)).objects.find((item) => item.id === "network_view")!;
+    expect(await agent.call("write", { statements: "edit network_view at 40,40" })).toContain(
+      "Nothing was changed"
+    );
+    await canvas.press("Delete");
+    await expect
+      .poll(async () => (await exported(peer)).objects.some((item) => item.id === "network_view"))
+      .toBe(false);
+    expect(
+      await agent.call("write", { statements: 'note followup "Next review" at 2900,1050' })
+    ).toContain("removed network_view");
+    const after = (await exported(peer)).objects;
+    expect(after.find((item) => item.id === "network")).toMatchObject({ x: 80, inside: "" });
+    expect(after.some((item) => item.id === "network_view")).toBe(false);
+    expect(after.filter((item) => item.id === "footer")).toHaveLength(1);
+    expect(moved.x).toBeGreaterThan(40);
+    expect(await agent.call("check_layout")).toContain("Nothing to report");
+    expect(errors).toEqual([]);
+  } finally {
+    await agent.close();
+    await page.context().close();
+    await peer.context().close();
   }
 });
 

@@ -1,3 +1,39 @@
+/** A complete write with caller-chosen ids and four views over the original content. */
+export const BATCH_EXAMPLE = `style component fill #eef0ff line #6554c0
+frame network "Chat network" at 80,100 row gap 60 {
+  node desktop "Desktop client" component
+  node gateway "Chat gateway" service component
+  node messages "Messages" database component
+}
+desktop -> gateway "WSS" as socket
+gateway -> messages "stores" as storage
+frame flow "Message flow" at 1600,100 row gap 60 {
+  node compose "Compose" component
+  node deliver "Deliver" component
+  node receive "Receive" component
+}
+compose -> deliver -> receive
+frame window "Chat window" at 80,1050 size 700,400 {
+  text heading "Instant Messenger" at 110,1100 size 620,50
+  note conversation "Alex: Hello!" at 110,1170 size 620,170
+  node input "Type a message" at 110,1370 size 450,50
+  node send "Send" at 590,1370 size 140,50
+}
+frame roadmap "Adoption and features" at 1600,1050 size 1000,500 {
+  node root "Chat adoption" at 1640,1140
+  node invite "Invite friends" at 1920,1100
+  node privacy "Privacy controls" at 1920,1260
+  root => invite, privacy
+}
+// These slides frame the original content without copying or reparenting it.
+slide network_view "Network" deck chat 1 at 40,40
+slide flow_view "Data flow" deck chat 2 at 1560,40
+slide window_view "Wireframe" deck chat 3 at 40,990
+slide roadmap_view "Mind map" deck chat 4 at 1560,990
+slide master "Shared footer" deck chat 0 at 3200,40 {
+  text footer "made by chatgpt" at 3224,704 size 300,32 text-size 16 padding 0
+}`;
+
 /**
  * The canvas language as agents learn it through canvas_help. Keep it exact with the parser and
  * writer; the topic index below derives from this same reference.
@@ -69,6 +105,7 @@ Attributes after the ends apply to every line in the statement: a style, look pr
 around places a line's points so it goes around the items and labels between its ends: a -> b around. It is placement, worked out once like below or right of; afterwards the line is an ordinary line whose points anyone can move. Use it for lines through busy areas, and write it again after moving things to route afresh.
 shared after a fan-out runs one trunk from the start to a junction, a small dot, and splits there: api -> bus "Async", logic "Sync" shared. A junction is a node with stencil junction, and you can declare and join one yourself.
 Any item can be a line's end, including a frame or a band.
+A new line joins the innermost frame, group or slide both of its ends are in, as a line drawn in the editor does, so a diagram inside one moves and presents as a unit; in <id> puts it in another holder and in none at the top level.
 
 An end can be declared in place, which builds chains in one statement:
   users -> node cdn "CDN" icon aws:Amazon-CloudFront -> node edge "Edge" service
@@ -129,7 +166,7 @@ Editing an existing sketch's size or rotation transforms its contents with it; f
 
   slide [id] ["name"] deck <deck> [N] [placement] [{ items }]
 
-A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. Its block places items inside it, and it keeps its size. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes. A slide numbered 0 is the deck's template: what it holds is drawn under every other slide of the deck, at the same place within each, and a presentation skips it. slide t deck pitch 0 { text "Acme" at 1100,680 size 160,30 } puts the company name at the bottom right of every slide in pitch.
+A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. To present existing content, place a slide over its region; this does not copy the content or change its holder. Its block places new items inside it, and it keeps its size. Moving or deleting a slide carries what it holds, while independently overlapping content stays separate. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes. A slide numbered 0 is the deck's template: what it holds is drawn under every other slide of the deck, at the same place within each, and a presentation skips it. slide t deck pitch 0 at 0,0 { text "Acme" at 1100,680 size 160,30 } puts the company name at the bottom right of every slide in pitch.
 
 ## Discussions and views
 
@@ -141,6 +178,12 @@ A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that
 ## Reading
 
 What you read is written in this same language: a file is the whole canvas in it. Read output may add // notes such as which items overlap.
+
+## Example: batched workspace
+
+Send this entire example in one write, using ids free on the current canvas. All ids and references are chosen before the call; no generated-id round trips are needed. It creates two diagrams, a wireframe and a mind map, then places four slide viewports over those originals and authors one shared footer in a template. Call check_layout after the batch and review its advisory findings.
+
+${BATCH_EXAMPLE}
 
 ## Example: a section of an architecture
 
@@ -174,7 +217,7 @@ export function languageHelp(topic?: string) {
     return [
       "The Arconis canvas language. Call canvas_help with a topic below, or all for the complete reference.",
       ...topics.map((entry) => `${entry.topic}: ${entry.title}`),
-      "Start with basics, items, placement and changing-what-exists for ordinary diagram edits.",
+      "For complete batch construction, start with example-batched-workspace. For ordinary edits, use basics, items, placement and changing-what-exists.",
     ].join("\n");
   if (topic === "all") return LANGUAGE_REFERENCE;
   return topics.find((entry) => entry.topic === topic)?.content ?? null;

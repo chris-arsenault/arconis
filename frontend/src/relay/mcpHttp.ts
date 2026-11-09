@@ -26,8 +26,21 @@ export interface Caller {
 export type TokenVerifier = (token: string) => Promise<Caller | null>;
 
 export const MCP_PATH = "/mcp";
+/** The control Lambda forwards here through the ALB's ordinary relay rule. */
+export const MCP_RELAY_PATH = "/mcp/relay";
 /** The API's scope, and `offline_access` so connectors can refresh instead of signing in again. */
 export const SCOPES = ["edit:rooms", "offline_access"];
+
+/** Discovery remains available from the control Lambda while the relay is stopped. */
+export function resourceMetadata(config: McpConfig) {
+  return {
+    resource: config.resource,
+    authorization_servers: [config.issuer],
+    scopes_supported: SCOPES,
+    bearer_methods_supported: ["header"],
+    resource_name: "Arconis",
+  };
+}
 const MAX_BODY_BYTES = 1024 * 1024;
 const CALLS_PER_MINUTE = 120;
 
@@ -127,20 +140,14 @@ export class AgentGateway {
       json(response, 200, this.resourceMetadata());
       return true;
     }
-    if (path !== MCP_PATH) return false;
+    if (path !== MCP_PATH && path !== MCP_RELAY_PATH) return false;
     await logHttp(request, response, () => this.serve(request, response));
     return true;
   }
 
   /** RFC 9728: Auth0 is where agents register and sign in for this endpoint. */
   resourceMetadata() {
-    return {
-      resource: this.config.resource,
-      authorization_servers: [this.config.issuer],
-      scopes_supported: SCOPES,
-      bearer_methods_supported: ["header"],
-      resource_name: "Arconis",
-    };
+    return resourceMetadata(this.config);
   }
 
   private challenge(response: ServerResponse, description: string) {

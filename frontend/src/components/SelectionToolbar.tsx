@@ -52,7 +52,7 @@ function openOverSelection(editor: EditorController, subRing: string | null) {
   const { scale, translate } = editor.graph.view;
   const world = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
   const at = { x: (world.x + translate.x) * scale, y: (world.y + translate.y) * scale };
-  openMenu(editor, { at, world, wedge: null, subRing: null });
+  openMenu(editor, { at, world, wedge: null, subRing: null, ring: subRing !== null });
   if (subRing) openSubRing(editor, subRing);
 }
 

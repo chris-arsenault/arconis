@@ -350,7 +350,7 @@ resource "aws_lb_listener_rule" "control" {
   }
   condition {
     path_pattern {
-      values = ["/control/*"]
+      values = ["/control/*", "/mcp", "/.well-known/oauth-protected-resource*"]
     }
   }
   action {
@@ -467,7 +467,7 @@ module "control" {
   handler      = "index.handler"
   role_arn     = aws_iam_role.control.arn
   vpc          = module.ctx.vpc
-  timeout      = 10
+  timeout      = 30
   memory_size  = 256
 
   # Bounds what hostile traffic can cost: two at once, with spend reads cached in each.
@@ -479,6 +479,8 @@ module "control" {
     OVERRIDE_PARAMETER = aws_ssm_parameter.budget_override.name
     ALERT_PARAMETER    = aws_ssm_parameter.last_alert.name
     ALARM_TOPIC_ARN    = nonsensitive(data.aws_ssm_parameter.alarm_topic.value)
+    MCP_RESOURCE       = local.mcp_resource
+    AUTH_ISSUER        = local.auth0_issuer
   }
 
   depends_on = [aws_iam_role_policy.control, aws_iam_role_policy_attachment.control_vpc]

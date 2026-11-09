@@ -1562,6 +1562,10 @@ input.outline-name {
   gap: 6px;
   transform: translate(-50%, -50%);
 }
+/* A click's menu hangs from the pointer, as menus do; the ring, when it comes, centres on it. */
+.menu-anchor.menu-only {
+  transform: none;
+}
 .command-ring {
   flex: none;
   overflow: visible;
@@ -1599,7 +1603,6 @@ input.outline-name {
   border-radius: 10px;
   box-shadow: 0 8px 30px #44405b1f;
   font-size: 12px;
-  transform: translate(calc(50% + 70px), 0);
 }
 .context-menu ul {
   margin: 0;

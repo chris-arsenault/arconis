@@ -5,6 +5,9 @@ import { decks } from "../document/slides";
 import { isBox, isLink, type Item } from "../document/types";
 import { LanguageError } from "./lexer";
 import { footprint, intersects, union, type Box } from "../document/layout";
+import { describeLayout, layoutReport } from "../document/layoutReport";
+import { effectiveAppearance } from "../document/appearance";
+import { visibleItems } from "../document/relations";
 import { parse } from "./parser";
 import {
   chosenItems,
@@ -108,6 +111,19 @@ export class LanguageSession {
         chosen.map((item) => item.id)
       );
       return [...lines, ...notes].filter(Boolean).join("\n");
+    });
+  }
+
+  /** Overlaps, objects outside their holder and text that may not fit, for the named items or all. */
+  checkLayout(request: ReadRequest = {}) {
+    return this.call(() => {
+      const all = this.document.list();
+      const whole = !request.items?.length && !request.inside && !request.area;
+      const chosen = whole ? all : this.select(request);
+      const report = layoutReport(all, chosen, (item) =>
+        effectiveAppearance(item, this.document.namedStyle(item.style))
+      );
+      return describeLayout(report, chosen.length).join("\n");
     });
   }
 
@@ -334,7 +350,9 @@ function overlapNotes(all: Item[], ids: string[]) {
       if (id === outer.id) return true;
     return false;
   };
-  const boxes = all.filter((item) => isBox(item) && item.type !== "band" && !item.onLine);
+  const boxes = visibleItems(all).filter(
+    (item) => isBox(item) && item.type !== "band" && item.type !== "slide" && !item.onLine
+  );
   const notes: string[] = [];
   for (const id of ids) {
     const item = byId.get(id);

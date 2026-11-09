@@ -11,14 +11,16 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 
 - The relay: an Auto Scaling group behind the shared ALB at `relay.arconis.ahara.io`, its
   S3 bucket of relay code, and its security group and role.
-- The control Lambda behind `/control/*` on the same host, and its SSM parameters.
+- The control Lambda behind `/control/*`, `/mcp` and protected-resource discovery on the same host,
+  and its SSM parameters. MCP requests forward through the ALB to `/mcp/relay`; WebSocket traffic
+  continues directly to the relay.
 - Arconis in the shared Ahara Auth0 tenant (`auth0.tf`): its database connection, the site's
   application and the accounts API it is granted, the MCP API with its default grant for registered
   connectors, the client that deletes users, and the post-login Action. The provider reads Ahara's credential from
   `/ahara/auth0/*`; the tenant, its branding and `auth.ahara.io` belong to ahara-infra.
 - Accounts: a DynamoDB table, a private bucket of saved workspaces, and the API behind `/api/*` on the
   relay's host, whose ALB rule validates Auth0 tokens for the accounts API.
-- Agents: the relay serves `/mcp` and reads the tenant's issuer from its boot script, and the website's
+- Agents: the relay executes MCP at `/mcp/relay` and reads the tenant's issuer from its boot script, and the website's
   runtime configuration names the MCP address for the account panel.
 - The website, through Ahara's `website` module: private S3 with S3-managed encryption, behind
   CloudFront and ACM TLS, at `arconis.ahara.io`.
@@ -38,6 +40,13 @@ pass the ALB's health check before terminating the old instance. When the relay 
 to roll, and the next start uses the new version.
 
 ## Operating the relay
+
+The public MCP endpoint returns availability explanations while the relay is stopped, starting,
+stopping or at its monthly spending limit. It does not start the relay automatically; open an
+ordinary room and use its existing start control. Discovery and sign-in remain available while
+the relay is stopped. Forwarding failures appear in the control Lambda's CloudWatch logs with
+their error reference; relay execution failures appear in Loki as described below. Neither path
+retries writes after a response is lost.
 
 MCP tool and HTTP failures return an error reference. Search Grafana's Loki datasource with
 `{service_name="arconis-relay"} |= "<error reference>"` to find the corresponding operation, exception

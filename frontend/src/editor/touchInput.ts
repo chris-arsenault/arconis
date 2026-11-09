@@ -83,6 +83,7 @@ function fingerOnCanvas(editor: EditorController, event: PointerEvent) {
       world: editor.worldPoint(event),
       wedge: null,
       subRing: null,
+      ring: true,
     });
   }, LONG_PRESS_MS);
   const cancel = (moveEvent: PointerEvent) => {

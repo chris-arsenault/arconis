@@ -57,13 +57,14 @@ horizontal or smooth scroll gestures pan, and Ctrl/Command scrolling zooms.
 
 ## Right button: ring and menu
 
-A right click opens a ring of eight commands around the pointer with the full menu beside it.
-The ring and the menu change with what was clicked: an object, a line, a slide or empty canvas.
-A right click on an unselected object selects it; one on a member of a selection keeps the
-selection. Click a wedge or a menu item to run it, or press the right button and drag past a
-short dead zone toward a wedge, then release, to stroke it without looking. Two wedges open
-sub-rings: **Colour** holds the six fills and the default, **Shape** changes the object's kind
-in place, keeping its text, size, contents and lines. Escape or a click elsewhere closes.
+A right click opens the menu at the pointer. Holding the right button, or moving it, brings a
+ring of eight commands around the press point, replacing the menu; drag past a short dead
+zone toward a wedge and release to stroke it without looking, or release in the centre to keep
+the menu. The ring and the menu change with what was pressed: an object, a line, a slide or
+empty canvas. A right click on an unselected object selects it; one on a member of a selection
+keeps the selection. Two wedges open sub-rings: **Colour** holds the six fills and the default,
+**Shape** changes the object's kind in place, keeping its text, size, contents and lines. The
+browser's own menu never appears over the canvas. Escape or a click elsewhere closes.
 
 The **selection toolbar** sits above the view controls while something is selected, with
 fills, line colour, text size, shape, comment and the rest of the menu; it steps aside while
@@ -252,7 +253,7 @@ beyond this: the relay stores nothing, and a saved copy is the way to keep a ver
 ## Touch and pen
 
 On a touch screen, one finger on empty canvas drags the view and a long press opens the ring
-and menu where it rests; a two-finger tap undoes and a three-finger tap redoes, each naming
+where it rests; a two-finger tap undoes and a three-finger tap redoes, each naming
 what changed. A pen on empty canvas draws whatever tool is in hand, and the tool returns when
 the stroke ends.
 

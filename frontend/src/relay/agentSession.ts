@@ -81,6 +81,11 @@ export class AgentSession {
     return this.require().domain.read(request);
   }
 
+  /** Overlaps, objects outside their holder and text that may not fit, without drawing anything. */
+  checkLayout(request: ReadRequest) {
+    return this.require().domain.checkLayout(request);
+  }
+
   /** Edits only reach the canvas through people's browsers, so they need someone in the room. */
   write(text: string) {
     const { domain, peer } = this.require();

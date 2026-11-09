@@ -54,4 +54,6 @@ export interface MenuState {
   wedge: number | null;
   /** The sub-ring open in place of the ring, by the entry that opened it. */
   subRing: string | null;
+  /** Whether the ring shows: a held or dragged right button brings it; a click leaves the menu. */
+  ring: boolean;
 }

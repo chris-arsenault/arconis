@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
-import { LOCAL, type Item } from "../document/types";
+import { isBox, LOCAL, type Item } from "../document/types";
 import { parse } from "./parser";
 import { writeStatements } from "./writer";
 import { LanguageSession } from "./session";
@@ -105,9 +105,10 @@ describe("the reference architecture", () => {
   });
 
   it("nests frames and keeps every frame around its contents", () => {
+    // Lines join the frame their ends share too, but have no box of their own to contain.
     for (const item of document
       .list()
-      .filter((candidate) => candidate.inside && candidate.type !== "band"))
+      .filter((candidate) => candidate.inside && candidate.type !== "band" && isBox(candidate)))
       expect(contains(get(item.inside), item), `${item.id} in ${item.inside}`).toBe(true);
     expect(get("ddb1").inside).toBe("dax");
     expect(get("dax").inside).toBe("data");
@@ -126,7 +127,7 @@ describe("the reference architecture", () => {
   it("spaces rows evenly and keeps siblings apart", () => {
     const row = ["fn", "ecs", "saga", "ml"].map(get);
     expect(new Set(row.map(centerY)).size).toBe(1);
-    const siblings = document.list().filter((item) => item.inside === "r1");
+    const siblings = document.list().filter((item) => item.inside === "r1" && isBox(item));
     for (const left of siblings)
       for (const right of siblings)
         if (left !== right)

@@ -15,7 +15,6 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Let a person ask an assistant from the canvas, with one key on a selected topic sending
   "expand this" with the branch as context, the result shown as pending branches to accept or
   discard, once an assistant can be reached from the browser rather than only through MCP.
-- Let agents see the rendered canvas, to judge layout as people do.
 - Keep lines routed around items from crossing or overlapping one another where they can run apart.
 - Let agents add pictures.
 - Let connectors register through client metadata documents as well as dynamic client registration,

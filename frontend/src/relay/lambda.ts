@@ -7,6 +7,8 @@ import {
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { GetParameterCommand, PutParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { RelayControl, capacityState } from "./control";
+import { McpProxy, type AlbRequest } from "./mcpProxy";
+import { accessTokenVerifier } from "./accessTokens";
 
 // The ALB-facing Lambda: POST /control/start and GET /control/status. Usage comes from CloudWatch's
 // metrics for the Auto Scaling group, which outlive any instance, and nothing a client or the relay
@@ -98,10 +100,11 @@ const control = new RelayControl({
   },
 });
 
-interface AlbEvent {
-  path: string;
-  httpMethod: string;
-}
+const mcpConfig = {
+  resource: process.env.MCP_RESOURCE ?? "",
+  issuer: process.env.AUTH_ISSUER ?? "",
+};
+const mcp = new McpProxy(mcpConfig, accessTokenVerifier(mcpConfig), () => control.status());
 
 function reply(statusCode: number, body: object) {
   return {
@@ -112,8 +115,10 @@ function reply(statusCode: number, body: object) {
   };
 }
 
-export async function handler(event: AlbEvent) {
+export async function handler(event: AlbRequest) {
   try {
+    const proxied = await mcp.handle(event);
+    if (proxied) return proxied;
     if (event.httpMethod === "POST" && event.path === "/control/start")
       return reply(200, { status: await control.start() });
     if (event.httpMethod === "GET" && event.path === "/control/status")

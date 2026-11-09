@@ -82,7 +82,7 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-/** The linear menu beside the ring: every applicable command, grouped, with its shortcut. */
+/** Every applicable command, grouped, with its shortcut. */
 function MenuList({ editor }: Readonly<{ editor: EditorController }>) {
   const context = commandContext(editor);
   const groups = menuGroups(context);
@@ -127,9 +127,11 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
     if (!ref.current || !menu) return;
     const area = editor.element.getBoundingClientRect();
     const box = ref.current.getBoundingClientRect();
-    const x = Math.min(menu.at.x, area.width - box.width - 8);
-    const y = Math.min(menu.at.y, area.height - box.height - 8);
-    Object.assign(ref.current.style, { left: `${Math.max(8, x)}px`, top: `${Math.max(8, y)}px` });
+    const offsetX = menu.ring ? box.width / 2 : 0;
+    const offsetY = menu.ring ? box.height / 2 : 0;
+    const x = Math.max(8 + offsetX, Math.min(menu.at.x, area.width - box.width + offsetX - 8));
+    const y = Math.max(8 + offsetY, Math.min(menu.at.y, area.height - box.height + offsetY - 8));
+    Object.assign(ref.current.style, { left: `${x}px`, top: `${y}px` });
   });
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -149,9 +151,12 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
   }, [editor]);
   if (!menu) return null;
   return (
-    <div ref={ref} className="menu-anchor" data-testid="context-menu">
-      <CommandRing editor={editor} />
-      <MenuList editor={editor} />
+    <div
+      ref={ref}
+      className={menu.ring ? "menu-anchor" : "menu-anchor menu-only"}
+      data-testid="context-menu"
+    >
+      {menu.ring ? <CommandRing editor={editor} /> : <MenuList editor={editor} />}
     </div>
   );
 }

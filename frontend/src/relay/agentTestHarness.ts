@@ -131,7 +131,14 @@ export async function agent(token = "alice") {
   cleanups.push(() => client.close());
   let sessionId = UNKNOWN_SESSION;
   const call = async (name: string, args: Record<string, unknown> = {}) => {
-    const roomTool = ["describe_canvas", "read", "write", "undo", "close_room"].includes(name);
+    const roomTool = [
+      "describe_canvas",
+      "read",
+      "write",
+      "undo",
+      "close_room",
+      "check_layout",
+    ].includes(name);
     const result = (await client.callTool({
       name,
       arguments: roomTool
