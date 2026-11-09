@@ -29,12 +29,14 @@ export function MarkdownTools({
   onEdit,
   textarea,
   expanded,
+  compact,
 }: Readonly<{
   source: string;
   appearance: Appearance;
   onEdit: (element: HTMLTextAreaElement, edit: SourceEdit) => void;
   textarea: RefObject<HTMLTextAreaElement | null>;
   expanded: boolean;
+  compact: boolean;
 }>) {
   const [preview, setPreview] = useState(false);
   const [language, setLanguage] = useState("typescript");
@@ -63,22 +65,25 @@ export function MarkdownTools({
     <details className="markdown-tools" data-text-tools="true" open={expanded || undefined}>
       <summary>Markdown tools</summary>
       <MarkdownActions act={act} />
-      <CodeActions
-        act={act}
-        language={language}
-        onLanguage={setLanguage}
-        preview={preview}
-        onPreview={() => setPreview(!preview)}
-      />
-      <div className="markdown-toolbar">
-        <button type="button" onClick={() => void copy(source)}>
-          Copy Markdown
-        </button>
-        <button type="button" onClick={() => void copy(markdownPlainText(source))}>
-          Copy plain text
-        </button>
-      </div>
-      {preview && <MarkdownPreview appearance={appearance} source={source} copy={copy} />}
+      <details className="markdown-extra" open={compact ? undefined : true}>
+        <summary hidden={!compact}>Code, preview and copy</summary>
+        <CodeActions
+          act={act}
+          language={language}
+          onLanguage={setLanguage}
+          preview={preview}
+          onPreview={() => setPreview(!preview)}
+        />
+        <div className="markdown-toolbar">
+          <button type="button" onClick={() => void copy(source)}>
+            Copy Markdown
+          </button>
+          <button type="button" onClick={() => void copy(markdownPlainText(source))}>
+            Copy plain text
+          </button>
+        </div>
+        {preview && <MarkdownPreview appearance={appearance} source={source} copy={copy} />}
+      </details>
       <span className="markdown-copy-status" role="status">
         {status}
       </span>
@@ -96,7 +101,7 @@ function MarkdownActions({ act }: Readonly<{ act: Act }>) {
           key={action}
           type="button"
           aria-label={label}
-          title={label}
+          data-hint={label}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => act(action)}
         >

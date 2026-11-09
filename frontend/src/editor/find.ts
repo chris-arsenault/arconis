@@ -4,14 +4,16 @@ import { isBox, typeLabel, type Item } from "../document/types";
 import type { EditorController } from "./controller";
 import { fittingView, flyToView } from "./views";
 import { changeFields } from "./commands";
+import { EMPTY_FILTER, filterMatches, isEmptyFilter, type Filter } from "./filter";
+import { MARKER_LABELS } from "./markerLabels";
 
 /** How much of the window a found object fills, enough to see what is around it. */
 const FIND_FILL = 0.3;
 
 export interface Match {
   item: Item;
-  /** Where the words were found: the name, subtitle, a tag, a comment or the id. */
-  where: "name" | "subtitle" | "tag" | "comment" | "id";
+  /** The field that matched, or a metadata filter when no words were entered. */
+  where: "name" | "subtitle" | "tag" | "marker" | "comment" | "id" | "filter";
   hidden: boolean;
 }
 
@@ -21,42 +23,68 @@ function texts(item: Item, comments: CanvasComment[]): [Match["where"], string][
     ["name", item.name],
     ["subtitle", item.subtitle],
     ...(item.tags ?? []).map((tag): [Match["where"], string] => ["tag", `#${tag}`]),
+    ...(item.marker
+      ? [["marker", `${item.marker} ${MARKER_LABELS[item.marker]}`] as [Match["where"], string]]
+      : []),
     ...comments.map((comment): [Match["where"], string] => ["comment", comment.text]),
     ["id", item.id],
   ];
+}
+
+function matchingField(
+  item: Item,
+  comments: CanvasComment[],
+  typed: string
+): Match["where"] | undefined {
+  if (!typed) return "filter";
+  return texts(item, comments).find(([where, text]) => {
+    if (typed.startsWith("#")) return where === "tag" && text.toLowerCase() === typed;
+    if (typed.startsWith(":")) return where === "marker" && item.marker === typed.slice(1);
+    return text.toLowerCase().includes(typed);
+  })?.[0];
 }
 
 /**
  * Items whose words contain the query, in reading order across the canvas: top to bottom, then
  * left to right, so Next walks the canvas the way eyes do. Hidden items are found too, marked.
  */
-export function findMatches(items: Item[], comments: CanvasComment[], query: string): Match[] {
+export function findMatches(
+  items: Item[],
+  comments: CanvasComment[],
+  query: string,
+  filter: Filter = EMPTY_FILTER
+): Match[] {
   const typed = query.trim().toLowerCase();
-  if (!typed) return [];
+  const filtering = !isEmptyFilter(filter);
+  if (!typed && !filtering) return [];
+  const allowed = filtering ? filterMatches(items, filter) : null;
   const hidden = hiddenIds(items);
   const byItem = new Map<string, CanvasComment[]>();
   for (const comment of comments)
     byItem.set(comment.on, [...(byItem.get(comment.on) ?? []), comment]);
+  const candidates = items.filter((item) => !item.onLine && (!allowed || allowed.has(item.id)));
   const matches: Match[] = [];
-  for (const item of items) {
-    if (item.onLine) continue;
-    const found = texts(item, byItem.get(item.id) ?? []).find(([, text]) =>
-      text.toLowerCase().includes(typed)
-    );
-    if (found) matches.push({ item, where: found[0], hidden: hidden.has(item.id) });
+  for (const item of candidates) {
+    const where = matchingField(item, byItem.get(item.id) ?? [], typed);
+    if (where) matches.push({ item, where, hidden: hidden.has(item.id) });
   }
+  return matches.sort(readingOrder);
+}
+
+function readingOrder(a: Match, b: Match) {
   const order = (item: Item) => worldBounds([item]) ?? { x: 0, y: 0 };
-  return matches.sort((a, b) => {
-    const left = order(a.item);
-    const right = order(b.item);
-    return Math.round(left.y / 40) - Math.round(right.y / 40) || left.x - right.x;
-  });
+  const left = order(a.item);
+  const right = order(b.item);
+  return Math.round(left.y / 40) - Math.round(right.y / 40) || left.x - right.x;
 }
 
 /** How a match reads in the list: its name or kind, and where the words were. */
 export function describeMatch({ item, where, hidden }: Match) {
   const name = item.name.split("\n")[0] || typeLabel(item);
-  const notes = [where === "name" ? "" : where, hidden ? "hidden" : ""].filter(Boolean);
+  const notes = [
+    where === "name" || where === "filter" ? "" : where,
+    hidden ? "hidden" : "",
+  ].filter(Boolean);
   return notes.length ? `${name} (${notes.join(", ")})` : name;
 }
 

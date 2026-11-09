@@ -102,25 +102,27 @@ connect), tags and status, arrangement, visibility, clipboard, view, and delete 
 fold into submenus that open in place: **Align**, **Distribute**, **Tidy branches** and
 **Marker**.
 
-The **selection toolbar** sits above the view controls while something is selected, with
-fills, line colour, text size, shape, comment and the rest of the menu; it steps aside while
-you drag or type, and the ring brings the same commands to the pointer. The one
+The **selection toolbar** sits beside the selected object, with fills, line colour, text size,
+shape, comment and the rest of the menu. Editing text swaps its contents for Markdown tools in
+the same container. It follows the object through pan and zoom and steps aside while dragging;
+the ring brings the same commands to the pointer. The one
 selected object also shows a dot on each side: click a dot for a connected copy in that
 direction, or drag it to place the copy where you release. Dragging a connector from an
 object's connection point into empty space makes a new object like the source at its end.
 
 ## Comments
 
-Comments open deliberately, never on hover: click an object's `💬N` mark, press **Shift C**
+Comments open deliberately, never on hover: click an object's comment badge, press **Shift C**
 with it selected, or choose **Comment…** in the menu. The threads appear in a modal above the
-object, at the front of everything, with reply, resolve and a composer; resolved threads fold
+object, at the front of everything. Each thread shows its author, time, replies and resolve action;
+the new-comment composer stays available while the discussion scrolls. Resolved threads fold
 behind an **N resolved** line. The modal follows the object as you pan and zoom, stays inside
 the window, and closes on Escape, a click outside, or opening another object's comments. The
 property panel's Comments section only counts the threads and opens the modal. Lines open at
 their label; slides' comments remain their [speaker notes](slides.md#add-speaker-notes).
 
 Everyone sees shared comments signed with the display name used when they were written. The
-object's `💬` mark counts open threads. Comments stay outside document Undo; undoing an
+object's comment badge counts open threads without changing the label layout. Comments stay outside document Undo; undoing an
 object's deletion brings its retained comments back with it.
 
 Use the bottom view controls to zoom or fit the canvas; click the percentage to type a zoom.
@@ -133,8 +135,10 @@ appropriate scale for that view.
 
 ## Find on canvas
 
-**Ctrl/Command F** opens find at the top right. The words you type match names, subtitles,
-tags, comments and ids. Enter, Shift Enter and the arrows step through the matches in reading
+**Find and filter** at the top right, or **Ctrl/Command F**, opens search and metadata highlights.
+The words you type match names, subtitles, tags, markers, comments and ids. Use `#tag` for an exact
+tag match. Choose named tag or marker chips to highlight related objects and list their matches.
+Enter, Shift Enter and the arrows step through the matches in reading
 order, flying to each one, selecting it and ringing it briefly; the list beneath shows the first
 matches, with hidden objects marked. The first Enter visits the first match. **Reveal** beside a
 hidden result restores that object without revealing the rest. Escape closes find.
@@ -259,9 +263,10 @@ each Enter drops a note under the last at the pointer; **Make a tree** turns the
 tree headed by the first note, including any pending idea still in the capture field.
 
 A reference relates two objects without adding tree structure or a drawn connector, as "see
-also". Choose **Relate to…** from the ring's east wedge, the menu or the property panel, type
-part of the other object's name, and press Enter; with two objects selected the same command is
-**Relate these two**. The label shows `↗` and a count. A reference's dashed line shows while
+also". Choose **Relate to…** from the ring's east wedge, the menu or the property panel, then
+left-click the target object on the canvas. Escape or a right click cancels target picking.
+**Search by name** is available as an alternative; with two objects selected the same command is
+**Relate these two**. A relationship badge outside the label shows the count. A reference's dashed line shows while
 either end is selected, and **Reference lines** beside the view controls shows them all.
 
 ## Copy, cut and paste
@@ -328,7 +333,7 @@ Lock, hide and collapse sit under **Layout** in the property panel; tags, marker
 under **Tags and status**.
 
 - **Lock** keeps pointer edits away: a locked object cannot be moved, resized, rotated, edited or
-  deleted, a marquee and Select all pass over it, and its label carries a padlock. Click it and
+  deleted, a marquee and Select all pass over it, and its chrome carries a padlock. Click it and
   choose **Unlock** to release it, or run **Unlock all** from the command palette. Assistants can
   still change a locked object.
 - **Hide** takes an object off the canvas with what it holds and the lines touching it. The
@@ -337,13 +342,15 @@ under **Tags and status**.
 - **Collapse** folds away what an object holds or heads: a frame shrinks to its title bar, a
   topic keeps its node, and the label shows how many objects are folded, as `▸3`. Everyone sees
   the same fold. **Expand** restores it.
-- **Tags** are words, shown after the label as `#tag`. Type one and press Enter, comma or
+- **Tags** are words, shown in badges outside the object text. Click a tag badge to highlight
+  other objects with that tag. Type one and press Enter, comma or
   space to add it as a chip, or pick one the room already uses. **Tag…** in the ring's west
   wedge or the menu opens the same editor above the selection. With several objects selected,
   the chips are the tags they share; adding or removing one changes every object.
-- **Marker** adds a priority badge, P1 to P5, or a progress quarter from ○ to ●.
-- **Task** adds a checkbox before the label. Any frame, card or topic holding or heading tasks
-  shows how many are done, as `2/5`.
+- **Marker** adds a priority badge, P1 to P5, or a progress quarter from ○ to ●, outside the text.
+  Click the badge to highlight objects with the same marker.
+- **Task** adds a checkbox in the object chrome. Any frame, card or topic holding or heading tasks
+  shows how many are done in a separate badge, as `2/5`.
 - **Link** holds a web address or the id of an object, slide or saved view; the arrow beside it
   opens the address in a new tab or flies to the target.
 - **Last edited by** names whoever changed the object most recently, person or assistant, and
@@ -354,10 +361,10 @@ task, and `:p1` to `:p5` or `:q0` to `:q4` set a marker. The shorthand leaves th
 edit finishes and becomes the fields above.
 
 **Tags**, under **Explore**, lists the room's tags with how many objects carry each; choosing one
-filters the canvas to it. **Ctrl/Command Shift F** opens the filter bar at the top left, with a chip for every tag,
-marker, task state and editor on the canvas. Chosen chips keep their objects bright, with the
+filters the canvas to it. **Ctrl/Command Shift F** opens the same **Find and filter** panel,
+with named, counted chips for tags, markers, task states and editors. Chosen chips keep their objects bright, with the
 lines among them, and dim everything else; chips of one kind are alternatives, and kinds
-combine. **Gather matches** moves what matches into a new frame laid out as a grid to the right
+combine. **Clear highlights** restores the full canvas. **Gather into frame** moves what matches into a new frame laid out as a grid to the right
 of the canvas; with no filter, **Gather the selection into a frame** does the same for the
 selection. Closing the bar clears the filter.
 

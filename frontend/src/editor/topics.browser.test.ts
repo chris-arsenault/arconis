@@ -202,6 +202,7 @@ it("relates a topic to another by name, shows it while selected, follows it, and
   await canvas(page).click({ position: emptySpot });
   await row(page, "Billing").click();
   await action(page, "Relate to…").click();
+  await page.getByRole("button", { name: "Search by name", exact: true }).click();
   await page.keyboard.type("inv");
   await page.keyboard.press("Enter");
   await expect.poll(() => objectCount(page)).toBe(3);
@@ -231,6 +232,53 @@ it("relates a topic to another by name, shows it while selected, follows it, and
   await page.getByRole("button", { name: "Remove reference to Billing", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(2);
   expect(errors).toEqual([]);
+});
+
+it("relates unnamed objects by the next canvas click and cancels with Escape or right click", async () => {
+  const room = createRoomId();
+  const context = await browser.newContext(VIEWPORT);
+  const peerContext = await browser.newContext(VIEWPORT);
+  const page = await open(context, room);
+  const peer = await open(peerContext, room);
+  await add(page, "Rectangle (R)", "", 100, 250);
+  await add(page, "Rectangle (R)", "", 650, 450);
+  await canvas(page).click({ button: "right", position: { x: 140, y: 290 } });
+  await page.getByRole("menuitem", { name: "Relate to…", exact: true }).click();
+  const picker = page.getByRole("dialog", { name: "Relate to", exact: true });
+  await picker.waitFor();
+  expect(await picker.getByRole("textbox").count()).toBe(0);
+  await canvas(page).click({ position: emptySpot });
+  await canvas(page).click({ position: { x: 140, y: 290 } });
+  expect(await picker.count()).toBe(1);
+  expect(await objectCount(page)).toBe(2);
+  await canvas(page).click({ position: { x: 690, y: 490 } });
+  await expect.poll(() => picker.count()).toBe(0);
+  await expect.poll(() => objectCount(peer)).toBe(3);
+  const items = await objects(peer);
+  const [source, target] = items.filter((item) => item.type === "node").sort((a, b) => a.x - b.x);
+  expect(items.find((item) => item.type === "reference")).toMatchObject({
+    from: source.id,
+    to: target.id,
+  });
+
+  await action(page, "Relate to…").click();
+  await picker.waitFor();
+  await picker.getByRole("button", { name: "Search by name", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect.poll(() => picker.count()).toBe(0);
+  await action(page, "Relate to…").click();
+  await picker.waitFor();
+  await canvas(page).click({ button: "right", position: { x: 690, y: 490 } });
+  await expect.poll(() => picker.count()).toBe(0);
+  expect(await page.getByTestId("context-menu").count()).toBe(0);
+  await action(page, "Relate to…").click();
+  await picker.waitFor();
+  await picker.click({ button: "right", position: { x: 20, y: 20 } });
+  await expect.poll(() => picker.count()).toBe(0);
+  expect(await objectCount(page)).toBe(3);
+  expect(errors).toEqual([]);
+  await context.close();
+  await peerContext.close();
 });
 
 it("lets a line be a topic, whose anchor and branches follow the line", async () => {

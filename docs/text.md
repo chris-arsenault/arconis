@@ -13,7 +13,9 @@ its tools, pressing Escape, or pressing **Ctrl/Command Enter**. Others receive t
 edit, and local persistence retains your work while you type. Escape keeps your text.
 Enter by itself adds a line.
 
-Open **Markdown tools** for formatting actions and **Preview**. Actions preserve the source
+The selected object's toolbar changes to Markdown formatting while you edit text. **Code, preview
+and copy** opens the less frequent text actions in that same container. The property panel's source
+editor also offers **Markdown tools**. Actions preserve the source
 selection so you can apply several without restarting the edit. Undo reverses your own changes
 while peers' completed edits continue to merge.
 

@@ -1,0 +1,166 @@
+.object-discussion.comment-modal {
+  width: min(380px, calc(100% - 16px));
+  max-height: min(560px, calc(100% - 16px));
+  border-color: var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  box-shadow: 0 8px 28px #24203926;
+}
+.object-discussion.comment-modal > header {
+  flex: none;
+  gap: 10px;
+  padding: 14px;
+}
+.comment-heading {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.comment-heading strong {
+  font-size: 14px;
+}
+.comment-heading span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+.object-discussion.comment-modal .comment-list {
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.comment-discussions {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 14px;
+}
+.object-discussion .comment-thread {
+  padding: 12px 0;
+  margin: 0;
+  font-size: 13px;
+}
+.object-discussion .comment-thread:last-child {
+  border: 0;
+}
+.object-discussion .comment-thread.resolved {
+  opacity: 1;
+  color: var(--text-soft);
+}
+.comment-thread-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.comment-resolve {
+  gap: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+.comment-message p {
+  margin: 5px 0 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.object-discussion .comment-meta {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.object-discussion .comment-meta strong {
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.object-discussion .comment-meta time {
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.comment-replies {
+  margin: 10px 0 12px 7px;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+.comment-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 24px 10px;
+  text-align: center;
+  color: var(--text-soft);
+}
+.comment-empty strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.comment-empty span {
+  max-width: 28ch;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.comment-new {
+  flex: none;
+  border-top: 1px solid var(--line);
+  padding: 12px 14px;
+  background: var(--field);
+  border-radius: 0 0 12px 12px;
+}
+.comment-new > strong {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+.object-discussion .comment-box textarea {
+  min-height: 56px;
+  max-height: 160px;
+  padding: 8px 9px;
+  font-size: 13px;
+  line-height: 1.45;
+  background: var(--panel);
+}
+.comment-compose-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+.comment-reply-action {
+  color: var(--pressed-text);
+  font-size: 12px;
+  padding: 4px 7px;
+}
+.comment-compose-actions > span {
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.comment-compose-actions button {
+  gap: 5px;
+  flex: none;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+.object-discussion .resolved-toggle {
+  width: 100%;
+  gap: 5px;
+  justify-content: flex-start;
+  padding: 10px 0;
+  color: var(--text-soft);
+}
+.object-discussion .resolved-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.object-discussion button:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}

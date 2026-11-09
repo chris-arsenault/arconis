@@ -4,6 +4,18 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Canvas interactions
+
+- Unified appearance and inline Markdown tools in one object-anchored container, with the same
+  positioning for tag and relation controls. Child controls leave container titles draggable.
+- Widened the radial menu and matched its neutral center, outer edge and submenu sectors to
+  their visible hit regions. Relate now picks the next object clicked on the canvas, with Escape
+  and right-click cancellation and optional name search.
+- Moved comments, tags, markers and task/lock indicators out of label text into object chrome.
+  Redesigned discussions with readable threads, explicit reply/resolve controls and a fixed composer.
+- Added a visible Find and filter surface with named tag/marker highlights, counts and matching
+  objects. Clicking an object's tag or marker opens the same discovery workflow.
+
 ### Agents
 
 - Added explicit room sessions: `open_room` returns `session_id`, required by describe, read, write,

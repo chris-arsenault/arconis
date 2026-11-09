@@ -140,17 +140,22 @@ export function showComments(editor: EditorController, id: string | null) {
 /** Opens or closes the tag editor over the selection. */
 export function showTagger(editor: EditorController, open: boolean) {
   editor.ui.tagging = open;
-  if (open) editor.ui.relating = false;
+  if (open) editor.ui.relating = null;
   editor.emit();
   if (!open) editor.element.focus({ preventScroll: true });
 }
 
-/** Opens or closes the picker that relates the selection to another object. */
+/** Starts canvas target picking, or closes it, preserving the original source object. */
 export function showRelate(editor: EditorController, open: boolean) {
-  editor.ui.relating = open;
-  if (open) editor.ui.tagging = false;
+  if (open) {
+    const from = editor.selected()[0];
+    if (!from) return;
+    editor.setTool("select");
+    editor.ui.relating = from.id;
+    editor.ui.tagging = false;
+  } else editor.ui.relating = null;
   editor.emit();
-  if (!open) editor.element.focus({ preventScroll: true });
+  editor.element.focus({ preventScroll: true });
 }
 
 /** Begins capturing notes from a world point, or ends the run. */

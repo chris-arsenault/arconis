@@ -9,7 +9,7 @@ import { syncZoom } from "./zoom";
 /**
  * The standard mapping: the left button selects, moves and marquees; the middle button drags the
  * view; a right click opens the context menu, and holding or dragging the right button brings the
- * command ring, where dragging past the dead zone strokes a wedge. maxGraph never sees the middle
+ * command ring, where dragging into a visible wedge chooses it. maxGraph never sees the middle
  * or right button.
  */
 
@@ -18,10 +18,25 @@ export const DEAD_ZONE = 6;
 /** How long the right button rests before the ring appears around the pointer. */
 export const RING_HOLD_MS = 250;
 /** The ring's radius to the middle of its wedges, in pixels, for stroke angles. */
-export const RING_RADIUS = 56;
+export const RING_RADIUS = 84;
+/** The visible and interactive bounds of every ring, including its neutral centre. */
+export const RING_INNER = 48;
+export const RING_OUTER = 120;
+export const RING_COUNT = 8;
 
-/** The wedge, clockwise from the top, that a stroke from the ring's centre points at. */
+/** The clamped centre used by both the rendered ring and a held pointer's hit test. */
+export function ringCentre(at: { x: number; y: number }, width: number, height: number) {
+  const half = RING_OUTER + 2;
+  return {
+    x: Math.max(8 + half, Math.min(at.x, width - half - 8)),
+    y: Math.max(8 + half, Math.min(at.y, height - half - 8)),
+  };
+}
+
+/** The visible wedge under a pointer relative to the ring's centre, clockwise from the top. */
 export function wedgeAt(dx: number, dy: number, count: number) {
+  const distance = Math.hypot(dx, dy);
+  if (distance < RING_INNER || distance > RING_OUTER) return null;
   const angle = Math.atan2(dx, -dy);
   const turn = ((angle < 0 ? angle + Math.PI * 2 : angle) / (Math.PI * 2)) * count;
   return Math.floor((turn + 0.5) % count);
@@ -105,19 +120,30 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
     const dx = moveEvent.clientX - event.clientX;
     const dy = moveEvent.clientY - event.clientY;
     if (Math.hypot(dx, dy) >= DEAD_ZONE) showRing();
-    const count = ringEntries(commandContext(editor), menu.subRing).length;
-    const wedge = menu.ring && Math.hypot(dx, dy) >= DEAD_ZONE ? wedgeAt(dx, dy, count) : null;
+    const area = element.getBoundingClientRect();
+    const centre = ringCentre(menu.at, area.width, area.height);
+    const wedge = menu.ring
+      ? wedgeAt(
+          moveEvent.clientX - area.left - centre.x,
+          moveEvent.clientY - area.top - centre.y,
+          RING_COUNT
+        )
+      : null;
     if (wedge !== menu.wedge) {
       menu.wedge = wedge;
       editor.emit();
     }
   };
-  const finish = () => {
+  const finish = (finishEvent: PointerEvent) => {
     clearTimeout(hold);
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", finish);
     element.removeEventListener("pointercancel", finish);
     if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    if (finishEvent.type === "pointercancel") {
+      closeMenu(editor);
+      return;
+    }
     const menu = editor.ui.menu;
     if (!menu?.ring) return;
     if (menu.wedge === null) {
@@ -144,7 +170,7 @@ export function bindPointerButtons(editor: EditorController, signal: AbortSignal
     const dx = editor.graph.getPanDx();
     const dy = editor.graph.getPanDy();
     const overlays = editor.element.parentElement?.querySelectorAll<HTMLElement>(
-      ".selection-frame, .gradient-direction, .cursors, .find-pulse, .comment-modal, .quick-create, .measure, :scope > .laser"
+      ".selection-frame, .object-metadata, .contextual-tools, .selection-popover, .text-overflow-indicator, .gradient-direction, .cursors, .find-pulse, .comment-modal, .quick-create, .measure, :scope > .laser"
     );
     overlays?.forEach((node) => {
       node.style.translate = dx || dy ? `${dx}px ${dy}px` : "";

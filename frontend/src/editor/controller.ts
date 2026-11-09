@@ -269,6 +269,7 @@ export class EditorController {
     this.armedScreen = screen;
   }
   setTool(tool: Tool) {
+    this.ui.relating = null;
     this.armedIcon = null;
     this.armedScreen = null;
     this.connectionSource = "";

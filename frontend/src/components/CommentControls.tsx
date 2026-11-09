@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Check, RotateCcw, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, MessageSquare, RotateCcw, Send, Trash2 } from "lucide-react";
 import { MAX_COMMENT_LENGTH, type CanvasComment } from "../document/comments";
 
 function CommentBody({
@@ -7,14 +7,25 @@ function CommentBody({
   onDelete,
 }: Readonly<{ comment: CanvasComment; onDelete: (id: string) => void }>) {
   return (
-    <div className="comment">
+    <div className="comment-message">
       <div className="comment-meta">
         <strong>{comment.author}</strong>
-        <time>{new Date(comment.time).toLocaleString()}</time>
+        <time
+          dateTime={new Date(comment.time).toISOString()}
+          title={new Date(comment.time).toLocaleString()}
+        >
+          {new Date(comment.time).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          {" · "}
+          {new Date(comment.time).toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </time>
         <button
           className="icon-action"
           aria-label={`Delete comment by ${comment.author}`}
-          data-hint="Delete"
+          data-hint="Delete comment"
+          data-hint-detail="Deleting a thread's first comment also removes its replies."
           onClick={() => onDelete(comment.id)}
         >
           <Trash2 size={12} />
@@ -29,15 +40,21 @@ function CommentBody({
 function CommentBox({
   label,
   placeholder,
-  focusOnMount = false,
+  focusOnMount,
+  onCancel,
   onSubmit,
 }: Readonly<{
   label: string;
   placeholder: string;
-  focusOnMount?: boolean;
+  focusOnMount: boolean;
+  onCancel: (() => void) | null;
   onSubmit: (text: string) => void;
 }>) {
   const [text, setText] = useState("");
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (focusOnMount) ref.current?.focus();
+  }, [focusOnMount]);
   const send = () => {
     if (!text.trim()) return;
     onSubmit(text.trim());
@@ -52,27 +69,61 @@ function CommentBox({
       }}
     >
       <textarea
-        ref={(element) => {
-          if (focusOnMount) element?.focus();
-        }}
+        ref={ref}
         aria-label={label}
         placeholder={placeholder}
+        data-hint="Enter to send · Shift Enter for a new line"
         value={text}
-        rows={Math.min(8, text.split("\n").length)}
+        rows={Math.min(6, Math.max(2, text.split("\n").length))}
         maxLength={MAX_COMMENT_LENGTH}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
           event.stopPropagation();
-          if (event.key !== "Enter" || event.shiftKey) return;
+          if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
           event.preventDefault();
           send();
         }}
       />
+      <div className="comment-compose-actions">
+        {onCancel && (
+          <button type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          className="primary"
+          disabled={!text.trim()}
+          aria-label={label.startsWith("Reply") ? "Send reply" : "Post comment"}
+          data-hint="Enter to send · Shift Enter for a new line"
+        >
+          <Send size={13} /> {label.startsWith("Reply") ? "Reply" : "Post"}
+        </button>
+      </div>
     </form>
   );
 }
 
 type Thread = { root: CanvasComment; replies: CanvasComment[] };
+
+function EmptyDiscussion({
+  resolved,
+  speakerNotes,
+}: Readonly<{ resolved: boolean; speakerNotes: boolean }>) {
+  let title = speakerNotes ? "No speaker notes yet" : "Start a discussion";
+  if (resolved) title = "All discussions resolved";
+  return (
+    <div className="comment-empty">
+      <MessageSquare size={22} />
+      <strong>{title}</strong>
+      <span>
+        {speakerNotes
+          ? "Keep your talking points with this slide."
+          : "Ask a question or leave feedback on this object."}
+      </span>
+    </div>
+  );
+}
 
 function ThreadView({
   thread: { root, replies },
@@ -90,26 +141,66 @@ function ThreadView({
       className={root.resolved ? "comment-thread resolved" : "comment-thread"}
       data-testid="comment-thread"
     >
-      <CommentBody comment={root} onDelete={onDelete} />
-      {replies.map((reply) => (
-        <CommentBody key={reply.id} comment={reply} onDelete={onDelete} />
-      ))}
-      <div className="comment-actions">
-        <CommentBox
-          label={`Reply to ${root.author}`}
-          placeholder="Reply"
-          onSubmit={(text) => onAdd(text, root.id)}
-        />
+      <div className="comment-thread-heading">
+        <span>{root.resolved ? "Resolved" : "Open discussion"}</span>
         <button
-          className="icon-action"
+          className="comment-resolve"
           aria-label={root.resolved ? "Reopen thread" : "Resolve thread"}
           data-hint={root.resolved ? "Reopen" : "Resolve"}
           onClick={() => onResolve(root.id, !root.resolved)}
         >
           {root.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
+          {root.resolved ? "Reopen" : "Resolve"}
         </button>
       </div>
+      <CommentBody comment={root} onDelete={onDelete} />
+      {replies.length > 0 && (
+        <div className="comment-replies">
+          {replies.map((reply) => (
+            <CommentBody key={reply.id} comment={reply} onDelete={onDelete} />
+          ))}
+        </div>
+      )}
+      <ThreadReply root={root} replyCount={replies.length} onAdd={onAdd} />
     </div>
+  );
+}
+
+function ThreadReply({
+  root,
+  replyCount,
+  onAdd,
+}: Readonly<{
+  root: CanvasComment;
+  replyCount: number;
+  onAdd: (text: string, thread?: string) => void;
+}>) {
+  const [replying, setReplying] = useState(false);
+  if (root.resolved) return null;
+  return (
+    <>
+      {!replying && (
+        <button
+          className="comment-reply-action"
+          aria-label={`Reply to thread by ${root.author}`}
+          onClick={() => setReplying(true)}
+        >
+          Reply{replyCount > 0 && ` (${replyCount})`}
+        </button>
+      )}
+      {replying && (
+        <CommentBox
+          label={`Reply to ${root.author}`}
+          placeholder="Write a reply…"
+          focusOnMount
+          onCancel={() => setReplying(false)}
+          onSubmit={(text) => {
+            onAdd(text, root.id);
+            setReplying(false);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -133,26 +224,37 @@ export function CommentControls({
   const actions = { onAdd, onDelete, onResolve };
   return (
     <div className="comment-list">
-      {open.map((thread) => (
-        <ThreadView key={thread.root.id} thread={thread} {...actions} />
-      ))}
-      {resolved.length > 0 && (
-        <button
-          className="text-action resolved-toggle"
-          aria-expanded={showResolved}
-          onClick={() => setShowResolved(!showResolved)}
-        >
-          {resolved.length} resolved
-        </button>
-      )}
-      {showResolved &&
-        resolved.map((thread) => <ThreadView key={thread.root.id} thread={thread} {...actions} />)}
-      <CommentBox
-        label={speakerNotes ? "Add speaker notes" : "Add a comment"}
-        placeholder={speakerNotes ? "Add speaker notes" : "Add a comment"}
-        focusOnMount={!threads.length}
-        onSubmit={(text) => onAdd(text)}
-      />
+      <div className="comment-discussions">
+        {!open.length && (
+          <EmptyDiscussion resolved={resolved.length > 0} speakerNotes={speakerNotes} />
+        )}
+        {open.map((thread) => (
+          <ThreadView key={thread.root.id} thread={thread} {...actions} />
+        ))}
+        {resolved.length > 0 && (
+          <button
+            className="text-action resolved-toggle"
+            aria-expanded={showResolved}
+            onClick={() => setShowResolved(!showResolved)}
+          >
+            <ChevronDown size={13} /> {resolved.length} resolved
+          </button>
+        )}
+        {showResolved &&
+          resolved.map((thread) => (
+            <ThreadView key={thread.root.id} thread={thread} {...actions} />
+          ))}
+      </div>
+      <div className="comment-new">
+        <strong>{speakerNotes ? "New speaker note" : "New comment"}</strong>
+        <CommentBox
+          label={speakerNotes ? "Add speaker notes" : "Add a comment"}
+          placeholder={speakerNotes ? "Add speaker notes" : "Add a comment"}
+          focusOnMount
+          onCancel={null}
+          onSubmit={(text) => onAdd(text)}
+        />
+      </div>
     </div>
   );
 }

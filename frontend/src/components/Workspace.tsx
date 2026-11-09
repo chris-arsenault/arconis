@@ -8,7 +8,6 @@ import { CaptureBox } from "./CaptureBox";
 import { PresenceOverlays } from "./Presence";
 import { ContextMenu } from "./ContextMenu";
 import { QuickCreate } from "./QuickCreate";
-import { SelectionToolbar } from "./SelectionToolbar";
 import { RelatePicker, TagPopover } from "./SelectionPopovers";
 import { Measure } from "./Measure";
 import { Announcer } from "./Announcer";
@@ -27,6 +26,7 @@ import type { SavedCopy } from "../account/workspaceFile";
 import { useNarrowLayout } from "./useNarrowLayout";
 import { ContextHelp } from "./ContextHelp";
 import { TextOverflow } from "./TextOverflow";
+import { ObjectMetadata } from "./ObjectMetadata";
 
 const subscribeEmpty = () => () => {};
 interface Props {
@@ -227,7 +227,7 @@ function EditingOverlays({
       <CanvasHUD editor={editor} />
       <QuickCreate editor={editor} />
       <TextOverflow editor={editor} />
-      <SelectionToolbar editor={editor} />
+      <ObjectMetadata editor={editor} />
       <Measure editor={editor} />
       <Announcer editor={editor} />
       {editor.ui.palette && <CommandPalette editor={editor} />}

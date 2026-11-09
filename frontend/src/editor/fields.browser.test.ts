@@ -29,14 +29,23 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
   expect(moved.locked).toBeUndefined();
   expect(moved.x).toBeGreaterThan(before.x);
 
-  // Tags, a marker and a task reach the label and the file.
+  // Tags, a marker and a task use object chrome without changing the text's layout.
   await row(page, "Loose").click();
+  const labelBefore = await row(page, "Loose").boundingBox();
   await page.getByLabel("Add a tag", { exact: true }).fill("api, v2");
   await page.getByLabel("Add a tag", { exact: true }).press("Enter");
   await page.getByLabel("Marker", { exact: true }).selectOption("p1");
   await page.getByLabel("Task", { exact: true }).selectOption("open");
-  await expect.poll(() => row(page, "#api").count()).toBeGreaterThan(0);
-  await row(page, /P1/).waitFor();
+  await page
+    .getByTestId("object-metadata")
+    .getByRole("button", { name: "Highlight tag api", exact: true })
+    .waitFor();
+  await page
+    .getByTestId("object-metadata")
+    .getByRole("button", { name: "Highlight Priority 1", exact: true })
+    .waitFor();
+  expect(await row(page, "Loose").textContent()).toBe("Loose");
+  expect(await row(page, "Loose").boundingBox()).toEqual(labelBefore);
   const tagged = (await exported(page)).objects.find((item) => item.name === "Loose")!;
   expect(tagged).toMatchObject({ tags: ["api", "v2"], marker: "p1", task: "open" });
   expect((await exported(page)).text).toContain("tags api, v2 marker p1 task open");

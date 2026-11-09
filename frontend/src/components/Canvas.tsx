@@ -14,11 +14,10 @@ import { bindTouchInput } from "../editor/touchInput";
 import { LaserTrail } from "./Presence";
 import { bindPictureInput } from "../editor/pictureInput";
 import { bindClipboardInput } from "../editor/clipboardInput";
-import { MarkdownTools } from "./MarkdownTools";
+import { SelectionToolbar } from "./SelectionToolbar";
 import { markdownKey } from "../text/sourceKeys";
 import { fitText } from "../editor/textLayout";
 import { positionTextEditor } from "../editor/textEditorPosition";
-import { effectiveAppearance } from "../document/appearance";
 import { editSource } from "../editor/commands";
 
 /** How long a deep link waits for its item to arrive from peers before giving up. */
@@ -139,60 +138,52 @@ function treeKey(
 
 export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>) {
   const ref = useCollaborativeText(editor.document, editor.editId);
-  const panel = useRef<HTMLDivElement>(null);
   const item = editor.editId ? editor.document.get(editor.editId) : null;
   const editingId = editor.editId;
   useLayoutEffect(() => {
     const item = editingId ? editor.document.get(editingId) : null;
     if (!item || !ref.current) return;
-    positionTextEditor(editor, item.id, ref.current, panel.current);
+    positionTextEditor(editor, item.id, ref.current);
   });
   useLayoutEffect(() => {
     if (!editingId) return;
     ref.current?.focus();
     if (editor.selectOnEdit) ref.current?.select();
   }, [editor, editingId, ref]);
-  if (!item) return null;
   const close = () => {
     editor.closeEditor();
   };
   return (
     <>
-      <textarea
-        ref={ref}
-        className="inline-editor"
-        aria-label="Edit canvas text"
-        onBlur={(event) => {
-          if (
-            event.relatedTarget instanceof Element &&
-            event.relatedTarget.closest("[data-text-tools]")
-          )
-            return;
-          close();
-        }}
-        onInput={() => void fitText(editor.document, item.id, true)}
-        onKeyDown={(event) => {
-          event.stopPropagation();
-          if (
-            markdownKey(event, (element, edit) =>
-              editSource(editor.document, item.id, element, edit)
+      {item && (
+        <textarea
+          ref={ref}
+          className="inline-editor"
+          aria-label="Edit canvas text"
+          onBlur={(event) => {
+            if (
+              event.relatedTarget instanceof Element &&
+              event.relatedTarget.closest("[data-text-tools]")
             )
-          )
-            return;
-          if (event.nativeEvent.isComposing) return;
-          if (finishesEditing(event)) close();
-          else treeKey(editor, item.id, event);
-        }}
-      />
-      <div ref={panel} className="inline-markdown-panel" data-text-tools="true">
-        <MarkdownTools
-          source={item.name}
-          appearance={effectiveAppearance(item, editor.document.namedStyle(item.style))}
-          onEdit={(element, edit) => editSource(editor.document, item.id, element, edit)}
-          textarea={ref}
-          expanded
+              return;
+            close();
+          }}
+          onInput={() => void fitText(editor.document, item.id, true)}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (
+              markdownKey(event, (element, edit) =>
+                editSource(editor.document, item.id, element, edit)
+              )
+            )
+              return;
+            if (event.nativeEvent.isComposing) return;
+            if (finishesEditing(event)) close();
+            else treeKey(editor, item.id, event);
+          }}
         />
-      </div>
+      )}
+      <SelectionToolbar editor={editor} textarea={ref} />
     </>
   );
 }

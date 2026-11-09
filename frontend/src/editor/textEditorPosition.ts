@@ -5,8 +5,7 @@ import type { CellState } from "@maxgraph/core";
 export function positionTextEditor(
   editor: EditorController,
   id: string,
-  element: HTMLTextAreaElement,
-  panel: HTMLDivElement | null
+  element: HTMLTextAreaElement
 ) {
   const cell = editor.graph.getDataModel().getCell(id);
   const state = cell ? editor.graph.view.getState(cell) : null;
@@ -20,11 +19,6 @@ export function positionTextEditor(
     height: `${Math.max(60, state.height)}px`,
     backgroundColor: fill && fill !== "none" ? String(fill) : "#ffffff",
   });
-  if (panel)
-    Object.assign(panel.style, {
-      left: `${Math.max(8, Math.min(point.x, editor.element.clientWidth - 350))}px`,
-      top: `${Math.max(8, Math.min(point.y + Math.max(60, state.height) + 4, editor.element.clientHeight - 190))}px`,
-    });
 }
 
 function editorPoint(editor: EditorController, state: CellState) {

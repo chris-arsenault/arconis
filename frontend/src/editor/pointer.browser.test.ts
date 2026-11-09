@@ -1,4 +1,5 @@
 import { it, expect } from "vitest";
+import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
@@ -10,6 +11,19 @@ import {
   objectCount,
   selectionLabel,
 } from "./browserHarness";
+
+async function deleteWithRing(page: Page, label: string) {
+  const object = (await row(page, label).boundingBox())!;
+  await page.mouse.move(object.x + object.width / 2, object.y + object.height / 2);
+  await page.mouse.down({ button: "right" });
+  const ring = page.getByTestId("command-ring");
+  await ring.waitFor();
+  const bounds = (await ring.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2 + 84, {
+    steps: 6,
+  });
+  await page.mouse.up({ button: "right" });
+}
 
 it("moves the collective selection frame with the native middle-pan preview", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -49,6 +63,43 @@ it("keeps a context menu inside the canvas at its far corner", async () => {
   expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(currentBounds.x + currentBounds.width);
   expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(currentBounds.y + currentBounds.height);
   await canvas.press("Escape");
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+it("only selects radial commands inside their visible annulus, including rings clamped at an edge", async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const page = await open(context, createRoomId());
+  await add(page, "Rectangle (R)", "Keep", 300, 250);
+  const target = (await row(page, "Keep").boundingBox())!;
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
+  await page.mouse.down({ button: "right" });
+  const ring = page.getByTestId("command-ring");
+  await ring.waitFor();
+  const bounds = (await ring.boundingBox())!;
+  expect(bounds.width).toBeGreaterThan(230);
+  const centre = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+  await page.mouse.move(centre.x, centre.y + 84);
+  await ring.locator(".ring-wedge.active").waitFor();
+  expect(await ring.locator(".ring-wedge.active").getAttribute("aria-label")).toBe("Delete");
+  await page.mouse.move(centre.x, centre.y + 125);
+  await expect.poll(() => ring.locator(".ring-wedge.active").count()).toBe(0);
+  await page.mouse.move(centre.x, centre.y + 35);
+  expect(await ring.locator(".ring-wedge.active").count()).toBe(0);
+  await page.mouse.up({ button: "right" });
+  expect(await objectCount(page)).toBe(1);
+  await page.keyboard.press("Escape");
+
+  const canvasBox = (await page.getByTestId("canvas").boundingBox())!;
+  await page.mouse.move(canvasBox.x + 12, canvasBox.y + 12);
+  await page.mouse.down({ button: "right" });
+  await ring.waitFor();
+  const edgeRing = (await ring.boundingBox())!;
+  await page.mouse.move(edgeRing.x + edgeRing.width / 2, edgeRing.y + edgeRing.height / 2 + 35);
+  expect(await ring.locator(".ring-wedge.active").count()).toBe(0);
+  await page.mouse.up({ button: "right" });
+  expect(await objectCount(page)).toBe(1);
+  await page.keyboard.press("Escape");
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -95,12 +146,8 @@ it("keeps right-click and radial menus exclusive, pans with middle drag, and ope
   await expect.poll(() => objectCount(page)).toBe(3);
   await expect.poll(() => page.getByTestId("context-menu").count()).toBe(0);
 
-  // A right drag past the dead zone strokes a wedge: straight down is Delete on an object.
-  const other = (await row(page, "Other").boundingBox())!;
-  await page.mouse.move(other.x + other.width / 2, other.y + other.height / 2);
-  await page.mouse.down({ button: "right" });
-  await page.mouse.move(other.x + other.width / 2, other.y + other.height / 2 + 60, { steps: 6 });
-  await page.mouse.up({ button: "right" });
+  // A right drag into the visible wedge chooses Delete, even when the ring shifts from an edge.
+  await deleteWithRing(page, "Other");
   await expect.poll(() => objectCount(page)).toBe(2);
 
   // Holding the button on empty canvas brings the ring; releasing in its centre leaves the menu,
@@ -128,10 +175,12 @@ it("keeps right-click and radial menus exclusive, pans with middle drag, and ope
   await expect.poll(() => modal.getByTestId("comment-thread").count()).toBe(1);
   const modalBox = (await modal.boundingBox())!;
   const targetBox = (await row(page, "Target").last().boundingBox())!;
-  expect(modalBox.y + modalBox.height).toBeLessThanOrEqual(targetBox.y + 2);
+  expect(
+    modalBox.y + modalBox.height <= targetBox.y + 2 || modalBox.y >= targetBox.y + targetBox.height
+  ).toBe(true);
   await canvas.press("Escape");
   await expect.poll(() => modal.count()).toBe(0);
-  await row(page, /💬1/).first().locator("[data-mark=comments]").click();
+  await page.getByRole("button", { name: "1 open comment on Target", exact: true }).click();
   await modal.waitFor();
   await modal.getByRole("button", { name: "Resolve thread", exact: true }).click();
   await expect.poll(() => modal.getByRole("button", { name: "1 resolved" }).count()).toBe(1);

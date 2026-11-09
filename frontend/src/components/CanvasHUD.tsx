@@ -6,6 +6,7 @@ import {
   Minus,
   Plus,
   Redo2,
+  Search,
   Scan,
   Undo2,
   Waypoints,
@@ -13,11 +14,11 @@ import {
 import type { EditorController } from "../editor/controller";
 import { clampScale, zoomLabel } from "../editor/zoom";
 import { changeFields } from "../editor/commands";
-import { runCommand } from "../editor/registry";
+import { runCommand, showFind } from "../editor/registry";
 import { shortcutLabel } from "../editor/shortcuts";
 import { anythingInView } from "../editor/views";
 import { FindBar } from "./FindBar";
-import { FilterBar } from "./FilterBar";
+import "./discovery.css";
 
 /** Hidden items have nothing to click, so the one way back to them stays in view. */
 function HiddenObjects({ editor }: Readonly<{ editor: EditorController }>) {
@@ -148,10 +149,22 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
 export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
   return (
     <>
-      <HiddenObjects editor={editor} />
       <BackToContent editor={editor} />
-      {editor.ui.find && <FindBar editor={editor} />}
-      {editor.ui.filter && <FilterBar editor={editor} />}
+      <div className="canvas-discovery">
+        <HiddenObjects editor={editor} />
+        {editor.ui.find || editor.ui.filter ? (
+          <FindBar editor={editor} />
+        ) : (
+          <button
+            className="canvas-discovery-button"
+            data-hint="Find and filter (Ctrl/⌘ F)"
+            data-hint-detail="Find text or highlight objects by tag, marker and task status. Changes your view only."
+            onClick={() => showFind(editor, true)}
+          >
+            <Search size={16} /> Find and filter
+          </button>
+        )}
+      </div>
       <div className="canvas-history">
         <button
           aria-label="Undo"

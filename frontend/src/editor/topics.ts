@@ -162,11 +162,15 @@ export function connectSelection(editor: EditorController, type: "line" | "refer
 }
 
 /**
- * Relates the selected object to another chosen by name, as a reference: no tree structure, no
+ * Relates an object to a chosen target, as a reference: no tree structure, no
  * physical line, just "see also". The selection stays where it is.
  */
-export function relateTo(editor: EditorController, targetId: string) {
-  const [selected] = editor.selected();
+export function relateTo(
+  editor: EditorController,
+  targetId: string,
+  sourceId = editor.selected()[0]?.id
+) {
+  const selected = sourceId ? editor.document.get(sourceId) : undefined;
   const target = editor.document.get(targetId);
   if (!selected || !target || selected.id === target.id) return;
   link(editor, selected, target, "reference");

@@ -1,10 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Eye, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronDown, ChevronUp, Eye, Search, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { describeMatch, findMatches, revealMatch, showMatch, type Match } from "../editor/find";
 import { listComments } from "../document/comments";
 import { worldBounds } from "../document/relations";
-import { showFind } from "../editor/registry";
+import { showFilter, showFind } from "../editor/registry";
+import { isEmptyFilter } from "../editor/filter";
+import { FilterBar } from "./FilterBar";
+import "./discovery.css";
 
 /** A brief ring around the found object, where it is drawn, so the eye lands on it. */
 function Pulse({ editor, match }: Readonly<{ editor: EditorController; match: Match }>) {
@@ -20,12 +24,15 @@ function Pulse({ editor, match }: Readonly<{ editor: EditorController; match: Ma
       height: `${box.height * scale}px`,
     });
   });
-  return <div ref={ref} key={match.item.id} className="find-pulse" data-testid="find-pulse" />;
+  return createPortal(
+    <div ref={ref} key={match.item.id} className="find-pulse" data-testid="find-pulse" />,
+    editor.element
+  );
 }
 
 /** "2 of 5", "No matches", or nothing before anything is typed. */
-function countLabel(query: string, current: number, total: number) {
-  if (!query) return "";
+function countLabel(searching: boolean, current: number, total: number) {
+  if (!searching) return "";
   if (!total) return "No matches";
   const noun = total === 1 ? "match" : "matches";
   return current < 0 ? `${total} ${noun}` : `${current + 1} of ${total}`;
@@ -65,22 +72,63 @@ function MatchList({
           )}
         </li>
       ))}
-      {matches.length > 8 && <li className="find-more">and {matches.length - 8} more</li>}
+      {matches.length > 8 && (
+        <li className="find-more">{matches.length - 8} more. Use Next to visit every match.</li>
+      )}
     </ul>
   );
 }
 
 /**
- * Find on canvas: words typed here match names, subtitles, tags, comments and ids. Enter and the
- * arrows step through the matches in reading order, flying to each; Escape closes.
+ * One place to search words and highlight metadata. Enter and the arrows visit matches in
+ * reading order; selecting tags or markers also lists the objects they highlight.
  */
+function FindQuery({
+  query,
+  onChange,
+  onStep,
+  onClose,
+}: Readonly<{
+  query: string;
+  onChange: (query: string) => void;
+  onStep: (by: number) => void;
+  onClose: () => void;
+}>) {
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => input.current?.focus(), []);
+  return (
+    <input
+      ref={input}
+      aria-label="Find on canvas"
+      placeholder="Search text, tags or markers"
+      data-hint="Find on canvas"
+      data-hint-detail="Search names, text, comments, tags and markers. Choose tags or markers below to highlight related objects."
+      value={query}
+      onChange={(event) => onChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onClose();
+        else if (event.key === "Enter") onStep(event.shiftKey ? -1 : 1);
+        else if (event.key === "ArrowDown") onStep(1);
+        else if (event.key === "ArrowUp") onStep(-1);
+        else return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    />
+  );
+}
+
 export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(-1);
   const [shown, setShown] = useState<Match | null>(null);
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => input.current?.focus(), []);
-  const matches = findMatches(editor.document.list(), listComments(editor.document), query);
+  const searching = Boolean(query.trim()) || !isEmptyFilter(editor.filter);
+  const matches = findMatches(
+    editor.document.list(),
+    listComments(editor.document),
+    query,
+    editor.filter
+  );
   const current = matches.length ? Math.min(index, matches.length - 1) : -1;
   const show = (position: number, reveal = false) => {
     const match = matches[position];
@@ -95,43 +143,51 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
     if (current < 0) next = by > 0 ? 0 : matches.length - 1;
     show(next);
   };
-  const close = () => showFind(editor, false);
+  const close = () => {
+    showFilter(editor, false);
+    showFind(editor, false);
+  };
   return (
-    <div className="find-bar" role="search" aria-label="Find on canvas">
+    <div className="find-bar discovery-panel" role="search" aria-label="Find on canvas">
       {shown && !shown.hidden && <Pulse editor={editor} match={shown} />}
-      <input
-        ref={input}
-        aria-label="Find on canvas"
-        placeholder="Find"
-        value={query}
-        onChange={(event) => {
-          setQuery(event.target.value);
+      <div className="discovery-heading">
+        <Search size={16} />
+        <strong>Find and filter</strong>
+      </div>
+      <button className="icon-action discovery-close" aria-label="Close find" onClick={close}>
+        <X size={14} />
+      </button>
+      <FindQuery
+        query={query}
+        onChange={(value) => {
+          setQuery(value);
           setIndex(-1);
           setShown(null);
         }}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") close();
-          else if (event.key === "Enter") step(event.shiftKey ? -1 : 1);
-          else if (event.key === "ArrowDown") step(1);
-          else if (event.key === "ArrowUp") step(-1);
-          else return;
-          event.preventDefault();
-          event.stopPropagation();
-        }}
+        onStep={step}
+        onClose={close}
       />
-      <span className="find-count" data-testid="find-count">
-        {countLabel(query, current, matches.length)}
+      <span className="find-count" data-testid="find-count" aria-live="polite">
+        {countLabel(searching, current, matches.length)}
       </span>
-      <button className="icon-action" aria-label="Previous match" onClick={() => step(-1)}>
+      <button
+        className="icon-action"
+        aria-label="Previous match"
+        disabled={!matches.length}
+        onClick={() => step(-1)}
+      >
         <ChevronUp size={14} />
       </button>
-      <button className="icon-action" aria-label="Next match" onClick={() => step(1)}>
+      <button
+        className="icon-action"
+        aria-label="Next match"
+        disabled={!matches.length}
+        onClick={() => step(1)}
+      >
         <ChevronDown size={14} />
       </button>
-      <button className="icon-action" aria-label="Close find" onClick={close}>
-        <X size={14} />
-      </button>
-      {query && matches.length > 0 && (
+      <FilterBar editor={editor} />
+      {searching && matches.length > 0 && (
         <MatchList matches={matches} current={current} onShow={show} />
       )}
     </div>

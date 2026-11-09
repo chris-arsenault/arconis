@@ -56,7 +56,7 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   await box.press("Enter");
   const note = page.getByTestId("comment-thread").locator("p");
   await expect.poll(() => note.textContent()).toBe("Open with the pain.\nThen pause.");
-  await expect.poll(() => row(page, /💬1/).count()).toBe(1);
+  await page.getByRole("button", { name: "1 open comment on Solution", exact: true }).waitFor();
   await canvas(page).press("Escape");
 
   // Clicking empty canvas inside a slide selects the slide, as with a frame.

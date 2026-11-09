@@ -1989,28 +1989,30 @@ input.outline-name {
   right: -26px;
   transform: translateY(-50%);
 }
-/* Bottom centre, above the view controls: a fixed home that never covers the selection, its
-   handles or a neighbour, and clear of the corners the other overlays use. */
-.selection-toolbar {
+/* Object and text tools share an anchor; only the contents change while editing. */
+.contextual-tools {
   position: absolute;
-  bottom: 78px;
-  left: 50%;
-  transform: translateX(-50%);
   z-index: 5;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+  max-width: calc(100% - 16px);
+  width: max-content;
+  max-height: calc(100% - 32px);
+  overflow: auto;
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 9px;
   box-shadow: 0 4px 16px #35324c14;
 }
+.selection-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
 .selection-toolbar button {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: none;
   border-radius: 5px;
@@ -2039,8 +2041,9 @@ input.outline-name {
   background: #ffffff;
 }
 .selection-toolbar .swatch {
-  width: 18px;
-  height: 18px;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
   border-radius: 50%;
   border: 1px solid #0000001f;
 }
@@ -3027,7 +3030,7 @@ input.outline-name {
   border-radius: 5px;
 }
 .selection-toolbar {
-  max-width: calc(100% - 16px);
+  max-width: 100%;
   flex-wrap: wrap;
   justify-content: center;
   width: max-content;
@@ -3202,10 +3205,8 @@ input.outline-name {
   .name-prompt input {
     width: 100%;
   }
-  .selection-toolbar {
-    left: calc(50% + 28px);
-    bottom: 120px;
-    max-width: calc(100% - 80px);
+  .contextual-tools button {
+    min-height: 36px;
   }
   .capture-box {
     width: min(280px, calc(100% - 88px));

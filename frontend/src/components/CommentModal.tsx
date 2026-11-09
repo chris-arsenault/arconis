@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { MessageSquare, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { showComments } from "../editor/registry";
 import {
@@ -12,6 +12,7 @@ import {
 import { CommentControls } from "./CommentControls";
 import { typeLabel } from "../document/types";
 import { isSlide } from "../document/slides";
+import "./comments.css";
 
 /** Where the modal sits: above a box's top edge, or at a line's label; in canvas-area pixels. */
 function anchorFor(editor: EditorController, id: string) {
@@ -25,11 +26,39 @@ function anchorFor(editor: EditorController, id: string) {
   return { x: state.getCenterX(), top: state.y, bottom: state.y + state.height };
 }
 
-/**
- * An object's comments, opened on purpose, in a modal above the object at the highest level:
- * the discussion sits where its object is. It follows the object through pan and zoom, stays in
- * the window, and closes on Escape, a click outside or opening another object's comments.
- */
+function useCommentPosition(
+  editor: EditorController,
+  ref: RefObject<HTMLDivElement | null>,
+  id: string | null
+) {
+  useLayoutEffect(() => {
+    if (!ref.current || !id) return;
+    const position = () => {
+      if (!ref.current) return;
+      const anchor = anchorFor(editor, id);
+      if (!anchor) return;
+      const area = editor.element.getBoundingClientRect();
+      const box = ref.current.getBoundingClientRect();
+      const left = Math.max(8, Math.min(anchor.x - box.width / 2, area.width - box.width - 8));
+      const above = anchor.top - box.height - 10;
+      const top = above >= 8 ? above : Math.min(anchor.bottom + 10, area.height - box.height - 8);
+      Object.assign(ref.current.style, { left: `${left}px`, top: `${Math.max(8, top)}px` });
+    };
+    position();
+    const observer = new ResizeObserver(position);
+    observer.observe(ref.current);
+    observer.observe(editor.element);
+    const unsubscribe = editor.subscribeView(position);
+    const unbind = editor.subscribe(position);
+    return () => {
+      observer.disconnect();
+      unsubscribe();
+      unbind();
+    };
+  }, [editor, id, ref]);
+}
+
+/** A discussion anchored to its object, with independent thread scrolling and a visible composer. */
 export function CommentModal({
   editor,
   author,
@@ -37,17 +66,7 @@ export function CommentModal({
   const id = editor.ui.comments;
   const ref = useRef<HTMLDivElement>(null);
   const item = id ? editor.document.get(id) : null;
-  useLayoutEffect(() => {
-    if (!ref.current || !id) return;
-    const anchor = anchorFor(editor, id);
-    if (!anchor) return;
-    const area = editor.element.getBoundingClientRect();
-    const box = ref.current.getBoundingClientRect();
-    const left = Math.max(8, Math.min(anchor.x - box.width / 2, area.width - box.width - 8));
-    const above = anchor.top - box.height - 10;
-    const top = above >= 8 ? above : Math.min(anchor.bottom + 10, area.height - box.height - 8);
-    Object.assign(ref.current.style, { left: `${left}px`, top: `${Math.max(8, top)}px` });
-  });
+  useCommentPosition(editor, ref, id);
   useEffect(() => {
     if (!id) return;
     const onKey = (event: KeyboardEvent) => {
@@ -70,16 +89,17 @@ export function CommentModal({
   return (
     <div
       ref={ref}
-      className="comment-modal"
+      className="comment-modal object-discussion"
       role="dialog"
       aria-label={`${heading} on ${item.name || typeLabel(item)}`}
       data-testid="comment-modal"
     >
       <header>
-        <strong>
-          {isSlide(item) && "Speaker notes · "}
-          {item.name.split("\n")[0] || typeLabel(item)}
-        </strong>
+        <MessageSquare size={18} />
+        <div className="comment-heading">
+          <strong>{heading}</strong>
+          <span>{item.name.split("\n")[0] || typeLabel(item)}</span>
+        </div>
         <button
           className="icon-action"
           aria-label={`Close ${heading.toLowerCase()}`}
@@ -89,6 +109,7 @@ export function CommentModal({
         </button>
       </header>
       <CommentControls
+        key={item.id}
         speakerNotes={isSlide(item)}
         threads={groupThreads(listComments(canvas), item.id)}
         onAdd={(text, thread = "") => addComment(canvas, { on: item.id, author, text, thread })}

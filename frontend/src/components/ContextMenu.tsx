@@ -5,11 +5,13 @@ import type { EditorController } from "../editor/controller";
 import { chooseRingEntry, menuGroups, ringEntries, type MenuEntry } from "../editor/contextMenu";
 import { closeMenu, commandContext, findCommand, runCommand } from "../editor/registry";
 import { shortcutLabel } from "../editor/shortcuts";
-import { RING_RADIUS } from "../editor/pointerButtons";
-
-const WEDGE_COUNT = 8;
-const INNER = 22;
-const OUTER = RING_RADIUS + 30;
+import {
+  RING_RADIUS,
+  RING_INNER,
+  RING_OUTER,
+  RING_COUNT,
+  ringCentre,
+} from "../editor/pointerButtons";
 
 function wedgePath(index: number, count: number) {
   const span = (Math.PI * 2) / count;
@@ -18,10 +20,10 @@ function wedgePath(index: number, count: number) {
   const point = (radius: number, angle: number) =>
     `${(radius * Math.cos(angle)).toFixed(1)},${(radius * Math.sin(angle)).toFixed(1)}`;
   return [
-    `M ${point(INNER, start)}`,
-    `A ${INNER} ${INNER} 0 0 1 ${point(INNER, end)}`,
-    `L ${point(OUTER, end)}`,
-    `A ${OUTER} ${OUTER} 0 0 0 ${point(OUTER, start)}`,
+    `M ${point(RING_INNER, start)}`,
+    `A ${RING_INNER} ${RING_INNER} 0 0 1 ${point(RING_INNER, end)}`,
+    `L ${point(RING_OUTER, end)}`,
+    `A ${RING_OUTER} ${RING_OUTER} 0 0 0 ${point(RING_OUTER, start)}`,
     "Z",
   ].join(" ");
 }
@@ -30,8 +32,8 @@ function wedgePath(index: number, count: number) {
 function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
   const menu = editor.ui.menu!;
   const entries = ringEntries(commandContext(editor), menu.subRing);
-  const count = Math.max(WEDGE_COUNT, entries.length);
-  const size = OUTER * 2 + 4;
+  const count = RING_COUNT;
+  const size = RING_OUTER * 2 + 4;
   return (
     <svg
       className="command-ring"
@@ -212,10 +214,9 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
     if (!ref.current || !menu) return;
     const area = editor.element.getBoundingClientRect();
     const box = ref.current.getBoundingClientRect();
-    const offsetX = menu.ring ? box.width / 2 : 0;
-    const offsetY = menu.ring ? box.height / 2 : 0;
-    const x = Math.max(8 + offsetX, Math.min(menu.at.x, area.width - box.width + offsetX - 8));
-    const y = Math.max(8 + offsetY, Math.min(menu.at.y, area.height - box.height + offsetY - 8));
+    const centre = ringCentre(menu.at, area.width, area.height);
+    const x = menu.ring ? centre.x : Math.max(8, Math.min(menu.at.x, area.width - box.width - 8));
+    const y = menu.ring ? centre.y : Math.max(8, Math.min(menu.at.y, area.height - box.height - 8));
     Object.assign(ref.current.style, { left: `${x}px`, top: `${y}px` });
   });
   useEffect(() => {

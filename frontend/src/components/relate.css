@@ -1,0 +1,26 @@
+.canvas-area:has(.relate-picker) [data-testid="canvas"],
+.canvas-area:has(.relate-picker) [data-testid="canvas"] * {
+  cursor: crosshair !important;
+}
+.relate-mode-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.relate-mode-head strong {
+  font-size: 12px;
+}
+.relate-mode-head button,
+.relate-search-toggle {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: var(--panel);
+  font-size: 11px;
+}
+.relate-instruction {
+  margin: 8px 0;
+  color: var(--muted);
+  line-height: 1.5;
+}

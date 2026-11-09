@@ -30,6 +30,7 @@ export function ObjectText({ canvas, item }: Readonly<{ canvas: CanvasDocument; 
         onEdit={(element, edit) => editSource(canvas, item.id, element, edit)}
         textarea={textRef}
         expanded={false}
+        compact={false}
       />
     </>
   );

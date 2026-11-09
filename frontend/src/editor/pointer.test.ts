@@ -15,13 +15,20 @@ function canvas(text: string) {
 
 describe("the ring's wedges", () => {
   it("counts clockwise from the top, with each wedge centred on its direction", () => {
-    expect(wedgeAt(0, -10, 8)).toBe(0);
-    expect(wedgeAt(10, -10, 8)).toBe(1);
-    expect(wedgeAt(10, 0, 8)).toBe(2);
-    expect(wedgeAt(0, 10, 8)).toBe(4);
-    expect(wedgeAt(-10, 0, 8)).toBe(6);
-    expect(wedgeAt(-3, -10, 8)).toBe(0);
-    expect(wedgeAt(0, -10, 7)).toBe(0);
+    expect(wedgeAt(0, -84, 8)).toBe(0);
+    expect(wedgeAt(60, -60, 8)).toBe(1);
+    expect(wedgeAt(84, 0, 8)).toBe(2);
+    expect(wedgeAt(0, 84, 8)).toBe(4);
+    expect(wedgeAt(-84, 0, 8)).toBe(6);
+    expect(wedgeAt(-20, -84, 8)).toBe(0);
+  });
+
+  it("does not choose inside the visible neutral centre or outside the visible ring", () => {
+    expect(wedgeAt(0, 0, 8)).toBeNull();
+    expect(wedgeAt(0, 47, 8)).toBeNull();
+    expect(wedgeAt(0, 48, 8)).toBe(4);
+    expect(wedgeAt(0, 120, 8)).toBe(4);
+    expect(wedgeAt(0, 121, 8)).toBeNull();
   });
 
   it("chooses the menu by what is selected", () => {

@@ -6,6 +6,7 @@ import { parse } from "../language/parser";
 import { writeStatements } from "../language/writer";
 import { describeMatch, findMatches } from "./find";
 import { ViewHistory } from "./viewHistory";
+import { EMPTY_FILTER, toggled } from "./filter";
 
 function canvas(text: string) {
   const document = new CanvasDocument();
@@ -14,6 +15,22 @@ function canvas(text: string) {
 }
 
 describe("find on canvas", () => {
+  it("finds exact tags and markers and intersects words with highlighted metadata", () => {
+    const document = canvas(`
+      note a "Orders" tags api marker p1 at 0,0
+      note b "Orders cache" tags apiary marker q2 at 300,0
+      note c "Billing" tags api marker q2 at 600,0
+    `);
+    const items = document.list();
+    expect(findMatches(items, [], "#api").map(({ item }) => item.id)).toEqual(["a", "c"]);
+    expect(findMatches(items, [], ":p1").map(({ item }) => item.id)).toEqual(["a"]);
+    expect(findMatches(items, [], "Priority 1")[0].where).toBe("marker");
+    expect(findMatches(items, [], "half done").map(({ item }) => item.id)).toEqual(["b", "c"]);
+    const filter = toggled(EMPTY_FILTER, "tags", "api");
+    expect(findMatches(items, [], "Orders", filter).map(({ item }) => item.id)).toEqual(["a"]);
+    expect(findMatches(items, [], "", filter).map(describeMatch)).toEqual(["Orders", "Billing"]);
+  });
+
   it("matches names, subtitles, tags, comments and ids, in reading order, marking hidden items", () => {
     const document = canvas(`
       node low "Orders API" at 0,400

@@ -3,11 +3,13 @@ import { PanningHandler, type CellState } from "@maxgraph/core";
 import { isUnderlay } from "./templates";
 import { clampScale, creationValues } from "./zoom";
 import { bindDrawingInput } from "./drawingInput";
-import { commandContext, commandForKey, runCommand, showComments } from "./registry";
+import { commandContext, commandForKey, runCommand, showComments, showRelate } from "./registry";
 import { bindPointerButtons, configureButtons } from "./pointerButtons";
 import { configureCentredResize, configureCreateTarget } from "./createTarget";
 import { nextInStack } from "./selectBy";
 import { changeFields } from "./commands";
+import { canConnect } from "../document/capabilities";
+import { relateTo } from "./topics";
 
 function isTyping(target: EventTarget | null) {
   return (
@@ -36,7 +38,7 @@ function takesKey(editor: EditorController, event: KeyboardEvent) {
   const key = event.key.toLowerCase();
   // A presentation has its own keys, and nothing is being edited.
   if (editor.presenter.active) return false;
-  if (editor.ui.menu || event.defaultPrevented) return false;
+  if (editor.ui.menu || editor.ui.relating || event.defaultPrevented) return false;
   if (isTyping(event.target) || activatesControl(event.target, key)) return false;
   const paletteKey = key === "k" && (event.ctrlKey || event.metaKey);
   return !editor.ui.palette || paletteKey;
@@ -144,9 +146,65 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
   );
 }
 
+/** Target picking consumes the gesture before normal selection or dragging can change its source. */
+function bindRelateInput(editor: EditorController, options: { signal: AbortSignal }) {
+  window.addEventListener(
+    "pointerdown",
+    (event) => {
+      const area = editor.element.parentElement ?? editor.element;
+      if (
+        !editor.ui.relating ||
+        event.button !== 2 ||
+        !(event.target instanceof Node) ||
+        !area.contains(event.target)
+      )
+        return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showRelate(editor, false);
+    },
+    { ...options, capture: true }
+  );
+  editor.element.addEventListener(
+    "pointerdown",
+    (event) => {
+      const source = editor.ui.relating;
+      if (!source || event.button === 1) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.button === 2) {
+        showRelate(editor, false);
+        return;
+      }
+      const cell = cellAt(editor, event);
+      const target = cell?.id ? editor.document.get(cell.id) : undefined;
+      if (
+        !target ||
+        target.id === source ||
+        !canConnect(target, editor.document.get(target.inside) ?? undefined)
+      )
+        return;
+      relateTo(editor, target.id, source);
+      showRelate(editor, false);
+    },
+    { ...options, capture: true }
+  );
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (!editor.ui.relating || event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showRelate(editor, false);
+    },
+    { ...options, capture: true }
+  );
+}
+
 export function bindCanvasInput(editor: EditorController) {
   const abort = new AbortController();
   const options = { signal: abort.signal };
+  bindRelateInput(editor, options);
   bindDrawingInput(editor, abort.signal);
   bindPointerTools(editor, options);
   window.addEventListener(

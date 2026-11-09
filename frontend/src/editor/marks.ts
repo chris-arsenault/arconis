@@ -1,7 +1,6 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { listComments, openThreadCounts } from "../document/comments";
-import { branchNumbers, foldedBy, referenceCounts, taskCounts } from "../document/relations";
+import { branchNumbers, foldedBy } from "../document/relations";
 import { deckOf, isSlide, isTemplate } from "../document/slides";
 import { isBox, type Item, type Marker } from "../document/types";
 import { hasHiddenDetail } from "./culling";
@@ -26,18 +25,11 @@ export const MARKER_SIGNS: Record<Marker, string> = {
   q3: "◕",
   q4: "●",
 };
-const TASK_SIGNS = { open: "☐", done: "☑" };
 
 /** The signs an item's own fields add, before and after its name. */
-function fieldMarks(
-  item: Item,
-  items: Item[],
-  tasks: Map<string, { done: number; total: number }>
-) {
+function fieldMarks(item: Item, items: Item[]) {
   const before: string[] = [];
   const after: string[] = [];
-  if (item.task) before.push(TASK_SIGNS[item.task]);
-  if (item.locked) before.push("🔒");
   if (item.collapsed) {
     const folded = [...foldedBy(items, item.id)].filter((id) => {
       const inner = items.find((candidate) => candidate.id === id);
@@ -45,10 +37,6 @@ function fieldMarks(
     });
     if (folded.length) after.push(`▸${folded.length}`);
   }
-  const count = tasks.get(item.id);
-  if (count) after.push(`${count.done}/${count.total}`);
-  if (item.marker) after.push(MARKER_SIGNS[item.marker]);
-  if (item.tags?.length) after.push(...item.tags.map((tag) => `#${tag}`));
   return { before, after };
 }
 
@@ -60,8 +48,8 @@ function slidePlace(item: Item) {
 }
 
 /**
- * Signs added to a label: hidden detail, references and open comments, a slide's place in its
- * deck, and the item's own flags, tasks, marker and tags. They come from one pass per document
+ * Structural signs added to a label: hidden detail, folded contents and a slide's place in its
+ * deck. Metadata is rendered separately as object chrome. Signs come from one pass per document
  * change, because labels are read for every object at every zoom step. Everything here is escaped
  * where the label is composed, since names and tags come from peers.
  */
@@ -82,18 +70,11 @@ export class LabelMarks {
   /** Recounts, and redraws the objects whose signs changed. */
   refresh() {
     const items = this.document.list();
-    const references = referenceCounts(items);
-    const comments = openThreadCounts(listComments(this.document));
-    const tasks = taskCounts(items);
     const numbers = branchNumbers(items);
     const next = new Map<string, Marks>();
     for (const item of items) {
-      const own = fieldMarks(item, items, tasks);
-      const after = [
-        ...own.after,
-        references.has(item.id) ? `↗${references.get(item.id)}` : "",
-        comments.has(item.id) ? `💬${comments.get(item.id)}` : "",
-      ].filter(Boolean);
+      const own = fieldMarks(item, items);
+      const after = own.after;
       const before = [slidePlace(item), numbers.get(item.id) ?? "", ...own.before].filter(Boolean);
       if (before.length || after.length)
         next.set(item.id, { before: before.join(" "), after: after.join(" ") });

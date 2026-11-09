@@ -1,11 +1,14 @@
-import { MessageSquare, MoreHorizontal, Shapes, Type } from "lucide-react";
+import { useRef, type RefObject } from "react";
+import { Check, MessageSquare, MoreHorizontal, Shapes, Type } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { COLORS, isBox, type Item } from "../document/types";
-import { changeSelectionLook } from "../editor/commands";
+import { changeSelectionLook, editSource } from "../editor/commands";
 import { hasFill, hasLine, hasText } from "../document/capabilities";
 import { effectiveAppearance, type Appearance } from "../document/appearance";
 import { runCommand, showComments } from "../editor/registry";
 import { openMenuOverSelection as openOverSelection } from "../editor/contextMenu";
+import { MarkdownTools } from "./MarkdownTools";
+import { useSelectionAnchor } from "./useSelectionAnchor";
 
 /** Text sizes the toolbar steps through. */
 const TEXT_SIZES = [10, 12, 14, 16, 18, 22, 28, 36, 48];
@@ -57,27 +60,86 @@ function hidden(editor: EditorController, selected: Item[]) {
   return (
     !selected.length ||
     editor.ui.dragging ||
-    Boolean(editor.editId) ||
     editor.ui.menu !== null ||
+    editor.ui.tagging ||
+    Boolean(editor.ui.relating) ||
+    Boolean(editor.ui.comments) ||
     selected.every((item) => item.locked)
   );
 }
 
 /**
- * The toolbar for the selection: fill, line colour, text size, shape, comment and the rest of
- * the menu. It keeps one place above the view controls, so it never covers the selection, its
- * handles or a neighbour; the ring and menu are the near-pointer way to the same commands.
- * It hides while the selection is being dragged and while typing.
+ * One anchored surface changes content between object appearance and inline text editing.
+ * Its position follows the selection through pan, zoom and changes of editing context.
  */
-export function SelectionToolbar({ editor }: Readonly<{ editor: EditorController }>) {
+export function SelectionToolbar({
+  editor,
+  textarea,
+}: Readonly<{ editor: EditorController; textarea: RefObject<HTMLTextAreaElement | null> }>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useSelectionAnchor(editor, ref);
   const selected = editor.selected();
   if (hidden(editor, selected)) return null;
+  const editing = editor.editId ? editor.document.get(editor.editId) : null;
+  return (
+    <div
+      ref={ref}
+      className={`contextual-tools${editing ? " inline-markdown-panel" : ""}`}
+      role="region"
+      aria-label="Object tools"
+      data-text-tools={editing ? "true" : undefined}
+    >
+      {editing ? (
+        <>
+          <div className="contextual-tools-heading">
+            <span>Text</span>
+            <button
+              type="button"
+              aria-label="Finish editing text"
+              data-hint="Finish editing (Esc)"
+              onClick={() => {
+                editor.closeEditor();
+                editor.element.focus({ preventScroll: true });
+              }}
+            >
+              <Check size={14} /> Done
+            </button>
+          </div>
+          <MarkdownTools
+            source={editing.name}
+            appearance={effectiveAppearance(editing, editor.document.namedStyle(editing.style))}
+            onEdit={(element, edit) => editSource(editor.document, editing.id, element, edit)}
+            textarea={textarea}
+            expanded
+            compact
+          />
+        </>
+      ) : (
+        <SelectionActions editor={editor} selected={selected} />
+      )}
+    </div>
+  );
+}
+
+function SelectionActions({
+  editor,
+  selected,
+}: Readonly<{ editor: EditorController; selected: Item[] }>) {
   const canvas = editor.document;
   const first = selected[0];
   const look = effectiveAppearance(first, canvas.namedStyle(first.style));
   const textItems = selected.filter(hasText);
   return (
-    <div className="selection-toolbar" role="toolbar" aria-label="Selection toolbar">
+    <div
+      className="selection-toolbar"
+      role="toolbar"
+      aria-label="Selection toolbar"
+      onMouseDown={(event) => {
+        // Finish pending field edits after the command, so blur cannot move its target mid-click.
+        if (event.button === 0 && event.target instanceof Element && event.target.closest("button"))
+          event.preventDefault();
+      }}
+    >
       {selected.some(hasFill) && <FillSwatches editor={editor} look={look} />}
       {selected.some(hasLine) && (
         <input

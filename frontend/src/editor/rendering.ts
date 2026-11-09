@@ -76,16 +76,10 @@ function composeLabel(cell: Cell, marks: Marks, content: string) {
     name = `<div style="font-weight:bold">${name}</div><span style="font-weight:normal;font-size:0.85em;opacity:0.85">${escapeLabel(subtitle)}</span>`;
   if (badge.startsWith("data:image/"))
     name = `<img src="${badge.replaceAll('"', "%22")}" alt="" style="width:1.3em;height:1.3em;vertical-align:middle;margin-right:0.4em">${name}`;
-  // The folded and comment counts are controls: one expands the item, the other opens its threads.
-  const after = escapeLabel(marks.after)
-    .replace(
-      /▸\d+/,
-      (count) => `<span data-mark="collapsed" style="cursor:pointer">${count}</span>`
-    )
-    .replace(
-      /💬\d+/,
-      (count) => `<span data-mark="comments" style="cursor:pointer">${count}</span>`
-    );
+  const after = escapeLabel(marks.after).replace(
+    /▸\d+/,
+    (count) => `<span data-mark="collapsed" style="cursor:pointer">${count}</span>`
+  );
   const body = [escapeLabel(marks.before), name, after].filter(Boolean).join(" ");
   if (!body) return "";
   const css = labelVariables(style);

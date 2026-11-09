@@ -24,8 +24,8 @@ export interface EditorUi {
   comments: string | null;
   /** Whether the tag editor floats over the selection. */
   tagging: boolean;
-  /** Whether the picker that relates the selection to another object by name is open. */
-  relating: boolean;
+  /** The source object awaiting a relation target on the canvas or in optional search. */
+  relating: string | null;
   /** Whether a native move or resize is in progress, when floating controls step aside. */
   dragging: boolean;
 }
@@ -47,7 +47,7 @@ export function initialUi(): EditorUi {
     menu: null,
     comments: null,
     tagging: false,
-    relating: false,
+    relating: null,
     dragging: false,
   };
 }
@@ -56,7 +56,7 @@ export interface MenuState {
   /** Where the menu opened, in canvas-area pixels, and the world point beneath it. */
   at: { x: number; y: number };
   world: { x: number; y: number };
-  /** The wedge a right-button stroke points at, or null in the dead zone or after release. */
+  /** The visible wedge under a held pointer, or null in the neutral centre or outside the ring. */
   wedge: number | null;
   /** The sub-ring open in place of the ring, by the entry that opened it. */
   subRing: string | null;

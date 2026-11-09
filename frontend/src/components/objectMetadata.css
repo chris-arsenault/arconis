@@ -1,0 +1,63 @@
+.object-metadata {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  pointer-events: none;
+}
+.object-metadata.dimmed {
+  opacity: 0.2;
+}
+.object-metadata .metadata-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: none;
+  min-height: 24px;
+  padding: 3px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 16px;
+  pointer-events: auto;
+}
+.object-metadata .metadata-tags {
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+.object-metadata .metadata-tags svg {
+  flex: none;
+}
+.object-metadata .metadata-tags > span:first-of-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.object-metadata .metadata-comments,
+.object-metadata .metadata-marker[aria-pressed="true"] {
+  color: var(--pressed-text);
+}
+.object-metadata .marker-p1 {
+  color: #b23a45;
+  border-color: #dba5ac;
+}
+.object-metadata .marker-p2 {
+  color: #a06413;
+  border-color: #d8bc90;
+}
+.object-metadata .marker-q4 {
+  color: #258052;
+}
+.object-metadata button:hover {
+  background: var(--hover);
+}
+.object-metadata button:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
