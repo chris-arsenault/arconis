@@ -23,6 +23,7 @@ import { isBox, isLink, type Item } from "../document/types";
 import { itemName } from "../editor/relate";
 import type { Axis } from "../document/relations";
 import { Section } from "./ConnectionControls";
+import { effectiveAppearance, type Appearance } from "../document/appearance";
 
 const ALIGN_ACTIONS: { mode: AlignMode; label: string; icon: LucideIcon }[] = [
   { mode: "left", label: "Align left edges", icon: AlignStartVertical },
@@ -44,7 +45,7 @@ function SmallAction({
   return (
     <button
       className="icon-action"
-      title={label}
+      data-hint={label}
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
@@ -133,14 +134,18 @@ function RelationRow({
   return (
     <li className="relation-row">
       <span className="relation-kind">{relation}</span>
-      <button className="relation-target" title={`Go to ${name}`} onClick={() => onJump(target.id)}>
+      <button
+        className="relation-target"
+        data-hint={`Go to ${name}`}
+        onClick={() => onJump(target.id)}
+      >
         {name}
       </button>
       {onRemove && (
         <button
           className="icon-action"
           aria-label={`Remove reference to ${name}`}
-          title="Remove reference"
+          data-hint="Remove reference"
           onClick={onRemove}
         >
           <X size={13} />
@@ -158,7 +163,11 @@ interface Relation {
 }
 
 /** Everything one item is related to: its parent topic, its holder, its references and lines. */
-function relationsOf(items: Item[], item: Item): Relation[] {
+function relationsOf(
+  items: Item[],
+  item: Item,
+  appearance: (item: Item) => Appearance
+): Relation[] {
   const byId = new Map(items.map((candidate) => [candidate.id, candidate]));
   const found: Relation[] = [];
   const add = (key: string, relation: string, id: string | undefined, remove?: string) => {
@@ -180,9 +189,19 @@ function relationsOf(items: Item[], item: Item): Relation[] {
     );
   for (const line of items) {
     if (line.type !== "line" || (line.from !== item.id && line.to !== item.id)) continue;
-    add(line.id, "Line to", line.from === item.id ? line.to : line.from);
+    const forward = line.from === item.id;
+    add(line.id, lineRelation(appearance(line), forward), forward ? line.to : line.from);
   }
   return found;
+}
+
+function lineRelation(look: Appearance, forward: boolean) {
+  const away = (forward ? look.arrow : look.startArrow) !== "none";
+  const toward = (forward ? look.startArrow : look.arrow) !== "none";
+  if (away && toward) return "↔ Both ways";
+  if (away) return "→ To";
+  if (toward) return "← From";
+  return "— Linked";
 }
 
 function Action({
@@ -208,6 +227,7 @@ export function Relationships({
   onJump,
   onRemove,
   children,
+  appearance = effectiveAppearance,
 }: Readonly<{
   selected: Item[];
   items: Item[];
@@ -217,6 +237,7 @@ export function Relationships({
   onRemove: (id: string) => void;
   /** Branch numbering, shown beside the branch count. */
   children?: ReactNode;
+  appearance?: (item: Item) => Appearance;
 }>) {
   if (selected.length === 2)
     return (
@@ -230,7 +251,7 @@ export function Relationships({
       </div>
     );
   const [item] = selected;
-  const relations = relationsOf(items, item);
+  const relations = relationsOf(items, item, appearance);
   const branches = branchChildren(items, item.id).length;
   return (
     <>

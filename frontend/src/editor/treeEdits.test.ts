@@ -118,3 +118,14 @@ describe("editing a tree from the keyboard", () => {
     for (const id of ["root", "b", "off"]) expect(bright.has(id), id).toBe(false);
   });
 });
+
+it("creates a dragged connected copy at its final position in one undo step", () => {
+  const document = canvas('note source "Source" at 0,0');
+  const copy = connectedClone(document, "source", "right", { x: 500, y: 250 });
+  expect(document.get(copy)).toMatchObject({ x: 500, y: 250 });
+  expect(document.list()).toHaveLength(3);
+  document.undo.undo();
+  expect(document.list().map((item) => item.id)).toEqual(["source"]);
+  document.undo.redo();
+  expect(document.get(copy)).toMatchObject({ x: 500, y: 250 });
+});

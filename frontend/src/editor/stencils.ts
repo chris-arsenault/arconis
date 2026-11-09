@@ -109,11 +109,13 @@ export function addTableColumn(document: CanvasDocument, tableId: string) {
   const cells = tableCells(items, table);
   const right = Math.max(...cells.map((cell) => cell.x + cell.width));
   const last = cells.filter((cell) => Math.abs(cell.x + cell.width - right) < 1);
+  const columns = new Set(cells.map((cell) => Math.round(cell.x))).size;
+  const top = Math.min(...cells.map((cell) => cell.y));
   step(document, () => {
     last.forEach((cell) =>
       document.insert(
         document.build("frame", right, cell.y, {
-          name: cell.name ? `Column ${last.length}` : "",
+          name: Math.abs(cell.y - top) < 1 ? `Column ${columns + 1}` : "",
           width: cell.width,
           height: cell.height,
           inside: table.id,

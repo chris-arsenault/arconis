@@ -8,6 +8,7 @@ import {
   ListOrdered,
   Lock,
   Unlock,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { MARKERS, TASK_STATES, type Item, type Marker, type TaskState } from "../document/types";
@@ -40,7 +41,7 @@ function ToggleButton({
     <button
       className="text-action"
       aria-label={title}
-      title={title}
+      data-hint={title}
       aria-pressed={on}
       onClick={onClick}
     >
@@ -155,19 +156,26 @@ export function StatusFields({
   onChange,
   onFollow,
 }: Readonly<{ selected: Item[]; onChange: Change; onFollow: (link: string) => void }>) {
-  const [item] = selected;
-  const link = item.link ?? "";
-  const followLabel = isWebLink(link) ? "Open link" : "Go to linked item";
+  const common = (key: "marker" | "task" | "link") =>
+    selected.every((item) => item[key] === selected[0][key]) ? (selected[0][key] ?? "") : null;
+  const marker = common("marker");
+  const task = common("task");
+  const linkValue = common("link");
   return (
     <div className="select-grid">
       <span>Marker</span>
       <select
         aria-label="Marker"
-        value={item.marker ?? ""}
+        value={marker ?? "mixed"}
         onChange={(event) =>
           onChange({ marker: (event.target.value || undefined) as Marker | undefined })
         }
       >
+        {marker === null && (
+          <option value="mixed" disabled>
+            Mixed
+          </option>
+        )}
         <option value="">None</option>
         {MARKERS.map((marker) => (
           <option key={marker} value={marker}>
@@ -178,11 +186,16 @@ export function StatusFields({
       <span>Task</span>
       <select
         aria-label="Task"
-        value={item.task ?? ""}
+        value={task ?? "mixed"}
         onChange={(event) =>
           onChange({ task: (event.target.value || undefined) as TaskState | undefined })
         }
       >
+        {task === null && (
+          <option value="mixed" disabled>
+            Mixed
+          </option>
+        )}
         <option value="">Not a task</option>
         {TASK_STATES.map((state) => (
           <option key={state} value={state}>
@@ -191,26 +204,55 @@ export function StatusFields({
         ))}
       </select>
       <span>Link</span>
-      <div className="control-row link-row">
-        <CommittedField
-          key={`link ${link}`}
-          className="link-field"
-          label="Link"
-          placeholder="Web address or item id"
-          value={link}
-          onCommit={(text) => onChange({ link: text.trim() || undefined })}
-        />
-        {link && (
-          <button
-            className="icon-action link-follow"
-            aria-label={followLabel}
-            title={followLabel}
-            onClick={() => onFollow(link)}
-          >
-            <ExternalLink size={14} />
-          </button>
-        )}
-      </div>
+      <LinkControl selected={selected} value={linkValue} onChange={onChange} onFollow={onFollow} />
+    </div>
+  );
+}
+
+function LinkControl({
+  selected,
+  value,
+  onChange,
+  onFollow,
+}: Readonly<{
+  selected: Item[];
+  value: string | null;
+  onChange: Change;
+  onFollow: (link: string) => void;
+}>) {
+  const link = value ?? "";
+  const followLabel = isWebLink(link) ? "Open link" : "Go to linked item";
+  return (
+    <div className="control-row link-row">
+      <CommittedField
+        key={`link ${selected.map((item) => item.id).join(" ")} ${value}`}
+        className="link-field"
+        label="Link"
+        placeholder={value === null ? "Mixed links" : "Web address or item id"}
+        value={link}
+        onCommit={(text) => onChange({ link: text.trim() || undefined })}
+      />
+      {link && (
+        <button
+          className="icon-action link-follow"
+          aria-label={followLabel}
+          data-hint={followLabel}
+          onClick={() => onFollow(link)}
+        >
+          <ExternalLink size={14} />
+        </button>
+      )}
+      {(value === null || link) && (
+        <button
+          className="icon-action"
+          aria-label="Clear links"
+          data-hint="Clear links"
+          data-hint-detail="Remove links from every selected object."
+          onClick={() => onChange({ link: undefined })}
+        >
+          <X size={14} />
+        </button>
+      )}
     </div>
   );
 }

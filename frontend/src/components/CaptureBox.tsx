@@ -44,8 +44,9 @@ export function CaptureBox({ editor }: Readonly<{ editor: EditorController }>) {
         </span>
         <button
           className="text-action"
-          disabled={count < 2}
+          disabled={count + (text.trim() ? 1 : 0) < 2}
           onClick={() => {
+            add();
             const root = captureToTree(editor.document, capture.ids);
             endCapture(editor);
             if (root) editor.select(root);

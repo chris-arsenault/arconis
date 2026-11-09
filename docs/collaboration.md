@@ -29,6 +29,11 @@ Use **Join another room** or **Create another room** in the header to switch. Ea
 copy remains associated with its room identifier. The participant badge changes a guest's display
 name; a signed-in participant uses their account name.
 
+The home screen lists recently opened rooms from this browser. Ordinary and device-only rooms
+show their titles; protected rooms use **Password room** without storing their titles or keys in
+the recent list. This list helps you find a room; it does not create another document backup.
+Cancel or Escape leaves password entry and returns to the previous room, or home.
+
 ## See where others are
 
 The participant badge in the header opens the list of who is here. **Follow** beside a name
@@ -61,6 +66,10 @@ are shared on handle release; a drawing stroke is shared when its gesture finish
 
 Peers' completed edits still merge while you work. Undo/Redo applies to your own document edits.
 Comments are shared conversations and stay outside document Undo.
+
+Unedited property fields follow peer changes. If a named property changes elsewhere while you
+have a draft, the field keeps your draft and shows the newer value. Enter explicitly applies your
+draft; Escape uses the latest value. Leaving the conflicting field does not overwrite the peer.
 
 ## Read the status bar
 

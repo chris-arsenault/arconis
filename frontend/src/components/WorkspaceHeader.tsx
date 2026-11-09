@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { Download, FileText, ImageDown, Upload, Shapes } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -9,7 +16,7 @@ import { ChangePassword } from "./PasswordGate";
 import { AccountButton } from "./AccountControls";
 import { SaveWorkspace } from "./SaveWorkspace";
 import { Participants } from "./Presence";
-import { useCompletedField } from "./useCompletedField";
+import type { CanvasDocument } from "../document/canvasDocument";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 
@@ -29,7 +36,6 @@ interface Props {
 export function WorkspaceHeader(props: Readonly<Props>) {
   const { session, name, onName, onCreate, onJoin } = props;
   useSyncExternalStore(session.subscribe, session.snapshot);
-  const titleEdit = useCompletedField(session.document.actions);
   const [participants, setParticipants] = useState(false);
   const states = [...session.provider.awareness.getStates().values()] as Partial<{
     user: { name: string };
@@ -46,16 +52,7 @@ export function WorkspaceHeader(props: Readonly<Props>) {
       </a>
       <span className="header-divider" />
       <div className="document-title">
-        <input
-          aria-label="Canvas title"
-          value={session.document.title()}
-          onChange={(event) => {
-            titleEdit.start();
-            session.document.rename(event.target.value);
-          }}
-          onBlur={titleEdit.finish}
-          onKeyDown={titleEdit.keydown}
-        />
+        <CanvasTitle key={session.id} document={session.document} />
       </div>
       <div className="topbar-actions">
         {props.account && <AccountButton account={props.account} onOpen={props.onOpenSaved} />}
@@ -70,7 +67,8 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
         <button
           className="participant-badge"
-          title={`In this room: ${names}. Click to see who is here or change your name.`}
+          data-hint="Participants"
+          data-hint-detail={`In this room: ${names}. See who is here, follow someone or change your name.`}
           aria-label="Participants"
           aria-expanded={participants}
           onClick={() => setParticipants(!participants)}
@@ -98,6 +96,39 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         />
       </div>
     </header>
+  );
+}
+
+/** The display fallback never replaces an empty title while someone is editing it. */
+function CanvasTitle({ document }: Readonly<{ document: CanvasDocument }>) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const cancelled = useRef(false);
+  const commit = () => {
+    if (draft === null) return;
+    const title = draft || "Untitled canvas";
+    if (!cancelled.current && title !== document.title()) {
+      document.undo.stopCapturing();
+      document.rename(title);
+      document.undo.stopCapturing();
+    }
+    cancelled.current = false;
+    setDraft(null);
+  };
+  return (
+    <input
+      aria-label="Canvas title"
+      value={draft ?? document.title()}
+      onChange={(event) => {
+        cancelled.current = false;
+        setDraft(event.target.value);
+      }}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing || !["Enter", "Escape"].includes(event.key)) return;
+        cancelled.current = event.key === "Escape";
+        event.currentTarget.blur();
+      }}
+    />
   );
 }
 
@@ -137,6 +168,14 @@ function fileFailure(error: unknown, onMessage: (text: string) => void) {
   onMessage(String(error));
 }
 
+function ExportCopyNote({ locked }: Readonly<{ locked: boolean }>) {
+  return locked ? (
+    <p className="export-copy-note">
+      Exports are readable copies without the room password. PNGs include editable canvas content.
+    </p>
+  ) : null;
+}
+
 async function exportCanvas({ session, onMessage }: FileProps, includeMarkup: boolean) {
   try {
     downloadFile(
@@ -158,15 +197,91 @@ function useDismiss(ref: RefObject<HTMLElement | null>, open: boolean, close: ()
       if (!(event.target instanceof Node) || !ref.current?.contains(event.target)) close();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
     };
     window.addEventListener("pointerdown", onDown, true);
-    window.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     return () => {
       window.removeEventListener("pointerdown", onDown, true);
-      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [ref, open, close]);
+}
+
+function navigateFileMenu(
+  event: ReactKeyboardEvent<HTMLDivElement>,
+  close: () => void,
+  trigger: HTMLButtonElement | null
+) {
+  if (event.key === "Tab") {
+    close();
+    trigger?.focus();
+    return;
+  }
+  const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+  if (!keys.includes(event.key)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const items = [...event.currentTarget.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
+  const current = items.indexOf(document.activeElement as HTMLElement);
+  const step = event.key === "ArrowUp" ? -1 : 1;
+  let next = (current + step + items.length) % items.length;
+  if (event.key === "Home") next = 0;
+  if (event.key === "End") next = items.length - 1;
+  items[next]?.focus();
+}
+
+function FileMenuItems({
+  props,
+  includeMarkup,
+  onMarkup,
+  run,
+  onImport,
+}: Readonly<{
+  props: FileProps;
+  includeMarkup: boolean;
+  onMarkup: (include: boolean) => void;
+  run: (action: () => void) => () => void;
+  onImport: () => void;
+}>) {
+  return (
+    <>
+      <ExportCopyNote locked={Boolean(props.session.lock)} />
+      <button
+        role="menuitem"
+        onClick={run(() => void exportCanvas(props, includeMarkup))}
+        data-hint="Export document"
+        data-hint-detail="Download a readable canvas file any room can import"
+      >
+        <Download size={15} /> Export document
+      </button>
+      <button
+        role="menuitem"
+        onClick={run(() => void exportPng(props, includeMarkup))}
+        data-hint="Export PNG"
+        data-hint-detail="Download the selection or whole canvas with editable source inside the image"
+      >
+        <ImageDown size={15} /> Export PNG
+      </button>
+      <button role="menuitem" onClick={onImport}>
+        <Upload size={15} /> Import document
+      </button>
+      <label className="export-markup">
+        <input
+          type="checkbox"
+          role="menuitemcheckbox"
+          aria-checked={includeMarkup}
+          checked={includeMarkup}
+          onChange={(event) => onMarkup(event.target.checked)}
+        />
+        Include markup
+      </label>
+    </>
+  );
 }
 
 /**
@@ -179,61 +294,64 @@ function DocumentActions(props: FileProps) {
   const [close] = useState(() => () => setOpen(false));
   const input = useRef<HTMLInputElement>(null);
   const menu = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const edge = useRef("first");
   useDismiss(menu, open, close);
+  useEffect(() => {
+    if (!open) return;
+    const items = menu.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]');
+    if (items?.length) items[edge.current === "last" ? items.length - 1 : 0].focus();
+  }, [open]);
   const load = (file: File) => loadFile(props, file);
   const run = (action: () => void) => () => {
     setOpen(false);
+    trigger.current?.focus();
     action();
+  };
+  const importFile = () => {
+    setOpen(false);
+    trigger.current?.focus();
+    input.current?.click();
   };
   return (
     <div className="file-menu" ref={menu}>
       <button
+        ref={trigger}
         className="text-action file-menu-button"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
+        onKeyDown={(event) => {
+          if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+          event.preventDefault();
+          edge.current = event.key === "ArrowUp" ? "last" : "first";
+          setOpen(true);
+        }}
       >
         <FileText size={16} /> File
       </button>
       {open && (
-        <div className="file-menu-list" role="menu" aria-label="File">
-          <button
-            role="menuitem"
-            onClick={run(() => void exportCanvas(props, includeMarkup))}
-            title="Download the canvas as a file any room can import"
-          >
-            <Download size={15} /> Export document
-          </button>
-          <button
-            role="menuitem"
-            onClick={run(() => void exportPng(props, includeMarkup))}
-            title="Download the selection or whole canvas as a PNG that can be loaded again"
-          >
-            <ImageDown size={15} /> Export PNG
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              input.current?.click();
-            }}
-          >
-            <Upload size={15} /> Import document
-          </button>
-          <label className="export-markup">
-            <input
-              type="checkbox"
-              checked={includeMarkup}
-              onChange={(event) => setIncludeMarkup(event.target.checked)}
-            />
-            Include markup
-          </label>
+        <div
+          className="file-menu-list"
+          role="menu"
+          tabIndex={-1}
+          aria-label="File"
+          onKeyDown={(event) => navigateFileMenu(event, close, trigger.current)}
+        >
+          <FileMenuItems
+            props={props}
+            includeMarkup={includeMarkup}
+            onMarkup={setIncludeMarkup}
+            run={run}
+            onImport={importFile}
+          />
         </div>
       )}
       <input
         ref={input}
         className="visually-hidden"
         type="file"
+        tabIndex={-1}
         accept=".arconis,application/json,.png,image/png"
         aria-label="Import file"
         onChange={(event) => {

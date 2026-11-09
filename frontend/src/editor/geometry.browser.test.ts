@@ -42,6 +42,7 @@ it("keeps world geometry when a peer groups while another moves offline", async 
   await more(a, "Group");
   await b.getByLabel("Object x", { exact: true }).fill("150");
   await b.getByLabel("Object y", { exact: true }).fill("180");
+  await b.getByLabel("Object y", { exact: true }).press("Tab");
   await first.setOffline(false);
   await expect.poll(() => shapePosition(a), { timeout: 45000 }).toEqual([150, 180]);
   await expect.poll(() => shapePosition(b), { timeout: 45000 }).toEqual([150, 180]);
@@ -56,6 +57,7 @@ async function moveDuplicateUngroup(page: Page) {
   await groupLabel(page).click();
   const x = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
   await page.getByLabel("Object x", { exact: true }).fill(String(x + 100));
+  await page.getByLabel("Object x", { exact: true }).press("Tab");
   expect(await shapePosition(page)).toEqual([250, 180]);
   await more(page, "Duplicate");
   const copy = await exported(page);

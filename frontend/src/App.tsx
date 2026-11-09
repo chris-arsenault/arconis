@@ -11,6 +11,7 @@ import {
 } from "./collaboration/room";
 import { Welcome } from "./components/Welcome";
 import { Workspace } from "./components/Workspace";
+import { rememberRoom } from "./collaboration/recentRooms";
 
 const NAME_KEY = "arconis:name";
 
@@ -31,6 +32,7 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
   useEffect(() => {
     if (!room) return;
     let next: RoomSession | null = null;
+    let stopRemembering = () => {};
     let active = true;
     const start = async () => {
       const instance = new RoomSession(
@@ -41,6 +43,17 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
       next = instance;
       await instance.start();
       if (!active) return;
+      const openedAt = Date.now();
+      let previousTitle = "";
+      const remember = () => {
+        if (instance.lock && instance.lock.state !== "unlocked") return;
+        const title = instance.document.title();
+        if (title === previousTitle) return;
+        previousTitle = title;
+        rememberRoom(room, title, openedAt);
+      };
+      remember();
+      stopRemembering = instance.subscribe(remember);
       setSession(instance);
       const saved = takeSavedCopy(room);
       if (saved) void instance.saveable.apply(saved);
@@ -50,6 +63,7 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
     });
     return () => {
       active = false;
+      stopRemembering();
       next?.destroy();
     };
   }, [room, createdRoom]);
@@ -69,12 +83,17 @@ function useAccountName(session: RoomSession | null) {
 const noSubscribe = () => () => {};
 const noSnapshot = () => 0;
 
+function returnToRoom(room: string | null) {
+  location.hash = room ? roomHash(room) : "";
+}
+
 export function App() {
   const [room, setRoom] = useState(() => parseRoom(location.hash.slice(1)));
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "Guest");
   const [askName, setAskName] = useState(() => !localStorage.getItem(NAME_KEY));
   const [created, setCreated] = useState("");
   const createdRoom = useRef("");
+  const previousRoom = useRef<string | null>(null);
   const { session, error, setError } = useRoomSession(room, createdRoom);
   const accountName = useAccountName(session);
   useEffect(() => {
@@ -83,6 +102,7 @@ export function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
   const open = (id: string) => {
+    if (id !== room) previousRoom.current = room;
     setError("");
     location.hash = roomHash(id);
   };
@@ -136,6 +156,7 @@ export function App() {
       onName={changeName}
       onCreate={() => create()}
       onJoin={open}
+      onLeave={() => returnToRoom(previousRoom.current)}
     />
   );
 }

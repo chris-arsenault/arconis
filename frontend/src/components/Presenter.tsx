@@ -1,5 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { ChevronLeft, ChevronRight, Maximize, Minimize, NotebookText, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Maximize,
+  Minimize,
+  NotebookText,
+  X,
+} from "lucide-react";
 import { groupThreads, listComments } from "../document/comments";
 import type { EditorController } from "../editor/controller";
 
@@ -40,12 +49,15 @@ export function PresenterStage({
       } else if (event.key === "Escape") presenter.stop();
     };
     window.addEventListener("resize", refit);
+    const resize = new ResizeObserver(refit);
+    resize.observe(editor.element);
     window.addEventListener("keydown", keys);
     return () => {
       window.removeEventListener("resize", refit);
+      resize.disconnect();
       window.removeEventListener("keydown", keys);
     };
-  }, [presenter]);
+  }, [presenter, editor]);
   // The deck emptied under the presenter, so there is nothing left to show.
   useEffect(() => {
     if (!slide) presenter.stop();
@@ -67,25 +79,37 @@ export function PresenterStage({
         <span className="presenter-divider" />
         <button
           aria-label="Speaker notes"
-          title="Speaker notes"
+          data-hint="Speaker notes"
           aria-pressed={notes}
           onClick={onToggleNotes}
         >
           <NotebookText size={17} />
         </button>
         <FullscreenButton />
-        <button aria-pressed={editor.drawing.visible} onClick={() => editor.drawing.toggle()}>
-          Show markup
-        </button>
+        <AnnotationVisibility editor={editor} />
         <button
           aria-label="Leave presentation"
-          title="Leave presentation (Escape)"
+          data-hint="Leave presentation (Escape)"
           onClick={() => presenter.stop()}
         >
           <X size={18} />
         </button>
       </div>
     </div>
+  );
+}
+
+function AnnotationVisibility({ editor }: Readonly<{ editor: EditorController }>) {
+  return (
+    <button
+      aria-label="Show annotations"
+      data-hint="Show annotations"
+      data-hint-detail="Show or hide annotations in your view only. Other participants keep their own setting."
+      aria-pressed={editor.drawing.visible}
+      onClick={() => editor.drawing.toggle()}
+    >
+      {editor.drawing.visible ? <Eye size={16} /> : <EyeOff size={16} />} Annotations
+    </button>
   );
 }
 
@@ -105,7 +129,7 @@ function FullscreenButton() {
     else document.documentElement.requestFullscreen?.().catch(ignore);
   };
   return (
-    <button aria-label="Full screen" title="Full screen" aria-pressed={full} onClick={toggle}>
+    <button aria-label="Full screen" data-hint="Full screen" aria-pressed={full} onClick={toggle}>
       {full ? <Minimize size={17} /> : <Maximize size={17} />}
     </button>
   );
@@ -133,15 +157,23 @@ function StageMask({ editor }: Readonly<{ editor: EditorController }>) {
 }
 
 /** The shown slide's comments, as the presenter's notes, beside the stage. */
-export function PresenterNotes({ editor }: Readonly<{ editor: EditorController }>) {
+export function PresenterNotes({
+  editor,
+  onClose,
+}: Readonly<{ editor: EditorController; onClose: () => void }>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
   const slide = editor.presenter.slide();
   if (!slide) return null;
   const threads = groupThreads(listComments(editor.document), slide.id);
   return (
     <aside className="presenter-notes" aria-label="Speaker notes" data-testid="presenter-notes">
-      <h3>{slide.name || "Notes"}</h3>
-      {threads.length === 0 && <p className="presenter-empty">No comments on this slide.</p>}
+      <header>
+        <h3>{slide.name || "Speaker notes"}</h3>
+        <button className="icon-action" aria-label="Close speaker notes" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </header>
+      {threads.length === 0 && <p className="presenter-empty">No speaker notes on this slide.</p>}
       {threads.map(({ root, replies }) => (
         <div className="presenter-note" key={root.id}>
           {[root, ...replies].map((comment) => (

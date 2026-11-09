@@ -10,6 +10,8 @@ const FLY_MS = 350;
 
 /** Measures from the document, because objects too small to draw can still be all there is. */
 export function fitContents(graph: Graph, element: HTMLElement, items: Item[]) {
+  // An explicit Fit replaces a link/search flight that may still be animating.
+  flight += 1;
   const bounds = worldBounds(items);
   if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
   const { clientWidth: width, clientHeight: height } = element;

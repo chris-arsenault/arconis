@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import { describeMatch, findMatches, showMatch, type Match } from "../editor/find";
+import { describeMatch, findMatches, revealMatch, showMatch, type Match } from "../editor/find";
 import { listComments } from "../document/comments";
 import { worldBounds } from "../document/relations";
 import { showFind } from "../editor/registry";
@@ -26,7 +26,48 @@ function Pulse({ editor, match }: Readonly<{ editor: EditorController; match: Ma
 /** "2 of 5", "No matches", or nothing before anything is typed. */
 function countLabel(query: string, current: number, total: number) {
   if (!query) return "";
-  return total ? `${current + 1} of ${total}` : "No matches";
+  if (!total) return "No matches";
+  const noun = total === 1 ? "match" : "matches";
+  return current < 0 ? `${total} ${noun}` : `${current + 1} of ${total}`;
+}
+
+function MatchList({
+  matches,
+  current,
+  onShow,
+}: Readonly<{
+  matches: Match[];
+  current: number;
+  onShow: (index: number, reveal?: boolean) => void;
+}>) {
+  return (
+    <ul className="find-matches" aria-label="Matches">
+      {matches.slice(0, 8).map((match, position) => (
+        <li key={match.item.id}>
+          <button
+            type="button"
+            className={position === current ? "active" : ""}
+            onClick={() => onShow(position)}
+          >
+            {describeMatch(match)}
+          </button>
+          {match.hidden && (
+            <button
+              type="button"
+              className="find-reveal"
+              aria-label={`Reveal ${match.item.name.split("\n")[0] || "this object"}`}
+              data-hint="Reveal this object"
+              data-hint-detail="Leave other hidden objects hidden. Hidden containers needed to show this object are revealed too."
+              onClick={() => onShow(position, true)}
+            >
+              <Eye size={14} />
+            </button>
+          )}
+        </li>
+      ))}
+      {matches.length > 8 && <li className="find-more">and {matches.length - 8} more</li>}
+    </ul>
+  );
 }
 
 /**
@@ -35,18 +76,24 @@ function countLabel(query: string, current: number, total: number) {
  */
 export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
   const [query, setQuery] = useState("");
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(-1);
   const [shown, setShown] = useState<Match | null>(null);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.focus(), []);
   const matches = findMatches(editor.document.list(), listComments(editor.document), query);
   const current = matches.length ? Math.min(index, matches.length - 1) : -1;
+  const show = (position: number, reveal = false) => {
+    const match = matches[position];
+    if (reveal) revealMatch(editor, match);
+    else showMatch(editor, match);
+    setIndex(position);
+    setShown({ ...match, hidden: reveal ? false : match.hidden });
+  };
   const step = (by: number) => {
     if (!matches.length) return;
-    const next = (current + by + matches.length) % matches.length;
-    setIndex(next);
-    showMatch(editor, matches[next]);
-    setShown(matches[next]);
+    let next = (current + by + matches.length) % matches.length;
+    if (current < 0) next = by > 0 ? 0 : matches.length - 1;
+    show(next);
   };
   const close = () => showFind(editor, false);
   return (
@@ -59,7 +106,7 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);
-          setIndex(0);
+          setIndex(-1);
           setShown(null);
         }}
         onKeyDown={(event) => {
@@ -85,24 +132,7 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
         <X size={14} />
       </button>
       {query && matches.length > 0 && (
-        <ul className="find-matches" aria-label="Matches">
-          {matches.slice(0, 8).map((match, position) => (
-            <li key={match.item.id}>
-              <button
-                type="button"
-                className={position === current ? "active" : ""}
-                onClick={() => {
-                  setIndex(position);
-                  showMatch(editor, match);
-                  setShown(match);
-                }}
-              >
-                {describeMatch(match)}
-              </button>
-            </li>
-          ))}
-          {matches.length > 8 && <li className="find-more">and {matches.length - 8} more</li>}
-        </ul>
+        <MatchList matches={matches} current={current} onShow={show} />
       )}
     </div>
   );

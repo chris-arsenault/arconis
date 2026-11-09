@@ -1,8 +1,9 @@
 import type { CanvasComment } from "../document/comments";
-import { hiddenIds, worldBounds } from "../document/relations";
+import { hiddenIds, removalClosure, worldBounds } from "../document/relations";
 import { isBox, typeLabel, type Item } from "../document/types";
 import type { EditorController } from "./controller";
 import { fittingView, flyToView } from "./views";
+import { changeFields } from "./commands";
 
 /** How much of the window a found object fills, enough to see what is around it. */
 const FIND_FILL = 0.3;
@@ -68,4 +69,19 @@ export function showMatch(editor: EditorController, match: Match) {
     editor.graph.clearSelection();
     editor.emit();
   }
+}
+
+/** Reveals this result and any hidden holder/end that hides it, leaving unrelated flags alone. */
+export function revealMatch(editor: EditorController, match: Match) {
+  const items = editor.document.list();
+  const hidden = items.filter(
+    (item) => item.hidden && removalClosure(items, [item.id]).has(match.item.id)
+  );
+  changeFields(
+    editor.document,
+    hidden.map((item) => item.id),
+    { hidden: undefined }
+  );
+  const current = editor.document.get(match.item.id);
+  if (current) showMatch(editor, { ...match, item: current, hidden: false });
 }

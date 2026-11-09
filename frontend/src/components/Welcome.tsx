@@ -1,6 +1,16 @@
-import { ArrowRight, Shapes, StickyNote, GitBranch, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Shapes,
+  StickyNote,
+  GitBranch,
+  Sparkles,
+  KeyRound,
+  Monitor,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
-import { parseRoom } from "../collaboration/room";
+import { isLocalRoom, isLockedRoom, parseRoom } from "../collaboration/room";
+import { recentRooms, type RecentRoom } from "../collaboration/recentRooms";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 import { AccountButton } from "./AccountControls";
@@ -19,6 +29,7 @@ interface Props {
 }
 
 export function Welcome(props: Readonly<Props>) {
+  const rooms = recentRooms();
   return (
     <main className="welcome">
       <div className="brand">
@@ -28,50 +39,88 @@ export function Welcome(props: Readonly<Props>) {
         arconis
       </div>
       <section className="welcome-content">
-        <span className="eyebrow">
-          <Sparkles size={15} /> A LITTLE SPACE FOR BIG IDEAS
-        </span>
-        <h1>
-          Give your thinking
-          <br />
-          <em>room to grow.</em>
-        </h1>
-        <p>
-          From the first sticky note to the whole system.
-          <br />
-          Draw, connect, and work it out together on one shared canvas.
-        </p>
-        <div className="welcome-tools">
-          <span>
-            <Shapes /> Diagrams
-          </span>
-          <span>
-            <StickyNote /> Ideas
-          </span>
-          <span>
-            <GitBranch /> Connections
-          </span>
-        </div>
+        {rooms.length ? <h1>Your canvases</h1> : <WelcomeIntroduction />}
+        <RecentRooms rooms={rooms} onJoin={props.onJoin} />
         <WelcomeForm {...props} />
         <p className="welcome-footnote">
-          No accounts. Share a link and start thinking together.
+          No account required. Share a link and start thinking together.
           <br />
           Your browser keeps a local copy. Use rooms for non-sensitive work.
         </p>
       </section>
-      <div className="welcome-art" aria-hidden="true">
-        <div className="art-note">
-          What if we
-          <br />
-          connected
-          <br />
-          <strong>the dots?</strong>
-          <span>↗</span>
+      {!rooms.length && (
+        <div className="welcome-art" aria-hidden="true">
+          <div className="art-note">
+            What if we
+            <br />
+            connected
+            <br />
+            <strong>the dots?</strong>
+            <span>↗</span>
+          </div>
+          <div className="art-shape">a starting point</div>
+          <div className="art-dot" />
         </div>
-        <div className="art-shape">a starting point</div>
-        <div className="art-dot" />
-      </div>
+      )}
     </main>
+  );
+}
+
+function WelcomeIntroduction() {
+  return (
+    <>
+      <span className="eyebrow">
+        <Sparkles size={15} /> A LITTLE SPACE FOR BIG IDEAS
+      </span>
+      <h1>
+        Give your thinking
+        <br />
+        <em>room to grow.</em>
+      </h1>
+      <p>
+        From the first sticky note to the whole system.
+        <br />
+        Draw, connect, and work it out together on one shared canvas.
+      </p>
+      <div className="welcome-tools">
+        <span>
+          <Shapes /> Diagrams
+        </span>
+        <span>
+          <StickyNote /> Ideas
+        </span>
+        <span>
+          <GitBranch /> Connections
+        </span>
+      </div>
+    </>
+  );
+}
+
+function RecentRooms({ rooms, onJoin }: Readonly<Pick<Props, "onJoin"> & { rooms: RecentRoom[] }>) {
+  if (!rooms.length) return null;
+  return (
+    <section className="recent-rooms" aria-label="Recent rooms">
+      <h2>Recently opened on this browser</h2>
+      <ul>
+        {rooms.map((room) => {
+          const locked = isLockedRoom(room.id);
+          const local = isLocalRoom(room.id);
+          const plainIcon = local ? Monitor : Users;
+          const Icon = locked ? KeyRound : plainIcon;
+          const plainLabel = local ? "On this device" : "Shared room";
+          return (
+            <li key={room.id}>
+              <button type="button" onClick={() => onJoin(room.id)}>
+                <Icon size={16} aria-hidden="true" />
+                <span className="recent-room-title">{locked ? "Password room" : room.title}</span>
+                <small>{locked ? "Password required" : plainLabel}</small>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

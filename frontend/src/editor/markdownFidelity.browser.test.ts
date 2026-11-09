@@ -68,6 +68,7 @@ it("grows free text on request, fits fixed boxes and preserves explicit resize m
     .poll(async () => Number(await page.getByLabel("Object height", { exact: true }).inputValue()))
     .toBeGreaterThan(initial);
   await page.getByLabel("Object height", { exact: true }).fill("150");
+  await page.getByLabel("Object height", { exact: true }).press("Tab");
   expect(await page.getByLabel("Grow text height", { exact: true }).isChecked()).toBe(false);
   await source(page).fill("Short again");
   expect(Number(await page.getByLabel("Object height", { exact: true }).inputValue())).toBe(150);

@@ -146,7 +146,12 @@ export function reorderSibling(document: CanvasDocument, id: string, by: -1 | 1)
 }
 
 /** A copy of an object placed one gap away, joined to it; a topic's copy is its branch. */
-export function connectedClone(document: CanvasDocument, id: string, direction: Direction) {
+export function connectedClone(
+  document: CanvasDocument,
+  id: string,
+  direction: Direction,
+  placement: Partial<Pick<Item, "x" | "y" | "width" | "height" | "look">> = {}
+) {
   const items = document.list();
   const item = items.find((candidate) => candidate.id === id);
   if (!item || !isBox(item)) return "";
@@ -165,6 +170,7 @@ export function connectedClone(document: CanvasDocument, id: string, direction: 
     look: { ...item.look },
     inside: item.inside,
     icon: item.icon,
+    ...placement,
   });
   const inTree = branchParent(items, id) || branchChildren(items, id).length > 0;
   const link = document.build(inTree ? "branch" : "line", 0, 0, { from: id, to: clone.id });

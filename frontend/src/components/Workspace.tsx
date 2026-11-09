@@ -1,5 +1,5 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Plus, CheckCircle2, WifiOff } from "lucide-react";
+import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Plus, CheckCircle2, WifiOff, SlidersHorizontal, X } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { CommandPalette } from "./CommandPalette";
@@ -24,6 +24,9 @@ import { WorkspaceHeader } from "./WorkspaceHeader";
 import { PresenterNotes, PresenterStage } from "./Presenter";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
+import { useNarrowLayout } from "./useNarrowLayout";
+import { ContextHelp } from "./ContextHelp";
+import { TextOverflow } from "./TextOverflow";
 
 const subscribeEmpty = () => () => {};
 interface Props {
@@ -37,6 +40,7 @@ interface Props {
   onName: (name: string) => void;
   onCreate: () => void;
   onJoin: (id: string) => void;
+  onLeave: () => void;
 }
 
 /** The room's editor as it arrives, and whether it is presenting, re-rendering as either changes. */
@@ -69,7 +73,8 @@ export function Workspace(props: Readonly<Props>) {
     ) : null;
   return (
     <div className={presenting ? "workspace presenting" : "workspace"}>
-      <PasswordGate session={session} />
+      <ContextHelp />
+      <PasswordGate session={session} onCancel={props.onLeave} />
       {!presenting && (
         <WorkspaceHeader
           {...props}
@@ -118,14 +123,61 @@ type BodyProps = Readonly<{
  * canvas keeps its place in the tree either way, so the editor lives on.
  */
 function WorkspaceBody({ children, ...props }: BodyProps) {
-  const { editor, presenting, notes } = props;
+  const { editor, presenting } = props;
+  const narrow = useNarrowLayout();
+  const [panel, setPanel] = useState<"tools" | "properties" | null>(null);
+  const expandTools = useCallback((open: boolean) => setPanel(open ? "tools" : null), []);
+  useSyncExternalStore(editor?.subscribe ?? subscribeEmpty, () =>
+    Boolean(editor?.selected().length)
+  );
   return (
     <div className="workspace-body">
-      {editor && !presenting && <LeftRail editor={editor} />}
+      {editor && !presenting && (
+        <LeftRail
+          editor={editor}
+          compact={narrow}
+          expanded={narrow ? panel === "tools" : undefined}
+          onExpand={narrow ? expandTools : undefined}
+        />
+      )}
       <CanvasArea {...props}>{children}</CanvasArea>
-      {editor &&
-        (presenting ? notes && <PresenterNotes editor={editor} /> : <Inspector editor={editor} />)}
+      <PropertyPanel
+        {...props}
+        narrow={narrow}
+        open={panel === "properties"}
+        onToggle={() => setPanel(panel === "properties" ? null : "properties")}
+      />
     </div>
+  );
+}
+
+function PropertyPanel({
+  editor,
+  presenting,
+  notes,
+  onToggleNotes,
+  narrow,
+  open,
+  onToggle,
+}: Omit<BodyProps, "children"> &
+  Readonly<{ narrow: boolean; open: boolean; onToggle: () => void }>) {
+  if (!editor) return null;
+  if (presenting) return notes ? <PresenterNotes editor={editor} onClose={onToggleNotes} /> : null;
+  const toggle = narrow && editor.selected().length > 0;
+  return (
+    <>
+      {toggle && (
+        <button
+          className="properties-toggle"
+          aria-label={open ? "Close properties" : "Object properties"}
+          aria-expanded={open}
+          onClick={onToggle}
+        >
+          {open ? <X size={16} /> : <SlidersHorizontal size={16} />} Properties
+        </button>
+      )}
+      {(!narrow || open) && <Inspector editor={editor} />}
+    </>
   );
 }
 
@@ -174,6 +226,7 @@ function EditingOverlays({
       <Cursors editor={editor} session={session} />
       <CanvasHUD editor={editor} />
       <QuickCreate editor={editor} />
+      <TextOverflow editor={editor} />
       <SelectionToolbar editor={editor} />
       <Measure editor={editor} />
       <Announcer editor={editor} />
@@ -296,7 +349,10 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
   };
   return (
     <footer className="statusbar">
-      <span className={`connection-status ${session.state}`} title={session.detail}>
+      <span
+        className={`connection-status ${session.state}`}
+        data-hint={session.detail || syncDescription(session)}
+      >
         {session.state === "online" ? <CheckCircle2 size={14} /> : <WifiOff size={14} />}
         <span data-testid="connection-status">
           {isLocalRoom(session.id) ? "On this device only" : labels[session.state]}

@@ -92,6 +92,7 @@ it("finds, places, connects and syncs icons from the stencil rail", async () => 
   await expect.poll(() => objectCount(a)).toBe(3);
   await canvas(a).click({ position: { x: 232, y: 212 } });
   await a.getByLabel("Object width", { exact: true }).fill("120");
+  await a.getByLabel("Object width", { exact: true }).press("Tab");
   const b = await open(second, room);
   await expect.poll(() => objectCount(b), { timeout: 15000 }).toBe(3);
   await expect.poll(() => canvas(b).locator('image[*|href^="data:image/svg+xml"]').count()).toBe(2);
@@ -129,6 +130,7 @@ it("offers cloud provider icons that scale evenly and never rotate, for every pe
   expect(await a.getByLabel("Icon color", { exact: true }).count()).toBe(0);
   expect(await a.getByLabel("Fill color", { exact: true }).count()).toBe(0);
   await a.getByLabel("Object width", { exact: true }).fill("128");
+  await a.getByLabel("Object width", { exact: true }).press("Tab");
   await expect.poll(() => a.getByLabel("Object height", { exact: true }).inputValue()).toBe("128");
 
   // A corner drag asking for a wide shape still scales evenly.

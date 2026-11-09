@@ -12,7 +12,8 @@ import { changeFields } from "./commands";
 function isTyping(target: EventTarget | null) {
   return (
     target instanceof HTMLElement &&
-    (target.isContentEditable || Boolean(target.closest("input, textarea, select, [role=dialog]")))
+    (target.isContentEditable ||
+      Boolean(target.closest("input, textarea, select, dialog, [role=dialog], [role=menu]")))
   );
 }
 
@@ -35,6 +36,7 @@ function takesKey(editor: EditorController, event: KeyboardEvent) {
   const key = event.key.toLowerCase();
   // A presentation has its own keys, and nothing is being edited.
   if (editor.presenter.active) return false;
+  if (editor.ui.menu || event.defaultPrevented) return false;
   if (isTyping(event.target) || activatesControl(event.target, key)) return false;
   const paletteKey = key === "k" && (event.ctrlKey || event.metaKey);
   return !editor.ui.palette || paletteKey;
@@ -158,9 +160,10 @@ export function bindCanvasInput(editor: EditorController) {
       if (
         target instanceof Element &&
         !typing &&
+        !editor.ui.menu &&
         target.closest("button") &&
         target.closest(".canvas-area, .left-rail, .inspector") &&
-        !target.closest(".selection-popover")
+        !target.closest(".selection-popover, .menu-anchor")
       )
         editor.element.focus({ preventScroll: true });
     },

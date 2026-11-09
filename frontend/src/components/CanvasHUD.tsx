@@ -28,7 +28,7 @@ function HiddenObjects({ editor }: Readonly<{ editor: EditorController }>) {
     <button
       className="hidden-objects"
       aria-label={label}
-      title={label}
+      data-hint={label}
       onClick={() =>
         changeFields(
           editor.document,
@@ -87,7 +87,8 @@ function ZoomReadout({ editor }: Readonly<{ editor: EditorController }>) {
     <button
       className="zoom-readout"
       data-testid="zoom-level"
-      title="Type a zoom"
+      data-hint="Type a zoom"
+      data-hint-detail="Changes your view only. Enter a percentage."
       onClick={() => setTyping(true)}
     >
       {label}
@@ -117,12 +118,12 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
         <Plus size={17} />
       </button>
       <span className="zoom-divider" />
-      <button aria-label="Fit canvas" title="Fit to contents" onClick={() => editor.fit()}>
+      <button aria-label="Fit canvas" data-hint="Fit to contents" onClick={() => editor.fit()}>
         <Scan size={17} />
       </button>
       <button
         aria-label="Grid and snapping"
-        title={editor.grid.visible ? "Hide grid and stop snapping" : "Show grid and snap to it"}
+        data-hint={editor.grid.visible ? "Hide grid and stop snapping" : "Show grid and snap to it"}
         aria-pressed={editor.grid.visible}
         onClick={() => {
           editor.grid.toggle();
@@ -133,7 +134,7 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
       </button>
       <button
         aria-label="Reference lines"
-        title={editor.referencesVisible ? "Hide reference lines" : "Show references as lines"}
+        data-hint={editor.referencesVisible ? "Hide reference lines" : "Show references as lines"}
         aria-pressed={editor.referencesVisible}
         onClick={() => editor.toggleReferences()}
       >
@@ -154,7 +155,7 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
       <div className="canvas-history">
         <button
           aria-label="Undo"
-          title="Undo (Ctrl/⌘ Z)"
+          data-hint="Undo (Ctrl/⌘ Z)"
           disabled={!editor.document.undo.canUndo()}
           onClick={() => editor.document.undo.undo()}
         >
@@ -162,7 +163,7 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
         </button>
         <button
           aria-label="Redo"
-          title="Redo (Ctrl/⌘ Shift Z)"
+          data-hint="Redo (Ctrl/⌘ Shift Z)"
           disabled={!editor.document.undo.canRedo()}
           onClick={() => editor.document.undo.redo()}
         >
@@ -173,7 +174,7 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         className="help-button"
         aria-label="Commands and shortcuts"
-        title={`Commands and shortcuts (${shortcutLabel({ key: "k", ctrl: true })})`}
+        data-hint={`Commands and shortcuts (${shortcutLabel({ key: "k", ctrl: true })})`}
         onClick={() => runCommand(editor, "view.palette")}
       >
         <Keyboard size={18} />

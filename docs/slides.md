@@ -44,9 +44,10 @@ Drawings, pictures and Markdown labels work inside templates as they do elsewher
 
 ## Add speaker notes
 
-Select the slide and use **Comments** in the property panel. Enter sends the comment;
+Select the slide and use **Speaker notes** near the top of the property panel. Enter sends the note;
 Shift Enter adds another line. These threads are the slide's speaker notes and are shared with
-the room. The presenter displays their text in a notes panel.
+the room. The presenter displays their text in a notes panel. On phones and tablets, notes occupy
+a bounded area below the slide; **Close speaker notes** restores the full stage.
 
 ## Present
 
@@ -61,7 +62,7 @@ slide's properties. The editor controls give way to the slide and its presentati
 | Right / Page Down / Next slide  | Go to the following slide.             |
 | Speaker notes                   | Show or hide the notes panel.          |
 | Full screen                     | Toggle browser full screen.            |
-| Show markup                     | Show or hide your view of annotations. |
+| Annotations                     | Show or hide your view of annotations. |
 | Escape / Leave presentation     | Return to editing.                     |
 
 The position indicator counts your place among the presented slides, rather than repeating

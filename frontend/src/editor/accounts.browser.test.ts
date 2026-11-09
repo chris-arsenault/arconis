@@ -43,9 +43,8 @@ it("signs in through Ahara's sign-in page, names the account, and saves a worksp
   await page.getByRole("button", { name: "Close account" }).click();
 
   // The account's name replaces whatever was typed, for everyone in the room.
-  await expect
-    .poll(() => peer.getByRole("button", { name: "Participants" }).getAttribute("title"))
-    .toContain("Ada Lovelace");
+  await peer.getByRole("button", { name: "Participants" }).hover();
+  await expect.poll(() => peer.getByRole("tooltip").textContent()).toContain("Ada Lovelace");
 
   await add(page, "Rectangle (R)", SECRET, 300, 240);
   await page.getByRole("button", { name: "Save to my account", exact: true }).click();

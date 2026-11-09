@@ -11,6 +11,7 @@ import {
 } from "../document/comments";
 import { CommentControls } from "./CommentControls";
 import { typeLabel } from "../document/types";
+import { isSlide } from "../document/slides";
 
 /** Where the modal sits: above a box's top edge, or at a line's label; in canvas-area pixels. */
 function anchorFor(editor: EditorController, id: string) {
@@ -65,25 +66,30 @@ export function CommentModal({
   }, [editor, id]);
   if (!id || !item) return null;
   const canvas = editor.document;
+  const heading = isSlide(item) ? "Speaker notes" : "Comments";
   return (
     <div
       ref={ref}
       className="comment-modal"
       role="dialog"
-      aria-label={`Comments on ${item.name || typeLabel(item)}`}
+      aria-label={`${heading} on ${item.name || typeLabel(item)}`}
       data-testid="comment-modal"
     >
       <header>
-        <strong>{item.name.split("\n")[0] || typeLabel(item)}</strong>
+        <strong>
+          {isSlide(item) && "Speaker notes · "}
+          {item.name.split("\n")[0] || typeLabel(item)}
+        </strong>
         <button
           className="icon-action"
-          aria-label="Close comments"
+          aria-label={`Close ${heading.toLowerCase()}`}
           onClick={() => showComments(editor, null)}
         >
           <X size={14} />
         </button>
       </header>
       <CommentControls
+        speakerNotes={isSlide(item)}
         threads={groupThreads(listComments(canvas), item.id)}
         onAdd={(text, thread = "") => addComment(canvas, { on: item.id, author, text, thread })}
         onDelete={(commentId) => deleteComment(canvas, commentId)}

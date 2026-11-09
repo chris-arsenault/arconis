@@ -564,6 +564,16 @@ h1 em {
   place-items: center;
   background: #f6f7fbee;
 }
+dialog.password-gate {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+}
 .password-gate section {
   width: min(420px, calc(100vw - 32px));
   padding: 24px;
@@ -683,7 +693,7 @@ h1 em {
   padding: 0 27px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
-  z-index: 5;
+  z-index: 10;
 }
 .header-divider {
   width: 1px;
@@ -744,6 +754,7 @@ h1 em {
   display: flex;
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 /* Tool gestures stay available above task navigation. Each task owns one scrolling panel. */
 .left-rail {
@@ -2007,7 +2018,25 @@ input.outline-name {
   color: #4b5368;
 }
 .selection-toolbar button:hover {
-  background: #f1f2f6;
+  background: var(--hover);
+}
+.selection-toolbar .swatch-0 {
+  background: #fff0ad;
+}
+.selection-toolbar .swatch-1 {
+  background: #ffd9da;
+}
+.selection-toolbar .swatch-2 {
+  background: #d9e9ff;
+}
+.selection-toolbar .swatch-3 {
+  background: #d8efdf;
+}
+.selection-toolbar .swatch-4 {
+  background: #e7dafa;
+}
+.selection-toolbar .swatch-5 {
+  background: #ffffff;
 }
 .selection-toolbar .swatch {
   width: 18px;
@@ -2048,7 +2077,7 @@ input.outline-name {
   filter: drop-shadow(0 4px 14px #35324c2e);
 }
 .ring-wedge path {
-  fill: #ffffffee;
+  fill: var(--panel);
   stroke: var(--line);
   stroke-width: 1;
   cursor: pointer;
@@ -2058,13 +2087,14 @@ input.outline-name {
   cursor: default;
 }
 .ring-wedge:not(.empty):hover path,
-.ring-wedge.active path {
-  fill: #e9e6f8;
+.ring-wedge.active path,
+.ring-wedge:focus-visible path {
+  fill: var(--pressed);
   stroke: var(--purple);
 }
 .ring-wedge text {
   font-size: 10px;
-  fill: #283249;
+  fill: var(--text);
   pointer-events: none;
 }
 .context-menu {
@@ -2661,19 +2691,21 @@ input.outline-name {
   line-height: 1.7;
 }
 .toast {
-  position: fixed;
-  bottom: 55px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   z-index: 30;
   background: #3d3555;
   color: white;
-  padding: 12px 17px;
-  border-radius: 9px;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
   font-size: 12px;
   box-shadow: 0 4px 20px #28203020;
 }
 .toast button {
+  flex: none;
   border: none;
   background: transparent;
   color: #d0c4ef;
@@ -2926,6 +2958,279 @@ input.outline-name {
   background: var(--pressed);
   border-color: var(--pressed-text);
   color: var(--pressed-text);
+}
+
+/* Context stays near its action, above every panel, without taking pointer ownership. */
+.context-help {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 16px));
+  max-height: min(360px, 60dvh);
+  overflow: hidden;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 5px 20px #11182726;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.context-help strong,
+.context-help span {
+  display: block;
+}
+.context-help span {
+  color: var(--text-soft);
+  white-space: pre-wrap;
+  margin-top: 3px;
+}
+.property-draft {
+  flex: 1;
+  min-width: 0;
+}
+.field-feedback,
+.field-error {
+  display: block;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.field-error {
+  color: #bd374d;
+}
+.mixed-color-label {
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.inspector-primary {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.inspector-primary .inspector-section {
+  padding: 0;
+  border: none;
+}
+.text-overflow-indicator {
+  position: absolute;
+  z-index: 3;
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  background: var(--panel);
+  color: var(--pressed-text);
+  border: 1px solid var(--purple);
+  border-radius: 5px;
+}
+.selection-toolbar {
+  max-width: calc(100% - 16px);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: max-content;
+}
+.selection-toolbar button {
+  flex: none;
+  color: var(--text-soft);
+}
+.presenter-notes header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+.presenter-notes header .icon-action {
+  flex: none;
+  width: 28px;
+  color: inherit;
+}
+.presenter-notes h3 {
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.export-copy-note {
+  max-width: 260px;
+  margin: 6px 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.recent-rooms {
+  margin-top: 24px;
+}
+.recent-rooms h2 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+.recent-rooms ul {
+  list-style: none;
+  padding: 0;
+  max-height: 240px;
+  overflow: auto;
+}
+.recent-rooms li + li {
+  margin-top: 5px;
+}
+.recent-rooms button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  text-align: left;
+  gap: 8px;
+  padding: 10px;
+}
+.find-matches li {
+  display: flex;
+  align-items: center;
+}
+.find-matches li > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.find-matches .find-reveal {
+  width: auto;
+  flex: none;
+}
+.recent-rooms button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-rooms button small {
+  color: #6b7284;
+}
+@media (max-width: 1100px) {
+  .workspace:not(.presenting) .canvas-area {
+    margin-left: 64px;
+  }
+  .left-rail {
+    position: absolute;
+    z-index: 6;
+    inset: 0 auto 0 0;
+    max-width: calc(100vw - 64px);
+  }
+  .inspector {
+    position: absolute;
+    z-index: 7;
+    inset: 52px 8px 8px auto;
+    width: min(320px, calc(100vw - 88px));
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 5px 24px #11182726;
+  }
+  .properties-toggle {
+    position: absolute;
+    z-index: 8;
+    right: 8px;
+    top: 8px;
+    height: 36px;
+    gap: 6px;
+    padding: 0 10px;
+    background: var(--panel);
+    font-size: 12px;
+  }
+  .presenting .workspace-body {
+    flex-direction: column;
+  }
+  .presenter-notes {
+    position: relative;
+    flex: 0 1 auto;
+    width: 100%;
+    max-height: 40%;
+    border: 1px solid #3b3e55;
+    padding: 14px;
+  }
+  .presenter-bar {
+    max-width: calc(100% - 16px);
+    width: max-content;
+    flex-wrap: wrap;
+    justify-content: center;
+    opacity: 1;
+  }
+}
+@media (max-width: 650px) {
+  .topbar {
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .document-title {
+    min-width: 0;
+    flex: 1;
+  }
+  .document-title input {
+    width: 100%;
+    min-width: 0;
+  }
+  .topbar .participant-badge {
+    display: inline-flex;
+    margin: 0 3px;
+    min-height: 40px;
+  }
+  .participant-badge > span {
+    width: 28px;
+    height: 28px;
+  }
+  .participant-badge > span:not(:first-child) {
+    display: none;
+  }
+  .participants {
+    position: fixed;
+    top: 62px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: 65dvh;
+    overflow: auto;
+  }
+  .participants li {
+    flex-wrap: wrap;
+  }
+  .name-prompt {
+    max-width: calc(100% - 80px);
+    left: calc(50% + 26px);
+  }
+  .name-prompt label {
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .name-prompt input {
+    width: 100%;
+  }
+  .selection-toolbar {
+    left: calc(50% + 28px);
+    bottom: 120px;
+    max-width: calc(100% - 80px);
+  }
+  .capture-box {
+    width: min(280px, calc(100% - 88px));
+  }
+  .presenter-bar button {
+    padding: 8px 6px;
+    min-height: 36px;
+  }
+  .presenter-bar > span {
+    min-width: 38px;
+  }
+  .presenter-bar > .presenter-divider {
+    display: none;
+  }
+  .left-rail button,
+  .inspector button,
+  .participants button {
+    min-height: 36px;
+  }
+  .inspector input,
+  .inspector select,
+  .left-rail input,
+  .left-rail select {
+    font-size: 16px;
+  }
 }
 .drawing-tools .ink-swatch {
   width: 26px;

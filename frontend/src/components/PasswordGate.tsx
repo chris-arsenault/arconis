@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { KeyRound } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 
@@ -43,12 +43,31 @@ function PasswordForm({
 }
 
 /** Stands between a password room and its contents, which do not exist here until it opens. */
-export function PasswordGate({ session }: Readonly<{ session: RoomSession }>) {
+export function PasswordGate({
+  session,
+  onCancel,
+}: Readonly<{ session: RoomSession; onCancel: () => void }>) {
   useSyncExternalStore(session.subscribe, session.snapshot);
   const { lock } = session;
-  if (!lock || lock.state === "unlocked") return null;
+  const dialog = useRef<HTMLDialogElement>(null);
+  const blocked = Boolean(lock && lock.state !== "unlocked");
+  useEffect(() => {
+    if (!blocked) return;
+    const current = dialog.current;
+    current?.showModal();
+    return () => current?.close();
+  }, [blocked]);
+  if (!lock || !blocked) return null;
   return (
-    <div className="password-gate" role="dialog" aria-label="Password required">
+    <dialog
+      ref={dialog}
+      className="password-gate"
+      aria-label="Password required"
+      onCancel={(event) => {
+        event.preventDefault();
+        onCancel();
+      }}
+    >
       <section>
         <h2>
           <KeyRound size={18} /> This room has a password
@@ -80,8 +99,11 @@ export function PasswordGate({ session }: Readonly<{ session: RoomSession }>) {
             {lock.error}
           </p>
         )}
+        <button type="button" onClick={onCancel}>
+          Cancel joining
+        </button>
       </section>
-    </div>
+    </dialog>
   );
 }
 
@@ -95,7 +117,7 @@ export function ChangePassword({ session }: Readonly<{ session: RoomSession }>) 
       <button
         className="icon-button"
         aria-label="Change room password"
-        title="Change room password"
+        data-hint="Change room password"
         onClick={() => setOpen(true)}
       >
         <KeyRound size={18} />

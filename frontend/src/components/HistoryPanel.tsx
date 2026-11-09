@@ -19,7 +19,7 @@ export function HistoryPanel({ editor }: Readonly<{ editor: EditorController }>)
           <li key={`redo ${index}`} className="redo">
             <button
               className="rail-entry"
-              title="Go forward to just after this step"
+              data-hint="Go forward to just after this step"
               onClick={() => travelHistory(editor.document, "redo", all.length - index)}
             >
               {label}
@@ -31,7 +31,7 @@ export function HistoryPanel({ editor }: Readonly<{ editor: EditorController }>)
           <button
             className="rail-entry"
             aria-current={index === 0 ? "step" : undefined}
-            title={index === 0 ? "Where the canvas is now" : "Return to just after this step"}
+            data-hint={index === 0 ? "Where the canvas is now" : "Return to just after this step"}
             onClick={() => travelHistory(editor.document, "undo", index)}
           >
             {label}

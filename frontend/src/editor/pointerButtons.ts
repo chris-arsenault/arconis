@@ -66,6 +66,10 @@ export function panWithPointer(editor: EditorController, event: PointerEvent) {
 function selectUnderPointer(editor: EditorController, event: PointerEvent) {
   const cell = cellAt(editor, event);
   const item = cell?.id ? editor.document.get(cell.id) : null;
+  if (!item) {
+    editor.graph.clearSelection();
+    return;
+  }
   if (item && !editor.selected().some((selected) => selected.id === item.id))
     editor.select(item.id);
 }

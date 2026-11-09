@@ -11,12 +11,20 @@ import { openMenuOverSelection as openOverSelection } from "../editor/contextMen
 const TEXT_SIZES = [10, 12, 14, 16, 18, 22, 28, 36, 48];
 
 function FillSwatches({ editor, look }: Readonly<{ editor: EditorController; look: Appearance }>) {
+  const mixed = !editor
+    .selected()
+    .filter(hasFill)
+    .every(
+      (item) => effectiveAppearance(item, editor.document.namedStyle(item.style)).fill === look.fill
+    );
   return COLORS.map((color, index) => (
     <button
       key={color}
       className={`swatch swatch-${index}`}
       aria-label={`Fill ${color}`}
-      aria-pressed={look.fill === color}
+      aria-pressed={!mixed && look.fill === color}
+      data-hint={`Fill ${["Yellow", "Rose", "Blue", "Green", "Purple", "White"][index]}`}
+      data-hint-detail={`${color} · Applies to selected objects`}
       onClick={() => runCommand(editor, `colour.${index}`)}
     />
   ));
@@ -84,20 +92,24 @@ export function SelectionToolbar({ editor }: Readonly<{ editor: EditorController
       {selected.some((item) => isBox(item) && item.type !== "frame") && (
         <button
           aria-label="Change shape"
-          title="Change shape"
+          data-hint="Change shape"
           onClick={() => openOverSelection(editor, "ring.shape")}
         >
           <Shapes size={15} />
         </button>
       )}
       {selected.length === 1 && (
-        <button aria-label="Comment" title="Comment" onClick={() => showComments(editor, first.id)}>
+        <button
+          aria-label="Comment"
+          data-hint="Comment"
+          onClick={() => showComments(editor, first.id)}
+        >
           <MessageSquare size={15} />
         </button>
       )}
       <button
         aria-label="More commands"
-        title="More"
+        data-hint="More commands"
         onClick={() => openOverSelection(editor, null)}
       >
         <MoreHorizontal size={15} />

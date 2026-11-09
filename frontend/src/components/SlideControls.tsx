@@ -1,9 +1,10 @@
 import { Play } from "lucide-react";
+import { useId, useRef, useState } from "react";
 import { deckOf, isSlide, isTemplate, SLIDE_SIZES } from "../document/slides";
 import type { Item } from "../document/types";
 import { Section } from "./ConnectionControls";
-import { useCompletedField } from "./useCompletedField";
 import type { CompletedActions } from "../document/actions";
+import { NumericInput } from "./NumericInput";
 
 /** Makes the slide its deck's template, number 0, or gives it back a number at the deck's end. */
 function TemplateToggle({
@@ -11,7 +12,11 @@ function TemplateToggle({
   onTemplate,
 }: Readonly<{ item: Item; onTemplate: (template: boolean) => void }>) {
   return (
-    <label className="slide-template" title="Number 0: drawn under every slide of the deck">
+    <label
+      className="slide-template"
+      data-hint="Deck template"
+      data-hint-detail="Number 0: drawn under every slide of the deck."
+    >
       <input
         type="checkbox"
         checked={isTemplate(item)}
@@ -42,23 +47,20 @@ export function SlideControls({
   onSize: (width: number, height: number) => void;
   onPresent: () => void;
 }>) {
-  const deckEdit = useCompletedField(actions);
+  const deckId = useId();
+  const numberId = useId();
   if (!isSlide(item)) return null;
   return (
     <Section title="Slide">
       <div className="slide-fields">
-        <label className="slide-field">
+        <label className="slide-field" htmlFor={deckId}>
           <span>Deck</span>
-          <input
-            aria-label="Deck"
-            list="deck-names"
+          <DeckInput
+            id={deckId}
+            key={item.id}
             value={deckOf(item)}
-            onChange={(event) => {
-              deckEdit.start();
-              onDeck(event.target.value);
-            }}
-            onBlur={deckEdit.finish}
-            onKeyDown={deckEdit.keydown}
+            actions={actions}
+            onCommit={onDeck}
           />
         </label>
         <datalist id="deck-names">
@@ -66,15 +68,16 @@ export function SlideControls({
             <option key={name} value={name} />
           ))}
         </datalist>
-        <label className="slide-field slide-number">
+        <label className="slide-field slide-number" htmlFor={numberId}>
           <span>No.</span>
-          <input
-            type="number"
-            aria-label="Slide number"
+          <NumericInput
+            id={numberId}
+            key={item.id}
+            label="Slide number"
             value={item.slide ?? 0}
-            onChange={(event) => {
-              if (event.target.value !== "") onNumber(Number(event.target.value));
-            }}
+            minimum={0}
+            integer
+            onCommit={onNumber}
           />
         </label>
       </div>
@@ -84,6 +87,52 @@ export function SlideControls({
         <Play size={14} /> Present from here
       </button>
     </Section>
+  );
+}
+
+function DeckInput({
+  id,
+  value,
+  actions,
+  onCommit,
+}: Readonly<{
+  id: string;
+  value: string;
+  actions: Pick<CompletedActions, "begin">;
+  onCommit: (deck: string) => void;
+}>) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const skipBlur = useRef(false);
+  const commit = () => {
+    const next = draft?.trim() || "deck";
+    if (draft !== null && next !== value) {
+      const finish = actions.begin();
+      onCommit(next);
+      finish();
+    }
+    setDraft(null);
+  };
+  return (
+    <input
+      id={id}
+      aria-label="Deck"
+      list="deck-names"
+      value={draft ?? value}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (!skipBlur.current) commit();
+        skipBlur.current = false;
+      }}
+      onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing || !["Enter", "Escape"].includes(event.key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.key === "Enter") commit();
+        else setDraft(null);
+        skipBlur.current = true;
+        event.currentTarget.blur();
+      }}
+    />
   );
 }
 

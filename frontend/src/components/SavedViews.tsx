@@ -15,7 +15,6 @@ export function SavedViews({
   onRename: (view: View, name: string) => void;
   onSave: (name: string) => void;
 }>) {
-  const [name, setName] = useState("");
   const [renaming, setRenaming] = useState("");
   return (
     <>
@@ -31,12 +30,17 @@ export function SavedViews({
               />
             ) : (
               <div className="rail-row" key={view.id}>
-                <button className="rail-entry" title={view.name} onClick={() => onGo(view)}>
+                <button
+                  className="rail-entry"
+                  data-hint={view.name}
+                  data-hint-detail="Return to this shared position and zoom."
+                  onClick={() => onGo(view)}
+                >
                   {view.name}
                 </button>
                 <button
                   className="rail-action"
-                  title={`Rename ${view.name}`}
+                  data-hint={`Rename ${view.name}`}
                   aria-label={`Rename view ${view.name}`}
                   onClick={() => setRenaming(view.id)}
                 >
@@ -44,7 +48,7 @@ export function SavedViews({
                 </button>
                 <button
                   className="rail-action"
-                  title={`Remove ${view.name}`}
+                  data-hint={`Remove ${view.name}`}
                   aria-label={`Remove view ${view.name}`}
                   onClick={() => onRemove(view.id)}
                 >
@@ -55,25 +59,39 @@ export function SavedViews({
           )}
         </div>
       )}
-      <form
-        className="save-view"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSave(name.trim() || `View ${views.length + 1}`);
-          setName("");
-        }}
-      >
-        <input
-          aria-label="View name"
-          placeholder="Name this place"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <button aria-label="Save current view" title="Save current view">
-          <Plus size={15} /> Save view
-        </button>
-      </form>
+      <SaveViewForm count={views.length} onSave={onSave} />
     </>
+  );
+}
+
+function SaveViewForm({
+  count,
+  onSave,
+}: Readonly<{ count: number; onSave: (name: string) => void }>) {
+  const [name, setName] = useState("");
+  return (
+    <form
+      className="save-view"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(name.trim() || `View ${count + 1}`);
+        setName("");
+      }}
+    >
+      <input
+        aria-label="View name"
+        placeholder="Name this place"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <button
+        aria-label="Save current view"
+        data-hint="Save current view"
+        data-hint-detail="Saves this position and zoom for everyone in the room."
+      >
+        <Plus size={15} /> Save view
+      </button>
+    </form>
   );
 }
 

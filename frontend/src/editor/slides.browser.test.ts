@@ -31,6 +31,7 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   // Renaming the deck and renumbering from the property panel.
   await page.getByLabel("Deck", { exact: true }).fill("pitch");
   await page.getByLabel("Slide number", { exact: true }).fill("5");
+  await page.getByLabel("Slide number", { exact: true }).press("Tab");
   await expect.poll(() => row(page, "pitch · 5 Solution").count()).toBe(1);
   // The deck's size follows a size choice, and the width field keeps the ratio.
   await page.getByLabel("Slide size", { exact: true }).selectOption("Standard 4:3");
@@ -48,7 +49,7 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
 
   // Speaker notes: a comment of several lines, broken with Shift Enter, in the comments modal.
   await canvas(page).press("Shift+c");
-  const box = page.getByLabel("Add a comment", { exact: true });
+  const box = page.getByLabel("Add speaker notes", { exact: true });
   await box.pressSequentially("Open with the pain.");
   await box.press("Shift+Enter");
   await box.pressSequentially("Then pause.");
@@ -71,7 +72,7 @@ it("presents a deck with the chrome gone, moving by key and button, with notes a
   await add(a, "Slide", "Problem", 100, 100);
   await add(a, "Slide", "Solution", 300, 300);
   await canvas(a).press("Shift+c");
-  await a.getByLabel("Add a comment", { exact: true }).fill("Land the ask.");
+  await a.getByLabel("Add speaker notes", { exact: true }).fill("Land the ask.");
   await a.keyboard.press("Enter");
   await expect.poll(() => a.getByTestId("comment-thread").count()).toBe(1);
   await canvas(a).press("Escape");
@@ -106,7 +107,7 @@ it("presents a deck with the chrome gone, moving by key and button, with notes a
   await a.getByTestId("presenter-notes").getByText("Land the ask.").waitFor();
   await a.getByRole("button", { name: "Previous slide", exact: true }).click();
   await expect.poll(() => a.getByTestId("slide-position").textContent()).toBe("1 / 2");
-  await a.getByTestId("presenter-notes").getByText("No comments on this slide.").waitFor();
+  await a.getByTestId("presenter-notes").getByText("No speaker notes on this slide.").waitFor();
   await a.keyboard.press("n");
 
   // A peer's edit on the shown slide appears during the presentation.

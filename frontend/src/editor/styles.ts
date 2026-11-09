@@ -248,6 +248,14 @@ function applyLabel(item: Item, style: Style, look: Look) {
 
 function baseStyle(item: Item, look: Look): Style {
   const base = { ...BASE_STYLE, ...typeStyle(item) };
+  if (item.type === "group" && item.tags?.includes("table"))
+    Object.assign(base, {
+      keepTitle: true,
+      verticalLabelPosition: "top",
+      whiteSpace: "nowrap",
+      overflow: "width",
+      spacing: 4,
+    });
   if (item.type === "frame" && look.title && look.title !== "header")
     Object.assign(base, TITLE_STYLES[look.title]);
   return base;

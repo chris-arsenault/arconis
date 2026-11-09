@@ -9,7 +9,12 @@ The rail has four task areas: **Add** for shapes and icon libraries, **Draw** fo
 annotations, **Explore** for saved views, topic outlines, tags and history, and **Slides** for
 building and presenting decks. Select, Pan and Connect stay above these areas. **Hide panel**
 leaves the tools and task buttons available while giving the canvas more space. On phones, the
-panel starts hidden; choosing a task opens it over the canvas.
+panel starts hidden; choosing a task opens it over the canvas. On phones and tablets, choosing a
+stencil closes the panel for placement. **Properties** opens the selected object's controls;
+tools and properties share that space so the canvas stays available.
+
+Hover or focus a control for contextual help; on touch screens, hold it to read the help without
+activating it. Escape dismisses the help before affecting the canvas selection.
 
 ## Place and name objects
 
@@ -47,7 +52,10 @@ title and from the name of a saved view.
 Styling controls apply to the selection. Choose fill, line color/width, text appearance and
 other controls that apply to the selected type. Named styles supplied by a file or assistant
 appear in **Style**; item overrides apply over that style. Clearing a property through the
-canvas language restores its inherited/default behavior.
+canvas language restores its inherited/default behavior. Numeric fields preserve empty and partial
+drafts; Enter or leaving the field applies a valid value as one Undo step, while Escape cancels.
+Invalid values remain editable with an explanation. Marker, task, links and appearance show mixed
+values for a selection; **Clear links** removes every selected object's link.
 
 **Copy style** (Ctrl/Command Alt C) remembers one object's named style and look, and **Paste
 style** (Ctrl/Command Alt V) applies them to the selection in place of its own. **Use as
@@ -55,7 +63,7 @@ default for new …** makes the selected object's look what new objects of its k
 on this page.
 
 Ordinary selection reaches workspace objects beneath markup. Use [Lasso](drawing.md#select-transform-and-erase-ink)
-for annotation paths. Widen the browser if the property panel is hidden by the narrow layout.
+for annotation paths. Use **Properties** to open the panel in the narrow layout.
 
 ## Pan, zoom and grid
 
@@ -70,8 +78,9 @@ ring of eight commands around the press point, replacing the menu; drag past a s
 zone toward a wedge and release to stroke it without looking, or release in the centre to keep
 the menu. The ring and the menu change with what was pressed: an object, a line, a slide or
 empty canvas. A right click on an unselected object selects it; one on a member of a selection
-keeps the selection. The browser's own menu never appears over the canvas. Escape or a click
-elsewhere closes.
+keeps the selection. Empty-space right-click opens canvas actions even when an object was selected.
+The browser's own menu never appears over the canvas. Tab and arrows navigate the open menu;
+Escape closes it and preserves the selection.
 
 The ring on an object reads like a compass, so a stroke can be learned once:
 
@@ -127,7 +136,8 @@ appropriate scale for that view.
 **Ctrl/Command F** opens find at the top right. The words you type match names, subtitles,
 tags, comments and ids. Enter, Shift Enter and the arrows step through the matches in reading
 order, flying to each one, selecting it and ringing it briefly; the list beneath shows the first
-matches, with hidden objects marked. Escape closes find.
+matches, with hidden objects marked. The first Enter visits the first match. **Reveal** beside a
+hidden result restores that object without revealing the rest. Escape closes find.
 
 The grid button shows or hides the grid. Objects snap while the grid is shown. This preference
 belongs to your browser. Fine drawing paths follow the pointer rather than snapping to the grid.
@@ -161,7 +171,8 @@ lane object. Move a frame as a whole and its neighbours stay where they are.
 
 **Insert a table** in the command palette places a group of docked frames, a header row over
 cells, where the pointer is; **Add a table row** and **Add a table column** grow it from a
-selected cell. **Insert a task list** places a column frame whose members are tasks: the
+selected cell. Resizing a shared table boundary keeps its rows or columns aligned.
+**Insert a task list** places a column frame whose members are tasks: the
 title counts how many are done, done tasks recede, **Alt Enter** while typing a task adds the
 next one below it, and anything dragged into the list becomes a task. Assistants write both as
 ordinary frames, groups and tasks in the canvas language.
@@ -245,7 +256,7 @@ shown before their names, so a person or an assistant can say "change 2.3".
 **Slides from branches** makes a deck named for the selected root: a slide over the whole tree,
 then one over each main branch, ready to present. **Capture notes** (Shift N) opens a box where
 each Enter drops a note under the last at the pointer; **Make a tree** turns the stack into a
-tree headed by the first note.
+tree headed by the first note, including any pending idea still in the capture field.
 
 A reference relates two objects without adding tree structure or a drawn connector, as "see
 also". Choose **Relate to…** from the ring's east wedge, the menu or the property panel, type

@@ -98,7 +98,8 @@ function StencilButton({
   return (
     <button
       className="tool stencil"
-      title={label}
+      data-hint={label}
+      data-hint-detail="Drag onto the canvas, or choose and click to place."
       aria-label={label}
       aria-pressed={pressed}
       onPointerDown={startDrag}

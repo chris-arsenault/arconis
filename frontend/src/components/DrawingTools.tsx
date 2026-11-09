@@ -79,7 +79,8 @@ export function DrawingTools(props: Readonly<Props>) {
         {MODES.map(([mode, label, Icon, hint]) => (
           <button
             key={mode}
-            title={hint}
+            data-hint={label}
+            data-hint-detail={hint}
             aria-pressed={settings.mode === mode}
             onClick={() => change({ mode })}
           >
@@ -162,7 +163,8 @@ function SavedBrushes({ favorites, actions }: Readonly<Pick<Props, "favorites" |
           </button>
           <button
             aria-label={`Replace saved brush ${index + 1}`}
-            title="Save current settings in this slot"
+            data-hint="Replace saved brush"
+            data-hint-detail="Save current brush settings in this slot, on this device."
             onClick={() => actions.favorite(index, true)}
           >
             <Save size={13} />

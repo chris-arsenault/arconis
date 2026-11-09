@@ -94,6 +94,10 @@ control applies it to the selection.
 makes it fixed again. Fit to text changes eligible text boxes while preserving the size of
 pictures, vendor icons, slides and container titles.
 
+An ellipsis button marks clipped text on the canvas. Hover or focus it to preview the content;
+click it to fit the box to its text. The original source and chosen size stay intact until you fit.
+Line height is a font-size multiplier, paragraph spacing uses em, and padding uses canvas units.
+
 Markdown headings retain their semantic hierarchy within the chosen box style. Use separate
 objects when you need independently positioned text regions.
 

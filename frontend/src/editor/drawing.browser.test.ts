@@ -37,11 +37,11 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
     )
     .toBe(1);
   await fileMenu(page);
-  await page.getByRole("checkbox", { name: "Include markup" }).uncheck();
+  await page.getByRole("menuitemcheckbox", { name: "Include markup" }).uncheck();
   const clean = await exported(page);
   expect(clean.objects.map((item) => item.type)).toEqual(["note"]);
   await fileMenu(page);
-  await page.getByRole("checkbox", { name: "Include markup" }).check();
+  await page.getByRole("menuitemcheckbox", { name: "Include markup" }).check();
   await page.getByRole("button", { name: "Delete all annotations", exact: true }).click();
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);
   await page.keyboard.press("Control+z");

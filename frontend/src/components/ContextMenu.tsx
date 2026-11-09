@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { COLORS } from "../document/types";
 import type { EditorController } from "../editor/controller";
 import { chooseRingEntry, menuGroups, ringEntries, type MenuEntry } from "../editor/contextMenu";
 import { closeMenu, commandContext, findCommand, runCommand } from "../editor/registry";
@@ -76,12 +77,35 @@ function Wedge({
   const label = { x: RING_RADIUS * Math.cos(angle), y: RING_RADIUS * Math.sin(angle) };
   const classes = ["ring-wedge", entry.more ? "more" : "", active ? "active" : ""];
   const text = entry.short ?? entry.label;
+  const colorIndex = entry.id.startsWith("colour.") ? Number(entry.id.slice(7)) : -1;
+  const color = COLORS[colorIndex];
+  const reset = entry.id === "colour.clear";
+  const colorName = ["Yellow", "Rose", "Blue", "Green", "Purple", "White"][colorIndex];
+  const short = text.length > 11 ? `${text.slice(0, 10)}…` : text;
   return (
-    <g className={classes.join(" ")} role="menuitem" aria-label={entry.label} onClick={onChoose}>
+    <g
+      className={classes.join(" ")}
+      role="menuitem"
+      tabIndex={0}
+      aria-label={entry.label}
+      data-hint={color ? `Fill ${colorName}` : entry.label}
+      data-hint-detail={color || undefined}
+      onClick={onChoose}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onChoose();
+        }
+      }}
+    >
       <path d={wedgePath(index, count)} />
-      <text x={label.x} y={label.y} textAnchor="middle" dominantBaseline="middle">
-        {text.length > 11 ? `${text.slice(0, 10)}…` : text}
-      </text>
+      {color ? (
+        <circle cx={label.x} cy={label.y} r={13} fill={color} stroke="#8991a6" />
+      ) : (
+        <text x={label.x} y={label.y} textAnchor="middle" dominantBaseline="middle">
+          {reset ? "Reset" : short}
+        </text>
+      )}
     </g>
   );
 }
@@ -195,18 +219,30 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
     Object.assign(ref.current.style, { left: `${x}px`, top: `${y}px` });
   });
   useEffect(() => {
+    ref.current?.querySelector<HTMLElement>("[role=menuitem]:not([aria-disabled=true])")?.focus();
+  }, [menu?.ring, menu?.subRing]);
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeMenu(editor);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMenu(editor);
+        editor.element.focus({ preventScroll: true });
+        return;
+      }
+      if (!["Tab", "ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      focusMenuEntry(ref.current, event);
     };
     const onDown = (event: PointerEvent) => {
       if (event.button === 2) return;
       if (!(event.target instanceof Node) || !ref.current?.contains(event.target))
         closeMenu(editor);
     };
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
     window.addEventListener("pointerdown", onDown, true);
     return () => {
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("pointerdown", onDown, true);
     };
   }, [editor]);
@@ -220,4 +256,18 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
       {menu.ring ? <CommandRing editor={editor} /> : <MenuList editor={editor} />}
     </div>
   );
+}
+
+function focusMenuEntry(menu: HTMLDivElement | null, event: KeyboardEvent) {
+  const entries = [
+    ...(menu?.querySelectorAll<HTMLElement | SVGElement>(
+      "[role=menuitem]:not([aria-disabled=true])"
+    ) ?? []),
+  ];
+  const current = entries.findIndex((entry) => entry === document.activeElement);
+  const backwards = event.key === "ArrowUp" || (event.key === "Tab" && event.shiftKey);
+  let index = (current + (backwards ? -1 : 1) + entries.length) % entries.length;
+  if (event.key === "Home") index = 0;
+  if (event.key === "End") index = entries.length - 1;
+  entries[index]?.focus();
 }

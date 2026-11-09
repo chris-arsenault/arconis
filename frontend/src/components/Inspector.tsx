@@ -4,7 +4,6 @@ import type { EditorController } from "../editor/controller";
 import { runCommand, showComments } from "../editor/registry";
 import { openMenuOverSelection } from "../editor/contextMenu";
 import { isLink, typeLabel, type Item } from "../document/types";
-import { useCollaborativeText } from "./useCollaborativeText";
 import { effectiveAppearance } from "../document/appearance";
 import { hasSubtitle, hasText } from "../document/capabilities";
 import { ConnectionControls } from "./ConnectionControls";
@@ -16,13 +15,9 @@ import { PropertiesControls } from "./PropertiesControls";
 import { SlideControls } from "./SlideControls";
 import { followLink } from "../editor/links";
 import { deckOf, decks, isSlide } from "../document/slides";
-import { MarkdownTools } from "./MarkdownTools";
 import { TextProperties } from "./TextProperties";
-import { markdownKey } from "../text/sourceKeys";
 import { fitText } from "../editor/textLayout";
-import { useCompletedField } from "./useCompletedField";
-import type { CompletedActions } from "../document/actions";
-import type { CanvasDocument } from "../document/canvasDocument";
+import { ObjectText, SubtitleField } from "./InspectorText";
 import { groupThreads, listComments } from "../document/comments";
 import { jumpTo } from "../editor/topics";
 import {
@@ -31,7 +26,6 @@ import {
   changeSelectionLook,
   changeSelectionStyle,
   changeTemplate,
-  editSource,
   routeAround,
 } from "../editor/commands";
 import { addTags, removeTag, roomTags, sharedTags } from "../editor/tags";
@@ -65,23 +59,48 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   const [item] = selected;
   if (!item) return null;
   const single = selected.length === 1;
+  const selectionKey = ids(selected).join(" ");
   const props = { editor, selected, sections };
   return (
     <aside className="inspector" aria-label="Object properties">
       <InspectorHeader editor={editor} selected={selected} />
-      {single && <Content editor={editor} item={item} sections={sections} />}
+      <PrimaryControls key={selectionKey} {...props} />
+      <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
+      <LayoutSection key={`layout ${selectionKey}`} {...props} />
       <RelationsSection {...props} />
-      <TagsSection {...props} />
-      <AppearanceSection {...props} />
-      <LayoutSection {...props} />
-      {single && isSlide(item) && <SlideSection editor={editor} item={item} sections={sections} />}
-      {single && <CommentsSection editor={editor} item={item} sections={sections} />}
+      <TagsSection key={`tags ${selectionKey}`} {...props} />
+      {single && !isSlide(item) && (
+        <CommentsSection
+          key={`comments ${selectionKey}`}
+          editor={editor}
+          item={item}
+          sections={sections}
+        />
+      )}
       {single && item.editedBy !== undefined && item.editedAt !== undefined && (
         <p className="edited-by" data-testid="edited-by">
           Last edited by {item.editedBy}, {new Date(item.editedAt).toLocaleString()}
         </p>
       )}
     </aside>
+  );
+}
+
+function PrimaryControls(props: PanelProps) {
+  if (props.selected.length !== 1) return null;
+  const item = props.selected[0];
+  const { editor, sections } = props;
+  return (
+    <>
+      <Content editor={editor} item={item} sections={sections} />
+      {isSlide(item) && (
+        <>
+          <SlideSection editor={editor} item={item} sections={sections} />
+          <CommentsSection editor={editor} item={item} sections={sections} />
+        </>
+      )}
+      {isLink(item) && <ConnectionSection {...props} />}
+    </>
   );
 }
 
@@ -101,7 +120,7 @@ function InspectorHeader({
         {!several && hasText(item) && (
           <button
             className="inspector-name"
-            title="Edit text on the canvas (Enter)"
+            data-hint="Edit text on the canvas (Enter)"
             onClick={() => runCommand(editor, "edit.text")}
           >
             {item.name.trim() ? itemName(item) : "Add text"}
@@ -110,7 +129,7 @@ function InspectorHeader({
       </div>
       <button
         className="text-action inspector-more"
-        title="Every command for the selection"
+        data-hint="Every command for the selection"
         onClick={() => openMenuOverSelection(editor)}
       >
         <MoreHorizontal size={14} /> More
@@ -167,6 +186,7 @@ function RelationsSection({ editor, selected, sections }: PanelProps) {
         run={(id) => runCommand(editor, id)}
         onJump={(id) => jumpTo(editor, id)}
         onRemove={(id) => canvas.remove([id])}
+        appearance={(target) => effectiveAppearance(target, canvas.namedStyle(target.style))}
       >
         <NumberBranchesToggle
           selected={selected}
@@ -219,7 +239,6 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
   const [item] = selected;
   const textItems = selected.filter(hasText);
   const drawn = (target: Item) => effectiveAppearance(target, canvas.namedStyle(target.style));
-  const line = selected.length === 1 && isLink(item);
   return (
     <RailSection
       id="appearance"
@@ -231,6 +250,8 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
         item={item}
         names={[...canvas.styles.keys()].sort((a, b) => a.localeCompare(b))}
         drawn={drawn(item)}
+        appearances={selected.map(drawn)}
+        mixedStyle={!selected.every((target) => target.style === item.style)}
         change={(look) => changeSelectionLook(canvas, selected, look)}
         onStyle={(style) => changeSelectionStyle(canvas, selected, style)}
       >
@@ -241,15 +262,22 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
           onFit={() => textItems.forEach((target) => void fitText(canvas, target.id))}
         />
       </StyleControls>
-      {line && (
-        <ConnectionControls
-          item={item}
-          look={drawn(item)}
-          onLook={(look) => changeSelectionLook(canvas, [item], look)}
-          onRoute={() => routeAround(canvas, item)}
-        />
-      )}
     </RailSection>
+  );
+}
+
+function ConnectionSection({ editor, selected }: PanelProps) {
+  const [item] = selected;
+  const canvas = editor.document;
+  return (
+    <section className="inspector-primary" aria-label="Connection">
+      <ConnectionControls
+        item={item}
+        look={effectiveAppearance(item, canvas.namedStyle(item.style))}
+        onLook={(look) => changeSelectionLook(canvas, [item], look)}
+        onRoute={() => routeAround(canvas, item)}
+      />
+    </section>
   );
 }
 
@@ -324,13 +352,16 @@ function CommentsSection({
 }: Readonly<{ editor: EditorController; item: Item; sections: Sections }>) {
   const threads = groupThreads(listComments(editor.document), item.id);
   const open = threads.filter((thread) => !thread.root.resolved).length;
+  const slide = isSlide(item);
+  const heading = slide ? "Speaker notes" : "Comments";
+  const empty = slide ? "Add speaker notes" : "Add a comment";
   const label = threads.length
-    ? `Comments (${open} open, ${threads.length - open} resolved)`
-    : "Add a comment";
+    ? `${heading} (${open} open, ${threads.length - open} resolved)`
+    : empty;
   return (
     <RailSection
       id="comments"
-      title="Comments"
+      title={slide ? "Speaker notes" : "Comments"}
       count={open}
       open={sections.open.comments}
       onToggle={sections.toggle}
@@ -339,57 +370,5 @@ function CommentsSection({
         <MessageSquare size={14} /> {label}
       </button>
     </RailSection>
-  );
-}
-
-/** This binding is a canonical editor adapter; display-only Markdown controls receive commands. */
-function ObjectText({ canvas, item }: Readonly<{ canvas: CanvasDocument; item: Item }>) {
-  const textRef = useCollaborativeText(canvas, item.id);
-  return (
-    <>
-      <textarea
-        ref={textRef}
-        className="object-text"
-        aria-label="Object text"
-        rows={3}
-        onKeyDown={(event) =>
-          markdownKey(event, (element, edit) => editSource(canvas, item.id, element, edit))
-        }
-        onInput={() => void fitText(canvas, item.id, true)}
-      />
-      <MarkdownTools
-        source={item.name}
-        appearance={effectiveAppearance(item, canvas.namedStyle(item.style))}
-        onEdit={(element, edit) => editSource(canvas, item.id, element, edit)}
-        textarea={textRef}
-        expanded={false}
-      />
-    </>
-  );
-}
-
-function SubtitleField({
-  value,
-  actions,
-  onChange,
-}: Readonly<{
-  value: string;
-  actions: Pick<CompletedActions, "begin">;
-  onChange: (value: string) => void;
-}>) {
-  const edit = useCompletedField(actions);
-  return (
-    <input
-      className="object-subtitle"
-      aria-label="Object subtitle"
-      placeholder="Subtitle"
-      value={value}
-      onChange={(event) => {
-        edit.start();
-        onChange(event.target.value);
-      }}
-      onBlur={edit.finish}
-      onKeyDown={edit.keydown}
-    />
   );
 }

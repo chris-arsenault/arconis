@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Compass, Pencil, Play, Plus, Shapes, Presentation } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import type { Item } from "../document/types";
@@ -37,12 +37,20 @@ const PANELS = [
 ] as const;
 
 /** Tool shortcuts open their controls; selection after placement or a lasso keeps that panel. */
-function usePanel(editor: EditorController) {
+function usePanel(
+  editor: EditorController,
+  compact: boolean,
+  shown: boolean | undefined,
+  onExpand?: (open: boolean) => void
+) {
   const [state, setState] = useState<{ panel: Panel; tool: string; expanded: boolean }>(() => ({
     panel: "add",
     tool: "select",
-    expanded: !window.matchMedia("(max-width: 650px)").matches,
+    expanded: !compact,
   }));
+  useEffect(() => {
+    if (compact && !["select", "pan", "connect", "draw"].includes(editor.tool)) onExpand?.(false);
+  }, [compact, editor.tool, onExpand]);
   if (state.tool !== editor.tool) {
     let panel = state.panel;
     const creating = !["select", "pan", "connect"].includes(editor.tool);
@@ -58,22 +66,38 @@ function usePanel(editor: EditorController) {
       editor.setTool("select");
     }
     setState({ panel, tool: editor.tool, expanded: true });
+    onExpand?.(true);
   };
-  const toggle = () => setState({ ...state, expanded: !state.expanded });
-  return { panel: state.panel, expanded: state.expanded, choose, toggle };
+  const expanded = shown ?? state.expanded;
+  const toggle = () => {
+    setState({ ...state, expanded: !expanded });
+    onExpand?.(!expanded);
+  };
+  return { panel: state.panel, expanded, choose, toggle };
 }
 
-export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
+export function LeftRail({
+  editor,
+  compact = false,
+  expanded: shown,
+  onExpand,
+}: Readonly<{
+  editor: EditorController;
+  compact?: boolean;
+  expanded?: boolean;
+  onExpand?: (open: boolean) => void;
+}>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
   const sections = useRailSections(SECTION_DEFAULTS);
-  const { panel, expanded, choose, toggle } = usePanel(editor);
+  const { panel, expanded, choose, toggle } = usePanel(editor, compact, shown, onExpand);
   return (
     <aside className="left-rail" aria-label="Tools and stencils" data-expanded={expanded}>
       <div className="tool-row" role="toolbar" aria-label="Canvas tools">
         {TOOLS.filter((tool) => tool.id !== "draw").map((tool) => (
           <button
             key={tool.id}
-            title={tool.label}
+            data-hint={tool.label}
+            data-hint-detail="Select and move objects, pan the view, or connect two objects."
             aria-label={tool.label}
             aria-pressed={editor.tool === tool.id}
             className="tool"
@@ -91,7 +115,7 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
             aria-label={id === "draw" ? "Draw (P)" : label}
             aria-pressed={panel === id}
             aria-controls="rail-content"
-            title={id === "draw" ? "Draw (P)" : label}
+            data-hint={id === "draw" ? "Draw (P)" : label}
             onClick={() => choose(id)}
           >
             <Icon size={18} />
@@ -253,7 +277,7 @@ function TagsSection({
             <button
               className="rail-entry"
               aria-pressed={editor.filter.tags.includes(tag)}
-              title={`Show only what is tagged #${tag}`}
+              data-hint={`Show only what is tagged #${tag}`}
               onClick={() => choose(tag)}
             >
               #{tag}
@@ -307,7 +331,7 @@ function Decks({
             <span>{deck}</span>
             <button
               className="rail-action deck-present"
-              title={`Present ${deck}`}
+              data-hint={`Present ${deck}`}
               aria-label={`Present ${deck}`}
               onClick={() => onPresent(deck)}
             >

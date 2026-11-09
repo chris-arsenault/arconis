@@ -1,6 +1,8 @@
 import { Blend } from "lucide-react";
+import { useId } from "react";
 import type { InkSettings } from "../editor/inkCommands";
 import type { InkKind } from "../document/types";
+import { NumericInput } from "./NumericInput";
 interface BrushProps {
   settings: InkSettings;
   change: (values: Partial<InkSettings>) => void;
@@ -87,16 +89,11 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
             {width}
           </button>
         ))}
-        <input
-          aria-label="Brush width"
-          type="number"
-          min="0.1"
-          step="0.5"
+        <NumericInput
+          label="Brush width"
+          positive
           value={settings.width}
-          onChange={(event) => {
-            const width = Number(event.target.value);
-            if (width > 0) change({ width });
-          }}
+          onCommit={(width) => change({ width })}
         />
       </div>
     </div>
@@ -136,6 +133,7 @@ function PaintControls({
   onClose,
   selected,
 }: Readonly<BrushProps & { onFill: () => void; onClose: () => void; selected: boolean }>) {
+  const angleId = useId();
   return (
     <details className="drawing-group">
       <summary>
@@ -171,13 +169,13 @@ function PaintControls({
             </button>
           </span>
         </label>
-        <label className="drawing-field">
-          Gradient angle
-          <input
-            aria-label="Gradient angle"
-            type="number"
+        <label className="drawing-field" htmlFor={angleId}>
+          Gradient angle <small>°</small>
+          <NumericInput
+            id={angleId}
+            label="Gradient angle"
             value={settings.gradientAngle}
-            onChange={(event) => change({ gradientAngle: Number(event.target.value) })}
+            onCommit={(gradientAngle) => change({ gradientAngle })}
           />
         </label>
         {selected && (

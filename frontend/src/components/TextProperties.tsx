@@ -9,7 +9,8 @@ import type { Appearance } from "../document/appearance";
 import { TEXT_FONTS } from "../text/typography";
 import { textCanResize } from "../document/capabilities";
 import { Section } from "./ConnectionControls";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
+import { NumericInput } from "./NumericInput";
 
 function common<T>(values: T[]): T | undefined {
   return values.every((value) => value === values[0]) ? values[0] : undefined;
@@ -27,6 +28,7 @@ export function TextProperties({
   change: (look: Look) => void;
   onFit: () => void;
 }>) {
+  const fontId = useId();
   const value = (key: keyof Appearance, fallback: unknown) =>
     common(drawn.map((style) => style[key] ?? fallback));
   return (
@@ -34,17 +36,13 @@ export function TextProperties({
       <div className="text-box-controls" data-text-tools="true">
         <div className="text-box-main">
           <FontControl value={value("font", "sans")} change={change} />
-          <label>
-            <input
-              type="number"
-              min="1"
-              aria-label="Font size"
-              placeholder="Mixed"
-              value={String(value("textSize", 14) ?? "")}
-              onChange={(event) => {
-                const n = Number(event.target.value);
-                if (n > 0) change({ textSize: n });
-              }}
+          <label htmlFor={fontId}>
+            <NumericInput
+              id={fontId}
+              label="Font size"
+              positive
+              value={value("textSize", 14) as number | undefined}
+              onCommit={(textSize) => change({ textSize })}
             />
           </label>
           <label>
@@ -215,21 +213,20 @@ function NumericLook({
   positive: boolean;
   change: (look: Look) => void;
 }>) {
+  const unit = { lineHeight: "×", paragraphGap: "em", padding: "units" }[property];
+  const increment = { lineHeight: 0.05, paragraphGap: 0.1, padding: 1 }[property];
+  const inputId = useId();
   return (
-    <label>
-      {label}
-      <input
-        type="number"
-        step="0.1"
-        min={positive ? 0.1 : 0}
-        aria-label={label}
-        value={String(value ?? "")}
-        placeholder="Mixed"
-        onChange={(event) => {
-          if (!event.target.value) return;
-          const n = Number(event.target.value);
-          if (Number.isFinite(n) && (positive ? n > 0 : n >= 0)) change({ [property]: n });
-        }}
+    <label htmlFor={inputId}>
+      {label} <small>{unit}</small>
+      <NumericInput
+        id={inputId}
+        label={label}
+        positive={positive}
+        minimum={0}
+        increment={increment}
+        value={value as number | undefined}
+        onCommit={(number) => change({ [property]: number })}
       />
     </label>
   );

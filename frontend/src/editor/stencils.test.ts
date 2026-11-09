@@ -59,11 +59,40 @@ describe("tables and task lists", () => {
     expect(cells()).toHaveLength(8);
     addTableColumn(document, table);
     expect(cells()).toHaveLength(12);
+    expect(
+      cells()
+        .filter((cell) => cell.name)
+        .map((cell) => cell.name)
+    ).toEqual(["Column 1", "Column 2", "Column 3"]);
     const group = document.get(table)!;
     const right = Math.max(...cells().map((cell) => cell.x + cell.width));
     const bottom = Math.max(...cells().map((cell) => cell.y + cell.height));
     expect(group.x + group.width).toBe(right);
     expect(group.y + group.height).toBe(bottom);
+  });
+
+  it("resizes a table boundary through every row and keeps added columns aligned", () => {
+    const document = new CanvasDocument();
+    const table = insertTable(document, { x: 100, y: 100 }, 3, 3);
+    const cells = () => document.list().filter((item) => item.inside === table && isFrame(item));
+    const header = cells().find((cell) => cell.name === "Column 1")!;
+    const after = { ...header, width: header.width + 60 };
+    const followers = dockedFollowers(document.list(), header, header, after);
+    document.patch(header.id, after);
+    followers.forEach((patch) => document.patch(patch.id, patch.values));
+    for (const cell of cells()) {
+      if (cell.x === 100) expect(cell.width).toBe(280);
+      if (cell.x === 380) expect(cell.width).toBe(160);
+    }
+    expect(cells().filter((cell) => cell.x === 380)).toHaveLength(3);
+    addTableRow(document, table);
+    addTableColumn(document, table);
+    expect(cells().filter((cell) => cell.x === 380)).toHaveLength(4);
+    expect(
+      cells()
+        .filter((cell) => cell.name)
+        .map((cell) => cell.name)
+    ).toEqual(["Column 1", "Column 2", "Column 3", "Column 4"]);
   });
 
   it("inserts a task list whose next task slots in after the current one", () => {

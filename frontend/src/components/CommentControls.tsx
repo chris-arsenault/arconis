@@ -14,7 +14,7 @@ function CommentBody({
         <button
           className="icon-action"
           aria-label={`Delete comment by ${comment.author}`}
-          title="Delete"
+          data-hint="Delete"
           onClick={() => onDelete(comment.id)}
         >
           <Trash2 size={12} />
@@ -103,7 +103,7 @@ function ThreadView({
         <button
           className="icon-action"
           aria-label={root.resolved ? "Reopen thread" : "Resolve thread"}
-          title={root.resolved ? "Reopen" : "Resolve"}
+          data-hint={root.resolved ? "Reopen" : "Resolve"}
           onClick={() => onResolve(root.id, !root.resolved)}
         >
           {root.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
@@ -119,8 +119,10 @@ export function CommentControls({
   onAdd,
   onDelete,
   onResolve,
+  speakerNotes = false,
 }: Readonly<{
   threads: Thread[];
+  speakerNotes?: boolean;
   onAdd: (text: string, thread?: string) => void;
   onDelete: (id: string) => void;
   onResolve: (id: string, resolved: boolean) => void;
@@ -146,8 +148,8 @@ export function CommentControls({
       {showResolved &&
         resolved.map((thread) => <ThreadView key={thread.root.id} thread={thread} {...actions} />)}
       <CommentBox
-        label="Add a comment"
-        placeholder="Add a comment"
+        label={speakerNotes ? "Add speaker notes" : "Add a comment"}
+        placeholder={speakerNotes ? "Add speaker notes" : "Add a comment"}
         focusOnMount={!threads.length}
         onSubmit={(text) => onAdd(text)}
       />

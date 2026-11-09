@@ -1,25 +1,39 @@
-import { useState, type ReactNode } from "react";
-import { evaluateNumber } from "../editor/arithmetic";
+import type { ReactNode } from "react";
 import { COLORS, type Item, type Look } from "../document/types";
 import type { Appearance } from "../document/appearance";
 import { canColorIcon, canRotate, hasFill, hasLine, hasText } from "../document/capabilities";
 import { Section } from "./ConnectionControls";
+import { NumericInput } from "./NumericInput";
 
-type StyleProps = Readonly<{ drawn: Appearance; change: (look: Look) => void }>;
+type StyleProps = Readonly<{
+  drawn: Appearance;
+  appearances?: Appearance[];
+  change: (look: Look) => void;
+}>;
+
+function isMixed(appearances: Appearance[] | undefined, key: keyof Appearance) {
+  return appearances?.some((appearance) => appearance[key] !== appearances[0][key]) ?? false;
+}
 
 function NamedStyle({
   item,
   names,
   onStyle,
-}: Readonly<{ item: Item; names: string[]; onStyle: (style: string) => void }>) {
+  mixed = false,
+}: Readonly<{ item: Item; names: string[]; onStyle: (style: string) => void; mixed?: boolean }>) {
   if (!names.length && !item.style) return null;
   return (
     <Section title="Style">
       <select
         aria-label="Named style"
-        value={item.style}
+        value={mixed ? "__mixed__" : item.style}
         onChange={(event) => onStyle(event.target.value)}
       >
+        {mixed && (
+          <option value="__mixed__" disabled>
+            Mixed styles
+          </option>
+        )}
         <option value="">None</option>
         {names.map((name) => (
           <option key={name} value={name}>
@@ -39,17 +53,20 @@ export function StyleControls({
   names,
   onStyle,
   children,
+  appearances,
+  mixedStyle = false,
 }: StyleProps &
   Readonly<{
     item: Item;
     names: string[];
     onStyle: (style: string) => void;
     children: ReactNode;
+    mixedStyle?: boolean;
   }>) {
-  const props = { drawn, change };
+  const props = { drawn, appearances, change };
   return (
     <>
-      <NamedStyle item={item} names={names} onStyle={onStyle} />
+      <NamedStyle item={item} names={names} onStyle={onStyle} mixed={mixedStyle} />
       {hasFill(item) && <FillControls {...props} />}
       {hasLine(item) && <LineControls {...props} />}
       {canColorIcon(item) && (
@@ -57,6 +74,7 @@ export function StyleControls({
           <ColorChip
             label="Icon color"
             value={drawn.iconColor ?? "#283249"}
+            mixed={isMixed(appearances, "iconColor")}
             onChange={(color) => change({ iconColor: color })}
           />
         </Section>
@@ -70,37 +88,49 @@ function ColorChip({
   label,
   value,
   onChange,
-}: Readonly<{ label: string; value: unknown; onChange: (color: string) => void }>) {
+  mixed = false,
+}: Readonly<{
+  label: string;
+  value: unknown;
+  onChange: (color: string) => void;
+  mixed?: boolean;
+}>) {
   const color = /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : "#ffffff";
   return (
-    <input
-      className="color-chip"
-      aria-label={label}
-      title={label}
-      type="color"
-      value={color}
-      onChange={(event) => onChange(event.target.value)}
-    />
+    <>
+      <input
+        className="color-chip"
+        aria-label={label}
+        data-hint={label}
+        type="color"
+        value={color}
+        data-hint-detail={mixed ? "Mixed values" : undefined}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {mixed && <span className="mixed-color-label">Mixed</span>}
+    </>
   );
 }
 
-function FillControls({ drawn, change }: StyleProps) {
+function FillControls({ drawn, appearances, change }: StyleProps) {
+  const mixed = isMixed(appearances, "fill");
   return (
     <Section title="Fill">
       <div className="control-row">
         {COLORS.map((color, index) => (
           <button
             key={color}
-            title={`Fill ${color}`}
+            data-hint={`Fill ${color}`}
             aria-label={`Fill ${color}`}
             className={`swatch swatch-${index}`}
-            aria-pressed={drawn.fill === color}
+            aria-pressed={!mixed && drawn.fill === color}
             onClick={() => change({ fill: color })}
           />
         ))}
         <ColorChip
           label="Fill color"
           value={drawn.fill}
+          mixed={mixed}
           onChange={(color) => change({ fill: color })}
         />
       </div>
@@ -108,19 +138,23 @@ function FillControls({ drawn, change }: StyleProps) {
   );
 }
 
-function LineControls({ drawn, change }: StyleProps) {
+function LineControls({ drawn, appearances, change }: StyleProps) {
+  const widths = appearances?.map((appearance) => appearance.lineWidth * appearance.scale);
+  const mixedWidth = widths?.some((width) => width !== widths[0]) ?? false;
   return (
     <Section title="Line">
       <div className="control-row">
         <ColorChip
           label="Line color"
           value={drawn.line}
+          mixed={isMixed(appearances, "line")}
           onChange={(color) => change({ line: color })}
         />
         <NumberField
           prefix="W"
           label="Line width"
-          value={drawn.lineWidth * drawn.scale || 1}
+          value={mixedWidth ? undefined : drawn.lineWidth * drawn.scale}
+          minimum={0}
           onChange={(value) => change({ lineWidth: value / drawn.scale })}
         />
       </div>
@@ -132,49 +166,35 @@ function LineControls({ drawn, change }: StyleProps) {
  * A number field that applies on Enter or when left, takes arithmetic, and steps by one with the
  * arrows and ten with Shift.
  */
-const PLAIN_NUMBER = /^-?\d+(?:\.\d+)?$/;
-
 function NumberField({
   prefix,
   label,
   value,
   onChange,
-}: Readonly<{ prefix: string; label: string; value: number; onChange: (value: number) => void }>) {
-  const shown = String(Number(value.toPrecision(6)));
-  const [text, setText] = useState(shown);
-  const [seen, setSeen] = useState(shown);
-  if (seen !== shown) {
-    setSeen(shown);
-    setText(shown);
-  }
-  const commit = () => {
-    const next = evaluateNumber(text, value);
-    if (next !== null && next !== value) onChange(next);
-    else setText(shown);
-  };
-  // A plain number applies as it is typed; arithmetic waits for Enter or for focus to leave.
-  const typed = (next: string) => {
-    setText(next);
-    if (PLAIN_NUMBER.test(next) && Number(next) !== value) onChange(Number(next));
-  };
+  minimum,
+  positive,
+}: Readonly<{
+  prefix: string;
+  label: string;
+  value: number | undefined;
+  onChange: (value: number) => void;
+  minimum?: number;
+  positive?: boolean;
+}>) {
   return (
-    <label className="number-field" title={label}>
+    <label
+      className="number-field"
+      data-hint={label}
+      data-hint-detail="Enter a value or arithmetic expression. Arrow keys step by 1; Shift steps by 10."
+    >
       <span aria-hidden="true">{prefix}</span>
-      <input
-        type="text"
-        inputMode="decimal"
-        aria-label={label}
-        value={text}
-        onChange={(event) => typed(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") commit();
-          else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-            event.preventDefault();
-            const step = (event.shiftKey ? 10 : 1) * (event.key === "ArrowUp" ? 1 : -1);
-            onChange(Number((value + step).toPrecision(6)));
-          }
-        }}
+      <NumericInput
+        label={label}
+        value={value}
+        minimum={minimum}
+        positive={positive}
+        arithmetic
+        onCommit={onChange}
       />
     </label>
   );
@@ -207,6 +227,7 @@ export function GeometryControls({
             prefix={prefix}
             label={`Object ${key}`}
             value={item[key]}
+            positive={key === "width" || key === "height"}
             onChange={(value) => onGeometry(key, value)}
           />
         ))}

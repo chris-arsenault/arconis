@@ -33,6 +33,19 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Fixed numeric and name fields that restored deleted values while typing. Numeric drafts now
+  validate on completion, report invalid values, preserve legitimate zeroes and undo as one edit.
+  Mixed selections show mixed values; untouched property fields follow peers without overwriting
+  their work. Conflicting property drafts remain available for explicit resolution.
+- Fixed pending capture text loss, context-menu keyboard leakage, connected-copy drag interception
+  and split Undo, table column resizing and names, and Find skipping its first result. Hidden
+  search results can reveal one object. Password entry can be cancelled, home lists browser-local
+  recent rooms, and protected-room exports explain their readable portable copies.
+- Kept canvas access at phone/tablet widths with mutually exclusive tool/property panels, reachable
+  File and participant controls, and speaker notes below the slide. Added custom hover/focus/touch
+  help, clipped-text preview and Fit indicators, actual toolbar/ring color samples, primary connector
+  and slide controls, and relationship directions that reflect arrowheads.
+
 - Reorganized the rail into Add, Draw, Explore and Slides. All shape and icon libraries share
   collapsible headers; saved views, outlines, tags and history live in Explore, while slide
   creation and presentation share one area. Drawing instruments now have icons and gesture
@@ -41,9 +54,10 @@ All notable user-visible changes are recorded here.
   The panel can fold away and starts folded on phones; library labels wrap within their cells.
   Restoring annotation visibility now redraws hidden ink immediately.
 
-- Changed the property panel to one order for every selection: its name with a More menu,
-  folded Markdown source, then Relationships, Tags and status, Appearance, Layout, Slide and
-  Comments, each folding and remembered on the device, with sections that do not apply left out.
+- Changed the property panel to show the selection's name and More menu, folded Markdown source,
+  then task-specific controls: Connection for lines, or Slide and Speaker notes for slides.
+  Appearance, Layout, Relationships, Tags and status, and other Comments remain available in
+  folding sections remembered on the device, with sections that do not apply left out.
   Relationships lists the parent topic, holder, references and lines, and offers Add branch,
   Relate to… and Zoom into. Added relating an object to another by name, references that show
   while either end is selected, tag chips that suggest the room's tags, a Tag… editor above the

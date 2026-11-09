@@ -69,6 +69,7 @@ it.each(["keystrokes", "replacement"] as const)(
     await b.getByLabel("Object x", { exact: true }).fill("450");
     await b.getByLabel("Object y", { exact: true }).fill("400");
     await b.getByLabel("Object width", { exact: true }).fill("300");
+    await b.getByLabel("Object width", { exact: true }).press("Tab");
     await expect.poll(() => inline.evaluate((element) => element.style.left)).toBe("510px");
     await expect.poll(() => inline.evaluate((element) => element.style.top)).toBe("460px");
     await expect.poll(() => inline.evaluate((element) => element.style.width)).toBe("300px");

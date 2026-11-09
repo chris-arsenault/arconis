@@ -173,6 +173,8 @@ export async function add(page: Page, tool: string, label: string, x: number, y:
     .getByRole("button", { name: tool === "Slide" ? "Add slide" : tool, exact: true })
     .click();
   await page.getByTestId("canvas").click({ position: { x, y } });
+  if ((page.viewportSize()?.width ?? 1440) <= 1100)
+    await page.getByRole("button", { name: "Object properties", exact: true }).click();
   await page.getByLabel("Object text", { exact: true }).fill(label);
   await page.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
 }
