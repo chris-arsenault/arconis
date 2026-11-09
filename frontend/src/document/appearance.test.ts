@@ -10,10 +10,10 @@ import {
 import type { Item, ItemType, Look } from "./types";
 
 it.each<[ItemType, Partial<Look>]>([
-  ["node", { fill: "#ffffff", textSize: 14, padding: 14 }],
-  ["note", { fill: "#fff0ad", textSize: 16, padding: 20, align: "left", valign: "top" }],
-  ["text", { fill: "none", textSize: 22 }],
-  ["frame", { fill: "#eef0f5", textSize: 13, bold: true }],
+  ["node", { fill: "#ffffff", textSize: 14, padding: 8 }],
+  ["note", { fill: "#fff0ad", textSize: 16, padding: 8, align: "left", valign: "top" }],
+  ["text", { fill: "none", textSize: 22, padding: 4 }],
+  ["frame", { fill: "#eef0f5", textSize: 13, bold: true, padding: 4 }],
   ["group", { opacity: 35, dashed: true, textSize: 12 }],
   ["slide", { padding: 4, bold: true, valign: "bottom", textColor: "#5443b3" }],
   ["picture", { padding: 2, textSize: 12, valign: "top" }],

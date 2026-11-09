@@ -3,6 +3,9 @@
 An object's primary label is editable Markdown source. Text controls style the whole label box;
 Markdown supplies inline emphasis and structure. Subtitles are separate plain text.
 
+Ordinary objects and sticky notes use 8 units of text padding; free text and frame headers use 4. Change padding
+under **Appearance → Text → Spacing and sizing** when an object needs a different inset.
+
 ## Edit and finish text
 
 Double-click an object or select it and press Enter. You can also edit **Object text** in the

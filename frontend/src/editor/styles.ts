@@ -72,7 +72,6 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
   },
   card: {
     shape: "label",
-    spacingLeft: 76,
     imageAlign: "left",
     imageVerticalAlign: "middle",
     imageWidth: 52,
@@ -248,6 +247,7 @@ function applyLabel(item: Item, style: Style, look: Look) {
 
 function baseStyle(item: Item, look: Look): Style {
   const base = { ...BASE_STYLE, ...typeStyle(item) };
+  if (item.type === "card" && item.icon) base.spacingLeft = 76;
   if (item.type === "group" && item.tags?.includes("table"))
     Object.assign(base, {
       keepTitle: true,

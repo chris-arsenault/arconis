@@ -98,7 +98,7 @@ function SpacingControls({
         />
         <NumericLook
           label="Text padding"
-          value={value("padding", 14)}
+          value={value("padding", 8)}
           property="padding"
           positive={false}
           change={change}

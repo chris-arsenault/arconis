@@ -39,7 +39,7 @@ const BASE: Appearance = {
   font: "sans",
   align: "center",
   valign: "middle",
-  padding: 14,
+  padding: 8,
   lineHeight: 1.35,
   paragraphGap: 0.5,
   bold: false,
@@ -56,8 +56,8 @@ const BASE: Appearance = {
 };
 
 const TYPES: Partial<Record<Item["type"], Look>> = {
-  note: { fill: "#fff0ad", line: "none", align: "left", valign: "top", textSize: 16, padding: 20 },
-  text: { fill: "none", line: "none", textSize: 22 },
+  note: { fill: "#fff0ad", line: "none", align: "left", valign: "top", textSize: 16 },
+  text: { fill: "none", line: "none", textSize: 22, padding: 4 },
   group: {
     fill: "#f3f0fc",
     opacity: 35,
@@ -66,7 +66,7 @@ const TYPES: Partial<Record<Item["type"], Look>> = {
     valign: "top",
     textSize: 12,
   },
-  frame: { fill: "#eef0f5", line: "#b9bfcd", textSize: 13, bold: true },
+  frame: { fill: "#eef0f5", line: "#b9bfcd", textSize: 13, bold: true, padding: 4 },
   card: { align: "left" },
   band: { fill: "#e6f6f7", line: "none", valign: "top", textSize: 13 },
   line: { line: "#7f8aa3", lineWidth: 2 },

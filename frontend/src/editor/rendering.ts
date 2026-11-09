@@ -138,6 +138,13 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
   const renderer = graph.cellRenderer;
   // Titles are laid out at their item's width, and keep their padding and position while they are.
   renderer.legacySpacing = false;
+  const getLabelBounds = renderer.getLabelBounds.bind(renderer);
+  renderer.getLabelBounds = (state) => {
+    const bounds = getLabelBounds(state);
+    // Width-only titles keep their natural line height, including the minimum readable font.
+    if ((state.style as Record<string, unknown>).keepTitle === true) bounds.height = 0;
+    return bounds;
+  };
   const isTextShapeInvalid = renderer.isTextShapeInvalid.bind(renderer);
   // TextShape resets empty colors to "none", while the stylesheet removes those entries.
   // Supply the same defaults to its unchanged-style check so it can reuse the label's DOM.

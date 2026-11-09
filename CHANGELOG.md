@@ -6,6 +6,10 @@ All notable user-visible changes are recorded here.
 
 ### Canvas interactions
 
+- Reduced default text padding from 14 to 8 units on ordinary objects and from 20 to 8 on sticky
+  notes; free text and frame headers use 4. Cards reserve an image gutter only when they have an icon.
+  Short objects retain usable text space while explicit padding stays intact. Frame titles retain
+  their natural line height at low zoom rather than clipping their minimum readable font.
 - Unified appearance and inline Markdown tools in one object-anchored container, with the same
   positioning for tag and relation controls. Child controls leave container titles draggable.
 - Widened the radial menu and matched its neutral center, outer edge and submenu sectors to
