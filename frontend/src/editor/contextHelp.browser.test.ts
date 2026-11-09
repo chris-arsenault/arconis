@@ -3,6 +3,34 @@ import { add, browser, errors, open } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
+it("reads live help changes during the hover delay and while the popup is open", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  try {
+    const page = await open(context);
+    const zoom = page.getByRole("button", { name: "Zoom in", exact: true });
+    await page.evaluate(() => {
+      const changeDuringHover = (event: PointerEvent) => {
+        const target =
+          event.target instanceof Element
+            ? event.target.closest('button[aria-label="Zoom in"]')
+            : null;
+        if (!target) return;
+        // Runs after the help listener scheduled its delay, before the popup can open.
+        target.setAttribute("data-hint-detail", "Updated before opening");
+        document.removeEventListener("pointerover", changeDuringHover);
+      };
+      document.addEventListener("pointerover", changeDuringHover);
+    });
+    await zoom.hover();
+    await page.getByRole("tooltip").filter({ hasText: "Updated before opening" }).waitFor();
+    await zoom.evaluate((button) => button.setAttribute("data-hint-detail", "Updated while open"));
+    await page.getByRole("tooltip").filter({ hasText: "Updated while open" }).waitFor();
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 it("shows hover and keyboard help, and dismisses it without clearing selection", async () => {
   const context = await browser.newContext(VIEWPORT);
   try {

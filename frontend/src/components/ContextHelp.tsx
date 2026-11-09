@@ -137,6 +137,7 @@ function focusHelp(events: HelpEvents, signal: AbortSignal) {
 function bindHelp(setHint: (hint: Hint | null) => void) {
   const abort = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let observer: MutationObserver | null = null;
   const events: HelpEvents = {
     anchor: null,
     shown: false,
@@ -146,6 +147,8 @@ function bindHelp(setHint: (hint: Hint | null) => void) {
     cancelTimer: () => clearTimeout(timer),
     clear: () => {
       clearTimeout(timer);
+      observer?.disconnect();
+      observer = null;
       events.anchor = null;
       events.shown = false;
       events.held = false;
@@ -157,11 +160,18 @@ function bindHelp(setHint: (hint: Hint | null) => void) {
       events.clear();
       if (!hint) return;
       events.anchor = hint.anchor;
+      observer = new MutationObserver(() => {
+        if (events.shown) setHint(hintAt(hint.anchor));
+      });
+      observer.observe(hint.anchor, {
+        attributes: true,
+        attributeFilter: ["data-hint", "data-hint-detail", "aria-label"],
+      });
       timer = setTimeout(() => {
         if (!hint.anchor.isConnected) return;
         events.shown = true;
         events.held = held;
-        setHint(hint);
+        setHint(hintAt(hint.anchor));
       }, delay);
     },
   };
@@ -170,6 +180,7 @@ function bindHelp(setHint: (hint: Hint | null) => void) {
   return () => {
     abort.abort();
     events.cancelTimer();
+    observer?.disconnect();
   };
 }
 
@@ -178,16 +189,6 @@ export function ContextHelp() {
   const [hint, setHint] = useState<Hint | null>(null);
   const popup = useRef<HTMLDivElement>(null);
   useEffect(() => bindHelp(setHint), []);
-  const anchor = hint?.anchor;
-  useEffect(() => {
-    if (!anchor) return;
-    const observer = new MutationObserver(() => setHint(hintAt(anchor)));
-    observer.observe(anchor, {
-      attributes: true,
-      attributeFilter: ["data-hint", "data-hint-detail", "aria-label"],
-    });
-    return () => observer.disconnect();
-  }, [anchor]);
   useLayoutEffect(() => {
     if (!hint || !popup.current) return;
     const previous = hint.anchor.getAttribute("aria-describedby");

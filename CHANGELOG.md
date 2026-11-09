@@ -33,6 +33,9 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Fixed contextual popups retaining old participant names when shared information changed during
+  the hover delay. Open popups also follow subsequent updates.
+
 - Fixed numeric and name fields that restored deleted values while typing. Numeric drafts now
   validate on completion, report invalid values, preserve legitimate zeroes and undo as one edit.
   Mixed selections show mixed values; untouched property fields follow peers without overwriting
