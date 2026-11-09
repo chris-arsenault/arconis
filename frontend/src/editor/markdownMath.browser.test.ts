@@ -17,7 +17,7 @@ it("keeps invalid equations editable and inserts display math from the source se
   await source.press("ControlOrMeta+a");
   const inspector = page.getByRole("complementary", { name: "Object properties" });
   await inspector.getByText("Markdown tools", { exact: true }).click();
-  await inspector.getByText("More", { exact: true }).click();
+  await inspector.locator("summary", { hasText: /^More$/ }).click();
   await inspector.getByRole("button", { name: "Display equation", exact: true }).click();
   expect(await source.inputValue()).toBe("```math\n\\frac{a}{b}\n```\n");
   expect(await canvas.locator(".katex-display").count()).toBe(1);

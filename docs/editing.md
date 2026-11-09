@@ -62,9 +62,28 @@ ring of eight commands around the press point, replacing the menu; drag past a s
 zone toward a wedge and release to stroke it without looking, or release in the centre to keep
 the menu. The ring and the menu change with what was pressed: an object, a line, a slide or
 empty canvas. A right click on an unselected object selects it; one on a member of a selection
-keeps the selection. Two wedges open sub-rings: **Colour** holds the six fills and the default,
-**Shape** changes the object's kind in place, keeping its text, size, contents and lines. The
-browser's own menu never appears over the canvas. Escape or a click elsewhere closes.
+keeps the selection. The browser's own menu never appears over the canvas. Escape or a click
+elsewhere closes.
+
+The ring on an object reads like a compass, so a stroke can be learned once:
+
+| Direction | Command                     | Direction  | Command                  |
+| --------- | --------------------------- | ---------- | ------------------------ |
+| North     | Add branch                  | South      | Delete                   |
+| East      | Relate to another object    | West       | Tag                      |
+| Northeast | Colour, a sub-ring of fills | Southwest  | More: the full menu      |
+| Southeast | Comment                     | Northwest  | Shape, a sub-ring        |
+
+**Shape** changes the object's kind in place, keeping its text, size, contents and lines. A line's
+ring keeps delete south, tag west and the menu south-west, with comment, colour, reverse, route
+and straighten around them; a slide's leads with Present. On empty canvas the ring places a
+note, text or frame, pastes, captures notes, selects all, fits the canvas or opens find; the
+grid and reference lines live in the view controls.
+
+The menu groups the same commands by intent: text, structure (branch, sibling, relate,
+connect), tags and status, arrangement, visibility, clipboard, view, and delete last. Families
+fold into submenus that open in place: **Align**, **Distribute**, **Tidy branches** and
+**Marker**.
 
 The **selection toolbar** sits above the view controls while something is selected, with
 fills, line colour, text size, shape, comment and the rest of the menu; it steps aside while
@@ -154,7 +173,8 @@ Connect workspace objects in any of three ways:
 1. Choose **Connector: click two objects** and click the start and end.
 2. Hover an object to expose connection points, then drag from a point to another object.
    Dropping on its body lets that endpoint follow the outline.
-3. Select two objects and choose **Connect** in the property panel.
+3. Select two objects and choose **Connect with a line** under Relationships in the property
+   panel, or **Connect** in the menu.
 
 Select a connector to set **Line type** to Cornered, Diagonal or Curved, and choose its start
 and end arrowheads. Drag either endpoint to reattach it. Drag its segments or points to adjust
@@ -171,7 +191,8 @@ ink, outside connector topology.
 
 Any workspace object can serve as a topic, including a frame, a Drawing or a line.
 
-- **Tab** adds a branch from the selected topic; **Alt Enter** adds a sibling.
+- **Tab** adds a branch from the selected topic; **Alt Enter** adds a sibling. A branch is a
+  compact topic in its parent's style, one line tall, that grows as its text wraps.
 - Moving a topic carries its branches. Hold Alt while moving to move that topic alone.
 - **Tidy branches** lays out the selected topic's descendants.
 - **Z** zooms into the topic. Small details are culled from the view, and a label's `⊕` mark
@@ -210,7 +231,7 @@ side, **Tidy branches to the right**, **to the left** or **downward** put them a
 loose objects in rows, and **Lay out as a flow** ranks connected objects left to right along
 their lines. Assistants write the same: `tidy root down sorted`.
 
-**Number branches** in the Fields section gives a topic's branches tiered numbers, 1, 1.1, 1.2,
+**Number branches** under Relationships gives a topic's branches tiered numbers, 1, 1.1, 1.2,
 shown before their names, so a person or an assistant can say "change 2.3".
 
 **Slides from branches** makes a deck named for the selected root: a slide over the whole tree,
@@ -218,9 +239,11 @@ then one over each main branch, ready to present. **Capture notes** (Shift N) op
 each Enter drops a note under the last at the pointer; **Make a tree** turns the stack into a
 tree headed by the first note.
 
-Select two objects and choose **Add reference** to link them without adding tree structure.
-The label shows `↗` and a count. References in the property panel jump to their targets, and
-**Reference lines** beside the view controls toggles their visible lines.
+A reference relates two objects without adding tree structure or a drawn connector, as "see
+also". Choose **Relate to…** from the ring's east wedge, the menu or the property panel, type
+part of the other object's name, and press Enter; with two objects selected the same command is
+**Relate these two**. The label shows `↗` and a count. A reference's dashed line shows while
+either end is selected, and **Reference lines** beside the view controls shows them all.
 
 ## Copy, cut and paste
 
@@ -236,10 +259,27 @@ another room, a file or a chat, and paste any canvas language back onto a canvas
   selected, the tree branches from it; indented text suggests a tree, other text suggests notes.
 - A pasted picture lands under the pointer, as before.
 
-## Properties
+## Property panel
 
-The **Properties** section gives an object named values, such as owner, environment or ticket.
-Hover an object to read them, and write `{owner}` in a label to show the value there. Files and
+Selecting something opens the property panel on the right, in the same order for every kind of
+object. Its head names what is selected; click the name to edit it on the canvas, or **More**
+for the full menu. **Edit source** unfolds the label's Markdown. Then come:
+
+- **Relationships**: the topic it branches from, the frame it sits in, its references and lines,
+  each a row that flies to the other end, with its branch count, **Tidy**, **Number branches**,
+  **Add branch**, **Relate to…** and **Zoom into**. With two objects selected it offers **Relate
+  these two** and **Connect with a line**.
+- **Tags and status**: tags, marker, task, link and properties.
+- **Appearance**: named style, fill, line, icon colour, text and, for a line, its connection.
+- **Layout**: position and size, alignment for several objects, screen size, and lock, hide and
+  collapse.
+- **Slide** for a slide, and **Comments**.
+
+Each section folds from its header and stays as it was left on this device. Sections that do
+not apply to the selection are left out.
+
+**Properties** give an object named values, such as owner, environment or ticket. Hover an
+object to read them, and write `{owner}` in a label to show the value there. Files and
 assistants carry them as `property owner "Ada"`.
 
 ## History
@@ -264,8 +304,9 @@ the colours they were given, so a canvas reads the same on every screen and in e
 
 ## Lock, hide, collapse, tags, tasks and links
 
-The **Fields** section of the property panel applies to every kind of object, lines included,
-and to the whole selection at once.
+These fields apply to every kind of object, lines included, and to the whole selection at once.
+Lock, hide and collapse sit under **Layout** in the property panel; tags, marker, task and link
+under **Tags and status**.
 
 - **Lock** keeps pointer edits away: a locked object cannot be moved, resized, rotated, edited or
   deleted, a marquee and Select all pass over it, and its label carries a padlock. Click it and
@@ -277,7 +318,10 @@ and to the whole selection at once.
 - **Collapse** folds away what an object holds or heads: a frame shrinks to its title bar, a
   topic keeps its node, and the label shows how many objects are folded, as `▸3`. Everyone sees
   the same fold. **Expand** restores it.
-- **Tags** are words separated by commas, shown after the label as `#tag`.
+- **Tags** are words, shown after the label as `#tag`. Type one and press Enter, comma or
+  space to add it as a chip, or pick one the room already uses. **Tag…** in the ring's west
+  wedge or the menu opens the same editor above the selection. With several objects selected,
+  the chips are the tags they share; adding or removing one changes every object.
 - **Marker** adds a priority badge, P1 to P5, or a progress quarter from ○ to ●.
 - **Task** adds a checkbox before the label. Any frame, card or topic holding or heading tasks
   shows how many are done, as `2/5`.
@@ -290,7 +334,8 @@ While typing a label, `#word` adds a tag, `[]` or `[x]` at the start makes it an
 task, and `:p1` to `:p5` or `:q0` to `:q4` set a marker. The shorthand leaves the label when the
 edit finishes and becomes the fields above.
 
-**Ctrl/Command Shift F** opens the filter bar at the top left, with a chip for every tag,
+**Tags**, in the left rail, lists the room's tags with how many objects carry each; choosing one
+filters the canvas to it. **Ctrl/Command Shift F** opens the filter bar at the top left, with a chip for every tag,
 marker, task state and editor on the canvas. Chosen chips keep their objects bright, with the
 lines among them, and dim everything else; chips of one kind are alternatives, and kinds
 combine. **Gather matches** moves what matches into a new frame laid out as a grid to the right

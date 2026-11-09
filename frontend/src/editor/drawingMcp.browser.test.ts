@@ -8,7 +8,7 @@ import { AgentGateway } from "../relay/mcpHttp";
 import { createRoomId } from "../collaboration/room";
 import { readCopy } from "../document/pngCopy";
 import { BATCH_EXAMPLE } from "../language/reference";
-import { browser, errors, exported, fixture, open, row } from "./browserHarness";
+import { browser, errors, exported, exportPng, fixture, open, row } from "./browserHarness";
 import type { Page } from "playwright";
 
 async function connectAgent() {
@@ -119,7 +119,7 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
       "Human Drawing"
     );
     const pending = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Export PNG", exact: true }).click();
+    await exportPng(page);
     const png = await readFile((await (await pending).path())!);
     expect(await readCopy(new Uint8Array(png))).toContain("gradient #0000ff");
     const colors = await gradientPixels(page, png);

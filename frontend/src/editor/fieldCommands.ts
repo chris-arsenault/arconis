@@ -1,11 +1,25 @@
-import type { Item } from "../document/types";
+import { MARKERS, type Item, type Marker } from "../document/types";
 import { holdsOthers } from "../document/relations";
-import { showFilter, type Command, type CommandContext } from "./registry";
+import { showFilter, showTagger, type Command, type CommandContext } from "./registry";
 import { changeFields } from "./commands";
 import { filterMatches, isEmptyFilter } from "./filter";
 import { gatherIntoFrame } from "./gather";
 
 /** Commands over the fields every item carries: lock, hide, collapse and task state. */
+
+/** How each marker reads in a menu or a field. */
+export const MARKER_LABELS: Record<Marker, string> = {
+  p1: "Priority 1",
+  p2: "Priority 2",
+  p3: "Priority 3",
+  p4: "Priority 4",
+  p5: "Priority 5",
+  q0: "Not started",
+  q1: "A quarter done",
+  q2: "Half done",
+  q3: "Three quarters done",
+  q4: "Complete",
+};
 
 const some = ({ selected }: CommandContext) => selected.length > 0;
 const ids = ({ selected }: CommandContext) => selected.map((item) => item.id);
@@ -111,6 +125,30 @@ export const FIELD_COMMANDS: Command[] = [
         collapsed: collapsed ? undefined : true,
       });
     },
+  },
+  {
+    id: "fields.tag",
+    label: "Tag…",
+    group: "fields",
+    keywords: ["tags", "label", "category", "hashtag"],
+    when: some,
+    run: ({ editor }) => showTagger(editor, true),
+  },
+  ...MARKERS.map((marker): Command => ({
+    id: `fields.marker.${marker}`,
+    label: MARKER_LABELS[marker],
+    group: "fields",
+    keywords: ["marker", "priority", "progress"],
+    when: some,
+    run: (context) => changeFields(context.editor.document, ids(context), { marker }),
+  })),
+  {
+    id: "fields.marker.none",
+    label: "No marker",
+    group: "fields",
+    keywords: ["clear marker"],
+    when: ({ selected }) => selected.some((item) => item.marker),
+    run: (context) => changeFields(context.editor.document, ids(context), { marker: undefined }),
   },
   {
     id: "fields.task",

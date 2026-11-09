@@ -4,8 +4,8 @@ import { COLORS, isBox, type Item } from "../document/types";
 import { changeSelectionLook } from "../editor/commands";
 import { hasFill, hasLine, hasText } from "../document/capabilities";
 import { effectiveAppearance, type Appearance } from "../document/appearance";
-import { worldBounds } from "../document/relations";
-import { openMenu, openSubRing, runCommand, showComments } from "../editor/registry";
+import { runCommand, showComments } from "../editor/registry";
+import { openMenuOverSelection as openOverSelection } from "../editor/contextMenu";
 
 /** Text sizes the toolbar steps through. */
 const TEXT_SIZES = [10, 12, 14, 16, 18, 22, 28, 36, 48];
@@ -43,17 +43,6 @@ function TextSizeButtons({
       </button>
     </span>
   );
-}
-
-/** Opens the ring and menu over the selection, straight into a sub-ring when asked. */
-function openOverSelection(editor: EditorController, subRing: string | null) {
-  const bounds = worldBounds(editor.selected());
-  if (!bounds) return;
-  const { scale, translate } = editor.graph.view;
-  const world = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-  const at = { x: (world.x + translate.x) * scale, y: (world.y + translate.y) * scale };
-  openMenu(editor, { at, world, wedge: null, subRing: null, ring: subRing !== null });
-  if (subRing) openSubRing(editor, subRing);
 }
 
 function hidden(editor: EditorController, selected: Item[]) {

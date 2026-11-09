@@ -1,7 +1,7 @@
 # Files, pictures and portable copies
 
-Arconis keeps a local room copy automatically. Header exports create portable files; account
-saving creates a saved workspace. These paths serve different tasks.
+Arconis keeps a local room copy automatically. The header's **File** menu exports portable files
+and imports them; account saving creates a saved workspace. These paths serve different tasks.
 
 | Path               | Contents and scope                                                                                                 | Reopen with                                     |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
@@ -12,20 +12,20 @@ saving creates a saved workspace. These paths serve different tasks.
 
 ## Export an editable document
 
-Use **Export document** in the header. It downloads the canvas in the Arconis canvas language,
+Choose **File**, then **Export document**. It downloads the canvas in the Arconis canvas language,
 including pictures and shared metadata. It is readable text, with `arconis 1` as its header.
 The [canonical language reference](../frontend/src/language/reference.ts) is also available to
 assistants through `canvas_help`.
 
-**Include markup** is checked by default. Uncheck it to omit annotations while retaining Drawing
+**Include markup**, at the foot of the File menu, is checked by default. Uncheck it to omit annotations while retaining Drawing
 objects and other workspace content. This applies to the portable export, not the room's local
 or account-saved copy.
 
 ## Export a PNG
 
 1. Select the objects you want, or clear the selection to export the whole canvas.
-2. Choose whether to **Include markup**.
-3. Choose **Export PNG** in the header.
+2. Open **File** and choose whether to **Include markup**.
+3. Choose **Export PNG**.
 
 Selected holders include their contents and internal relationships. Merely overlapping a slide
 or frame does not make an object its content. Export includes the chosen items rather than a
@@ -53,7 +53,7 @@ are in the command palette.
 
 ## Import into a room
 
-Choose **Import document**, then a `.arconis` file or an Arconis-exported PNG. Import adds the
+Choose **File**, then **Import document**, then a `.arconis` file or an Arconis-exported PNG. Import adds the
 contents to the current room as one undoable operation; it does not replace the room. The view
 fits the result. For a separate workspace, create another room before importing.
 

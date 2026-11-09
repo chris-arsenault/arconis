@@ -1,9 +1,9 @@
 import { InternalEvent, type RubberBandHandler } from "@maxgraph/core";
 import type { EditorController } from "./controller";
 import { cellAt } from "./input";
-import { closeMenu, openMenu, runCommand } from "./registry";
+import { closeMenu, openMenu } from "./registry";
 import { commandContext } from "./registry";
-import { ringEntries } from "./contextMenu";
+import { chooseRingEntry, ringEntries } from "./contextMenu";
 import { syncZoom } from "./zoom";
 
 /**
@@ -128,14 +128,7 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
       editor.emit();
       return;
     }
-    if (entry.opens) {
-      menu.subRing = entry.id;
-      menu.wedge = null;
-      editor.emit();
-      return;
-    }
-    closeMenu(editor);
-    runCommand(editor, entry.id);
+    chooseRingEntry(editor, entry);
   };
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", finish);

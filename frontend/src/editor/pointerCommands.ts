@@ -37,7 +37,9 @@ function here({ editor }: CommandContext) {
   return editor.ui.menu?.world ?? (editor.pointer ? editor.worldPoint(editor.pointer) : null);
 }
 
-function addHere(context: CommandContext, type: "note" | "text") {
+const HERE_NAMES = { note: "Your idea here", text: "Text", frame: "Frame" } as const;
+
+function addHere(context: CommandContext, type: keyof typeof HERE_NAMES) {
   const { editor } = context;
   const point = here(context);
   const scale = editor.graph.view.scale;
@@ -47,7 +49,7 @@ function addHere(context: CommandContext, type: "note" | "text") {
   const id =
     x !== undefined && y !== undefined
       ? editor.document.create(type, x, y, {
-          name: type === "note" ? "Your idea here" : "Text",
+          name: HERE_NAMES[type],
           inside: containerAt(editor.document, point!.x, point!.y, size),
           ...creationValues(type, scale),
           ...size,
@@ -73,6 +75,13 @@ export const POINTER_COMMANDS: Command[] = [
     label: "Add text here",
     group: "create",
     run: (context) => addHere(context, "text"),
+  },
+  {
+    id: "create.frameHere",
+    label: "Add frame here",
+    group: "create",
+    keywords: ["container", "group area"],
+    run: (context) => addHere(context, "frame"),
   },
   {
     id: "edit.pasteHere",

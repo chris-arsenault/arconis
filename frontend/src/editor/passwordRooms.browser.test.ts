@@ -9,12 +9,14 @@ import {
   drawnPictures,
   errors,
   exported,
+  exportPng,
   fixture,
   objectCount,
   open,
   pastePicture,
   row,
   serveFixtures,
+  unfoldSource,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -25,6 +27,7 @@ const PHRASE = "correct horse battery";
 async function visit(url = baseUrl()) {
   const context = await browser.newContext(VIEWPORT);
   await serveFixtures(context);
+  await unfoldSource(context);
   const page = await context.newPage();
   const frames: string[] = [];
   page.on("websocket", (socket) => {
@@ -76,9 +79,9 @@ async function createRoom() {
   return a;
 }
 
-async function exportPng(page: Page) {
+async function downloadPng(page: Page) {
   const pending = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export PNG", exact: true }).click();
+  await exportPng(page);
   return readFile((await (await pending).path())!);
 }
 
@@ -111,11 +114,11 @@ it("moves a picture in and out of a password room through a file", async () => {
   await expect.poll(() => drawnPictures(locked.page)).toBe(1);
 
   const plain = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await importPng(plain, await exportPng(locked.page));
+  await importPng(plain, await downloadPng(locked.page));
   await expect.poll(() => drawnPictures(plain)).toBe(1);
 
   const second = await createRoom();
-  await importPng(second.page, await exportPng(plain));
+  await importPng(second.page, await downloadPng(plain));
   await expect.poll(() => drawnPictures(second.page)).toBe(1);
   expect(errors).toEqual([]);
 }, 90_000);

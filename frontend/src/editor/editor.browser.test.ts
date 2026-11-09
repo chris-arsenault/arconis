@@ -17,6 +17,7 @@ import {
   groupLabel,
   selectConnector,
   selectDrawing,
+  more,
 } from "./browserHarness";
 
 it("edits a complete mixed canvas, routes and groups connected objects", async () => {
@@ -30,20 +31,20 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
     .click();
   await row(page, "API service").click();
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(3);
   await row(page, "API service").click();
   await page.getByLabel("Object x", { exact: true }).fill("350");
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
-  await page.getByRole("button", { name: "Group", exact: true }).click();
+  await more(page, "Group");
   await expect.poll(() => objectCount(page)).toBe(4);
   await groupLabel(page).click();
-  await page.getByRole("button", { name: "Duplicate", exact: true }).click();
+  await more(page, "Duplicate");
   await expect.poll(() => objectCount(page)).toBe(8);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(4);
   await groupLabel(page).click();
-  await page.getByRole("button", { name: "Ungroup", exact: true }).click();
+  await more(page, "Ungroup");
   await expect.poll(() => objectCount(page)).toBe(3);
   await row(page, "A connected idea").dblclick();
   await page.getByLabel("Edit canvas text").fill("Edited on canvas");
@@ -98,7 +99,7 @@ it("synchronizes independent browsers, late join, offline edits, reload and room
   const isolated = await open(second, createRoomId());
   expect(await objectCount(isolated)).toBe(0);
   await row(b, "Peer idea").click();
-  await b.getByRole("button", { name: "Delete selection", exact: true }).click();
+  await more(b, "Delete");
   await expect.poll(() => row(a, "Peer idea").count()).toBe(0);
   await sharedGroupDeletion(a, b);
   expect(errors).toEqual([]);
@@ -111,14 +112,14 @@ async function sharedGroupDeletion(a: Page, b: Page) {
   await row(a, "Grouped peer idea").waitFor();
   await row(a, "Shared database").click();
   await row(a, "Grouped peer idea").click({ modifiers: ["Shift"] });
-  await a.getByRole("button", { name: "Connect", exact: true }).click();
-  await a.getByRole("button", { name: "Group", exact: true }).click();
+  await a.getByRole("button", { name: "Connect with a line", exact: true }).click();
+  await more(a, "Group");
   await groupLabel(b).waitFor();
   // b still has its new note selected, and that note's rotation handle sits over the group label.
   await b.getByTestId("canvas").click({ position: { x: 880, y: 800 } });
   await groupLabel(b).click();
   expect(await selectionLabel(b)).toBe("Group");
-  await b.getByRole("button", { name: "Delete selection", exact: true }).click();
+  await more(b, "Delete");
   await expect.poll(() => objectCount(b)).toBe(0);
   await expect.poll(() => objectCount(a), { timeout: 15000 }).toBe(0);
 }
@@ -130,7 +131,7 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   await add(page, "Sticky note (N)", "Attached note", 540, 390);
   await row(page, "Move me").click();
   await row(page, "Attached note").click({ modifiers: ["Shift"] });
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await row(page, "Move me").click();
   const oldX = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
   await drag(page, 300, 215, 100, 70);

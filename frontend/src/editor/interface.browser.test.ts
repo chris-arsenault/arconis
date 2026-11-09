@@ -308,3 +308,74 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
   expect(errors).toEqual([]);
   await context.close();
 });
+
+it("tags from the ring, filters from the rail's tags, and grows compact branches", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  const page = await open(context, createRoomId());
+  await add(page, "Sticky note (N)", "Strategy", 300, 300);
+  const root = (await exported(page)).objects[0];
+
+  // Tab grows a branch that is a compact topic, not another full-size note.
+  await row(page, "Strategy").click();
+  await page.keyboard.press("Tab");
+  await page.getByLabel("Edit canvas text", { exact: true }).fill("Pricing");
+  await page.keyboard.press("Escape");
+  const branch = (await exported(page)).objects.find((item) => item.name === "Pricing")!;
+  expect(branch.type).toBe("note");
+  expect(branch.height).toBeLessThan(root.height / 2);
+
+  // The ring's west wedge tags the object where it is.
+  await canvas(page).click({ position: emptySpot });
+  const box = (await row(page, "Strategy").boundingBox())!;
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  await page.mouse.move(x, y);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(x - 60, y, { steps: 6 });
+  await page.mouse.up({ button: "right" });
+  const tagField = page.getByRole("dialog", { name: "Tags" }).getByLabel("Add a tag");
+  await tagField.fill("growth");
+  await tagField.press("Enter");
+  await tagField.press("Enter");
+  await expect.poll(() => page.getByRole("dialog", { name: "Tags" }).count()).toBe(0);
+  await expect
+    .poll(async () => (await exported(page)).objects.find((item) => item.id === root.id)?.tags)
+    .toEqual(["growth"]);
+
+  // The panel shows the tag as a chip and offers it to the branch, which takes it in one click.
+  await expect
+    .poll(() => page.locator(".inspector .tag-chip").allTextContents())
+    .toEqual(["#growth"]);
+  await row(page, "Pricing").click();
+  await page.getByRole("group", { name: "Tags in this room" }).getByText("#growth").click();
+  await expect
+    .poll(async () => (await exported(page)).objects.filter((item) => item.tags).length)
+    .toBe(2);
+
+  // The rail lists the room's tags; choosing one filters the canvas to what carries it.
+  await canvas(page).click({ position: emptySpot });
+  await page
+    .locator(".left-rail details[aria-label='Tags']")
+    .getByRole("button", { name: "#growth" })
+    .click();
+  await page.getByRole("region", { name: "Filter" }).waitFor();
+  await expect
+    .poll(() => page.getByRole("button", { name: "#growth" }).first().getAttribute("aria-pressed"))
+    .toBe("true");
+
+  // Panel sections fold from their header and stay folded after a reload.
+  await row(page, "Strategy").click();
+  const appearance = page
+    .getByLabel("Object properties")
+    .locator("details[aria-label='Appearance']");
+  await appearance.locator(":scope > summary").click();
+  await expect.poll(() => page.getByLabel("Fill color", { exact: true }).isVisible()).toBe(false);
+  await page.reload();
+  await row(page, "Strategy").click();
+  expect(await appearance.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
+
+  // Export lives in the File menu.
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Export document", exact: true }).waitFor();
+  expect(errors).toEqual([]);
+  await context.close();
+});

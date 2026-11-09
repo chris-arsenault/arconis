@@ -100,12 +100,53 @@ export function drawnPictures(page: Page) {
     );
 }
 
+const unfolded = new WeakSet<BrowserContext>();
+
+/**
+ * Journeys type labels into the property panel's source field, which people find folded. Each
+ * context starts with it unfolded, once, so a journey that folds it again sees the fold persist.
+ */
+export async function unfoldSource(context: BrowserContext) {
+  if (unfolded.has(context)) return;
+  unfolded.add(context);
+  await context.addInitScript(() => {
+    if (sessionStorage.getItem("journey-source")) return;
+    sessionStorage.setItem("journey-source", "1");
+    const saved = JSON.parse(localStorage.getItem("arconis.inspector") ?? "{}") as object;
+    localStorage.setItem("arconis.inspector", JSON.stringify({ ...saved, source: true }));
+  });
+}
+
+/** Opens a menu command for the selection through the property panel's More button. */
+export async function more(page: Page, command: string) {
+  await page
+    .getByLabel("Object properties")
+    .getByRole("button", { name: "More", exact: true })
+    .click();
+  // A menu item's name ends with its shortcut, as "Group Ctrl G".
+  const escaped = command.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  await page.getByRole("menuitem", { name: new RegExp(`^${escaped}( |$)`) }).click();
+}
+
+/** Opens the header's File menu, where export and import live. */
+export async function fileMenu(page: Page) {
+  const button = page.getByRole("button", { name: "File", exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+}
+
+/** Exports the selection or the canvas as a PNG through the File menu. */
+export async function exportPng(page: Page) {
+  await fileMenu(page);
+  await page.getByRole("menuitem", { name: "Export PNG", exact: true }).click();
+}
+
 export async function open(context: BrowserContext, room = "", join = false, status = "Connected") {
   if (!traced.has(context)) {
     await context.tracing.start({ screenshots: true, snapshots: true });
     traced.add(context);
   }
   await serveFixtures(context);
+  await unfoldSource(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => {
     errors.push(error.message);
@@ -191,7 +232,8 @@ export async function exported(page: Page): Promise<{
   text: string;
 }> {
   const pending = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export document", exact: true }).click();
+  await fileMenu(page);
+  await page.getByRole("menuitem", { name: "Export document", exact: true }).click();
   const download = await pending;
   const text = await readFile((await download.path())!, "utf8");
   // An empty canvas keeps the file's ids, so journeys see the items as the room has them.

@@ -33,6 +33,19 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Changed the property panel to one order for every selection: its name with a More menu,
+  folded Markdown source, then Relationships, Tags and status, Appearance, Layout, Slide and
+  Comments, each folding and remembered on the device, with sections that do not apply left out.
+  Relationships lists the parent topic, holder, references and lines, and offers Add branch,
+  Relate to… and Zoom into. Added relating an object to another by name, references that show
+  while either end is selected, tag chips that suggest the room's tags, a Tag… editor above the
+  selection, and a Tags section in the left rail that filters the canvas.
+- Changed the ring to a compass on objects (branch north, relate east, delete south, tag west,
+  the full menu south-west) and to creation and navigation on empty canvas; the menu groups
+  commands by intent and folds alignment, distribution, tidying and markers into submenus.
+  Branches grown with Tab are compact topics that grow with their text. Export, import and
+  Include markup moved into the header's File menu.
+
 - Changed the left rail to the stencils followed by collapsible panels that all open and close
   from the same header: Drawing, Outline, History, Slides and Saved views, each remembered as it
   was left on the device. History starts closed and shows its step count; the drawing panel

@@ -26,6 +26,7 @@ import { PRESENCE_COMMANDS } from "./presenceCommands";
 import { POINTER_COMMANDS } from "./pointerCommands";
 import { STENCIL_COMMANDS } from "./stencilCommands";
 import { EXPORT_COMMANDS } from "./exportCommands";
+import { showRelate } from "./registry";
 
 /** The commands, in the order menus and the palette list them within each group. */
 
@@ -268,11 +269,13 @@ const STRUCTURE: Command[] = [
     run: ({ editor }) => editor.connect(),
   },
   {
-    id: "structure.reference",
-    label: "Add reference",
+    id: "structure.relate",
+    label: (context) => (two(context) ? "Relate these two" : "Relate to…"),
     group: "structure",
-    when: two,
-    run: ({ editor }) => addReference(editor),
+    keywords: ["reference", "link", "see also", "mind map"],
+    when: (context) => one(context) || two(context),
+    run: ({ editor, selected }) =>
+      selected.length === 2 ? addReference(editor) : showRelate(editor, true),
   },
   {
     id: "structure.tidy",

@@ -22,6 +22,7 @@ import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
 import { clampScale, creationOffset, creationValues, syncZoom, observeViewport } from "./zoom";
 import { configureCulling } from "./culling";
+import { SelectionReferences } from "./relate";
 import { LabelMarks } from "./marks";
 import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
 import { configureComposition, connectSelection, syncLineAnchors } from "./topics";
@@ -58,6 +59,7 @@ export class EditorController {
   armedIcon: { key: string; title: string } | null = null;
   armedScreen: ScreenSize | null = null;
   referencesVisible = false;
+  private readonly selectionReferences = new SelectionReferences(() => this.referencesVisible);
   connectionSource = "";
   /** The deck the last slide placed here joined, which the next one joins too. */
   lastDeck = "";
@@ -115,11 +117,7 @@ export class EditorController {
     this.graph.setCellsEditable(false);
     this.marks = new LabelMarks(this.graph, this.document);
     configureRendering(this.graph, (cell) => this.marks.text(cell));
-    configureCulling(
-      this.graph,
-      () => this.referencesVisible,
-      () => this.drawing.visible
-    );
+    configureCulling(this.graph, this.selectionReferences.shows, () => this.drawing.visible);
     this.graph.isToggleEvent = (event) => event.shiftKey || event.ctrlKey || event.metaKey;
     this.graph.setDisconnectOnMove(false);
     this.graph.setDropEnabled(true);
@@ -142,6 +140,7 @@ export class EditorController {
     this.band.isForceRubberbandEvent = () => false;
     configureLocking(this.graph, this.document);
     this.graph.getDataModel().addListener(InternalEvent.CHANGE, this.onGraphChange);
+    this.selectionReferences.watch(this.graph, this.document);
     this.graph.getSelectionModel().addListener(InternalEvent.CHANGE, this.emit);
     this.graph.view.addListener(InternalEvent.SCALE_AND_TRANSLATE, this.onView);
     this.graph.view.addListener(InternalEvent.SCALE, this.onView);

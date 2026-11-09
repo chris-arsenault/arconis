@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { browser, open, exported, errors, row, add } from "./browserHarness";
+import { browser, open, exported, errors, row, add, fileMenu } from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 import type { Page } from "playwright";
 
@@ -36,9 +36,11 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
       async () => (await exported(peer)).objects.filter((item) => item.type === "highlight").length
     )
     .toBe(1);
+  await fileMenu(page);
   await page.getByRole("checkbox", { name: "Include markup" }).uncheck();
   const clean = await exported(page);
   expect(clean.objects.map((item) => item.type)).toEqual(["note"]);
+  await fileMenu(page);
   await page.getByRole("checkbox", { name: "Include markup" }).check();
   await page.getByRole("button", { name: "Clear markup", exact: true }).click();
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);

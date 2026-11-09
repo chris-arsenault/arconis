@@ -306,26 +306,193 @@ h1 em {
   line-height: 1.35;
   resize: vertical;
 }
-.reference-list {
-  list-style: none;
-  margin: 8px 0 0;
+/* Relationships: what the selection is related to, each a row that jumps to the other end. */
+.relation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 0 6px;
   padding: 0;
+  list-style: none;
 }
-.reference-row {
+.relation-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
 }
-.reference-target {
+.relation-kind {
+  flex: none;
+  width: 72px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.relation-target {
+  display: block;
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  padding: 3px 6px;
   border: none;
+  border-radius: 4px;
   background: transparent;
-  padding: 4px;
+  color: var(--text);
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.relation-target:hover {
+  background: var(--hover);
+}
+.relation-row .icon-action {
+  flex: 0 0 22px;
+  height: 22px;
+}
+.relation-branches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-bottom: 6px;
+  color: var(--text-soft);
+}
+.relation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+/* Tags as chips, with the room's other tags offered below. */
+.tag-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 3px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.tag-chips:focus-within {
+  border-color: #7560cb;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 1px 2px 1px 7px;
+  border-radius: 10px;
+  background: var(--pressed);
+  color: var(--pressed-text);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.tag-chip button {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+}
+.tag-chip button:hover {
+  background: #0000001a;
+}
+.tag-input {
+  flex: 1 1 60px;
+  min-width: 60px;
+  height: 20px;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+}
+.tag-input:focus {
+  outline: none;
+}
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tag-suggestion {
+  padding: 1px 7px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.tag-suggestion:hover {
+  border-style: solid;
+  color: var(--pressed-text);
+}
+/* Popovers that float above the selection: the tag editor and the relate picker. */
+.selection-popover {
+  position: absolute;
+  z-index: 40;
+  width: 260px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 36px #44405b2e;
+  font-size: 12px;
+}
+.selection-popover .tag-editor {
+  margin: 0;
+}
+.relate-picker input {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+.relate-picker ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.relate-picker li button {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+.relate-picker li[aria-selected="true"] button {
+  background: var(--pressed);
+  color: var(--pressed-text);
+}
+.relate-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.relate-kind {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+.relate-empty {
+  margin: 8px 4px 2px;
+  color: var(--muted);
 }
 .account-form {
   display: grid;
@@ -762,6 +929,23 @@ details[open] > summary::before {
   padding: 2px 6px;
   font-size: 12px;
 }
+.tag-list .rail-row .rail-count {
+  flex: none;
+  margin-right: 4px;
+}
+.tag-list .rail-entry[aria-pressed="true"] {
+  background: var(--pressed);
+  color: var(--pressed-text);
+}
+.link-row {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.select-grid .link-field {
+  height: 26px;
+  padding: 0 6px;
+  font-size: 12px;
+}
 .history-list .redo .rail-entry {
   color: var(--muted);
 }
@@ -1072,14 +1256,83 @@ details[open] > summary::before {
   border-left: 1px solid var(--line);
   font-size: 12px;
 }
+/* The panel's head: what is selected and its name, with every other command behind More. */
 .inspector-header {
-  padding: 8px 10px 6px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 10px 8px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
 }
-.inspector-header strong {
+.inspector-heading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.inspector-kind {
+  color: var(--muted);
+  font-size: 11px;
+}
+.inspector-name {
   display: block;
-  margin-bottom: 6px;
-  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0 -4px;
+  padding: 1px 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
   font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inspector-name:hover {
+  background: var(--hover);
+}
+.inspector-more {
+  flex: none;
+}
+/* Sections in the panel share the rail's header; the controls inside sit flush beneath it. */
+.inspector .rail-section {
+  padding: 3px 4px 4px;
+}
+.inspector .rail-section:first-of-type {
+  border-top: none;
+}
+.inspector .rail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 6px 6px;
+}
+.inspector .rail-body > .inspector-section {
+  padding: 4px 0 2px;
+  border-top: none;
+}
+.inspector .rail-body .object-text,
+.inspector .rail-body .object-subtitle {
+  width: 100%;
+  margin: 0;
+}
+.inspector > .object-subtitle {
+  margin-top: 8px;
+}
+/* The slide section's own title repeats the section header. */
+.slide-section .inspector-section > h3 {
+  display: none;
+}
+.inspector > .edited-by {
+  padding: 8px 10px 12px;
+  border-top: 1px solid var(--line);
 }
 .selection-actions {
   display: flex;
@@ -1468,7 +1721,8 @@ input.outline-name {
   padding: 3px 8px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fafbfe;
+  background: var(--field);
+  color: var(--text);
   font-size: 11px;
 }
 .filter-chip[aria-pressed="true"] {
@@ -1756,6 +2010,80 @@ input.outline-name {
   color: #969daf;
   font-family: inherit;
   font-size: 10px;
+}
+.context-menu .has-submenu > button {
+  align-items: center;
+}
+.context-menu .has-submenu > button svg {
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.context-menu .has-submenu > button[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .context-menu .has-submenu > button svg {
+    transition: none;
+  }
+}
+.context-submenu {
+  margin: 1px 0 3px 10px !important;
+  padding-left: 6px !important;
+  border-left: 2px solid var(--line);
+}
+/* The ring's way to the full menu reads as a different kind of wedge. */
+.ring-wedge.more text {
+  fill: var(--muted);
+  font-style: italic;
+}
+/* The header's file menu: export, import and whether exports carry markup. */
+.file-menu {
+  position: relative;
+}
+.file-menu-button {
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  font-weight: 500;
+}
+.file-menu-button:hover,
+.file-menu-button[aria-expanded="true"] {
+  background: var(--hover);
+}
+.file-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px #44405b1f;
+}
+.file-menu-list button {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+}
+.file-menu-list button:hover {
+  background: var(--hover);
+}
+.file-menu-list .export-markup {
+  margin: 4px 0 0;
+  padding: 8px 10px 4px;
+  border-top: 1px solid var(--line);
 }
 .comment-modal {
   position: absolute;
@@ -2311,8 +2639,7 @@ input.outline-name {
   .topbar .participant-badge {
     display: none;
   }
-  .topbar-actions > .icon-button,
-  .topbar-actions > .export-markup {
+  .topbar-actions > .icon-button {
     display: none;
   }
   .document-title input {

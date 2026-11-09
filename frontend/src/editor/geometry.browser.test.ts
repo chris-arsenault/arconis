@@ -10,6 +10,7 @@ import {
   exported,
   objectCount,
   groupLabel,
+  more,
 } from "./browserHarness";
 
 async function shapePosition(page: Page) {
@@ -38,7 +39,7 @@ it("keeps world geometry when a peer groups while another moves offline", async 
   await first.setOffline(true);
   await row(a, "Grouped shape").click();
   await row(a, "Companion").click({ modifiers: ["Shift"] });
-  await a.getByRole("button", { name: "Group", exact: true }).click();
+  await more(a, "Group");
   await b.getByLabel("Object x", { exact: true }).fill("150");
   await b.getByLabel("Object y", { exact: true }).fill("180");
   await first.setOffline(false);
@@ -56,7 +57,7 @@ async function moveDuplicateUngroup(page: Page) {
   const x = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
   await page.getByLabel("Object x", { exact: true }).fill(String(x + 100));
   expect(await shapePosition(page)).toEqual([250, 180]);
-  await page.getByRole("button", { name: "Duplicate", exact: true }).click();
+  await more(page, "Duplicate");
   const copy = await exported(page);
   expect(
     copy.objects
@@ -66,7 +67,7 @@ async function moveDuplicateUngroup(page: Page) {
   ).toEqual([250, 278]);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await groupLabel(page).click();
-  await page.getByRole("button", { name: "Ungroup", exact: true }).click();
+  await more(page, "Ungroup");
   expect(await shapePosition(page)).toEqual([250, 180]);
   expect(await objectCount(page)).toBe(2);
 }
@@ -112,13 +113,13 @@ it("moves grouped routes and drawings with their group, through duplicate, undo 
     [280, 490],
     [380, 460],
   ]);
-  await page.getByRole("button", { name: "Duplicate", exact: true }).click();
+  await more(page, "Duplicate");
   const copies = (await exported(page)).objects.filter((item) => item.name === "Path");
   expect(copies.map((item) => item.x)).toEqual([0, 0]);
   expect(copies.map((item) => item.points[0][0]).sort((a, b) => a - b)).toEqual([410, 438]);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await row(page, "Group").click();
-  await page.getByRole("button", { name: "Ungroup", exact: true }).click();
+  await more(page, "Ungroup");
   await page.reload();
   await expect.poll(() => objectCount(page)).toBe(4);
   const restored = await exported(page);

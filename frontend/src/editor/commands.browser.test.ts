@@ -22,10 +22,10 @@ it("Undo removes a branch's newly required line anchor, topic and relationship t
   await add(page, "Rectangle (R)", "Server", 700, 100);
   await row(page, "Client").click();
   await row(page, "Server").click({ modifiers: ["Shift"] });
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await selectConnector(page);
   const before = (await exported(page)).text;
-  await page.getByRole("button", { name: "Add branch (Tab)", exact: true }).click();
+  await page.getByRole("button", { name: "Add branch", exact: true }).click();
   await page.getByLabel("Edit canvas text", { exact: true }).waitFor();
   await page.keyboard.press("Escape");
   await expect.poll(() => objectCount(peer)).toBe(6);

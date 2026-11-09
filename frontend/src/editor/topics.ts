@@ -84,17 +84,33 @@ export function syncLineAnchors(graph: Graph, document: CanvasDocument) {
   }
 }
 
+/** A branch is a compact topic: a short phrase wide and one line tall, growing as text is typed. */
+const BRANCH_WIDTH = 160;
+const BRANCH_HEIGHT = 48;
+
 function branchSize(editor: EditorController, parent: Item) {
-  if (branchCopiesParent(parent)) return parent;
-  return creationSize("node", editor.graph.view.scale);
+  if (!branchCopiesParent(parent)) {
+    const node = creationSize("node", editor.graph.view.scale);
+    return { width: node.width, height: (BRANCH_HEIGHT * node.width) / BRANCH_WIDTH };
+  }
+  const scale = parent.look?.scale ?? 1;
+  return {
+    width: Math.min(parent.width, BRANCH_WIDTH * scale),
+    height: Math.min(parent.height, BRANCH_HEIGHT * scale),
+  };
 }
 
 /** A new topic beside or under `parent`, looking like it when that suits a topic. */
 function topicFor(editor: EditorController, parent: Item, x: number, y: number) {
   const { width, height } = branchSize(editor, parent);
+  const created = creationValues("node", editor.graph.view.scale);
   const fields: Partial<Item> = branchCopiesParent(parent)
-    ? { stencil: parent.stencil, style: parent.style, look: { ...parent.look } }
-    : creationValues("node", editor.graph.view.scale);
+    ? {
+        stencil: parent.stencil,
+        style: parent.style,
+        look: { ...parent.look, textFit: "height" },
+      }
+    : { ...created, look: { ...created.look, textFit: "height" } };
   const type = branchCopiesParent(parent) ? parent.type : "node";
   return editor.document.build(type, x, y, { width, height, inside: parent.inside, ...fields });
 }
@@ -142,7 +158,22 @@ export function connectSelection(editor: EditorController, type: "line" | "refer
     .selected()
     .filter((item) => type === "reference" || item.type !== "drawing");
   if (selected.length !== 2) return;
-  const [from, to] = selected.map((item) => planEndpoint(editor, item));
+  link(editor, selected[0], selected[1], type);
+}
+
+/**
+ * Relates the selected object to another chosen by name, as a reference: no tree structure, no
+ * physical line, just "see also". The selection stays where it is.
+ */
+export function relateTo(editor: EditorController, targetId: string) {
+  const [selected] = editor.selected();
+  const target = editor.document.get(targetId);
+  if (!selected || !target || selected.id === target.id) return;
+  link(editor, selected, target, "reference");
+}
+
+function link(editor: EditorController, a: Item, b: Item, type: "line" | "reference") {
+  const [from, to] = [a, b].map((item) => planEndpoint(editor, item));
   if (!from || !to) return;
   const { document } = editor;
   document.undo.stopCapturing();

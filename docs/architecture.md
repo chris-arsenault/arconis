@@ -187,8 +187,9 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   tree or a text block by writing language (`editor/pasteAs.ts`).
 - `editor/commandTable.ts` is the one table of commands, each with a label, a group, its
   shortcuts and the rule for when it applies to the selection. `editor/registry.ts` reads it for
-  key dispatch (`editor/input.ts`), the property panel's header actions, the stencil rail's
-  labels and the command palette (`components/CommandPalette.tsx`, ranked by
+  key dispatch (`editor/input.ts`), the property panel's relationship actions, the ring and
+  menu (`editor/contextMenu.ts`, which lays the ring out as a compass and folds families into
+  submenus), the stencil rail's labels and the command palette (`components/CommandPalette.tsx`, ranked by
   `editor/paletteSearch.ts`). A shortcut keeps one meaning: the dispatcher runs the first
   available command whose shortcut matches exactly, and the registry's test refuses two
   commands with the same key.

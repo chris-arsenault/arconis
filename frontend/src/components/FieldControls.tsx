@@ -12,23 +12,10 @@ import {
 } from "lucide-react";
 import { MARKERS, TASK_STATES, type Item, type Marker, type TaskState } from "../document/types";
 import { branchChildren, holdsOthers } from "../document/relations";
-import { isWebLink, parseTags } from "../language/fields";
+import { isWebLink } from "../language/fields";
 import { MARKER_SIGNS } from "../editor/marks";
-import { Section } from "./ConnectionControls";
+import { MARKER_LABELS } from "../editor/fieldCommands";
 
-/** How each marker reads in a menu. */
-const MARKER_LABELS: Record<Marker, string> = {
-  p1: "Priority 1",
-  p2: "Priority 2",
-  p3: "Priority 3",
-  p4: "Priority 4",
-  p5: "Priority 5",
-  q0: "Not started",
-  q1: "A quarter done",
-  q2: "Half done",
-  q3: "Three quarters done",
-  q4: "Complete",
-};
 const TASK_LABELS: Record<TaskState, string> = { open: "To do", done: "Done" };
 
 type Change = (values: Partial<Item>) => void;
@@ -98,7 +85,8 @@ function CommittedField({
   );
 }
 
-function FieldToggles({
+/** Lock, hide and, for anything that holds others, collapse: the selection's state on the canvas. */
+export function StateToggles({
   selected,
   items,
   onChange,
@@ -109,8 +97,6 @@ function FieldToggles({
     (candidate) => candidate.collapsed || holdsOthers(items, candidate.id)
   );
   const collapsed = selected.every((candidate) => candidate.collapsed);
-  const heads = selected.some((candidate) => branchChildren(items, candidate.id).length > 0);
-  const numbered = selected.every((candidate) => candidate.numbered);
   return (
     <div className="field-toggles">
       <ToggleButton
@@ -139,21 +125,39 @@ function FieldToggles({
           onClick={() => onChange({ collapsed: collapsed ? undefined : true })}
         />
       )}
-      {heads && (
-        <ToggleButton
-          on={numbered}
-          label="Number branches"
-          offLabel="Unnumber branches"
-          icon={ListOrdered}
-          offIcon={ListOrdered}
-          onClick={() => onChange({ numbered: numbered ? undefined : true })}
-        />
-      )}
     </div>
   );
 }
 
-function FieldChoices({ item, onChange }: Readonly<{ item: Item; onChange: Change }>) {
+/** Numbers a topic's branches 1, 1.1, 1.2; shown only for a topic that has branches. */
+export function NumberBranchesToggle({
+  selected,
+  items,
+  onChange,
+}: Readonly<{ selected: Item[]; items: Item[]; onChange: Change }>) {
+  if (!selected.some((candidate) => branchChildren(items, candidate.id).length > 0)) return null;
+  const numbered = selected.every((candidate) => candidate.numbered);
+  return (
+    <ToggleButton
+      on={numbered}
+      label="Number branches"
+      offLabel="Unnumber branches"
+      icon={ListOrdered}
+      offIcon={ListOrdered}
+      onClick={() => onChange({ numbered: numbered ? undefined : true })}
+    />
+  );
+}
+
+/** Marker, task state and link, applied to the whole selection. */
+export function StatusFields({
+  selected,
+  onChange,
+  onFollow,
+}: Readonly<{ selected: Item[]; onChange: Change; onFollow: (link: string) => void }>) {
+  const [item] = selected;
+  const link = item.link ?? "";
+  const followLabel = isWebLink(link) ? "Open link" : "Go to linked item";
   return (
     <div className="select-grid">
       <span>Marker</span>
@@ -186,49 +190,11 @@ function FieldChoices({ item, onChange }: Readonly<{ item: Item; onChange: Chang
           </option>
         ))}
       </select>
-    </div>
-  );
-}
-
-/**
- * The fields every item carries: lock, hide and collapse, tags, a marker, a task state and a link,
- * applied to the whole selection, and who last edited the first item.
- */
-export function FieldControls({
-  selected,
-  items,
-  onChange,
-  onFollow,
-}: Readonly<{
-  selected: Item[];
-  items: Item[];
-  onChange: Change;
-  onFollow: (link: string) => void;
-}>) {
-  const [item] = selected;
-  if (!item) return null;
-  const tags = (item.tags ?? []).join(", ");
-  const link = item.link ?? "";
-  const followLabel = isWebLink(link) ? "Open link" : "Go to linked item";
-  return (
-    <Section title="Fields">
-      <FieldToggles selected={selected} items={items} onChange={onChange} />
-      <CommittedField
-        key={`tags ${tags}`}
-        className="object-subtitle"
-        label="Tags"
-        placeholder="Tags, separated by commas"
-        value={tags}
-        onCommit={(text) => {
-          const parsed = parseTags(text);
-          onChange({ tags: parsed.length ? parsed : undefined });
-        }}
-      />
-      <FieldChoices item={item} onChange={onChange} />
-      <div className="control-row">
+      <span>Link</span>
+      <div className="control-row link-row">
         <CommittedField
           key={`link ${link}`}
-          className="object-subtitle link-field"
+          className="link-field"
           label="Link"
           placeholder="Web address or item id"
           value={link}
@@ -245,11 +211,6 @@ export function FieldControls({
           </button>
         )}
       </div>
-      {selected.length === 1 && item.editedBy !== undefined && item.editedAt !== undefined && (
-        <p className="edited-by" data-testid="edited-by">
-          Last edited by {item.editedBy}, {new Date(item.editedAt).toLocaleString()}
-        </p>
-      )}
-    </Section>
+    </div>
   );
 }

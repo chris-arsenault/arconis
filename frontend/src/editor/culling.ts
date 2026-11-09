@@ -64,10 +64,13 @@ export function labelIsLegible(cell: Cell, scale: number) {
   return size * scale >= MIN_LABEL_PIXELS;
 }
 
-/** Leaves culled cells out of the view, along with reference lines unless they are switched on. */
+/**
+ * Leaves culled cells out of the view, along with reference lines unless they are switched on or
+ * `showReference` asks for that one, as it does for references of the selection.
+ */
 export function configureCulling(
   graph: Graph,
-  showReferences: () => boolean,
+  showReference: (cell: Cell) => boolean,
   showMarkup = () => true
 ) {
   const { view } = graph;
@@ -76,7 +79,7 @@ export function configureCulling(
     const style = cell.getStyle() as Record<string, unknown>;
     const reference = style.reference === true;
     const shown =
-      !(reference && !showReferences()) &&
+      !(reference && !showReference(cell)) &&
       !(style.markup && !(exporting.get(graph) ?? showMarkup())) &&
       !tooSmall(cell, view.scale);
     return validateCell(cell, visible && shown);

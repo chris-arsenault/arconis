@@ -153,10 +153,14 @@ export function bindCanvasInput(editor: EditorController) {
       // A pointer click on a canvas control returns focus so shortcuts keep working.
       if (event.detail === 0 || editor.editId) return;
       const target = event.target;
+      // A click that opened a field to type in, such as the relate picker, keeps its focus there.
+      const typing = document.activeElement?.matches("input, textarea, select");
       if (
         target instanceof Element &&
+        !typing &&
         target.closest("button") &&
-        target.closest(".canvas-area, .left-rail, .inspector")
+        target.closest(".canvas-area, .left-rail, .inspector") &&
+        !target.closest(".selection-popover")
       )
         editor.element.focus({ preventScroll: true });
     },

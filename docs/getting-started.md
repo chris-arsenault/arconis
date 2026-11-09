@@ -24,8 +24,9 @@ The welcome screen also offers **Create a password room** and **Work on this dev
    name it, and finish the edit.
 3. Choose **Connector: click two objects** and click the note followed by the rectangle.
 4. Press **V** to select. Drag either object; the connector stays attached.
-5. Select an object to change its text, fill, outline or geometry in the property panel on the
-   right. If that panel is hidden on a narrow screen, widen the window.
+5. Select an object to see the property panel on the right: its relationships, tags and status,
+   appearance and layout. Right-click it for the menu, or hold the right button for a ring of
+   the most-used commands. If the panel is hidden on a narrow screen, widen the window.
 
 You can also drag stencils directly from the rail. Search the rail to find architecture icons.
 The [canvas guide](editing.md) covers selection, containers, connectors and keyboard navigation.
@@ -40,11 +41,12 @@ The [drawing guide](drawing.md) covers shapes, erasing, fills, gradients and pro
 
 ## Keep a copy
 
-Your browser retains the room locally. For a portable copy, use **Export document** in the header.
+Your browser retains the room locally. For a portable copy, open **File** in the header and
+choose **Export document**.
 An account's **Save to my account** button keeps a workspace available on other devices.
 
 **Export PNG** exports the selection, or the whole canvas when nothing is selected, and includes
-an editable copy. **Include markup** controls whether annotations appear in document and PNG
+an editable copy. **Include markup**, in the same menu, controls whether annotations appear in document and PNG
 exports. [Files and pictures](files.md) explains import, export and storage choices.
 
 ## Continue by task

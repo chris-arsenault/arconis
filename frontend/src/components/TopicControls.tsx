@@ -10,14 +10,17 @@ import {
   Bookmark,
   Network,
   Plus,
+  Spline,
   X,
   ZoomIn,
   type LucideIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import type { AlignMode } from "../document/relations";
-import { branchChildren, referencesOf } from "../document/relations";
+import { branchChildren, branchParent, referencesOf } from "../document/relations";
 import { SCREEN_SIZES } from "../document/screens";
-import { isBox, typeLabel, type Item } from "../document/types";
+import { isBox, isLink, type Item } from "../document/types";
+import { itemName } from "../editor/relate";
 import type { Axis } from "../document/relations";
 import { Section } from "./ConnectionControls";
 
@@ -114,95 +117,150 @@ export function ScreenSizeControl({
   );
 }
 
-function ReferenceRow({
-  items,
-  id,
-  other,
-  outgoing,
+/** One related item: what it is to the selection, its name to jump to, and a way to undo it. */
+function RelationRow({
+  relation,
+  target,
   onJump,
   onRemove,
 }: Readonly<{
-  items: Item[];
-  id: string;
-  other: string;
-  outgoing: boolean;
+  relation: string;
+  target: Item;
   onJump: (id: string) => void;
-  onRemove: (id: string) => void;
+  onRemove?: () => void;
 }>) {
-  const target = items.find((item) => item.id === other);
-  if (!target) return null;
-  const name = target.name || typeLabel(target);
+  const name = itemName(target);
   return (
-    <li className="reference-row">
-      <button className="reference-target" onClick={() => onJump(other)}>
-        {outgoing ? "→" : "←"} {name}
+    <li className="relation-row">
+      <span className="relation-kind">{relation}</span>
+      <button className="relation-target" title={`Go to ${name}`} onClick={() => onJump(target.id)}>
+        {name}
       </button>
-      <button
-        className="icon-action"
-        aria-label={`Remove reference to ${name}`}
-        title="Remove reference"
-        onClick={() => onRemove(id)}
-      >
-        <X size={13} />
-      </button>
+      {onRemove && (
+        <button
+          className="icon-action"
+          aria-label={`Remove reference to ${name}`}
+          title="Remove reference"
+          onClick={onRemove}
+        >
+          <X size={13} />
+        </button>
+      )}
     </li>
   );
 }
 
-export function TopicControls({
+interface Relation {
+  key: string;
+  relation: string;
+  target: Item;
+  remove?: string;
+}
+
+/** Everything one item is related to: its parent topic, its holder, its references and lines. */
+function relationsOf(items: Item[], item: Item): Relation[] {
+  const byId = new Map(items.map((candidate) => [candidate.id, candidate]));
+  const found: Relation[] = [];
+  const add = (key: string, relation: string, id: string | undefined, remove?: string) => {
+    const target = id ? byId.get(id) : undefined;
+    if (target) found.push({ key, relation, target, remove });
+  };
+  add("parent", "Branch of", branchParent(items, item.id));
+  if (!item.onLine) add("inside", "Inside", item.inside);
+  if (isLink(item)) {
+    add("from", "From", item.from);
+    add("to", "To", item.to);
+  }
+  for (const reference of referencesOf(items, item.id))
+    add(
+      reference.id,
+      reference.outgoing ? "Refers to" : "Referred by",
+      reference.other,
+      reference.id
+    );
+  for (const line of items) {
+    if (line.type !== "line" || (line.from !== item.id && line.to !== item.id)) continue;
+    add(line.id, "Line to", line.from === item.id ? line.to : line.from);
+  }
+  return found;
+}
+
+function Action({
+  label,
+  icon: Icon,
+  onClick,
+}: Readonly<{ label: string; icon: LucideIcon; onClick: () => void }>) {
+  return (
+    <button className="text-action" onClick={onClick}>
+      <Icon size={14} /> {label}
+    </button>
+  );
+}
+
+/**
+ * How the selection sits among other things, and the ways to relate it: branch it, relate it to
+ * another object by name, or with two selected, relate or connect them.
+ */
+export function Relationships({
   selected,
   items,
-  onBranch,
-  onReference,
-  onZoom,
-  onTidy,
+  run,
   onJump,
   onRemove,
+  children,
 }: Readonly<{
   selected: Item[];
   items: Item[];
-  onBranch: () => void;
-  onReference: () => void;
-  onZoom: () => void;
-  onTidy: () => void;
+  /** Runs a command from the command table by id. */
+  run: (id: string) => void;
   onJump: (id: string) => void;
   onRemove: (id: string) => void;
+  /** Branch numbering, shown beside the branch count. */
+  children?: ReactNode;
 }>) {
-  const [item] = selected;
-  if (!item) return null;
-  const single = selected.length === 1;
-  const references = single ? referencesOf(items, item.id) : [];
-  return (
-    <Section title="Topic">
-      <div className="selection-actions" role="toolbar" aria-label="Topic actions">
-        <SmallAction label="Add branch (Tab)" icon={Plus} disabled={!single} onClick={onBranch} />
-        <SmallAction
-          label="Add reference"
-          icon={Bookmark}
-          disabled={selected.length !== 2}
-          onClick={onReference}
-        />
-        <SmallAction label="Zoom in (Z)" icon={ZoomIn} disabled={!single} onClick={onZoom} />
-        <SmallAction
-          label="Tidy branches"
-          icon={Network}
-          disabled={!single || !branchChildren(items, item.id).length}
-          onClick={onTidy}
+  if (selected.length === 2)
+    return (
+      <div className="relation-actions">
+        <Action label="Relate these two" icon={Bookmark} onClick={() => run("structure.relate")} />
+        <Action
+          label="Connect with a line"
+          icon={Spline}
+          onClick={() => run("structure.connect")}
         />
       </div>
-      {references.length > 0 && (
-        <ul className="reference-list" aria-label="References">
-          {references.map((reference) => (
-            <ReferenceRow
-              key={reference.id}
-              items={items}
+    );
+  const [item] = selected;
+  const relations = relationsOf(items, item);
+  const branches = branchChildren(items, item.id).length;
+  return (
+    <>
+      {relations.length > 0 && (
+        <ul className="relation-list" aria-label="Related items">
+          {relations.map(({ key, relation, target, remove }) => (
+            <RelationRow
+              key={key}
+              relation={relation}
+              target={target}
               onJump={onJump}
-              onRemove={onRemove}
-              {...reference}
+              onRemove={remove ? () => onRemove(remove) : undefined}
             />
           ))}
         </ul>
       )}
-    </Section>
+      {branches > 0 && (
+        <div className="relation-branches">
+          <span>
+            {branches} {branches === 1 ? "branch" : "branches"}
+          </span>
+          <Action label="Tidy" icon={Network} onClick={() => run("structure.tidy")} />
+          {children}
+        </div>
+      )}
+      <div className="relation-actions">
+        <Action label="Add branch" icon={Plus} onClick={() => run("structure.branch")} />
+        <Action label="Relate to…" icon={Bookmark} onClick={() => run("structure.relate")} />
+        <Action label="Zoom into" icon={ZoomIn} onClick={() => run("view.zoomInto")} />
+      </div>
+    </>
   );
 }

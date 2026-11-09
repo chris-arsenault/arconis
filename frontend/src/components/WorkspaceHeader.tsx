@@ -1,5 +1,5 @@
-import { useRef, useState, useSyncExternalStore } from "react";
-import { Download, ImageDown, Upload, Shapes } from "lucide-react";
+import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { Download, FileText, ImageDown, Upload, Shapes } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { downloadFile } from "../files/download";
@@ -150,37 +150,86 @@ async function exportCanvas({ session, onMessage }: FileProps, includeMarkup: bo
   }
 }
 
+/** Closes a header menu on a press outside it or on Escape. */
+function useDismiss(ref: RefObject<HTMLElement | null>, open: boolean, close: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node) || !ref.current?.contains(event.target)) close();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [ref, open, close]);
+}
+
+/**
+ * The file menu: export the canvas as a file or a picture, import one, and whether exports carry
+ * the markup drawn over the canvas. The file chooser stays mounted so a dropped-in file works.
+ */
 function DocumentActions(props: FileProps) {
   const [includeMarkup, setIncludeMarkup] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [close] = useState(() => () => setOpen(false));
   const input = useRef<HTMLInputElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  useDismiss(menu, open, close);
   const load = (file: File) => loadFile(props, file);
-  const exportPicture = () => exportPng(props, includeMarkup);
+  const run = (action: () => void) => () => {
+    setOpen(false);
+    action();
+  };
   return (
-    <>
+    <div className="file-menu" ref={menu}>
       <button
-        className="icon-button"
-        title="Export document"
-        aria-label="Export document"
-        onClick={() => void exportCanvas(props, includeMarkup)}
+        className="text-action file-menu-button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
       >
-        <Download size={18} />
+        <FileText size={16} /> File
       </button>
-      <button
-        className="icon-button"
-        title="Export the selection or whole canvas as a PNG that can be loaded again"
-        aria-label="Export PNG"
-        onClick={() => void exportPicture()}
-      >
-        <ImageDown size={18} />
-      </button>
-      <button
-        className="icon-button"
-        title="Import document"
-        aria-label="Import document"
-        onClick={() => input.current?.click()}
-      >
-        <Upload size={18} />
-      </button>
+      {open && (
+        <div className="file-menu-list" role="menu" aria-label="File">
+          <button
+            role="menuitem"
+            onClick={run(() => void exportCanvas(props, includeMarkup))}
+            title="Download the canvas as a file any room can import"
+          >
+            <Download size={15} /> Export document
+          </button>
+          <button
+            role="menuitem"
+            onClick={run(() => void exportPng(props, includeMarkup))}
+            title="Download the selection or whole canvas as a PNG that can be loaded again"
+          >
+            <ImageDown size={15} /> Export PNG
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              input.current?.click();
+            }}
+          >
+            <Upload size={15} /> Import document
+          </button>
+          <label className="export-markup">
+            <input
+              type="checkbox"
+              checked={includeMarkup}
+              onChange={(event) => setIncludeMarkup(event.target.checked)}
+            />
+            Include markup
+          </label>
+        </div>
+      )}
       <input
         ref={input}
         className="visually-hidden"
@@ -193,14 +242,6 @@ function DocumentActions(props: FileProps) {
           event.target.value = "";
         }}
       />
-      <label className="export-markup">
-        <input
-          type="checkbox"
-          checked={includeMarkup}
-          onChange={(event) => setIncludeMarkup(event.target.checked)}
-        />
-        Include markup
-      </label>
-    </>
+    </div>
   );
 }

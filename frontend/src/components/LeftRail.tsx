@@ -14,11 +14,15 @@ import { isMarkup } from "../document/ink";
 import { RailSection } from "./RailSection";
 import { useRailSections } from "./useRailSections";
 import { historyEntries } from "../editor/history";
+import { roomTags } from "../editor/tags";
+import { toggled } from "../editor/filter";
+import { showFilter } from "../editor/registry";
 
 /** The stencils stay in view; every other panel starts open except the history, which is a log. */
 const SECTION_DEFAULTS = {
   drawing: true,
   outline: true,
+  tags: true,
   history: false,
   slides: true,
   views: true,
@@ -97,6 +101,7 @@ function DocumentSections({
   const views = savedViews(editor.document);
   return (
     <>
+      <TagsSection editor={editor} sections={sections} />
       {steps > 0 && (
         <RailSection
           id="history"
@@ -139,6 +144,44 @@ function DocumentSections({
         />
       </RailSection>
     </>
+  );
+}
+
+/** Every tag in the room with its count; choosing one filters the canvas to what carries it. */
+function TagsSection({
+  editor,
+  sections,
+}: Readonly<{ editor: EditorController; sections: Sections }>) {
+  const tags = roomTags(editor.document.list());
+  if (!tags.length) return null;
+  const choose = (tag: string) => {
+    if (!editor.ui.filter) showFilter(editor, true);
+    editor.setFilter(toggled(editor.filter, "tags", tag));
+  };
+  return (
+    <RailSection
+      id="tags"
+      title="Tags"
+      count={tags.length}
+      open={sections.open.tags}
+      onToggle={sections.toggle}
+    >
+      <div className="rail-list tag-list">
+        {tags.map(({ tag, count }) => (
+          <div className="rail-row" key={tag}>
+            <button
+              className="rail-entry"
+              aria-pressed={editor.filter.tags.includes(tag)}
+              title={`Show only what is tagged #${tag}`}
+              onClick={() => choose(tag)}
+            >
+              #{tag}
+            </button>
+            <span className="rail-count">{count}</span>
+          </div>
+        ))}
+      </div>
+    </RailSection>
   );
 }
 

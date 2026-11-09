@@ -2,13 +2,22 @@ import { expect, it } from "vitest";
 import { copyFile, mkdir, readFile } from "node:fs/promises";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, objectCount, open, row } from "./browserHarness";
+import {
+  add,
+  browser,
+  errors,
+  exported,
+  exportPng as menuExportPng,
+  objectCount,
+  open,
+  row,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
 async function exportPng(page: Page, reviewName: string) {
   const pending = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export PNG", exact: true }).click();
+  await menuExportPng(page);
   const download = await pending;
   expect(download.suggestedFilename()).toMatch(/\.png$/);
   const path = (await download.path())!;
@@ -124,7 +133,7 @@ it("draws icons in the picture", async () => {
 
 it("explains an empty canvas and a picture with no canvas inside", async () => {
   const page = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await page.getByRole("button", { name: "Export PNG", exact: true }).click();
+  await menuExportPng(page);
   await page.getByText("Add something to the canvas first.").waitFor();
   const plain = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",

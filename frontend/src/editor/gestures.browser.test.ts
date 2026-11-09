@@ -12,6 +12,7 @@ import {
   objectCount,
   selectionLabel,
   selectDrawing,
+  more,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -153,7 +154,7 @@ it("styles a new group immediately for its creator and selects it", async () => 
   await add(page, "Sticky note (N)", "Other member", 500, 170);
   await row(page, "Member").first().click();
   await row(page, "Other member").click({ modifiers: ["Shift"] });
-  await page.getByRole("button", { name: "Group", exact: true }).click();
+  await more(page, "Group");
   await expect.poll(() => canvas(page).locator("[stroke-dasharray]").count()).toBeGreaterThan(0);
   await expect.poll(() => canvas(page).locator('[fill="#f3f0fc"]').count()).toBe(1);
   expect(await canvas(page).locator('[fill="#C3D9FF"], [fill="#c3d9ff"]').count()).toBe(0);

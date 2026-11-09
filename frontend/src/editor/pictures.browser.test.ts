@@ -9,10 +9,12 @@ import {
   drawnPictures,
   errors,
   exported,
+  exportPng,
   fixture,
   objectCount,
   open,
   pastePicture,
+  unfoldSource,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -82,6 +84,7 @@ it("keeps a device-only room's pictures off the network, through reload and file
       body: `window.__APP_CONFIG__ = ${JSON.stringify(fixture.config)};`,
     })
   );
+  await unfoldSource(context);
   const page = await context.newPage();
   await page.goto(baseUrl());
   await page.getByRole("button", { name: "Work on this device only", exact: true }).click();
@@ -100,7 +103,7 @@ it("carries a picture in an exported file to a browser without it", async () => 
   await pastePicture(a, "#40d0d0");
   await expect.poll(() => drawnImages(a).count()).toBe(1);
   const pending = a.waitForEvent("download");
-  await a.getByRole("button", { name: "Export PNG", exact: true }).click();
+  await exportPng(a);
   const { readFile } = await import("node:fs/promises");
   const png = await readFile((await (await pending).path())!);
 

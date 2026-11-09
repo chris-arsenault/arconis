@@ -22,6 +22,10 @@ export interface EditorUi {
   menu: MenuState | null;
   /** The item whose comments are open in a modal above it. */
   comments: string | null;
+  /** Whether the tag editor floats over the selection. */
+  tagging: boolean;
+  /** Whether the picker that relates the selection to another object by name is open. */
+  relating: boolean;
   /** Whether a native move or resize is in progress, when floating controls step aside. */
   dragging: boolean;
 }
@@ -42,6 +46,8 @@ export function initialUi(): EditorUi {
     pulse: null,
     menu: null,
     comments: null,
+    tagging: false,
+    relating: false,
     dragging: false,
   };
 }

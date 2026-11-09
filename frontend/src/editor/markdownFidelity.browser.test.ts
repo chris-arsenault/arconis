@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, add, exported, objectCount } from "./browserHarness";
+import { browser, errors, open, add, exported, exportPng, objectCount } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
@@ -90,7 +90,7 @@ it("exports actual highlighted/math pixels with bundled fonts and reimports exac
   await page.getByLabel("Text font", { exact: true }).selectOption("serif");
   await page.screenshot({ path: "test-results/markdown-canvas.png" });
   const pending = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export PNG", exact: true }).click();
+  await exportPng(page);
   const download = await pending;
   const path = (await download.path())!;
   const bytes = await readFile(path);

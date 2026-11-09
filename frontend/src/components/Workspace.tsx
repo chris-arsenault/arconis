@@ -9,6 +9,7 @@ import { PresenceOverlays } from "./Presence";
 import { ContextMenu } from "./ContextMenu";
 import { QuickCreate } from "./QuickCreate";
 import { SelectionToolbar } from "./SelectionToolbar";
+import { RelatePicker, TagPopover } from "./SelectionPopovers";
 import { Measure } from "./Measure";
 import { Announcer } from "./Announcer";
 import { CommentModal } from "./CommentModal";
@@ -182,6 +183,8 @@ function EditingOverlays({
       <PresenceOverlays editor={editor} session={session} />
       {editor.ui.menu && <ContextMenu editor={editor} />}
       {editor.ui.comments && <CommentModal editor={editor} author={author} />}
+      {editor.ui.tagging && <TagPopover editor={editor} />}
+      {editor.ui.relating && <RelatePicker editor={editor} />}
     </>
   );
 }

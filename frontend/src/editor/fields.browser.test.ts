@@ -31,8 +31,8 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
 
   // Tags, a marker and a task reach the label and the file.
   await row(page, "Loose").click();
-  await page.getByLabel("Tags", { exact: true }).fill("api, v2");
-  await page.getByLabel("Tags", { exact: true }).press("Enter");
+  await page.getByLabel("Add a tag", { exact: true }).fill("api, v2");
+  await page.getByLabel("Add a tag", { exact: true }).press("Enter");
   await page.getByLabel("Marker", { exact: true }).selectOption("p1");
   await page.getByLabel("Task", { exact: true }).selectOption("open");
   await expect.poll(() => row(page, "#api").count()).toBeGreaterThan(0);
