@@ -2,10 +2,22 @@
 
 Planned-but-not-built work. Each item is a positive assertion of future-state behavior.
 
-## Accounts
+## Help and tutorials
 
-- Let groups share saved workspaces, when group activities are designed. A saved workspace is
-  private to its account until then.
+- Offer guided tutorials in popup windows, highlighting the relevant screen areas as each feature
+  is explained.
+- Provide a Help button opening an encyclopedia-style in-app reference for features, commands
+  and workflows.
+- Reserve a dedicated help zone in the left rail that shows one sentence about the hovered
+  control or feature, following Ableton Live's contextual-help approach.
+
+## Accounts and teams
+
+- Provide a saved-work browser covering local canvases and, when signed in, remote saved
+  workspaces.
+- Let people with accounts form teams and invite other account holders. Teams can own rooms,
+  with a browser for each team's rooms. Personal saved workspaces remain private to their account.
+- Provide team management for team settings, membership, invitations and room ownership.
 - Let an account save a section of a canvas and import it into any room, so people keep their
   own reusable layouts. Arconis ships no templates of its own.
 - Send Ahara's sign-in emails from an Ahara address through SES rather than Auth0's built-in sender.
@@ -36,6 +48,15 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Add a brace over several sibling topics and a boundary that grows with its subtree, and level
   styles that map depth to colour and size and survive reparenting.
 - Keep the last few account-saved copies with timestamps, as the only history beyond undo.
+
+## Layers
+
+- Support layers as collections of objects, extending the existing workspace/markup split.
+  Keep the markup/annotation layer as the top temporary layer and allow additional content layers.
+- Provide a Photoshop/GIMP-style layer browser for creating, selecting, ordering, showing/hiding,
+  deleting and merging layers, and moving objects between them.
+- Let agents select the appropriate layer for their work and create a new layer when appropriate,
+  often keeping a new addition in its own layer.
 
 ## Slides
 
