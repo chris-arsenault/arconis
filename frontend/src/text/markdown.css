@@ -4,6 +4,12 @@
   overflow-wrap: anywhere;
   text-transform: none;
 }
+.canvas-title,
+.canvas-title > * {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .canvas-markdown p,
 .canvas-markdown h1,
 .canvas-markdown h2,

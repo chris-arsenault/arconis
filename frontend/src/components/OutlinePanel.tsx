@@ -12,6 +12,7 @@ import { changeFields } from "../editor/commands";
 import { jumpTo, addBranch, tidySelection } from "../editor/topics";
 import { promote, reorderSibling } from "../editor/treeEdits";
 import { typeLabel, type Item } from "../document/types";
+import { RailSection } from "./RailSection";
 
 /** The keys that edit the tree from a row, the same as on the canvas. */
 function rowKeys(editor: EditorController, item: Item, onRename: () => void) {
@@ -111,7 +112,15 @@ function Row({
  * The selected tree as an outline, or every tree when nothing is selected: the text form of a
  * mind map, where Tab, Shift Tab, Enter and Alt arrows edit it as they do on the canvas.
  */
-export function OutlinePanel({ editor }: Readonly<{ editor: EditorController }>) {
+export function OutlinePanel({
+  editor,
+  open,
+  onToggle,
+}: Readonly<{
+  editor: EditorController;
+  open: boolean;
+  onToggle: (id: string, open: boolean) => void;
+}>) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const items = editor.document.list();
   const selected = editor.selected();
@@ -124,9 +133,8 @@ export function OutlinePanel({ editor }: Readonly<{ editor: EditorController }>)
   if (!rows.length) return null;
   const chosen = new Set(selected.map((item) => item.id));
   return (
-    <section className="saved-views outline" aria-label="Outline">
-      <h3>Outline</h3>
-      <ul className="outline-list">
+    <RailSection id="outline" title="Outline" open={open} onToggle={onToggle}>
+      <ul className="outline-list rail-list">
         {rows.map((row) => (
           <Row
             key={row.item.id}
@@ -143,6 +151,6 @@ export function OutlinePanel({ editor }: Readonly<{ editor: EditorController }>)
           Tidy branches
         </button>
       )}
-    </section>
+    </RailSection>
   );
 }

@@ -11,8 +11,12 @@
   /* The chrome's surfaces. The canvas and its contents keep their authored colours. */
   --surface: #f6f7fb;
   --panel: #ffffff;
+  --field: #fafbfe;
   --text: #2d354b;
+  --text-soft: #5d6579;
   --hover: #f1f2f6;
+  --pressed: #e9e6f8;
+  --pressed-text: #5443b3;
   --canvas: #f7f8fc;
   --canvas-grid: #d5daea;
   --canvas-grid-minor: #e9ecf4;
@@ -24,8 +28,12 @@
     --muted: #8a90a6;
     --surface: #15171f;
     --panel: #1d2030;
+    --field: #171a26;
     --text: #e4e6f0;
+    --text-soft: #aab0c4;
     --hover: #2a2e42;
+    --pressed: #3a3560;
+    --pressed-text: #cdc2f5;
     --canvas: #1a1d29;
     --canvas-grid: #2d3245;
     --canvas-grid-minor: #222638;
@@ -40,12 +48,32 @@
   .find-matches button:hover {
     background: var(--hover);
   }
+  /* The welcome page keeps its light art, so its text keeps the light palette too. */
+  .welcome {
+    color: #2d354b;
+    color-scheme: light;
+  }
+  .welcome button {
+    background: #fff;
+    border-color: #e7e9f0;
+  }
+  .welcome .primary {
+    color: white;
+    background: var(--purple);
+    border-color: var(--purple);
+  }
+  .welcome input {
+    background: #fafbfe;
+    border-color: #e7e9f0;
+    color: #2d354b;
+  }
+  /* Canvas text keeps its authored colour over the light canvas; the chrome's fields do not. */
   .canvas-markdown,
-  .inline-editor,
-  .object-text,
-  .object-subtitle,
-  .comment p {
+  .inline-editor {
     color: #283249;
+  }
+  .topbar .brand {
+    color: var(--text);
   }
 }
 * {
@@ -92,7 +120,7 @@ textarea,
 select {
   min-width: 0;
   color: inherit;
-  background: #fafbfe;
+  background: var(--field);
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 9px 10px;
@@ -550,8 +578,10 @@ h1 em {
   flex: 1;
   min-height: 0;
 }
+/* The rail: the tools, then the stencils filling what is left, then the secondary panels. Every
+   secondary panel is a disclosure with the same header, so each opens and closes the same way. */
 .left-rail {
-  overflow-y: auto;
+  overflow: hidden auto;
   width: 232px;
   flex-shrink: 0;
   display: flex;
@@ -566,10 +596,11 @@ h1 em {
   margin: 0 0 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #5d6579;
+  color: var(--text-soft);
 }
 .tool-row {
   display: flex;
+  flex-shrink: 0;
   gap: 2px;
   padding: 8px;
   border-bottom: 1px solid var(--line);
@@ -581,37 +612,180 @@ h1 em {
   border-radius: 5px;
 }
 .tool:hover {
-  background: #f1f2f6;
+  background: var(--hover);
 }
 .tool[aria-pressed="true"] {
-  background: #e9e6f8;
-  color: #5443b3;
+  background: var(--pressed);
+  color: var(--pressed-text);
 }
 .tool-row .tool {
   flex: 1;
   height: 30px;
   padding: 0;
 }
-.stencil-browser {
-  flex: 1;
-  min-height: 180px;
+/* One disclosure style for every panel header, in the rail and in the inspector. */
+.left-rail summary,
+.inspector summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 5px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.left-rail summary::-webkit-details-marker,
+.inspector summary::-webkit-details-marker {
+  display: none;
+}
+.left-rail summary::before,
+.inspector summary::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-left: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+details[open] > summary::before {
+  transform: rotate(45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .left-rail summary::before,
+  .inspector summary::before {
+    transition: none;
+  }
+}
+.left-rail summary:hover,
+.inspector summary:hover {
+  background: var(--hover);
+}
+.left-rail summary:focus-visible,
+.inspector summary:focus-visible {
+  outline: 3px solid #b6a4ef;
+  outline-offset: -2px;
+}
+.rail-section {
   flex-shrink: 0;
+  padding: 3px 4px;
+  border-top: 1px solid var(--line);
+}
+.rail-section > .rail-summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel);
+}
+.rail-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-count {
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: var(--hover);
+  color: var(--muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.rail-body {
+  padding: 2px 4px 7px;
+}
+/* Lists in the rail: rows of one button each, never wider than the rail, bounded in height. */
+.rail-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: hidden auto;
+}
+.rail-row {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  border-radius: 5px;
+}
+.rail-row:hover {
+  background: var(--hover);
+}
+.rail-entry {
+  flex: 1;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail-row .rail-entry {
+  border-radius: 5px 0 0 5px;
+}
+.rail-entry:hover {
+  background: var(--hover);
+}
+.rail-action {
+  flex: none;
+  width: 24px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #7c8497;
+  opacity: 0;
+}
+.rail-row:hover .rail-action,
+.rail-action:focus-visible {
+  opacity: 1;
+}
+.rail-rename {
+  width: 100%;
+  height: 26px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.history-list .redo .rail-entry {
+  color: var(--muted);
+}
+.history-list .current .rail-entry {
+  background: var(--pressed);
+  color: var(--pressed-text);
+}
+.stencil-browser {
+  flex: 1 1 auto;
+  min-height: 240px;
   display: flex;
   flex-direction: column;
 }
 .stencil-search {
+  flex-shrink: 0;
   margin: 8px 8px 0;
   height: 28px;
   padding: 2px 8px;
   font-size: 12px;
 }
 .vendor-group summary {
-  padding: 5px 4px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.vendor-group summary:hover {
-  background: #f1f2f6;
+  min-height: 28px;
+  font-weight: 500;
+  color: var(--text);
 }
 .vendor-group .stencil-grid {
   margin-bottom: 6px;
@@ -623,7 +797,7 @@ h1 em {
 .stencil-groups {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden auto;
   padding: 10px 8px;
 }
 .stencil-groups section + section {
@@ -662,63 +836,12 @@ h1 em {
   box-shadow: 0 3px 10px #2d354b26;
   pointer-events: none;
 }
-.saved-views {
-  padding: 10px 8px;
-  border-top: 1px solid var(--line);
-}
-.saved-views h3 {
-  padding-left: 4px;
-}
-.saved-view-list {
-  max-height: 180px;
-  overflow: auto;
-}
-.saved-view {
-  display: flex;
-  align-items: center;
-  border-radius: 5px;
-}
-.saved-view:hover {
-  background: #f1f2f6;
-}
-.saved-view input {
-  width: 100%;
-  height: 26px;
-  padding: 2px 6px;
-  font-size: 12px;
-}
-.saved-view button {
-  border: none;
-  background: transparent;
-}
-.saved-view-name {
-  flex: 1;
-  min-width: 0;
-  display: block;
-  padding: 5px 4px;
-  font-size: 12px;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.saved-view-action {
-  width: 22px;
-  height: 24px;
-  padding: 0;
-  color: #7c8497;
-  opacity: 0;
-}
-.saved-view:hover .saved-view-action,
-.saved-view-action:focus-visible {
-  opacity: 1;
-}
 .deck + .deck {
   margin-top: 6px;
 }
 .deck-present {
   opacity: 1;
-  color: #5443b3;
+  color: var(--pressed-text);
 }
 /* Presenting: the canvas alone, with everything outside the slide darkened. */
 .presenting .canvas-surface {
@@ -820,8 +943,8 @@ h1 em {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 4px;
-  color: #5443b3;
+  padding: 2px 0 2px 6px;
+  color: var(--pressed-text);
   font-weight: 600;
 }
 .deck-title span {
@@ -868,7 +991,10 @@ h1 em {
 .save-view {
   display: flex;
   gap: 4px;
-  margin-top: 6px;
+  margin-top: 4px;
+}
+.rail-list + .save-view {
+  margin-top: 8px;
 }
 .save-view input {
   width: 100%;
@@ -969,7 +1095,7 @@ h1 em {
   color: #4b5368;
 }
 .icon-action:hover {
-  background: #f1f2f6;
+  background: var(--hover);
 }
 .icon-action.danger:hover {
   background: #fdecec;
@@ -1007,6 +1133,7 @@ h1 em {
 }
 .control-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
 }
@@ -1026,7 +1153,7 @@ h1 em {
   align-items: center;
   min-width: 0;
   height: 26px;
-  background: #fafbfe;
+  background: var(--field);
   border: 1px solid var(--line);
   border-radius: 4px;
 }
@@ -1090,8 +1217,8 @@ h1 em {
   color: #4b5368;
 }
 .segmented button[aria-pressed="true"] {
-  background: #e9e6f8;
-  color: #5443b3;
+  background: var(--pressed);
+  color: var(--pressed-text);
 }
 .swatch {
   flex-shrink: 0;
@@ -1174,10 +1301,10 @@ h1 em {
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  border: 1px solid #e5e7f1;
+  border: 1px solid var(--line);
   border-radius: 9px;
-  background: white;
-  color: #5d6579;
+  background: var(--panel);
+  color: var(--text-soft);
   font-size: 11px;
   box-shadow: 0 3px 12px #35324c06;
   z-index: 3;
@@ -1247,11 +1374,7 @@ input.zoom-readout {
   box-shadow: 0 3px 12px #35324c06;
 }
 .outline-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
   max-height: 260px;
-  overflow-y: auto;
 }
 .outline-row {
   display: flex;
@@ -1307,11 +1430,11 @@ input.zoom-readout {
   text-overflow: ellipsis;
 }
 button.outline-name:hover {
-  background: #f1f2f6;
+  background: var(--hover);
 }
 .outline-name.selected {
-  background: #e9e6f8;
-  color: #5443b3;
+  background: var(--pressed);
+  color: var(--pressed-text);
 }
 input.outline-name {
   border: 1px solid var(--line);
@@ -1894,25 +2017,33 @@ input.outline-name {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 21px;
+  gap: 14px;
+  padding: 0 16px;
   border-top: 1px solid var(--line);
-  background: #fff;
-  font-size: 9px;
-  color: #9ca3b3;
+  background: var(--panel);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.statusbar > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .connection-status {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 6px;
-  color: #c29b60;
+  color: #b58a4a;
 }
 .connection-status.online {
-  color: #7da895;
+  color: #5f9a80;
 }
 .start-collaboration {
   padding: 2px 8px;
-  font-size: 9px;
+  font-size: 11px;
 }
 .local-status {
   margin-left: auto;
@@ -2132,12 +2263,8 @@ input.outline-name {
   white-space: nowrap;
 }
 @media (max-width: 1200px) {
-  .outline {
-    width: 175px;
-  }
   .inspector {
-    width: 210px;
-    padding: 20px 15px;
+    width: 220px;
   }
   .topbar {
     gap: 16px;
@@ -2148,9 +2275,6 @@ input.outline-name {
   }
 }
 @media (max-width: 900px) {
-  .outline {
-    display: none;
-  }
   .welcome-art {
     opacity: 0.35;
     left: 70%;
@@ -2182,13 +2306,13 @@ input.outline-name {
 }
 @media (max-width: 650px) {
   .inspector {
-    width: 175px;
-    padding: 15px 10px;
+    width: 200px;
   }
   .topbar .participant-badge {
     display: none;
   }
-  .topbar-actions > .icon-button {
+  .topbar-actions > .icon-button,
+  .topbar-actions > .export-markup {
     display: none;
   }
   .document-title input {
@@ -2200,15 +2324,6 @@ input.outline-name {
   }
   .share-button svg {
     width: 18px;
-  }
-  .tool-rail {
-    left: 10px;
-    top: 12px;
-    padding: 4px;
-  }
-  .tool {
-    width: 32px;
-    height: 32px;
   }
   .canvas-hint {
     display: none;
@@ -2224,12 +2339,12 @@ input.outline-name {
   .canvas-zoom {
     bottom: 15px;
   }
-  .statusbar > span:nth-child(2) {
+  .statusbar [data-testid="sync-status"],
+  .statusbar a {
     display: none;
   }
   .statusbar {
     padding: 0 10px;
-    font-size: 8px;
   }
   .welcome-art {
     display: none;
@@ -2251,11 +2366,18 @@ input.outline-name {
 }
 
 .drawing-tools {
-  flex-shrink: 0;
   display: grid;
-  gap: 9px;
-  padding: 12px;
-  border-block: 1px solid var(--border, #e2e3e9);
+  gap: 8px;
+  padding: 4px 4px 2px;
+}
+.drawing-group {
+  margin: 0 -4px;
+}
+.drawing-group > .drawing-tools {
+  padding: 2px 8px 4px;
+}
+.drawing-section .rail-body {
+  overflow: hidden auto;
 }
 
 .gradient-direction {
@@ -2274,50 +2396,96 @@ input.outline-name {
 .drawing-options {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
 }
 .drawing-tools button {
-  padding: 5px 7px;
-  border: 1px solid #d7d5e2;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
   border-radius: 5px;
-  background: #fff;
+  background: var(--panel);
   font-size: 11px;
   cursor: pointer;
 }
 .drawing-tools button[aria-pressed="true"] {
-  background: #e9e3ff;
-  border-color: #6554c0;
+  background: var(--pressed);
+  border-color: var(--pressed-text);
+  color: var(--pressed-text);
 }
-.drawing-tools label {
-  flex-direction: row;
+.drawing-tools .ink-swatch {
+  width: 26px;
+  padding: 0;
+}
+.drawing-tools .ink-swatch[aria-pressed="true"] {
+  background: var(--panel);
+  outline: 2px solid var(--purple);
+  outline-offset: -1px;
+}
+/* A labelled row: the label on the left, its controls on the right. */
+.drawing-field {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-soft);
+}
+.drawing-field > :last-child {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+/* A row whose controls need the whole width puts its label above them. */
+.drawing-field.stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.drawing-field.stacked > :last-child {
+  justify-content: flex-start;
+}
+.drawing-field.stacked input[type="number"] {
+  margin-left: auto;
 }
 .drawing-tools input[type="number"] {
-  width: 65px;
+  width: 56px;
+  height: 26px;
+  padding: 2px 6px;
+  font-size: 11px;
 }
 .drawing-tools select {
-  min-width: 100px;
+  height: 26px;
+  max-width: 130px;
+  padding: 2px 6px;
+  font-size: 11px;
 }
 .drawing-tools input[type="color"] {
-  width: 28px;
+  width: 26px;
   height: 26px;
   padding: 1px;
-  border: 0;
+  border: 1px solid var(--line);
 }
 .drawing-hint {
   margin: 0;
   font-size: 11px;
-  color: #62637a;
+  color: var(--muted);
   line-height: 1.4;
 }
 .export-markup {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
+  gap: 6px;
+  margin: 0 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-soft);
   white-space: nowrap;
+  cursor: pointer;
+}
+.export-markup input {
+  margin: 0;
+  accent-color: var(--purple);
 }

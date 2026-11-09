@@ -59,13 +59,14 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     // A rotated frame would no longer contain its children; children rotate instead.
     rotatable: false,
   },
+  // The title bar is as wide as the frame; a longer title ends in an ellipsis inside it.
   frame: {
     shape: "swimlane",
     keepTitle: true,
     startSize: FRAME_TITLE_HEIGHT,
     swimlaneFillColor: "#ffffff",
     whiteSpace: "nowrap",
-    overflow: "visible",
+    overflow: "width",
     rounded: false,
     rotatable: false,
   },
@@ -127,7 +128,7 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     keepTitle: true,
     verticalLabelPosition: "top",
     whiteSpace: "nowrap",
-    overflow: "visible",
+    overflow: "width",
   },
   // Shows as a plain frame until its bytes arrive.
   picture: {

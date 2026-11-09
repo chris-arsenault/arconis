@@ -89,7 +89,9 @@ function composeLabel(cell: Cell, marks: Marks, content: string) {
   const body = [escapeLabel(marks.before), name, after].filter(Boolean).join(" ");
   if (!body) return "";
   const css = labelVariables(style);
-  return `<div class="canvas-markdown" dir="auto" style="${css}">${body}</div>`;
+  // A title is as wide as its item and ends in an ellipsis rather than running past it.
+  const classes = style.keepTitle === true ? "canvas-markdown canvas-title" : "canvas-markdown";
+  return `<div class="${classes}" dir="auto" style="${css}">${body}</div>`;
 }
 
 function labelVariables(style: Record<string, unknown>) {
@@ -140,6 +142,8 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
   };
   // Measuring each shape with getBBox forces layout per cell and dominated zoom time.
   const renderer = graph.cellRenderer;
+  // Titles are laid out at their item's width, and keep their padding and position while they are.
+  renderer.legacySpacing = false;
   const isTextShapeInvalid = renderer.isTextShapeInvalid.bind(renderer);
   // TextShape resets empty colors to "none", while the stylesheet removes those entries.
   // Supply the same defaults to its unchanged-style check so it can reuse the label's DOM.

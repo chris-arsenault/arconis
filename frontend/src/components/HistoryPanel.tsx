@@ -1,4 +1,3 @@
-import { History } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { historyEntries, travelHistory } from "../editor/history";
 
@@ -11,39 +10,34 @@ const SHOWN = 12;
  */
 export function HistoryPanel({ editor }: Readonly<{ editor: EditorController }>) {
   const { undo, redo } = historyEntries(editor.document);
-  if (!undo.length && !redo.length) return null;
   return (
-    <section className="saved-views history" aria-label="History">
-      <h3>
-        <History size={12} /> History
-      </h3>
-      <ul className="history-list">
-        {redo
-          .slice(0, SHOWN)
-          .reverse()
-          .map((label, index, all) => (
-            <li key={`redo ${index}`} className="redo">
-              <button
-                className="saved-view-name"
-                onClick={() => travelHistory(editor.document, "redo", all.length - index)}
-              >
-                {label}
-              </button>
-            </li>
-          ))}
-        {undo.slice(0, SHOWN).map((label, index) => (
-          <li key={`undo ${index}`} className={index === 0 ? "current" : ""}>
+    <ul className="history-list rail-list">
+      {redo
+        .slice(0, SHOWN)
+        .reverse()
+        .map((label, index, all) => (
+          <li key={`redo ${index}`} className="redo">
             <button
-              className="saved-view-name"
-              aria-current={index === 0 ? "step" : undefined}
-              title={index === 0 ? "Where the canvas is now" : "Return to just after this step"}
-              onClick={() => travelHistory(editor.document, "undo", index)}
+              className="rail-entry"
+              title="Go forward to just after this step"
+              onClick={() => travelHistory(editor.document, "redo", all.length - index)}
             >
               {label}
             </button>
           </li>
         ))}
-      </ul>
-    </section>
+      {undo.slice(0, SHOWN).map((label, index) => (
+        <li key={`undo ${index}`} className={index === 0 ? "current" : ""}>
+          <button
+            className="rail-entry"
+            aria-current={index === 0 ? "step" : undefined}
+            title={index === 0 ? "Where the canvas is now" : "Return to just after this step"}
+            onClick={() => travelHistory(editor.document, "undo", index)}
+          >
+            {label}
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

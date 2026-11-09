@@ -11,15 +11,26 @@ import { HistoryPanel } from "./HistoryPanel";
 import { TOOLS } from "./stencils";
 import { DrawingTools, type DrawingActions } from "./DrawingTools";
 import { isMarkup } from "../document/ink";
+import { RailSection } from "./RailSection";
+import { useRailSections } from "./useRailSections";
+import { historyEntries } from "../editor/history";
+
+/** The stencils stay in view; every other panel starts open except the history, which is a log. */
+const SECTION_DEFAULTS = {
+  drawing: true,
+  outline: true,
+  history: false,
+  slides: true,
+  views: true,
+};
+
+type Sections = ReturnType<typeof useRailSections>;
 
 export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
-  const selected = editor.selected();
-  const selection = {
-    canPromote: selected.some((item) => item.type === "drawing" && isMarkup(item)),
-    hasDrawing: !!editor.drawing.activeSketch || selected.some((item) => item.type === "sketch"),
-  };
-  const actions = drawingActions(editor);
+  const sections = useRailSections(SECTION_DEFAULTS);
+  const drawing = editor.tool === "draw" || editor.drawing.settings.mode === "lasso";
+  const drawingPanel = drawing && <DrawingSection editor={editor} sections={sections} />;
   return (
     <aside className="left-rail" aria-label="Tools and stencils">
       <div className="tool-row" role="toolbar" aria-label="Canvas tools">
@@ -36,33 +47,98 @@ export function LeftRail({ editor }: Readonly<{ editor: EditorController }>) {
           </button>
         ))}
       </div>
-      <StencilBrowser editor={editor} />
-      {(editor.tool === "draw" || editor.drawing.settings.mode === "lasso") && (
-        <DrawingTools
-          activeSketch={editor.drawing.activeSketch}
-          settings={editor.drawing.settings}
-          visible={editor.drawing.visible}
-          favorites={editor.drawing.favorites}
-          recent={editor.drawing.recent}
-          selection={selection}
-          actions={actions}
-        />
-      )}
-      <OutlinePanel editor={editor} />
-      <HistoryPanel editor={editor} />
-      <Decks
-        all={decks(editor.document.list())}
-        onPresent={(deck) => editor.presenter.start(deck)}
-        onGo={(id) => goToSlide(editor, id)}
-      />
-      <SavedViews
-        views={savedViews(editor.document)}
-        onGo={(view) => flyToView(editor.graph, editor.element, view)}
-        onRemove={(id) => removeView(editor.document, id)}
-        onRename={(view, name) => renameView(editor.document, view, name)}
-        onSave={(name) => saveCurrentView(editor, name)}
-      />
+      {/* The draw tool takes the stencils' place; a lasso left active keeps its panel below them. */}
+      {editor.tool === "draw" ? drawingPanel : <StencilBrowser editor={editor} />}
+      {editor.tool !== "draw" && drawingPanel}
+      <OutlinePanel editor={editor} open={sections.open.outline} onToggle={sections.toggle} />
+      <DocumentSections editor={editor} sections={sections} />
     </aside>
+  );
+}
+
+function DrawingSection({
+  editor,
+  sections,
+}: Readonly<{ editor: EditorController; sections: Sections }>) {
+  const selected = editor.selected();
+  const selection = {
+    canPromote: selected.some((item) => item.type === "drawing" && isMarkup(item)),
+    hasDrawing: !!editor.drawing.activeSketch || selected.some((item) => item.type === "sketch"),
+  };
+  return (
+    <RailSection
+      id="drawing"
+      title={editor.drawing.activeSketch ? "Editing drawing" : "Drawing"}
+      open={sections.open.drawing}
+      onToggle={sections.toggle}
+      className="drawing-section"
+    >
+      <DrawingTools
+        activeSketch={editor.drawing.activeSketch}
+        settings={editor.drawing.settings}
+        visible={editor.drawing.visible}
+        favorites={editor.drawing.favorites}
+        recent={editor.drawing.recent}
+        selection={selection}
+        actions={drawingActions(editor)}
+      />
+    </RailSection>
+  );
+}
+
+/** The panels about the document itself: its history, its slide decks and its saved views. */
+function DocumentSections({
+  editor,
+  sections,
+}: Readonly<{ editor: EditorController; sections: Sections }>) {
+  const history = historyEntries(editor.document);
+  const steps = history.undo.length + history.redo.length;
+  const allDecks = decks(editor.document.list());
+  const views = savedViews(editor.document);
+  return (
+    <>
+      {steps > 0 && (
+        <RailSection
+          id="history"
+          title="History"
+          count={steps}
+          open={sections.open.history}
+          onToggle={sections.toggle}
+        >
+          <HistoryPanel editor={editor} />
+        </RailSection>
+      )}
+      {allDecks.length > 0 && (
+        <RailSection
+          id="slides"
+          title="Slides"
+          count={allDecks.reduce((total, deck) => total + deck.slides.length, 0)}
+          open={sections.open.slides}
+          onToggle={sections.toggle}
+        >
+          <Decks
+            all={allDecks}
+            onPresent={(deck) => editor.presenter.start(deck)}
+            onGo={(id) => goToSlide(editor, id)}
+          />
+        </RailSection>
+      )}
+      <RailSection
+        id="views"
+        title="Saved views"
+        count={views.length}
+        open={sections.open.views}
+        onToggle={sections.toggle}
+      >
+        <SavedViews
+          views={views}
+          onGo={(view) => flyToView(editor.graph, editor.element, view)}
+          onRemove={(id) => removeView(editor.document, id)}
+          onRename={(view, name) => renameView(editor.document, view, name)}
+          onSave={(name) => saveCurrentView(editor, name)}
+        />
+      </RailSection>
+    </>
   );
 }
 
@@ -99,16 +175,14 @@ function Decks({
   onPresent,
   onGo,
 }: Readonly<{ all: Deck[]; onPresent: (deck: string) => void; onGo: (id: string) => void }>) {
-  if (!all.length) return null;
   return (
-    <section className="saved-views" aria-label="Slides">
-      <h3>Slides</h3>
+    <div className="rail-list">
       {all.map(({ deck, slides }) => (
         <div className="deck" key={deck} data-testid="deck">
           <div className="deck-title">
             <span>{deck}</span>
             <button
-              className="saved-view-action deck-present"
+              className="rail-action deck-present"
               title={`Present ${deck}`}
               aria-label={`Present ${deck}`}
               onClick={() => onPresent(deck)}
@@ -116,16 +190,14 @@ function Decks({
               <Play size={13} />
             </button>
           </div>
-          <div className="saved-view-list">
-            {slides.map((slide) => (
-              <button key={slide.id} className="saved-view-name" onClick={() => onGo(slide.id)}>
-                {slideEntry(slide)}
-              </button>
-            ))}
-          </div>
+          {slides.map((slide) => (
+            <button key={slide.id} className="rail-entry" onClick={() => onGo(slide.id)}>
+              {slideEntry(slide)}
+            </button>
+          ))}
         </div>
       ))}
-    </section>
+    </div>
   );
 }
 
@@ -145,42 +217,43 @@ function SavedViews({
   const [name, setName] = useState("");
   const [renaming, setRenaming] = useState("");
   return (
-    <section className="saved-views" aria-label="Saved views">
-      <h3>Saved views</h3>
-      <div className="saved-view-list">
-        {views.map((view) =>
-          renaming === view.id ? (
-            <RenameView
-              key={view.id}
-              view={view}
-              onRename={(name) => onRename(view, name)}
-              onDone={() => setRenaming("")}
-            />
-          ) : (
-            <div className="saved-view" key={view.id}>
-              <button className="saved-view-name" onClick={() => onGo(view)}>
-                {view.name}
-              </button>
-              <button
-                className="saved-view-action"
-                title={`Rename ${view.name}`}
-                aria-label={`Rename view ${view.name}`}
-                onClick={() => setRenaming(view.id)}
-              >
-                <Pencil size={12} />
-              </button>
-              <button
-                className="saved-view-action"
-                title={`Remove ${view.name}`}
-                aria-label={`Remove view ${view.name}`}
-                onClick={() => onRemove(view.id)}
-              >
-                <X size={13} />
-              </button>
-            </div>
-          )
-        )}
-      </div>
+    <>
+      {views.length > 0 && (
+        <div className="rail-list">
+          {views.map((view) =>
+            renaming === view.id ? (
+              <RenameView
+                key={view.id}
+                view={view}
+                onRename={(name) => onRename(view, name)}
+                onDone={() => setRenaming("")}
+              />
+            ) : (
+              <div className="rail-row" key={view.id}>
+                <button className="rail-entry" onClick={() => onGo(view)}>
+                  {view.name}
+                </button>
+                <button
+                  className="rail-action"
+                  title={`Rename ${view.name}`}
+                  aria-label={`Rename view ${view.name}`}
+                  onClick={() => setRenaming(view.id)}
+                >
+                  <Pencil size={12} />
+                </button>
+                <button
+                  className="rail-action"
+                  title={`Remove ${view.name}`}
+                  aria-label={`Remove view ${view.name}`}
+                  onClick={() => onRemove(view.id)}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )
+          )}
+        </div>
+      )}
       <form
         className="save-view"
         onSubmit={(event) => {
@@ -191,7 +264,7 @@ function SavedViews({
       >
         <input
           aria-label="View name"
-          placeholder="Save this place"
+          placeholder="Name this place"
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
@@ -199,7 +272,7 @@ function SavedViews({
           <Plus size={15} />
         </button>
       </form>
-    </section>
+    </>
   );
 }
 
@@ -217,7 +290,7 @@ function RenameView({
   };
   return (
     <form
-      className="saved-view"
+      className="rail-row"
       onSubmit={(event) => {
         event.preventDefault();
         commit();
@@ -225,6 +298,7 @@ function RenameView({
     >
       <input
         ref={input}
+        className="rail-rename"
         aria-label={`New name for ${view.name}`}
         value={name}
         onChange={(event) => setName(event.target.value)}

@@ -57,7 +57,7 @@ export function DrawingTools(props: Readonly<Props>) {
   const { settings, actions } = props;
   const change = actions.change;
   return (
-    <section className="drawing-tools" aria-label="Drawing tools">
+    <div className="drawing-tools">
       <DrawingObjectActions
         active={!!props.activeSketch}
         selection={props.selection}
@@ -70,7 +70,7 @@ export function DrawingTools(props: Readonly<Props>) {
           </button>
         ))}
       </div>
-      <label>
+      <label className="drawing-field">
         Geometry
         <select
           aria-label="Drawing geometry"
@@ -92,20 +92,23 @@ export function DrawingTools(props: Readonly<Props>) {
         onFill={actions.fill}
         onClose={actions.close}
       />
-      <div className="drawing-options" role="group" aria-label="Favorite brushes">
-        {props.favorites.map((favorite, index) => (
-          <button
-            key={index}
-            aria-label={`Favorite ${index + 1}`}
-            title={`${favorite.mode}, ${favorite.width}. Shift-click to save.`}
-            onClick={(event) => actions.favorite(index, event.shiftKey)}
-          >
-            {index + 1}
-          </button>
-        ))}
+      <div className="drawing-field">
+        <span>Favorites</span>
+        <div className="drawing-options" role="group" aria-label="Favorite brushes">
+          {props.favorites.map((favorite, index) => (
+            <button
+              key={index}
+              aria-label={`Favorite ${index + 1}`}
+              title={`${favorite.mode}, ${favorite.width}. Shift-click to save the current brush.`}
+              onClick={(event) => actions.favorite(index, event.shiftKey)}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </div>
       </div>
       <p className="drawing-hint">
-        Shift constrains shapes. Enter finishes polygons. Shift-click a favorite to save.
+        Shift constrains shapes. Enter finishes a polygon. Shift-click a favorite to save the brush.
       </p>
       <div className="drawing-options">
         <button aria-pressed={props.visible} onClick={actions.toggle}>
@@ -114,7 +117,7 @@ export function DrawingTools(props: Readonly<Props>) {
         <button onClick={actions.recolor}>Recolor selection</button>
         <button onClick={actions.clear}>Clear markup</button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -128,27 +131,25 @@ function DrawingObjectActions({
   actions: Pick<DrawingActions, "make" | "blank" | "fit" | "demote" | "leave">;
 }>) {
   return (
-    <>
-      <strong>{active ? "Editing Drawing" : "Markup"}</strong>
-      <div className="drawing-options">
-        {selection.canPromote && <button onClick={actions.make}>Make Drawing</button>}
-        <button onClick={actions.blank}>New Drawing</button>
-        {selection.hasDrawing && (
-          <>
-            <button onClick={actions.fit}>Fit bounds to drawing</button>
-            <button onClick={actions.demote}>Return to markup</button>
-          </>
-        )}
-        {active && <button onClick={actions.leave}>Finish Drawing</button>}
-      </div>
-    </>
+    <div className="drawing-options">
+      {selection.canPromote && <button onClick={actions.make}>Make Drawing</button>}
+      <button onClick={actions.blank}>New Drawing</button>
+      {selection.hasDrawing && (
+        <>
+          <button onClick={actions.fit}>Fit bounds to drawing</button>
+          <button onClick={actions.demote}>Return to markup</button>
+        </>
+      )}
+      {active && <button onClick={actions.leave}>Finish Drawing</button>}
+    </div>
   );
 }
 
 function BrushWidths({ settings, change }: Readonly<BrushProps>) {
   const widths = settings.mode === "highlighter" ? [8, 16, 24, 36, 48] : [1, 3, 6, 10, 16];
   return (
-    <>
+    <div className="drawing-field stacked">
+      <span>Width</span>
       <div className="drawing-options" role="group" aria-label="Brush sizes">
         {widths.map((width) => (
           <button
@@ -160,9 +161,6 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
             {width}
           </button>
         ))}
-      </div>
-      <label>
-        Width
         <input
           aria-label="Brush width"
           type="number"
@@ -174,8 +172,8 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
             if (width > 0) change({ width });
           }}
         />
-      </label>
-    </>
+      </div>
+    </div>
   );
 }
 
@@ -186,6 +184,7 @@ function BrushColors({ settings, change, recent }: Readonly<BrushProps & { recen
         <button
           key={color}
           aria-label={`Ink ${color}`}
+          aria-pressed={settings.color === color}
           className="ink-swatch"
           onClick={() => change({ color })}
         >
@@ -211,42 +210,58 @@ function PaintControls({
   onClose,
 }: Readonly<BrushProps & { onFill: () => void; onClose: () => void }>) {
   return (
-    <details>
+    <details className="drawing-group">
       <summary>Fill and gradient</summary>
-      <label>
-        Shape fill
-        <input
-          aria-label="Shape fill"
-          type="color"
-          value={settings.fill === "none" ? "#ffffff" : settings.fill}
-          onChange={(event) => change({ fill: event.target.value })}
-        />
-      </label>
-      <button onClick={() => change({ fill: "none" })}>No shape fill</button>
-      <label>
-        Gradient color
-        <input
-          aria-label="Gradient color"
-          type="color"
-          value={settings.gradient === "none" ? "#ffffff" : settings.gradient}
-          onChange={(event) => change({ gradient: event.target.value })}
-        />
-      </label>
-      <button onClick={() => change({ gradient: "none" })}>Solid fill</button>
-      <label>
-        Gradient angle
-        <input
-          aria-label="Gradient angle"
-          type="number"
-          value={settings.gradientAngle}
-          onChange={(event) => change({ gradientAngle: Number(event.target.value) })}
-        />
-      </label>
-      <button onClick={onClose}>Close or open selected path</button>
-      <button onClick={onFill}>Fill selection</button>
-      <p className="drawing-hint">
-        Fill uses the ink color. Select a gradient-filled path to drag its direction handle.
-      </p>
+      <div className="drawing-tools">
+        <label className="drawing-field">
+          Shape fill
+          <span className="drawing-options">
+            <input
+              aria-label="Shape fill"
+              type="color"
+              value={settings.fill === "none" ? "#ffffff" : settings.fill}
+              onChange={(event) => change({ fill: event.target.value })}
+            />
+            <button type="button" onClick={() => change({ fill: "none" })}>
+              No shape fill
+            </button>
+          </span>
+        </label>
+        <label className="drawing-field">
+          Gradient color
+          <span className="drawing-options">
+            <input
+              aria-label="Gradient color"
+              type="color"
+              value={settings.gradient === "none" ? "#ffffff" : settings.gradient}
+              onChange={(event) => change({ gradient: event.target.value })}
+            />
+            <button type="button" onClick={() => change({ gradient: "none" })}>
+              Solid fill
+            </button>
+          </span>
+        </label>
+        <label className="drawing-field">
+          Gradient angle
+          <input
+            aria-label="Gradient angle"
+            type="number"
+            value={settings.gradientAngle}
+            onChange={(event) => change({ gradientAngle: Number(event.target.value) })}
+          />
+        </label>
+        <div className="drawing-options">
+          <button type="button" onClick={onClose}>
+            Close or open selected path
+          </button>
+          <button type="button" onClick={onFill}>
+            Fill selection
+          </button>
+        </div>
+        <p className="drawing-hint">
+          Fill uses the ink color. Select a gradient-filled path to drag its direction handle.
+        </p>
+      </div>
     </details>
   );
 }

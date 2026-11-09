@@ -245,3 +245,66 @@ it("saves a place, lists it, returns to it on another window size and syncs it",
   await first.close();
   await second.close();
 });
+
+it("keeps long names inside the rail and titles inside their frames, in panels that open alike", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  const page = await open(context, createRoomId());
+  const longTitle = "Payments platform with an extremely long frame title that keeps going";
+  await add(page, "Frame (F)", longTitle, 160, 140);
+  await canvas(page).click({ position: emptySpot });
+  await add(
+    page,
+    "Slide",
+    "Introduction slide with a very very long name for the deck list",
+    700,
+    150
+  );
+  await canvas(page).click({ position: emptySpot });
+  await page
+    .getByLabel("View name", { exact: true })
+    .fill("Overview of the whole platform at a glance");
+  await page.getByRole("button", { name: "Save current view", exact: true }).click();
+
+  // A frame's title ends inside the frame, which is 320 wide, instead of running past it.
+  const title = (await row(page, /^Payments platform/).boundingBox())!;
+  expect(title.width).toBeLessThanOrEqual(320);
+  const laidOut = await row(page, /^Payments platform/).evaluate((node) => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    return {
+      text: range.getBoundingClientRect().width,
+      overflow: getComputedStyle(node).textOverflow,
+    };
+  });
+  expect(laidOut.text).toBeGreaterThan(title.width);
+  expect(laidOut.overflow).toBe("ellipsis");
+
+  // Nothing in the rail is wider than the rail, however long its name.
+  const rail = (await page
+    .getByRole("complementary", { name: "Tools and stencils" })
+    .boundingBox())!;
+  const boxes = await page
+    .locator(".left-rail button:visible")
+    .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().right));
+  expect(boxes.length).toBeGreaterThan(10);
+  for (const right of boxes) expect(right).toBeLessThanOrEqual(rail.x + rail.width + 1);
+
+  // Every secondary panel is the same disclosure: History starts closed with its step count,
+  // Saved views starts open, and each stays as it was left after a reload.
+  const history = page.locator("details.rail-section[aria-label='History']");
+  expect(await history.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
+  expect(await history.locator(".rail-count").textContent()).toMatch(/^\d+$/);
+  await history.locator("summary").click();
+  await history.locator("button[aria-current='step']").waitFor();
+  const views = page.locator("details.rail-section[aria-label='Saved views']");
+  await views.locator("summary").click();
+  await expect.poll(() => page.getByLabel("View name", { exact: true }).isVisible()).toBe(false);
+  // The undo history does not survive a reload, so only the saved views panel is there to check.
+  await page.reload();
+  await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
+  expect(await views.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
+  await views.locator("summary").click();
+  await page.getByLabel("View name", { exact: true }).waitFor();
+  expect(errors).toEqual([]);
+  await context.close();
+});

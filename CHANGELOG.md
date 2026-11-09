@@ -33,6 +33,13 @@ All notable user-visible changes are recorded here.
 
 ### Canvas
 
+- Changed the left rail to the stencils followed by collapsible panels that all open and close
+  from the same header: Drawing, Outline, History, Slides and Saved views, each remembered as it
+  was left on the device. History starts closed and shows its step count; the drawing panel
+  takes the stencils' place while the draw tool is active. Rail entries, frame titles and slide
+  titles end in an ellipsis instead of running past their boxes; the status bar, markup toggle
+  and property panel fit at narrow widths, and dark mode no longer hides field text.
+
 - Reduced UI work on larger canvases: navigation reuses label contents, middle-button drags use
   the native pan preview, and selection handles avoid repeated SVG measurements. Editing reuses
   unchanged document entries and skips their style and geometry work; viewport and presence
