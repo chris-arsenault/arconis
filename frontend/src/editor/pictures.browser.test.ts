@@ -79,12 +79,13 @@ it("keeps a picture local while the relay is off, and uploads when it returns", 
 });
 
 it("explains a full store, and the picture still works here", async () => {
+  const storedBefore = fixture.storedPictures().length;
   fixture.setStorageFull(true);
   const a = await open(await browser.newContext(VIEWPORT), createRoomId());
   await pastePicture(a, "#4040d0");
   await a.getByTestId("sync-status").filter({ hasText: "Picture storage is full" }).waitFor();
   await expect.poll(() => drawnImages(a).count()).toBe(1);
-  expect(fixture.storedPictures()).toEqual([]);
+  expect(fixture.storedPictures()).toHaveLength(storedBefore);
   expect(errors).toEqual([]);
 });
 
