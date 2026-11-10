@@ -11,21 +11,18 @@ export interface WorkspaceContents {
 }
 
 /**
- * A saved copy as it is stored. An ordinary room's contents are stored as they are. A password room's
- * are sealed under its room key, with the envelope the room's password opens, so the saved copy needs
- * that password like the room does.
+ * Every room uses the same sealed copy. The UI supplies nopass automatically or asks for the
+ * room password; the file carries the envelope needed to open its data key.
  */
-export type SavedCopy =
-  | { roomId: string; contents: WorkspaceContents }
-  | { roomId: string; envelope: Envelope; sealed: Uint8Array };
+export interface SavedCopy {
+  roomId: string;
+  envelope: Envelope;
+  sealed: Uint8Array;
+}
 
 const FORMAT = 1;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-
-export function isSealed(copy: SavedCopy): copy is Extract<SavedCopy, { sealed: Uint8Array }> {
-  return "sealed" in copy;
-}
 
 export function encodeContents(contents: WorkspaceContents) {
   return encoder.encode(JSON.stringify({ ...contents, update: toBase64(contents.update) }));
@@ -39,18 +36,12 @@ export function decodeContents(bytes: Uint8Array): WorkspaceContents {
 }
 
 export function encodeSavedCopy(copy: SavedCopy) {
-  const body = isSealed(copy)
-    ? {
-        format: FORMAT,
-        roomId: copy.roomId,
-        envelope: copy.envelope,
-        sealed: toBase64(copy.sealed),
-      }
-    : {
-        format: FORMAT,
-        roomId: copy.roomId,
-        contents: toBase64(encodeContents(copy.contents)),
-      };
+  const body = {
+    format: FORMAT,
+    roomId: copy.roomId,
+    envelope: copy.envelope,
+    sealed: toBase64(copy.sealed),
+  };
   return encoder.encode(JSON.stringify(body));
 }
 
@@ -60,16 +51,11 @@ export function decodeSavedCopy(bytes: Uint8Array): SavedCopy {
     roomId?: unknown;
     envelope?: unknown;
     sealed?: unknown;
-    contents?: unknown;
   };
   if (parsed.format !== FORMAT || typeof parsed.roomId !== "string")
     throw new Error("This saved workspace is not one Arconis can open.");
-  if (typeof parsed.sealed === "string") {
-    const envelope = parseEnvelope(parsed.envelope);
-    if (!envelope) throw new Error("This saved password room is damaged.");
-    return { roomId: parsed.roomId, envelope, sealed: fromBase64(parsed.sealed) };
-  }
-  if (typeof parsed.contents !== "string")
+  const envelope = parseEnvelope(parsed.envelope);
+  if (!envelope || typeof parsed.sealed !== "string")
     throw new Error("This saved workspace is not one Arconis can open.");
-  return { roomId: parsed.roomId, contents: decodeContents(fromBase64(parsed.contents)) };
+  return { roomId: parsed.roomId, envelope, sealed: fromBase64(parsed.sealed) };
 }

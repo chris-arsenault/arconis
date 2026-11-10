@@ -3,6 +3,8 @@ import type { LockedTransport } from "./lockedTransport";
 import type { PictureCodec } from "./pictureStore";
 import {
   WrongPassword,
+  DEFAULT_PASSWORD,
+  defaultRoomKey,
   createEnvelope,
   envelopeMatches,
   generateRoomKey,
@@ -22,7 +24,7 @@ const COMPACT_AFTER = 100;
  */
 export type LockState = "choose" | "enter" | "waiting" | "unlocked";
 
-/** Where a password room persists on this device: only ciphertext and its envelope. */
+/** Where a room persists on this device: only ciphertext and its envelope. */
 export interface LockedStorage {
   envelope(): Promise<unknown>;
   saveEnvelope(envelope: Envelope): Promise<void>;
@@ -33,8 +35,8 @@ export interface LockedStorage {
 }
 
 /**
- * A password room's key and local copy. It stands in for y-indexeddb, which would store the document
- * unencrypted, and nothing reaches the document or the network until a password opens the key.
+ * Every room's key and encrypted local copy. No stored update or network frame opens before
+ * its key is ready; the nopass default opens automatically.
  */
 export class RoomLock {
   state: LockState;
@@ -43,6 +45,7 @@ export class RoomLock {
   private key: CryptoKey | null = null;
   private envelope: Envelope | null = null;
   private saving = Promise.resolve();
+  private retained = false;
   private opened: () => void = () => {};
   /** Resolves once the room's password has opened it. */
   readonly whenOpen = new Promise<void>((resolve) => {
@@ -54,7 +57,8 @@ export class RoomLock {
     private transport: LockedTransport,
     private doc: Y.Doc,
     private changed: () => void,
-    created: boolean
+    created: boolean,
+    private defaultRoom: string | null
   ) {
     this.state = created ? "choose" : "waiting";
     transport.onEnvelope = (envelope) => void this.receiveEnvelope(envelope);
@@ -69,21 +73,33 @@ export class RoomLock {
 
   private async loadEnvelope() {
     const stored = parseEnvelope(await this.storage.envelope());
-    if (!stored) return;
+    this.retained = (await this.storage.updates()).length > 0;
     // A peer's newer envelope can arrive during this lookup, and must survive it.
-    if (!this.envelope || stored.revision > this.envelope.revision) this.envelope = stored;
-    this.transport.envelopeKnown();
-    this.state = "enter";
+    if (stored && (!this.envelope || stored.revision > this.envelope.revision))
+      this.envelope = stored;
+    if (this.envelope) {
+      this.transport.envelopeKnown();
+      this.state = "enter";
+    }
+    if (!this.requiresPassword) {
+      if (this.envelope) await this.enter(DEFAULT_PASSWORD);
+      else await this.choose(DEFAULT_PASSWORD);
+    }
     this.changed();
   }
 
   /** Whether this device already knows the room, which counts as arriving at saved work. */
   get hasLocalCopy() {
-    return this.envelope !== null;
+    return this.retained;
+  }
+
+  get requiresPassword() {
+    return this.defaultRoom === null;
   }
 
   async choose(password: string) {
-    const key = await generateRoomKey();
+    const key =
+      this.defaultRoom === null ? await generateRoomKey() : await defaultRoomKey(this.defaultRoom);
     this.envelope = await createEnvelope(password, key, 1);
     await this.storage.saveEnvelope(this.envelope);
     this.transport.envelopeKnown();
@@ -183,9 +199,9 @@ function request<T>(action: IDBRequest<T>) {
   });
 }
 
-/** The browser's storage for one password room. */
+/** The browser's encrypted storage for one room. */
 export function indexedDbLockedStorage(roomId: string): LockedStorage {
-  const opening = indexedDB.open(`arconis-locked:${roomId}`, 1);
+  const opening = indexedDB.open(`arconis-room:${roomId}`, 1);
   opening.onupgradeneeded = () => {
     opening.result.createObjectStore("updates", { autoIncrement: true });
     opening.result.createObjectStore("meta");

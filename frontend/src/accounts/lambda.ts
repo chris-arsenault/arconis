@@ -1,48 +1,37 @@
-import {
-  ConditionalCheckFailedException,
-  DynamoDBClient,
-  TransactionCanceledException,
-} from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
-  PutCommand,
-  QueryCommand,
-  TransactWriteCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import {
-  AccountsApi,
-  TOTAL_STORAGE_BYTES,
-  USER_STORAGE_BYTES,
-  tokenSubject,
-  type AccountTable,
-} from "./api";
-import type { WorkspaceRecord } from "../protocol/account";
+import { AccountsApi, tokenSubject, type AccountTable } from "./api";
 import { managementFromEnvironment } from "./auth0Management";
+import { dynamoLibrary } from "./libraryTable";
+import { dynamoWorkspaces } from "./workspaceTable";
 
 const TableName = process.env.TABLE_NAME ?? "";
 const Bucket = process.env.BUCKET_NAME ?? "";
 const siteOrigin = process.env.SITE_ORIGIN ?? "";
 const LINK_SECONDS = 300;
-const TOTAL_KEY = { pk: "SERVICE", sk: "STORAGE" };
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({ requestChecksumCalculation: "WHEN_REQUIRED" });
 const management = managementFromEnvironment(process.env);
 const userKey = (user: string) => `USER#${user}`;
 const objectKey = (user: string, id: string) => `workspaces/${user}/${id}`;
-const WORKSPACE_PREFIX = "WORKSPACE#";
 
 const table: AccountTable = {
+  ...dynamoLibrary(dynamo, TableName),
+  ...dynamoWorkspaces(dynamo, TableName),
   profile: async (user) => {
     const { Item } = await dynamo.send(
       new GetCommand({ TableName, Key: { pk: userKey(user), sk: "PROFILE" } })
@@ -61,77 +50,23 @@ const table: AccountTable = {
       })
     );
   },
-  workspaces: async (user) => {
-    const { Items } = await dynamo.send(
-      new QueryCommand({
-        TableName,
-        KeyConditionExpression: "pk = :pk AND begins_with(sk, :prefix)",
-        ExpressionAttributeValues: { ":pk": userKey(user), ":prefix": WORKSPACE_PREFIX },
-      })
-    );
-    return (Items ?? []).map((item) => item.record as WorkspaceRecord);
-  },
-  workspace: async (user, id) => {
-    const { Item } = await dynamo.send(
-      new GetCommand({ TableName, Key: { pk: userKey(user), sk: `${WORKSPACE_PREFIX}${id}` } })
-    );
-    return (Item?.record as WorkspaceRecord | undefined) ?? null;
-  },
-  saveWorkspace: async (user, record) => {
-    await dynamo.send(
-      new PutCommand({
-        TableName,
-        Item: { pk: userKey(user), sk: `${WORKSPACE_PREFIX}${record.id}`, record },
-      })
-    );
-  },
-  deleteWorkspace: async (user, id) => {
-    await dynamo.send(
-      new DeleteCommand({
-        TableName,
-        Key: { pk: userKey(user), sk: `${WORKSPACE_PREFIX}${id}` },
-      })
-    );
-  },
-  addBytes: async (user, delta) => {
-    const limited = delta > 0;
-    const add = (Key: object, limit: number) => ({
-      Update: {
-        TableName,
-        Key,
-        UpdateExpression: "ADD #bytes :delta",
-        ExpressionAttributeNames: { "#bytes": "bytes" },
-        ExpressionAttributeValues: {
-          ":delta": delta,
-          ...(limited ? { ":room": limit - delta } : {}),
-        },
-        ...(limited
-          ? { ConditionExpression: "attribute_not_exists(#bytes) OR #bytes <= :room" }
-          : {}),
-      },
-    });
-    try {
-      await dynamo.send(
-        new TransactWriteCommand({
-          TransactItems: [
-            add({ pk: userKey(user), sk: "PROFILE" }, USER_STORAGE_BYTES),
-            add(TOTAL_KEY, TOTAL_STORAGE_BYTES),
-          ],
-        })
-      );
-      return true;
-    } catch (error) {
-      if (error instanceof TransactionCanceledException) return false;
-      if (error instanceof ConditionalCheckFailedException) return false;
-      throw error;
-    }
-  },
   deleteProfile: async (user) => {
     await dynamo.send(new DeleteCommand({ TableName, Key: { pk: userKey(user), sk: "PROFILE" } }));
   },
 };
 
 const api = new AccountsApi(table, {
+  objectInfo: async (user, id) => {
+    try {
+      const result = await s3.send(
+        new HeadObjectCommand({ Bucket, Key: objectKey(user, id), ChecksumMode: "ENABLED" })
+      );
+      return { size: result.ContentLength ?? 0, checksum: result.ChecksumSHA256 ?? "" };
+    } catch (error) {
+      if (error instanceof Error && error.name === "NotFound") return null;
+      throw error;
+    }
+  },
   signUpload: (user, id, size, checksum) =>
     getSignedUrl(
       s3,

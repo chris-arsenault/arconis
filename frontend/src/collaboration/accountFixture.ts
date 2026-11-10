@@ -45,6 +45,14 @@ function signInPage(query: URLSearchParams) {
 export function accountFixture(base: () => string) {
   const objects = new Map<string, Buffer>();
   const api = new AccountsApi(memoryAccountTable(), {
+    objectInfo: (user, id) => {
+      const bytes = objects.get(`/objects/${user}/${id}`);
+      return Promise.resolve(
+        bytes
+          ? { size: bytes.length, checksum: createHash("sha256").update(bytes).digest("base64") }
+          : null
+      );
+    },
     signUpload: (user, id) => Promise.resolve(`${base()}/objects/${user}/${id}`),
     signDownload: (user, id) => Promise.resolve(`${base()}/objects/${user}/${id}`),
     deleteObject: (user, id) => {

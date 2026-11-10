@@ -1,7 +1,8 @@
-# Accounts and saved workspaces
+# Accounts and saved work
 
-An account adds private saved copies and assistant connections. Rooms remain usable by guests;
-signing in does not change who can join an ordinary room by its link.
+An account adds private saved copies, reusable layouts and assistant
+connections. Rooms remain usable by guests; signing in does not change who can join an
+ordinary room by its link.
 
 ## Create an account or sign in
 
@@ -28,13 +29,16 @@ made from another device rather than replacing that device's work.
 Saving belongs to your account. Other people in the live room do not automatically receive
 their own saved copy. They can choose to save the room to their accounts separately.
 
-## Open a saved workspace
+## Find and open your work
 
-![Example account panel with a saved workspace and assistant connection address](images/account.png)
+**Your canvases** appears on the welcome screen and in the account panel. Search by title.
+It groups local and private account copies of the same room, with separate controls for each.
+**Open local** uses this browser's retained document; **Join remembered** identifies a room
+address with no retained content. A remembered address alone cannot restore a canvas.
 
-Open the account panel on the welcome screen or from the header. Under **Workspaces**, choose
-the saved workspace's name. The copy opens in its room, even when no other participant is online.
+When signed in, choose an account copy's name to open it, even when no other participant is online.
 If that room is already open, its saved contents merge into the current document.
+An account-list failure leaves the local entries available. Signing out removes the account results.
 
 Opening a saved workspace retains the room's identity. Joining participants still use that room's
 link, and a separate **Import document** operation adds portable file contents into a destination
@@ -42,23 +46,43 @@ room. [Files and pictures](files.md) compares these paths.
 
 ## Password rooms and password resets
 
-| Copy                | Protection                                                             |
-| ------------------- | ---------------------------------------------------------------------- |
-| Ordinary saved room | Stored as an ordinary account copy, readable by the service.           |
-| Saved password room | Sealed in the browser under its room key; listed as **Password room**. |
+All room copies are sealed in the browser under their room key. Rooms created without a
+password prompt open automatically. Explicit password rooms are listed as **Password room**
+to keep their titles out of the account index.
 
 Opening a saved password room asks for its room password. An account password reset preserves
 all saved workspaces because the copies are not encrypted under that account password. It does
 not recover a forgotten room password.
 
+## Recover a recent saved copy
+
+Choose **History** beside an account copy to see its last five successful saves with timestamps.
+**Recover copy** opens the selected version in a separate room, including its retained pictures
+and objects deleted since that save. The current room and its saved copy stay intact. A recovered
+password room still asks for its room password. Save the recovered room to retain another account copy.
+
+## Keep reusable layouts
+
+1. Select the objects to keep, then choose **My layouts** in the header.
+2. Enter a **Layout name** and choose **Save selected layout**.
+3. In any room, sign in to the same account, open **My layouts** and choose **Insert** beside it.
+
+Nested contents, internal links, discussions and pictures travel with the selection. Each insertion
+creates independent objects and one Undo removes it, leaving the destination's title, named styles
+and saved views intact. The library also provides rename and delete controls. Layouts are private
+to the account. Arconis supplies no built-in templates.
+As with portable exports, saving a layout from a password room creates a readable copy outside
+that room's password protection.
+
 ## Delete a saved copy or account
 
-The delete button beside a saved workspace removes that account's saved copy. It is separate
-from deleting objects on the canvas or clearing another browser's local copy.
+The delete button beside an account copy removes that copy and its recent history. **Remove local**
+removes only this browser's retained copy and remembered address; close the room in other tabs first.
+Neither operation deletes objects from an open peer's canvas or the other kind of copy.
 
 **Sign out** ends account access in this browser. **Delete account** asks for confirmation and
-removes the account and its saved workspaces. Export any portable copies you want before
-deleting saved data.
+removes the account, its saved workspaces and histories, and reusable layouts.
+Export any portable copies you want before deleting saved data.
 
 ## When saving or signing in fails
 

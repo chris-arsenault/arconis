@@ -73,21 +73,44 @@ it("reopens a retained canvas by title from home", async () => {
     await page.getByRole("link", { name: "Arconis home", exact: true }).click();
     await page.setViewportSize({ width: 390, height: 844 });
     const recent = page
-      .getByRole("region", { name: "Recent rooms" })
-      .getByRole("button", { name: /Workshop plan/ });
+      .getByRole("region", { name: "Saved work browser" })
+      .getByRole("button", { name: "Open local Workshop plan", exact: true });
     const bounds = (await recent.boundingBox())!;
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
     await page.screenshot({ path: "test-results/room-usability-home-mobile.png" });
     await page
-      .getByRole("region", { name: "Recent rooms" })
-      .getByRole("button", { name: /Workshop plan/ })
+      .getByRole("region", { name: "Saved work browser" })
+      .getByRole("button", { name: "Open local Workshop plan", exact: true })
       .click();
     await row(page, /^Retained idea$/).waitFor();
     expect(page.url()).toBe(roomUrl);
     expect(await page.getByLabel("Canvas title", { exact: true }).inputValue()).toBe(
       "Workshop plan"
     );
+    await page.getByRole("link", { name: "Arconis home", exact: true }).click();
+    await page.evaluate(async (id) => {
+      await new Promise<void>((resolve, reject) => {
+        const opening = indexedDB.open(`arconis-room:${id}`);
+        opening.onerror = () => reject(opening.error);
+        opening.onsuccess = () => {
+          const db = opening.result;
+          const transaction = db.transaction("updates", "readwrite");
+          transaction.objectStore("updates").clear();
+          transaction.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      });
+    }, new URL(roomUrl).hash.slice("#room=".length));
+    await page.reload();
+    const work = page.getByRole("region", { name: "Saved work browser" });
+    await work.getByText("No local copy", { exact: true }).waitFor();
+    await work
+      .getByRole("button", { name: "Join remembered Workshop plan", exact: true })
+      .waitFor();
     expect(errors).toEqual([]);
   } finally {
     await context.close();
@@ -163,8 +186,8 @@ it("explains portable exports and reopens password rooms without exposing protec
     expect(index).not.toContain(PHRASE);
     await page.getByRole("link", { name: "Arconis home", exact: true }).click();
     await page
-      .getByRole("region", { name: "Recent rooms" })
-      .getByRole("button", { name: /Password room/ })
+      .getByRole("region", { name: "Saved work browser" })
+      .getByRole("button", { name: "Open local Password room", exact: true })
       .click();
     await page.getByLabel("Room password", { exact: true }).waitFor();
     expect(await row(page, /^Readable portable copy$/).count()).toBe(0);

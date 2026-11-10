@@ -5,6 +5,7 @@ import {
   MAX_WORKSPACES,
   MAX_WORKSPACE_BYTES,
   tokenSubject,
+  type AccountServices,
 } from "./api";
 import { memoryAccountTable } from "./memoryTable";
 
@@ -15,21 +16,39 @@ const ROOM = "ab".repeat(24);
 function setup() {
   const table = memoryAccountTable();
   const services = {
+    objectInfo: vi.fn<AccountServices["objectInfo"]>(() =>
+      Promise.resolve({ size: 100, checksum: "abc=" })
+    ),
     signUpload: vi.fn((user: string, id: string) => Promise.resolve(`put:${user}:${id}`)),
     signDownload: vi.fn((user: string, id: string) => Promise.resolve(`get:${user}:${id}`)),
     deleteObject: vi.fn(() => Promise.resolve()),
     deleteLogin: vi.fn(() => Promise.resolve()),
     now: () => 1000,
-    newRevision: () => "revision",
+    newRevision: () => crypto.randomUUID(),
   };
   const api = new AccountsApi(table, services);
-  const save = (user: string, id: string, size = 100, values: object = {}) =>
-    api.handle(
+  const save = async (user: string, id: string, size = 100, values: object = {}) => {
+    const expectedRevision = (await table.workspace(user, id))?.revision ?? "";
+    const metadata = {
+      size,
+      checksum: "abc=",
+      name: "Roadmap",
+      roomId: ROOM,
+      expectedRevision,
+      ...values,
+    };
+    const reply = await api.handle(user, "PUT", `/api/workspaces/${id}`, JSON.stringify(metadata));
+    if (reply.status !== 200) return reply;
+    if (!("revision" in reply.body)) throw new Error("Expected upload metadata.");
+    services.objectInfo.mockResolvedValue({ size, checksum: "abc=" });
+    const published = await api.handle(
       user,
-      "PUT",
+      "POST",
       `/api/workspaces/${id}`,
-      JSON.stringify({ size, checksum: "abc=", name: "Roadmap", roomId: ROOM, ...values })
+      JSON.stringify({ ...metadata, revision: reply.body.revision })
     );
+    return published.status === 200 ? reply : published;
+  };
   return { api, table, services, save };
 }
 
@@ -62,7 +81,10 @@ describe("profiles", () => {
 describe("workspaces", () => {
   it("signs an upload, lists the record, and signs a download", async () => {
     const { api, save } = setup();
-    expect((await save("a", ID)).body).toEqual({ url: `put:a:${ID}`, revision: "revision" });
+    expect((await save("a", ID)).body).toEqual({
+      url: expect.stringContaining(`put:a:snapshots/${ID}/`),
+      revision: expect.any(String),
+    });
     expect((await api.handle("a", "GET", "/api/workspaces", "")).body).toEqual({
       workspaces: [
         {
@@ -70,14 +92,14 @@ describe("workspaces", () => {
           name: "Roadmap",
           roomId: ROOM,
           size: 100,
-          revision: "revision",
+          revision: expect.any(String),
           updated: 1000,
         },
       ],
     });
     expect((await api.handle("a", "GET", `/api/workspaces/${ID}`, "")).body).toMatchObject({
-      url: `get:a:${ID}`,
-      revision: "revision",
+      url: expect.stringContaining(`get:a:snapshots/${ID}/`),
+      revision: expect.any(String),
     });
   });
 
@@ -103,12 +125,14 @@ describe("workspaces", () => {
     const { save } = setup();
     expect((await save("a", ID, size)).status).toBe(400);
   });
+});
 
-  it("counts storage by the change a save makes, and refuses past the account's limit", async () => {
+describe("workspace storage limits", () => {
+  it("counts all retained revisions and refuses past the account's limit", async () => {
     const { save, table } = setup();
     await save("a", ID, 100);
     await save("a", ID, 40);
-    expect(table.bytes("a")).toBe(40);
+    expect(table.bytes("a")).toBe(140);
     table.setBytes("a", 1024 ** 3 - 10);
     expect((await save("a", OTHER, 20)).status).toBe(409);
     expect((await save("a", OTHER, 5)).status).toBe(200);
@@ -133,11 +157,108 @@ describe("workspaces", () => {
     await save("a", ID, 100);
     expect((await api.handle("a", "DELETE", `/api/workspaces/${ID}`, "")).status).toBe(200);
     expect(table.bytes("a")).toBe(0);
-    expect(services.deleteObject).toHaveBeenCalledWith("a", ID);
+    expect(services.deleteObject).toHaveBeenCalledWith(
+      "a",
+      expect.stringContaining(`snapshots/${ID}/`)
+    );
   });
 });
 
 describe("workspace records", () => {
+  it("advertises only completed uploads and retains the last usable copy after an upload failure", async () => {
+    const { api, save, table, services } = setup();
+    await save("a", ID);
+    const before = (await table.workspace("a", ID))!;
+    const metadata = {
+      size: 100,
+      checksum: "abc=",
+      name: "Failed replacement",
+      roomId: ROOM,
+      expectedRevision: before.revision,
+    };
+    const prepared = await api.handle(
+      "a",
+      "PUT",
+      `/api/workspaces/${ID}`,
+      JSON.stringify(metadata)
+    );
+    expect(await table.workspace("a", ID)).toEqual(before);
+    if (!("revision" in prepared.body)) throw new Error("Expected prepared upload.");
+    services.objectInfo.mockResolvedValueOnce(null);
+    expect(
+      (
+        await api.handle(
+          "a",
+          "POST",
+          `/api/workspaces/${ID}`,
+          JSON.stringify({ ...metadata, revision: prepared.body.revision })
+        )
+      ).status
+    ).toBe(400);
+    expect(await table.workspace("a", ID)).toEqual(before);
+    expect(await table.workspaceHistory("a", ID)).toEqual([before]);
+  });
+
+  it("retains five timestamped successful revisions and accounts for pruned storage", async () => {
+    const { api, save, table, services } = setup();
+    for (let index = 0; index < 7; index++) await save("a", ID, 100, { name: `Copy ${index}` });
+    const history = await table.workspaceHistory("a", ID);
+    expect(history.map(({ name }) => name)).toEqual([
+      "Copy 6",
+      "Copy 5",
+      "Copy 4",
+      "Copy 3",
+      "Copy 2",
+    ]);
+    expect(
+      history.every((entry, index) => index === 0 || entry.updated < history[index - 1].updated)
+    ).toBe(true);
+    expect(table.bytes("a")).toBe(500);
+    expect(services.deleteObject).toHaveBeenCalledTimes(2);
+    const revision = history.at(-1)!.revision;
+    expect(
+      (await api.handle("a", "GET", `/api/workspaces/${ID}/revisions/${revision}`, "")).status
+    ).toBe(200);
+    expect(
+      (await api.handle("b", "GET", `/api/workspaces/${ID}/revisions/${revision}`, "")).status
+    ).toBe(404);
+    await api.handle("a", "DELETE", `/api/workspaces/${ID}`, "");
+    expect(table.bytes("a")).toBe(0);
+    expect(await table.workspaceHistory("a", ID)).toEqual([]);
+  });
+});
+
+describe("workspace publication", () => {
+  it("allows only one simultaneous publication against the same base revision", async () => {
+    const { api, save, table } = setup();
+    await save("a", ID);
+    const before = (await table.workspace("a", ID))!;
+    const metadata = {
+      size: 100,
+      checksum: "abc=",
+      name: "Concurrent save",
+      roomId: ROOM,
+      expectedRevision: before.revision,
+    };
+    const attempts = await Promise.all(
+      [0, 1].map(() => api.handle("a", "PUT", `/api/workspaces/${ID}`, JSON.stringify(metadata)))
+    );
+    const committed = await Promise.all(
+      attempts.map((attempt) => {
+        if (!("revision" in attempt.body)) throw new Error("Expected prepared upload.");
+        return api.handle(
+          "a",
+          "POST",
+          `/api/workspaces/${ID}`,
+          JSON.stringify({ ...metadata, revision: attempt.body.revision })
+        );
+      })
+    );
+    expect(committed.map(({ status }) => status).sort((a, b) => a - b)).toEqual([200, 409]);
+    expect(await table.workspaceHistory("a", ID)).toHaveLength(2);
+    expect(table.bytes("a")).toBe(200);
+  });
+
   it("accepts every kind of room, and refuses a name or room that is not one", async () => {
     const { save } = setup();
     for (const roomId of [ROOM, `locked-${ROOM}`, `local-${ROOM}`])
@@ -178,7 +299,7 @@ it("preserves empty deletion replies and not-found responses for every unsupport
     ["POST", "/api/me"],
     ["PUT", "/api/workspaces"],
     ["DELETE", "/api/workspaces"],
-    ["POST", `/api/workspaces/${ID}`],
+    ["POST", `/api/workspaces/${ID}/unsupported`],
   ])
     expect(await api.handle("a", method, path, "")).toEqual(absent);
   expect(await api.handle("a", "DELETE", `/api/workspaces/${ID}`, "")).toEqual({

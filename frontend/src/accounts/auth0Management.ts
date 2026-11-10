@@ -1,6 +1,4 @@
 /** Arconis's own users in the shared Ahara tenant (infrastructure/terraform/auth0.tf). */
-export const ARCONIS_CONNECTION = "arconis";
-
 export interface ManagementConfig {
   /** The tenant's own domain, which answers the Management API. */
   domain: string;
@@ -10,7 +8,7 @@ export interface ManagementConfig {
 
 type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** The one Management API call Arconis makes: deleting the Auth0 user of a deleted account. */
+/** Deletes an account's Auth0 user through the Management API. */
 export function auth0Management(config: ManagementConfig, request: Fetcher = fetch) {
   const base = `https://${config.domain}`;
   let token: { value: string; until: number } | null = null;

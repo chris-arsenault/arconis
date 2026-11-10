@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
-import { PLAIN_CODEC, PictureStore, type StoredPicture } from "./pictureStore";
+import { PictureStore, type StoredPicture } from "./pictureStore";
 import { uploadWaitingPictures, type PutBytes } from "./pictureUploads";
 import type { UploadReply, UploadRequest } from "./serviceProtocol";
 
@@ -19,7 +19,7 @@ async function setup(reply: UploadReply | ((hash: string) => UploadReply)) {
         return Promise.resolve();
       },
     },
-    codec: PLAIN_CODEC,
+    codec: { seal: async (bytes) => bytes, open: async (bytes) => bytes },
     download: null,
     createUrl: () => "",
     revokeUrl: () => {},

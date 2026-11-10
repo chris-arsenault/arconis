@@ -63,7 +63,11 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 - Export editable documents or selection/whole-canvas PNGs carrying an editable copy; import them
   into another room with pictures and references.
 - Use optional Ahara accounts for verified sign-in, display names and saved workspaces across devices.
-  Password-room saved copies remain sealed under their room keys.
+  All saved copies are sealed under their room keys; the guest room workflow stays unchanged.
+- Find local and private account copies in **Your canvases**, with separate open and removal actions.
+- Recover any of the five recent successful account saves into a separate room.
+- Save personal selected layouts, including pictures and internal links, and insert independent
+  copies into any room with one Undo.
 
 ## Assistants
 

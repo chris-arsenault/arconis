@@ -11,15 +11,11 @@ export interface PictureShelf {
   put(hash: string, picture: StoredPicture): Promise<void>;
 }
 
-/** How bytes are kept. A password room encrypts them; every other room stores them as they are. */
+/** Every room supplies its encryption codec; portable files open bytes through that capability. */
 export interface PictureCodec {
   seal(bytes: Uint8Array): Promise<Uint8Array>;
   open(bytes: Uint8Array): Promise<Uint8Array>;
 }
-export const PLAIN_CODEC: PictureCodec = {
-  seal: (bytes) => Promise.resolve(bytes),
-  open: (bytes) => Promise.resolve(bytes),
-};
 
 /** Fetching gives up after this many tries, until the next time the picture is needed. */
 const MAX_FETCHES = 6;

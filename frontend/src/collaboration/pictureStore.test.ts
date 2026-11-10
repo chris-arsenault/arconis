@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256 } from "../document/pictures";
-import { PLAIN_CODEC, PictureStore, type PictureShelf, type StoredPicture } from "./pictureStore";
+import { PictureStore, type PictureShelf, type StoredPicture } from "./pictureStore";
 
 const BYTES = new Uint8Array([1, 2, 3]);
 
@@ -21,7 +21,7 @@ function setup(download: ((hash: string) => Promise<Uint8Array | null>) | null =
   const createUrl = vi.fn((bytes: Uint8Array) => `blob:${bytes.length}`);
   const store = new PictureStore({
     shelf,
-    codec: PLAIN_CODEC,
+    codec: { seal: async (bytes) => bytes, open: async (bytes) => bytes },
     download,
     createUrl,
     revokeUrl: vi.fn(),

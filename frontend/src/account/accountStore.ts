@@ -1,10 +1,12 @@
 import { sha256 } from "../document/pictures";
 import type { Auth } from "./auth";
+import { libraryListSchema, type LibrarySave } from "../protocol/library";
 import { encodeSavedCopy, decodeSavedCopy, type SavedCopy } from "./workspaceFile";
 import type {
   AccountProfile,
   AccountRequestBody,
   SaveWorkspaceRequest,
+  PublishWorkspaceRequest,
   UpdateProfileRequest,
   WorkspaceDownloadReply,
   WorkspaceListReply,
@@ -18,6 +20,14 @@ export type AccountStatus = "loading" | "out" | "in";
 export type SavedWorkspace = WorkspaceRecord;
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
+export class WorkspaceConflict extends Error {}
+
+function accountFailure(value: unknown) {
+  if (!isRecord(value) || typeof value.error !== "string") return new Error("The request failed.");
+  return value.code === "workspace_conflict"
+    ? new WorkspaceConflict(value.error)
+    : new Error(value.error);
+}
 
 /** The name an account starts with, from its email, until the person chooses another. */
 export function startingName(email: string | null) {
@@ -120,7 +130,11 @@ export class AccountStore {
     this.set("in");
   }
 
-  private async api(method: "GET" | "PUT" | "DELETE", path: string, body?: AccountRequestBody) {
+  private async api(
+    method: "GET" | "PUT" | "POST" | "DELETE",
+    path: string,
+    body?: AccountRequestBody
+  ) {
     const token = await this.auth.token();
     if (!token) throw new Error("Sign in again.");
     const response = await this.request(`${this.apiUrl}/api/${path}`, {
@@ -133,15 +147,49 @@ export class AccountStore {
     });
     if (response.status === 404) return null;
     const parsed: unknown = await response.json();
-    if (!response.ok)
-      throw new Error(
-        isRecord(parsed) && typeof parsed.error === "string" ? parsed.error : "The request failed."
-      );
+    if (!response.ok) throw accountFailure(parsed);
     return parsed;
   }
 
   signIn() {
     return this.auth.signIn();
+  }
+
+  async layouts() {
+    return libraryListSchema.parse(await this.api("GET", "library")).entries;
+  }
+
+  async saveLayout(name: string, source: string) {
+    const bytes = new TextEncoder().encode(source);
+    const { base64: checksum } = await sha256(bytes);
+    const values: LibrarySave = { name, size: bytes.length, checksum };
+    const id = crypto.randomUUID();
+    const signed = workspaceLink(await this.api("PUT", `library/${id}`, values));
+    const uploaded = await this.request(signed.url, {
+      method: "PUT",
+      body: new Blob([bytes]),
+      headers: { "content-type": "application/octet-stream", "x-amz-checksum-sha256": checksum },
+    });
+    if (!uploaded.ok) throw new Error("The layout could not be saved.");
+    await this.api("POST", `library/${id}`, { ...values, revision: signed.revision });
+    this.changed();
+  }
+
+  async loadLayout(id: string) {
+    const signed = workspaceLink(await this.api("GET", `library/${id}`));
+    const response = await this.request(signed.url);
+    if (!response.ok) throw new Error("The layout could not be opened.");
+    return response.text();
+  }
+
+  async renameLayout(id: string, name: string) {
+    await this.api("PUT", `library/${id}/name`, { name });
+    this.changed();
+  }
+
+  async removeLayout(id: string) {
+    await this.api("DELETE", `library/${id}`);
+    this.changed();
   }
 
   async rename(name: string) {
@@ -169,15 +217,17 @@ export class AccountStore {
   }
 
   /** Stores a saved copy under an existing or new identifier. */
-  async save(id: string, name: string, copy: SavedCopy) {
+  async save(id: string, name: string, copy: SavedCopy, expectedRevision: string) {
     const bytes = encodeSavedCopy(copy);
     const { base64: checksum } = await sha256(bytes);
-    const reply = await this.api("PUT", `workspaces/${id}`, {
+    const metadata = {
       size: bytes.length,
       checksum,
       name,
       roomId: copy.roomId,
-    } satisfies SaveWorkspaceRequest);
+      expectedRevision,
+    } satisfies SaveWorkspaceRequest;
+    const reply = await this.api("PUT", `workspaces/${id}`, metadata);
     if (reply === null) throw new Error("The workspace could not be saved.");
     const signed = workspaceLink(reply);
     const uploaded = await this.request(signed.url, {
@@ -186,11 +236,28 @@ export class AccountStore {
       headers: { "content-type": "application/octet-stream", "x-amz-checksum-sha256": checksum },
     });
     if (!uploaded.ok) throw new Error("The workspace could not be saved.");
+    await this.api("POST", `workspaces/${id}`, {
+      ...metadata,
+      revision: signed.revision,
+    } satisfies PublishWorkspaceRequest);
+    this.changed();
     return signed.revision;
   }
 
   async load(id: string) {
-    const reply = await this.api("GET", `workspaces/${id}`);
+    return this.loadWorkspace(`workspaces/${id}`);
+  }
+
+  async history(id: string) {
+    return workspaceList(await this.api("GET", `workspaces/${id}/history`)).workspaces;
+  }
+
+  async loadRevision(id: string, revision: string) {
+    return this.loadWorkspace(`workspaces/${id}/revisions/${revision}`);
+  }
+
+  private async loadWorkspace(path: string) {
+    const reply = await this.api("GET", path);
     if (reply === null) throw new Error("This workspace no longer exists.");
     const record = workspaceLink(reply);
     const response = await this.request(record.url);
@@ -201,5 +268,6 @@ export class AccountStore {
 
   async removeWorkspace(id: string) {
     await this.api("DELETE", `workspaces/${id}`);
+    this.changed();
   }
 }

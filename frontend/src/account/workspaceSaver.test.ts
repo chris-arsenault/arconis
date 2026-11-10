@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import type { SavedWorkspace } from "./accountStore";
 import { AUTOSAVE_MS, WorkspaceSaver, type SaveableRoom } from "./workspaceSaver";
-import { isSealed, type SavedCopy } from "./workspaceFile";
+import type { SavedCopy } from "./workspaceFile";
+import { WorkspaceConflict } from "./accountStore";
 
 afterEach(() => vi.useRealTimers());
 
@@ -16,7 +17,9 @@ function setup() {
   let revisions = 0;
   const account = {
     workspaces: vi.fn(() => Promise.resolve(server.saved ? [server.saved] : [])),
-    save: vi.fn((id: string, name: string, copy: SavedCopy) => {
+    save: vi.fn((id: string, name: string, copy: SavedCopy, expected: string) => {
+      if (expected !== (server.saved?.revision ?? ""))
+        return Promise.reject(new WorkspaceConflict("The workspace changed."));
       const revision = `r${++revisions}`;
       server.copy = copy;
       server.saved = { id, name, roomId: copy.roomId, size: 1, updated: 1, revision };
@@ -30,10 +33,12 @@ function setup() {
     contents: () =>
       Promise.resolve({
         roomId: "room",
-        contents: { roomId: "room", update: Y.encodeStateAsUpdate(doc), pictures: [] },
+        envelope: { salt: "", iterations: 600000, wrapped: "", proof: "", revision: 1 },
+        // This saver test double treats its opaque payload as the Yjs bytes directly.
+        sealed: Y.encodeStateAsUpdate(doc),
       }),
     apply: (copy) => {
-      if (!isSealed(copy)) Y.applyUpdate(doc, copy.contents.update);
+      Y.applyUpdate(doc, copy.sealed);
       return Promise.resolve();
     },
     onChange: (listener) => {
@@ -42,7 +47,7 @@ function setup() {
     },
   };
   const saver = new WorkspaceSaver(account, room, () => {});
-  return { doc, server, account, saver };
+  return { doc, server, account, saver, room };
 }
 
 describe("saving", () => {
@@ -74,12 +79,35 @@ describe("saving", () => {
     account.save.mockRejectedValueOnce(new Error("This account's storage is full."));
     await saver.save();
     expect(saver.error).toMatch(/full/);
+    expect(saver.id).toBeNull();
     await saver.save();
     expect(saver.error).toBe("");
+    expect(saver.id).not.toBeNull();
+  });
+
+  it("only marks a first save as retained after publication succeeds", async () => {
+    const { account, saver } = setup();
+    let publish!: (revision: string) => void;
+    account.save.mockImplementationOnce(
+      () => new Promise<string>((resolve) => (publish = resolve))
+    );
+    const saving = saver.save();
+    await vi.waitFor(() => expect(account.save).toHaveBeenCalledOnce());
+    expect(saver.id).toBeNull();
+    publish("published");
+    await saving;
+    expect(saver.id).not.toBeNull();
   });
 });
 
 describe("other devices", () => {
+  it("retries a concurrent publication conflict through merge-before-save", async () => {
+    const { saver, account } = setup();
+    account.save.mockRejectedValueOnce(new WorkspaceConflict("The workspace changed."));
+    await saver.save();
+    expect(account.save).toHaveBeenCalledTimes(2);
+    expect(saver.error).toBe("");
+  });
   it("finds this room's saved copy and merges it on opening", async () => {
     const first = setup();
     first.doc.getMap("m").set("from first", 1);
@@ -98,21 +126,21 @@ describe("other devices", () => {
     await saver.save();
     const stored = () => {
       const copy = server.copy!;
-      if (isSealed(copy)) throw new Error("This test saves an ordinary room.");
-      return copy.contents;
+      return copy.sealed;
     };
     const elsewhere = new Y.Doc();
-    Y.applyUpdate(elsewhere, stored().update);
+    Y.applyUpdate(elsewhere, stored());
     elsewhere.getMap("m").set("there", 2);
     server.copy = {
       roomId: "room",
-      contents: { ...stored(), update: Y.encodeStateAsUpdate(elsewhere) },
+      envelope: server.copy!.envelope,
+      sealed: Y.encodeStateAsUpdate(elsewhere),
     };
     server.saved = { ...server.saved!, revision: "from another device" };
     await saver.save();
     expect(account.load).toHaveBeenCalledOnce();
     const merged = new Y.Doc();
-    Y.applyUpdate(merged, stored().update);
+    Y.applyUpdate(merged, stored());
     expect(merged.getMap("m").toJSON()).toEqual({ here: 1, there: 2 });
   });
 
@@ -132,4 +160,31 @@ it("stops when closed", async () => {
   saver.close();
   await vi.advanceTimersByTimeAsync(AUTOSAVE_MS * 2);
   expect(account.save).toHaveBeenCalledOnce();
+});
+
+it("preserves both independent editors when simultaneous saves compete for the same revision", async () => {
+  const first = setup();
+  first.doc.getMap("m").set("base", 1);
+  await first.saver.save();
+  const second = setup();
+  const otherSaver = new WorkspaceSaver(first.account, second.room, () => {});
+  try {
+    await otherSaver.attach();
+    first.doc.getMap("m").set("left", 2);
+    second.doc.getMap("m").set("right", 3);
+    await Promise.all([first.saver.save(), otherSaver.save()]);
+    const stored = new Y.Doc();
+    Y.applyUpdate(stored, first.server.copy!.sealed);
+    expect(stored.getMap("m").toJSON()).toEqual({ base: 1, left: 2, right: 3 });
+    expect(first.account.save).toHaveBeenCalledTimes(4);
+    expect(first.saver.error).toBe("");
+    expect(otherSaver.error).toBe("");
+    stored.destroy();
+  } finally {
+    first.saver.close();
+    otherSaver.close();
+    second.saver.close();
+    first.doc.destroy();
+    second.doc.destroy();
+  }
 });

@@ -3,17 +3,12 @@ import type { CanvasDocument } from "../document/canvasDocument";
 import { decodePicture, encodePicture, pictureHashes } from "../document/pictures";
 import type { PictureCodec, StoredPicture } from "../collaboration/pictureStore";
 import type { Envelope } from "../collaboration/roomKey";
-import {
-  decodeContents,
-  encodeContents,
-  isSealed,
-  type SavedCopy,
-  type WorkspaceContents,
-} from "./workspaceFile";
+import { decodeContents, encodeContents, type SavedCopy } from "./workspaceFile";
 import type { SaveableRoom } from "./workspaceSaver";
 
 /** Current room-key capabilities; the adapter reads live envelope state for each operation. */
 interface SavedRoomKey {
+  readonly requiresPassword: boolean;
   readonly codec: PictureCodec;
   readonly currentEnvelope: Envelope | null;
   readonly whenOpen: Promise<void>;
@@ -33,14 +28,14 @@ export class SavedRoom implements SaveableRoom {
     readonly id: string,
     private document: CanvasDocument,
     private pictures: SavedPictures,
-    private key: SavedRoomKey | null,
-    private persistence: unknown,
-    private signal: AbortSignal
+    private key: SavedRoomKey,
+    private signal: AbortSignal,
+    private restored: () => void
   ) {}
 
   title() {
     // The real title is inside what the password protects.
-    return this.key ? "Password room" : this.document.title();
+    return this.key.requiresPassword ? "Password room" : this.document.title();
   }
 
   async contents(): Promise<SavedCopy> {
@@ -51,8 +46,7 @@ export class SavedRoom implements SaveableRoom {
       pictures: await this.unsharedPictures(),
     };
     this.signal.throwIfAborted();
-    const envelope = this.key?.currentEnvelope;
-    if (!this.key) return { roomId: this.id, contents };
+    const envelope = this.key.currentEnvelope;
     if (!envelope) throw new Error("Open this password room before saving.");
     const sealed = await this.key.codec.seal(encodeContents(contents));
     this.signal.throwIfAborted();
@@ -61,25 +55,24 @@ export class SavedRoom implements SaveableRoom {
 
   async apply(copy: SavedCopy) {
     if (this.signal.aborted) return;
-    let contents: WorkspaceContents;
-    if (isSealed(copy)) {
-      if (!this.key) throw new Error("This saved copy belongs to a password room.");
-      this.key.adoptEnvelope(copy.envelope);
-      await this.waitForKey(this.key);
-      if (this.signal.aborted) return;
-      contents = decodeContents(await this.key.codec.open(copy.sealed));
-    } else contents = copy.contents;
+    this.key.adoptEnvelope(copy.envelope);
+    await this.waitForKey(this.key);
+    if (this.signal.aborted) return;
+    const contents = decodeContents(await this.key.codec.open(copy.sealed));
     const decoded = await Promise.all(contents.pictures.map(decodePicture));
     if (this.signal.aborted) return;
     await Promise.all(
       decoded.map((picture) => picture && this.pictures.keep(picture.hash, picture))
     );
-    if (!this.signal.aborted) Y.applyUpdate(this.document.doc, contents.update, this.origin);
+    if (!this.signal.aborted) {
+      Y.applyUpdate(this.document.doc, contents.update, this.origin);
+      this.restored();
+    }
   }
 
   onChange(listener: () => void) {
     const onUpdate = (_update: Uint8Array, origin: unknown) => {
-      if (origin !== this.origin && origin !== this.persistence) listener();
+      if (origin !== this.origin && origin !== this.key) listener();
     };
     this.document.doc.on("update", onUpdate);
     return () => this.document.doc.off("update", onUpdate);

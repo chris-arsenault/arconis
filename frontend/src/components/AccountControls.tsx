@@ -1,8 +1,9 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { CircleUser, FolderOpen, Trash2, X } from "lucide-react";
-import type { AccountStore, SavedWorkspace } from "../account/accountStore";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { CircleUser, X } from "lucide-react";
+import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 import { ConnectAgent } from "./ConnectAgent";
+import { WorkBrowser } from "./WorkBrowser";
 
 function Field({
   label,
@@ -73,56 +74,26 @@ function SignedOut({ account }: Readonly<{ account: AccountStore }>) {
   );
 }
 
-function WorkspaceList({
-  account,
-  onOpen,
-}: Readonly<{ account: AccountStore; onOpen: (copy: SavedCopy) => void }>) {
-  const [items, setItems] = useState<SavedWorkspace[] | null>(null);
-  const refresh = () => void account.workspaces().then(setItems);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(refresh, [account]);
-  if (!items) return <p className="password-note">Loading your workspaces…</p>;
-  if (!items.length) return <p className="password-note">No saved workspaces yet.</p>;
-  return (
-    <ul className="workspace-list" aria-label="Saved workspaces">
-      {items.map((item) => (
-        <li key={item.id}>
-          <button
-            className="workspace-open"
-            onClick={() => {
-              void account.load(item.id).then(({ copy }) => onOpen(copy));
-            }}
-          >
-            <FolderOpen size={14} /> {item.name}
-          </button>
-          <button
-            className="icon-action"
-            aria-label={`Delete ${item.name}`}
-            title="Delete"
-            onClick={() => void account.removeWorkspace(item.id).then(refresh)}
-          >
-            <Trash2 size={13} />
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function SignedIn({
   account,
   onOpen,
-}: Readonly<{ account: AccountStore; onOpen: (copy: SavedCopy) => void }>) {
+  onJoin,
+}: Readonly<{
+  account: AccountStore;
+  onOpen: (copy: SavedCopy) => void;
+  onJoin: (id: string) => void;
+}>) {
   const [name, setName] = useState(account.name);
+  const [error, setError] = useState("");
   return (
     <>
       <p className="password-note">{account.email}</p>
       <ActionForm label="Save name" action={() => account.rename(name)}>
         <Field label="Your name" value={name} onChange={setName} />
       </ActionForm>
-      <h3>Workspaces</h3>
-      <WorkspaceList account={account} onOpen={onOpen} />
+      <WorkBrowser account={account} onOpen={onOpen} onJoin={onJoin} />
       <ConnectAgent />
+      {error && <p role="alert">{error}</p>}
       <div className="account-links">
         <button type="button" onClick={() => void account.signOut()}>
           Sign out
@@ -130,8 +101,14 @@ function SignedIn({
         <button
           type="button"
           onClick={() => {
-            if (window.confirm("Delete your account and every saved workspace?"))
-              void account.deleteAccount();
+            if (window.confirm("Delete your account, saved workspaces and history, and layouts?")) {
+              setError("");
+              void account
+                .deleteAccount()
+                .catch((reason: unknown) =>
+                  setError(reason instanceof Error ? reason.message : "Could not delete account.")
+                );
+            }
           }}
         >
           Delete account
@@ -145,7 +122,12 @@ function SignedIn({
 export function AccountButton({
   account,
   onOpen,
-}: Readonly<{ account: AccountStore; onOpen: (copy: SavedCopy) => void }>) {
+  onJoin,
+}: Readonly<{
+  account: AccountStore;
+  onOpen: (copy: SavedCopy) => void;
+  onJoin: (id: string) => void;
+}>) {
   useSyncExternalStore(account.subscribe, account.snapshot);
   const [chosen, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState("");
@@ -173,6 +155,10 @@ export function AccountButton({
             {signedIn ? (
               <SignedIn
                 account={account}
+                onJoin={(id) => {
+                  setOpen(false);
+                  onJoin(id);
+                }}
                 onOpen={(copy) => {
                   setOpen(false);
                   onOpen(copy);

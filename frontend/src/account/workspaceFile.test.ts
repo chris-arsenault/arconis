@@ -6,13 +6,14 @@ import {
   openEnvelope,
   seal,
   unseal,
+  DEFAULT_PASSWORD,
+  defaultRoomKey,
 } from "../collaboration/roomKey";
 import {
   decodeContents,
   decodeSavedCopy,
   encodeContents,
   encodeSavedCopy,
-  isSealed,
   type WorkspaceContents,
 } from "./workspaceFile";
 
@@ -30,11 +31,18 @@ const textOf = (update: Uint8Array) => {
   return doc.getText("t").toString();
 };
 
-it("stores an ordinary room's copy as it is, and reads it back", () => {
-  const stored = encodeSavedCopy({ roomId: ROOM, contents: contents("Roadmap") });
+it("stores a nopass room through the same sealed format and reads it with the default password", async () => {
+  const key = await defaultRoomKey(ROOM);
+  const envelope = await createEnvelope(DEFAULT_PASSWORD, key, 1);
+  const stored = encodeSavedCopy({
+    roomId: ROOM,
+    envelope,
+    sealed: await seal(key, encodeContents(contents("Roadmap"))),
+  });
   const copy = decodeSavedCopy(stored);
-  expect(isSealed(copy)).toBe(false);
-  if (!isSealed(copy)) expect(textOf(copy.contents.update)).toBe("Roadmap");
+  expect("contents" in JSON.parse(decoder.decode(stored))).toBe(false);
+  const opened = await openEnvelope(DEFAULT_PASSWORD, copy.envelope);
+  expect(textOf(decodeContents(await unseal(opened, copy.sealed)).update)).toBe("Roadmap");
 });
 
 it("stores a password room's copy sealed, so only the room's password opens it", async () => {
@@ -45,7 +53,6 @@ it("stores a password room's copy sealed, so only the room's password opens it",
   expect(decoder.decode(stored)).not.toContain("Private roadmap");
 
   const copy = decodeSavedCopy(stored);
-  if (!isSealed(copy)) throw new Error("expected a sealed copy");
   const opened = await openEnvelope("room password", copy.envelope);
   expect(textOf(decodeContents(await unseal(opened, copy.sealed)).update)).toBe("Private roadmap");
   await expect(openEnvelope("wrong password", copy.envelope)).rejects.toThrow();
@@ -54,4 +61,9 @@ it("stores a password room's copy sealed, so only the room's password opens it",
 it("refuses bytes that are not a saved copy", () => {
   const bytes = new TextEncoder().encode(JSON.stringify({ format: 99, roomId: ROOM }));
   expect(() => decodeSavedCopy(bytes)).toThrow();
+  expect(() =>
+    decodeSavedCopy(
+      new TextEncoder().encode(JSON.stringify({ format: 1, roomId: ROOM, contents: "legacy" }))
+    )
+  ).toThrow();
 });

@@ -1,4 +1,4 @@
-import type { AccountStore } from "./accountStore";
+import { WorkspaceConflict, type AccountStore } from "./accountStore";
 import type { SavedCopy } from "./workspaceFile";
 
 /** Quiet time after an edit before a saved workspace is stored again. */
@@ -63,22 +63,29 @@ export class WorkspaceSaver {
     return this.saving;
   }
 
-  private async store() {
+  private async mergeSaved() {
+    if (!this.id) return;
+    const saved = (await this.account.workspaces()).find(({ id }) => id === this.id);
+    if (saved) await this.mergeNewer(saved.revision);
+  }
+
+  private async store(retry = true): Promise<void> {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     try {
-      if (this.id) {
-        const saved = (await this.account.workspaces()).find(({ id }) => id === this.id);
-        if (saved) await this.mergeNewer(saved.revision);
-      }
-      this.id ??= crypto.randomUUID();
-      this.revision = await this.account.save(
-        this.id,
+      await this.mergeSaved();
+      const id = this.id ?? crypto.randomUUID();
+      const revision = await this.account.save(
+        id,
         this.room.title(),
-        await this.room.contents()
+        await this.room.contents(),
+        this.revision
       );
+      this.id = id;
+      this.revision = revision;
       this.error = "";
     } catch (error) {
+      if (error instanceof WorkspaceConflict && retry && !this.closed) return this.store(false);
       this.error = error instanceof Error ? error.message : "The workspace could not be saved.";
     }
     this.changed();

@@ -41,7 +41,7 @@ Pushing to `main` runs the shared Ahara CI workflow and deploys after its checks
 | Markdown, code and equations                      | [Text and formatting](docs/text.md)        |
 | Decks, templates and presenting                   | [Slides](docs/slides.md)                   |
 | Room links, passwords and offline work            | [Collaboration](docs/collaboration.md)     |
-| Accounts and saved workspaces                     | [Accounts](docs/accounts.md)               |
+| Accounts, reusable layouts and saved history      | [Accounts](docs/accounts.md)               |
 | Documents, PNGs and pictures                      | [Files](docs/files.md)                     |
 | Assistant connections and MCP                     | [Agents](docs/agents.md)                   |
 | Product, architecture, development and operations | [Documentation index](docs/README.md)      |

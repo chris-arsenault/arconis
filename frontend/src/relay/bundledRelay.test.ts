@@ -10,6 +10,8 @@ import WebSocket from "ws";
 import { CollaborationProvider } from "../collaboration/provider";
 import type { FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
+import { LockedTransport } from "../collaboration/lockedTransport";
+import { createEnvelope, defaultRoomKey, DEFAULT_PASSWORD } from "../collaboration/roomKey";
 
 let identity: Server;
 let relay: ChildProcess;
@@ -101,7 +103,14 @@ it("opens and edits a person's room through the production bundle and HTTP MCP t
   const room = "b".repeat(48);
   const document = new CanvasDocument();
   document.create("node", 0, 0, { id: "box", name: "Browser content" });
-  const provider = new CollaborationProvider(document.doc, personChannel(room), () => {});
+  const id = crypto.randomUUID();
+  const channel = new LockedTransport(personChannel(room), id);
+  const key = await defaultRoomKey(room);
+  const envelope = await createEnvelope(DEFAULT_PASSWORD, key, 1);
+  channel.shareEnvelope = () => envelope;
+  channel.envelopeKnown();
+  channel.unlock(key);
+  const provider = new CollaborationProvider(document.doc, channel, () => {}, id);
   provider.awareness.setLocalStateField("user", { name: "Alice", color: "#000" });
   const client = new Client({ name: "ChatGPT", version: "1" });
   const resumed = new Client({ name: "ChatGPT reconnected", version: "1" });

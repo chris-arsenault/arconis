@@ -41,12 +41,14 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
         createdRoom.current === room
       );
       next = instance;
+      const saved = takeSavedCopy(room);
+      if (saved) instance.lock.adoptEnvelope(saved.envelope);
       await instance.start();
       if (!active) return;
       const openedAt = Date.now();
       let previousTitle = "";
       const remember = () => {
-        if (instance.lock && instance.lock.state !== "unlocked") return;
+        if (instance.lock.state !== "unlocked") return;
         const title = instance.document.title();
         if (title === previousTitle) return;
         previousTitle = title;
@@ -55,7 +57,6 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
       remember();
       stopRemembering = instance.subscribe(remember);
       setSession(instance);
-      const saved = takeSavedCopy(room);
       if (saved) void instance.saveable.apply(saved);
     };
     void start().catch((reason: unknown) => {

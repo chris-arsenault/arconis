@@ -293,12 +293,15 @@ reaching retired consumers.
   Text finishes on leaving its source/tools, Escape or Ctrl/Command Enter; single-line metadata
   also finishes on Enter. Finishing retains the text; Escape does not discard it.
   A new participant may wait for completion if that editor is the only reachable canvas holder.
-- **Password rooms.** A random room key encrypts every frame's contents, the local copy and picture
-  bytes with AES-GCM, and the password only wraps that key, through PBKDF2. The wrapped key is an
+- **Room encryption.** Every room uses AES-GCM for frame contents, local updates, pictures and
+  account copies ([ADR-0018](adr/0018-one-encrypted-room-path.md)). Explicit password rooms use a
+  random key; rooms without a password prompt derive their initial key from the room identifier
+  and the public `nopass` default. This lets fresh peers agree without a server bootstrap record.
+  PBKDF2 derives the wrapping key from the default or entered password. The wrapped room key is an
   envelope that peers exchange unencrypted, and it replaces another only with proof of holding the
   room key. `collaboration/lockedTransport.ts` decorates the frame channel and retains key/envelope
   exchange; it does not forward relay controls or picture service methods. `collaboration/roomLock.ts`
-  stands in for y-indexeddb. The relay still sees each frame's sender, kind and target, plus sizes and
+  owns key opening and encrypted IndexedDB persistence for all rooms. The relay still sees each frame's sender, kind and target, plus sizes and
   timing. Nothing authenticates who a keyholder is, and removing someone requires a new room, because
   changing the password does not change the key.
 - **Presence.** Names, cursors, native move and resize previews, each person's viewport, laser
@@ -308,8 +311,10 @@ reaching retired consumers.
   and ends on the follower's own pointer, wheel or key. Presence coalesces to a bounded rate, and hidden
   tabs send none, so peers time them out until they are shown again. Selection-frame transforms write
   locally at a bounded rate during the gesture, with Undo merged into one step, and publish on release.
-- **Persistence.** y-indexeddb stores each room's document on the device and restores it before
-  connecting.
+- **Persistence.** RoomLock stores ciphertext updates and the wrapped key in `arconis-room:<id>`
+  and restores the document before connecting. The old plaintext persistence and saved-copy
+  readers are removed. The recent-room index holds addresses and display titles separately;
+  the work browser checks stored updates to distinguish a retained copy from a remembered address.
 
 ## Relay
 
@@ -336,7 +341,7 @@ Nothing lives only on an instance, so clients simply reconnect when one is repla
 **Pictures.** Picture bytes stay outside the document. The browser re-encodes a picture through a canvas
 and names it by its hash, the relay checks the storage limit and signs a link fixing the key, type, size
 and checksum, and the browser uploads straight to the website's bucket under `pictures/`. Objects hold
-only the validated hash, marked once the bytes have reached storage, so a peer's data never becomes a
+only the validated ciphertext hash, marked once the bytes have reached storage, so a peer's data never becomes a
 URL. Peers fetch through the website's CloudFront, verify the hash and keep the bytes in IndexedDB.
 
 **Limit.** `relay/control.ts` computes the month's spend from the group's CloudWatch metrics, which
@@ -363,6 +368,8 @@ and carries a language session (`relay/agentSession.ts`). Only ordinary rooms wi
 opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
 close with their peers. `relay/mcp.ts` holds the tools: open a room, describe, read and write in the
 canvas language, check layout, undo, close a room, search icons, and retrieve language guidance. Help needs no open room.
+The agent peer uses the same encrypted channel and opens an ordinary room's envelope with
+`nopass`. It refuses explicit password rooms; ordinary frame forwarding never opens contents.
 `relay/agentSessions.ts` owns explicit room sessions keyed by random handles and bound to the
 authenticated user and OAuth client. `open_room` returns `session_id` and the outline; describe,
 read, write, check layout, undo and close require that handle. Each open creates independent read and undo history.
@@ -397,14 +404,27 @@ against them and decodes unknown replies into its used projections; AccountsApi 
 actual success response construction. Its storage/service ports remain server-owned. Shared contracts
 do not import browser auth, saved document contents or AWS implementations.
 
-`account/workspaceFile.ts` defines the saved copy: an ordinary room's contents as they are, or a password
-room's sealed under its room key with the envelope its password opens. `account/savedRoom.ts` implements
+`account/workspaceFile.ts` defines one saved-copy format: room identity, ciphertext and its key
+envelope. `account/savedRoom.ts` implements
 SaveableRoom: picture inclusion, current envelope adoption, encoding, merging and update-origin
 filtering live there. RoomSession supplies its document/picture/key capabilities and operation lifetime;
 the adapter reads current key state per operation and keeps password-room titles out of account metadata.
-The API checks limits and signs S3 links, and
-`account/workspaceSaver.ts` merges any newer saved copy before storing, so two devices cannot overwrite
-each other's work.
+`accounts/workspaces.ts` signs uploads to immutable revision objects, verifies size/checksum after
+upload, then conditionally publishes metadata through `accounts/workspaceTable.ts`. The transaction
+updates the latest pointer, history and existing account/service quotas together. Five successful
+revisions remain; failed uploads never publish or prune the last usable copy. WorkspaceSaver merges
+newer copies before saving and retries a concurrent publication conflict after merging again.
+History recovery creates a separate room. For an automatic `nopass` room it reseals the document
+and pictures under the new identity's key, so fresh peers can join that recovered room.
+
+`components/WorkBrowser.tsx` serves both home and account-panel discovery, grouping room identities
+while keeping local/account actions separate. Saved copies and reusable layouts are private
+to the account; room access continues through the existing room link and password workflows.
+
+`protocol/library.ts` and `accounts/library.ts` manage the private reusable-section library.
+Canonical selected canvas text and pictures use the existing private S3 bucket; metadata uses
+DynamoDB. Insertion assigns fresh identities, preserves internal references, materializes named
+appearance and reuses the existing file/paste operation as one Undo without importing room metadata.
 
 A post-login Action, compiled from `accounts/auth0-actions/post-login.ts`, refuses sign-in to Arconis's connection
 until the email is verified. Deleting an account removes its Auth0 user through the Management API.

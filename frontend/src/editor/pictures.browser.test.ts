@@ -24,15 +24,26 @@ afterEach(() => fixture.reset());
 const pictureOf = async (page: Page) =>
   (await exported(page)).objects.find((item) => item.type === "picture");
 const drawnImages = (page: Page) => ({ count: () => drawnPictures(page) });
+function uploadedPictures(page: Page) {
+  const hashes: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (request.method() === "PUT" && url.pathname.startsWith("/upload/"))
+      hashes.push(url.pathname.slice("/upload/".length));
+  });
+  return hashes;
+}
 
 it("uploads a pasted picture once, and peers and late joiners load it", async () => {
   const room = createRoomId();
   const a = await open(await browser.newContext(VIEWPORT), room);
   const b = await open(await browser.newContext(VIEWPORT), room);
+  const uploads = uploadedPictures(a);
   await pastePicture(a, "#d04040");
   await expect.poll(() => objectCount(b)).toBe(1);
   await expect.poll(async () => (await pictureOf(a))?.picture?.stored).toBe(true);
-  const hash = String((await pictureOf(a))!.picture?.hash);
+  expect(uploads).toHaveLength(1);
+  const hash = uploads[0];
   expect(fixture.uploadsOf(hash)).toBe(1);
   await expect.poll(() => drawnImages(b).count()).toBe(1);
 
@@ -55,14 +66,16 @@ it("uploads a pasted picture once, and peers and late joiners load it", async ()
 it("keeps a picture local while the relay is off, and uploads when it returns", async () => {
   const room = createRoomId();
   const a = await open(await browser.newContext(VIEWPORT), room);
+  const uploads = uploadedPictures(a);
   fixture.stop();
   await a.getByTestId("connection-status").filter({ hasText: "Collaboration off" }).waitFor();
   await pastePicture(a, "#40d040");
   await expect.poll(() => drawnImages(a).count()).toBe(1);
-  const hash = String((await pictureOf(a))!.picture?.hash);
-  expect(fixture.uploadsOf(hash)).toBe(0);
+  expect(uploads).toHaveLength(0);
   await a.getByRole("button", { name: "Start collaboration", exact: true }).click();
-  await expect.poll(() => fixture.uploadsOf(hash), { timeout: 30_000 }).toBe(1);
+  await a.getByTestId("connection-status").filter({ hasText: "Connected" }).waitFor();
+  await expect.poll(() => uploads.length).toBe(1);
+  await expect.poll(() => fixture.uploadsOf(uploads[0])).toBe(1);
   expect(errors).toEqual([]);
 });
 
@@ -86,15 +99,15 @@ it("keeps a device-only room's pictures off the network, through reload and file
   );
   await unfoldSource(context);
   const page = await context.newPage();
+  const uploads = uploadedPictures(page);
   await page.goto(baseUrl());
   await page.getByRole("button", { name: "Work on this device only", exact: true }).click();
   await page.getByTestId("connection-status").filter({ hasText: "On this device only" }).waitFor();
   await pastePicture(page, "#d0d040");
   await expect.poll(() => drawnImages(page).count()).toBe(1);
-  const hash = String((await pictureOf(page))!.picture?.hash);
   await page.reload();
   await expect.poll(() => drawnImages(page).count()).toBe(1);
-  expect(fixture.uploadsOf(hash)).toBe(0);
+  expect(uploads).toHaveLength(0);
   expect(errors).toEqual([]);
 });
 

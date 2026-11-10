@@ -5,6 +5,7 @@ import { CollaborationProvider } from "./provider";
 import { RoomLock, type LockedStorage } from "./roomLock";
 import {
   WrongPassword,
+  DEFAULT_PASSWORD,
   createEnvelope,
   envelopeMatches,
   generateRoomKey,
@@ -80,7 +81,8 @@ afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
 function person(
   wire: { peers: Wire[]; seen: string[] },
   created = false,
-  storage = memoryStorage()
+  storage = memoryStorage(),
+  defaultRoom: string | null = null
 ) {
   const raw = new Wire(wire.peers, wire.seen);
   const id = crypto.randomUUID();
@@ -88,7 +90,7 @@ function person(
   const transport = new LockedTransport(raw, id);
   const document = new CanvasDocument();
   const changed = vi.fn();
-  const lock = new RoomLock(storage, transport, document.doc, changed, created);
+  const lock = new RoomLock(storage, transport, document.doc, changed, created, defaultRoom);
   const provider = new CollaborationProvider(
     document.doc,
     transport,
@@ -143,6 +145,23 @@ describe("the key", () => {
     expect(parseEnvelope({ ...envelope, iterations: 1 })).toBeNull();
     expect(parseEnvelope({ ...envelope, iterations: 1e12 })).toBeNull();
     expect(parseEnvelope("not json")).toBeNull();
+  });
+});
+
+describe("automatic room encryption", () => {
+  it("auto-unlocks nopass peers through the same sealed transport and storage, including simultaneous fresh joins", async () => {
+    const wire = network();
+    const a = person(wire, false, memoryStorage(), "same-room");
+    const b = person(wire, false, memoryStorage(), "same-room");
+    await Promise.all([a.lock.whenSynced, b.lock.whenSynced]);
+    expect(a.lock.requiresPassword).toBe(false);
+    expect(a.lock.state).toBe("unlocked");
+    const id = a.document.create("note", 0, 0, { name: SECRET });
+    await vi.waitFor(() => expect(b.document.get(id)?.name).toBe(SECRET));
+    expect(wire.seen.join("")).not.toContain(SECRET);
+    await vi.waitFor(() => expect(a.storage.saved.length).toBeGreaterThan(0));
+    expect(await openEnvelope(DEFAULT_PASSWORD, a.lock.currentEnvelope!)).toBeDefined();
+    expect(new TextDecoder().decode(a.storage.saved[0])).not.toContain(SECRET);
   });
 });
 

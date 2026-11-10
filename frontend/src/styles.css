@@ -581,6 +581,16 @@ dialog.password-gate {
   border-radius: 12px;
   background: #fff;
 }
+.password-gate > section {
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.password-gate section section {
+  width: auto;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+}
 .password-gate h2 {
   display: flex;
   align-items: center;
@@ -3150,12 +3160,33 @@ input.outline-name {
   margin-top: 5px;
 }
 .recent-rooms button {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
   text-align: left;
   gap: 8px;
-  padding: 10px;
+  padding: 6px;
+  overflow-wrap: anywhere;
+}
+.work-browser li,
+.work-browser li > span:not(.recent-room-title) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  min-width: 0;
+}
+.work-browser .recent-room-title,
+.work-browser li > span:not(.recent-room-title) {
+  grid-column: 1 / -1;
+}
+.work-browser small {
+  font-size: 10px;
+  max-width: 90px;
+  overflow-wrap: anywhere;
+}
+.work-browser .workspace-open,
+.work-browser li > span > section {
+  grid-column: 1 / -1;
 }
 .find-matches li {
   display: flex;

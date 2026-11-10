@@ -25,9 +25,9 @@ function isTyping(target: EventTarget | null) {
   );
 }
 
-/** Nothing can be added to a password room until its password has opened it. */
+/** Nothing can be pasted until the room key has opened its storage. */
 function isLocked(session: RoomSession) {
-  return session.lock !== null && session.lock.state !== "unlocked";
+  return session.lock.state !== "unlocked";
 }
 
 function firstImage(files: Iterable<File> | ArrayLike<File> | undefined) {

@@ -22,6 +22,7 @@ import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 import { Settings } from "./Settings";
 import { Feedback } from "./Feedback";
+import { ReusableSections } from "./ReusableSections";
 
 interface Props {
   session: RoomSession;
@@ -58,7 +59,9 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         <CanvasTitle key={session.id} document={session.document} />
       </div>
       <div className="topbar-actions">
-        {props.account && <AccountButton account={props.account} onOpen={props.onOpenSaved} />}
+        {props.account && (
+          <AccountButton account={props.account} onOpen={props.onOpenSaved} onJoin={props.onJoin} />
+        )}
         {props.account && (
           <SaveWorkspace
             account={props.account}
@@ -67,6 +70,9 @@ export function WorkspaceHeader(props: Readonly<Props>) {
           />
         )}
         <ChangePassword session={session} />
+        {props.account && props.editor && (
+          <ReusableSections account={props.account} session={session} editor={props.editor} />
+        )}
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
         {props.editor && <Settings editor={props.editor} />}
         {props.editor && (
@@ -261,7 +267,7 @@ function FileMenuItems({
 }>) {
   return (
     <>
-      <ExportCopyNote locked={Boolean(props.session.lock)} />
+      <ExportCopyNote locked={props.session.lock.requiresPassword} />
       <button
         role="menuitem"
         onClick={run(() => void exportCanvas(props, includeMarkup))}

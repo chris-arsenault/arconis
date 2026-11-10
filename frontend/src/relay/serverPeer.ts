@@ -2,6 +2,8 @@ import { CollaborationProvider } from "../collaboration/provider";
 import type { ConnectionState, FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { Relay, RelaySocket } from "./relay";
+import { LockedTransport } from "../collaboration/lockedTransport";
+import { DEFAULT_PASSWORD, openEnvelope } from "../collaboration/roomKey";
 
 /** How long a new peer waits for someone in the room to send the canvas. */
 export const SYNC_TIMEOUT_MS = 10_000;
@@ -16,8 +18,8 @@ export type PeerReadiness = "ready" | "nobody" | "locked" | "unanswered";
 export class ServerPeer {
   readonly document = new CanvasDocument();
   readonly provider: CollaborationProvider;
-  private transport: InProcessTransport;
-  /** Password rooms send sealed frames. The relay cannot read them, so agents cannot work there. */
+  private transport: LockedTransport;
+  /** An envelope requiring an explicit password keeps this room browser-owned. */
   locked = false;
 
   constructor(
@@ -25,8 +27,19 @@ export class ServerPeer {
     readonly roomId: string,
     name: string
   ) {
-    this.transport = new InProcessTransport(relay, roomId, () => (this.locked = true));
-    this.provider = new CollaborationProvider(this.document.doc, this.transport, () => {});
+    const id = crypto.randomUUID();
+    this.transport = new LockedTransport(new InProcessTransport(relay, roomId), id);
+    this.transport.onEnvelope = (envelope) => {
+      void openEnvelope(DEFAULT_PASSWORD, envelope)
+        .then((key) => {
+          this.transport.shareEnvelope = () => envelope;
+          this.transport.unlock(key);
+        })
+        .catch(() => {
+          this.locked = true;
+        });
+    };
+    this.provider = new CollaborationProvider(this.document.doc, this.transport, () => {}, id);
     this.provider.awareness.setLocalStateField("user", { name, color: AGENT_COLOR, agent: true });
   }
 
@@ -74,8 +87,7 @@ class InProcessTransport implements FrameChannel {
 
   constructor(
     private relay: Relay,
-    private roomId: string,
-    private sawSealedFrame: () => void
+    private roomId: string
   ) {}
 
   connect() {
@@ -96,7 +108,6 @@ class InProcessTransport implements FrameChannel {
   private deliver(data: string) {
     if (!this.connection) return;
     if (data.startsWith('{"relay"')) return;
-    if (data.includes('"kind":"envelope"')) this.sawSealedFrame();
     this.onMessage(data);
   }
 

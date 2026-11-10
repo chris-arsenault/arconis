@@ -1,19 +1,11 @@
-import {
-  ArrowRight,
-  Shapes,
-  StickyNote,
-  GitBranch,
-  Sparkles,
-  KeyRound,
-  Monitor,
-  Users,
-} from "lucide-react";
+import { ArrowRight, Shapes, StickyNote, GitBranch, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { isLocalRoom, isLockedRoom, parseRoom } from "../collaboration/room";
-import { recentRooms, type RecentRoom } from "../collaboration/recentRooms";
+import { parseRoom } from "../collaboration/room";
+import { recentRooms } from "../collaboration/recentRooms";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 import { AccountButton } from "./AccountControls";
+import { WorkBrowser } from "./WorkBrowser";
 
 interface Props {
   name: string;
@@ -40,7 +32,7 @@ export function Welcome(props: Readonly<Props>) {
       </div>
       <section className="welcome-content">
         {rooms.length ? <h1>Your canvases</h1> : <WelcomeIntroduction />}
-        <RecentRooms rooms={rooms} onJoin={props.onJoin} />
+        <WorkBrowser account={props.account} onOpen={props.onOpenSaved} onJoin={props.onJoin} />
         <WelcomeForm {...props} />
         <p className="welcome-footnote">
           No account required. Share a link and start thinking together.
@@ -97,33 +89,6 @@ function WelcomeIntroduction() {
   );
 }
 
-function RecentRooms({ rooms, onJoin }: Readonly<Pick<Props, "onJoin"> & { rooms: RecentRoom[] }>) {
-  if (!rooms.length) return null;
-  return (
-    <section className="recent-rooms" aria-label="Recent rooms">
-      <h2>Recently opened on this browser</h2>
-      <ul>
-        {rooms.map((room) => {
-          const locked = isLockedRoom(room.id);
-          const local = isLocalRoom(room.id);
-          const plainIcon = local ? Monitor : Users;
-          const Icon = locked ? KeyRound : plainIcon;
-          const plainLabel = local ? "On this device" : "Shared room";
-          return (
-            <li key={room.id}>
-              <button type="button" onClick={() => onJoin(room.id)}>
-                <Icon size={16} aria-hidden="true" />
-                <span className="recent-room-title">{locked ? "Password room" : room.title}</span>
-                <small>{locked ? "Password required" : plainLabel}</small>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
 function WelcomeForm(props: Readonly<Props>) {
   const { name, onName, onCreate, onCreateLocal, onJoin, error } = props;
   const [code, setCode] = useState("");
@@ -135,7 +100,9 @@ function WelcomeForm(props: Readonly<Props>) {
   };
   return (
     <div className="welcome-card">
-      {props.account && <AccountButton account={props.account} onOpen={props.onOpenSaved} />}
+      {props.account && (
+        <AccountButton account={props.account} onOpen={props.onOpenSaved} onJoin={props.onJoin} />
+      )}
       {!props.signedIn && (
         <label>
           Your display name

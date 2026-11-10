@@ -50,14 +50,14 @@ export function PasswordGate({
   useSyncExternalStore(session.subscribe, session.snapshot);
   const { lock } = session;
   const dialog = useRef<HTMLDialogElement>(null);
-  const blocked = Boolean(lock && lock.state !== "unlocked");
+  const blocked = lock.requiresPassword && lock.state !== "unlocked";
   useEffect(() => {
     if (!blocked) return;
     const current = dialog.current;
     current?.showModal();
     return () => current?.close();
   }, [blocked]);
-  if (!lock || !blocked) return null;
+  if (!blocked) return null;
   return (
     <dialog
       ref={dialog}
@@ -111,7 +111,7 @@ export function PasswordGate({
 export function ChangePassword({ session }: Readonly<{ session: RoomSession }>) {
   const [open, setOpen] = useState(false);
   const { lock } = session;
-  if (!lock || lock.state !== "unlocked") return null;
+  if (!lock.requiresPassword || lock.state !== "unlocked") return null;
   return (
     <>
       <button

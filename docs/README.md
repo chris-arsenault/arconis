@@ -8,7 +8,7 @@
 | Markdown, code, equations and typography                           | [Text and formatting](text.md)        |
 | Decks, templates, notes and presenting                             | [Slides](slides.md)                   |
 | Room links, passwords, presence and offline work                   | [Collaboration](collaboration.md)     |
-| Sign-in and saved workspaces                                       | [Accounts](accounts.md)               |
+| Sign-in, private layouts and saved-copy history                    | [Accounts](accounts.md)               |
 | Editable documents, PNGs, import and pictures                      | [Files](files.md)                     |
 | Assistant setup, MCP workflow and recovery                         | [Agents](agents.md)                   |
 | Product scope                                                      | [Product](product.md)                 |

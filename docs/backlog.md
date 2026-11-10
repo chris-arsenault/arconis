@@ -11,16 +11,11 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Reserve a dedicated help zone in the left rail that shows one sentence about the hovered
   control or feature, following Ableton Live's contextual-help approach.
 
-## Accounts and teams
+## Accounts
 
-- Provide a saved-work browser covering local canvases and, when signed in, remote saved
-  workspaces.
-- Let people with accounts form teams and invite other account holders. Teams can own rooms,
-  with a browser for each team's rooms. Personal saved workspaces remain private to their account.
-- Provide team management for team settings, membership, invitations and room ownership.
-- Let an account save a section of a canvas and import it into any room, so people keep their
-  own reusable layouts. Arconis ships no templates of its own.
-- Send Ahara's sign-in emails from an Ahara address through SES rather than Auth0's built-in sender.
+- Verify deployed Ahara sign-in email delivery through SES from an Ahara address. The provider
+  and verification/reset templates already exist in Ahara-infra source; deployment and delivery
+  have not been verified.
 
 ## Agents
 
@@ -47,7 +42,6 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
   alternative text that agents also read.
 - Add a brace over several sibling topics and a boundary that grows with its subtree, and level
   styles that map depth to colour and size and survive reparenting.
-- Keep the last few account-saved copies with timestamps, as the only history beyond undo.
 
 ## Slides
 

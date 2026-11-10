@@ -10,6 +10,8 @@ import { CanvasDocument } from "../document/canvasDocument";
 import { attachRelay } from "./attach";
 import { AgentGateway, type McpConfig } from "./mcpHttp";
 import { Relay } from "./relay";
+import { LockedTransport } from "../collaboration/lockedTransport";
+import { createEnvelope, defaultRoomKey, DEFAULT_PASSWORD } from "../collaboration/roomKey";
 
 export const ROOM = "a".repeat(48);
 export const config: McpConfig = {
@@ -107,11 +109,17 @@ afterEach(async () => {
 
 export async function person(name = "Alice") {
   const document = new CanvasDocument();
-  const provider = new CollaborationProvider(
-    document.doc,
+  const id = crypto.randomUUID();
+  const transport = new LockedTransport(
     new SocketTransport(`${base.replace("http", "ws")}/rooms/${ROOM}`),
-    () => {}
+    id
   );
+  const key = await defaultRoomKey(ROOM);
+  const envelope = await createEnvelope(DEFAULT_PASSWORD, key, 1);
+  transport.shareEnvelope = () => envelope;
+  transport.envelopeKnown();
+  transport.unlock(key);
+  const provider = new CollaborationProvider(document.doc, transport, () => {}, id);
   provider.awareness.setLocalStateField("user", { name, color: "#000" });
   provider.connect();
   await expect.poll(() => relay.peopleIn(ROOM)).toBeGreaterThan(0);

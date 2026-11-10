@@ -4,6 +4,19 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Accounts and saved work
+
+- Combined local and private account copies in **Your canvases**, with search, availability and
+  separate open/removal actions. Local work stays available when account browsing fails.
+- Added **My layouts** to save, rename, delete and insert private selections with pictures and
+  internal links. Each insertion creates independent objects and supports one Undo.
+- Retained five successful account saves with timestamps and recovery into a separate room.
+  Upload verification and conditional publication preserve the last saved copy on failure;
+  concurrent saves merge and retry against the latest revision.
+- Unified room frames, local persistence, pictures and account copies under room encryption.
+  Rooms without a password prompt use the internal `nopass` default with unchanged guest UI.
+  Removed the separate plaintext storage and saved-copy formats without compatibility readers.
+
 ### Layers and slides
 
 - Added content layers beneath markup, with a Layers task area to create, choose, rename, drag

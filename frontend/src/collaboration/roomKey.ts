@@ -3,7 +3,7 @@ import { fromBase64, toBase64 } from "lib0/buffer";
 /**
  * Envelope encryption for password rooms. A random room key encrypts everything, and the password
  * only wraps that key, so changing the password rewraps the key rather than the document. Everything
- * happens in the browser; no server ever holds a key or a password.
+ * happens in the browser for private rooms; public nopass rooms also admit the relay's agent peer.
  */
 const ITERATIONS = 600_000;
 /** An envelope comes from a peer, so its work factor is bounded in both directions. */
@@ -11,6 +11,17 @@ const MIN_ITERATIONS = 100_000;
 const MAX_ITERATIONS = 5_000_000;
 const IV_BYTES = 12;
 const PROOF = new TextEncoder().encode("arconis room key");
+// eslint-disable-next-line sonarjs/no-hardcoded-passwords -- The user-specified public default is protocol data, not a credential.
+export const DEFAULT_PASSWORD = "nopass";
+
+/** Fresh link-room peers agree without storing a bootstrap key on the server. */
+export async function defaultRoomKey(roomId: string) {
+  const raw = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`arconis:${roomId}:${DEFAULT_PASSWORD}`)
+  );
+  return crypto.subtle.importKey("raw", raw, "AES-GCM", true, ["encrypt", "decrypt"]);
+}
 
 export interface Envelope {
   salt: string;

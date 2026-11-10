@@ -10,6 +10,7 @@ import { embedCopy } from "../document/pngCopy";
 import { parse } from "../language/parser";
 import { importDocument, readDocumentFile, serializeDocument } from "./canvasFile";
 import { exportItems } from "../document/exportItems";
+import { sectionForInsertion } from "./section";
 
 interface FilePictureStore {
   add(bytes: Uint8Array, type: string): Promise<string>;
@@ -44,6 +45,10 @@ export class CanvasFiles {
     const created = importDocument(this.document, content, renames, place, true);
     this.imported();
     return created;
+  }
+
+  async insertSection(content: string, place: (created: string[]) => void) {
+    return this.paste(sectionForInsertion(content, this.document), place);
   }
 
   /** Whole-document canvas files and selected PNG copies share the same portable representation. */

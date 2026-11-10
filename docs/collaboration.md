@@ -29,7 +29,9 @@ Use **Join another room** or **Create another room** in the header to switch. Ea
 copy remains associated with its room identifier. The participant badge changes a guest's display
 name; a signed-in participant uses their account name.
 
-The home screen lists recently opened rooms from this browser. Ordinary and device-only rooms
+The home screen's **Your canvases** groups this browser's recent rooms and signed-in account copies.
+An entry distinguishes retained local content from a remembered address with no local copy.
+Ordinary and device-only rooms
 show their titles; protected rooms use **Password room** without storing their titles or keys in
 the recent list. This list helps you find a room; it does not create another document backup.
 Cancel or Escape leaves password entry and returns to the previous room, or home.

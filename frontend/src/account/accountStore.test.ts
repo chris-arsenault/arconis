@@ -1,10 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { AccountsApi, type AccountServices } from "../accounts/api";
 import { memoryAccountTable } from "../accounts/memoryTable";
 import { AccountStore, startingName, type Fetcher } from "./accountStore";
 import type { Auth } from "./auth";
-import { createEnvelope, generateRoomKey, seal } from "../collaboration/roomKey";
-import { encodeContents, isSealed, type SavedCopy } from "./workspaceFile";
+import { sha256 } from "../document/pictures";
+import {
+  createEnvelope,
+  generateRoomKey,
+  seal,
+  unseal,
+  openEnvelope,
+  defaultRoomKey,
+  DEFAULT_PASSWORD,
+} from "../collaboration/roomKey";
+import { encodeContents, decodeContents, type SavedCopy } from "./workspaceFile";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const ROOM = "ab".repeat(24);
@@ -15,6 +24,10 @@ function backend() {
   const table = memoryAccountTable();
   const objects = new Map<string, Uint8Array>();
   const services: AccountServices = {
+    objectInfo: async (user, id) => {
+      const bytes = objects.get(`https://s3/${user}/${id}`);
+      return bytes ? { size: bytes.length, checksum: (await sha256(bytes)).base64 } : null;
+    },
     signUpload: (user, id) => Promise.resolve(`https://s3/${user}/${id}`),
     signDownload: (user, id) => Promise.resolve(`https://s3/${user}/${id}`),
     deleteObject: (user, id) => {
@@ -65,10 +78,16 @@ function setup(signedIn = true) {
   return { ...server, auth, session, make, store: make() };
 }
 
-const COPY: SavedCopy = {
-  roomId: ROOM,
-  contents: { roomId: ROOM, update: new TextEncoder().encode("Quarterly plan"), pictures: [] },
-};
+const CONTENTS = { roomId: ROOM, update: new TextEncoder().encode("Quarterly plan"), pictures: [] };
+let COPY: SavedCopy;
+beforeAll(async () => {
+  const key = await defaultRoomKey(ROOM);
+  COPY = {
+    roomId: ROOM,
+    envelope: await createEnvelope(DEFAULT_PASSWORD, key, 1),
+    sealed: await seal(key, encodeContents(CONTENTS)),
+  };
+});
 
 describe("signing in", () => {
   it("creates the profile on the first sign-in, named from the email", async () => {
@@ -105,24 +124,25 @@ describe("signing in", () => {
 });
 
 describe("saved workspaces", () => {
-  it("stores an ordinary room readable, and lists it by its title and room", async () => {
+  it("stores a nopass room sealed and lists it by its title and room", async () => {
     const { store, objects } = setup();
     await store.restore();
-    await store.save(ID, "Quarterly plan", COPY);
+    await store.save(ID, "Quarterly plan", COPY, "");
     expect(await store.workspaces()).toMatchObject([
       { id: ID, name: "Quarterly plan", roomId: ROOM },
     ]);
     const { copy } = await store.load(ID);
-    expect(isSealed(copy)).toBe(false);
-    if (!isSealed(copy))
-      expect(new TextDecoder().decode(copy.contents.update)).toBe("Quarterly plan");
+    const key = await openEnvelope(DEFAULT_PASSWORD, copy.envelope);
+    expect(new TextDecoder().decode(decodeContents(await unseal(key, copy.sealed)).update)).toBe(
+      "Quarterly plan"
+    );
     expect(objects.size).toBe(1);
   });
 
   it("removes a workspace", async () => {
     const { store } = setup();
     await store.restore();
-    await store.save(ID, "Plan", COPY);
+    await store.save(ID, "Plan", COPY, "");
     await store.removeWorkspace(ID);
     expect(await store.workspaces()).toEqual([]);
     await expect(store.load(ID)).rejects.toThrow(/no longer exists/);
@@ -131,10 +151,10 @@ describe("saved workspaces", () => {
   it("returns the saved revision through listing and loading, and changes it on replacement", async () => {
     const { store } = setup();
     await store.restore();
-    const first = await store.save(ID, "First", COPY);
+    const first = await store.save(ID, "First", COPY, "");
     expect((await store.load(ID)).revision).toBe(first);
     expect(await store.workspaces()).toMatchObject([{ id: ID, revision: first, updated: 1000 }]);
-    const second = await store.save(ID, "Second", COPY);
+    const second = await store.save(ID, "Second", COPY, first);
     expect(second).not.toBe(first);
     expect((await store.load(ID)).revision).toBe(second);
     expect(await store.workspaces()).toMatchObject([{ id: ID, name: "Second", revision: second }]);
@@ -145,11 +165,11 @@ describe("saved workspaces", () => {
     await store.restore();
     await expect(store.rename(" ")).rejects.toThrow("A name needs 1 to 40 characters.");
     expect(store.name).toBe("ada");
-    await expect(store.save(ID, "x".repeat(201), COPY)).rejects.toThrow(
+    await expect(store.save(ID, "x".repeat(201), COPY, "")).rejects.toThrow(
       "The workspace name is not valid."
     );
     table.setBytes("ada", 1024 ** 3);
-    await expect(store.save(ID, "Refused", COPY)).rejects.toThrow(
+    await expect(store.save(ID, "Refused", COPY, "")).rejects.toThrow(
       "This account's storage is full."
     );
     expect(objects.size).toBe(0);
@@ -165,17 +185,17 @@ describe("saved workspaces", () => {
     const copy: SavedCopy = {
       roomId,
       envelope: await createEnvelope("room password", key, 1),
-      sealed: await seal(key, encodeContents({ ...COPY.contents, roomId })),
+      sealed: await seal(key, encodeContents({ ...CONTENTS, roomId })),
     };
     await store.restore();
-    await store.save(ID, "Password room", copy);
+    await store.save(ID, "Password room", copy, "");
     expect((await store.load(ID)).copy).toEqual(copy);
     const apiSave = calls.mock.calls.find(
       ([url, init]) => url === `https://api/api/workspaces/${ID}` && init?.method === "PUT"
     );
     expect(
       Object.keys(JSON.parse(String(apiSave?.[1]?.body))).sort((a, b) => a.localeCompare(b))
-    ).toEqual(["checksum", "name", "roomId", "size"]);
+    ).toEqual(["checksum", "expectedRevision", "name", "roomId", "size"]);
   });
 });
 
@@ -203,7 +223,7 @@ describe("the account", () => {
   it("deleting it removes everything, including the sign-in, and signs out", async () => {
     const { store, table, objects, services } = setup();
     await store.restore();
-    await store.save(ID, "Plan", COPY);
+    await store.save(ID, "Plan", COPY, "");
     await store.deleteAccount();
     expect(store.status).toBe("out");
     expect(await table.profile("ada")).toBeNull();

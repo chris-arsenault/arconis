@@ -1,17 +1,13 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
 import { readCopy } from "../document/pngCopy";
-import {
-  PLAIN_CODEC,
-  PictureStore,
-  type PictureCodec,
-  type StoredPicture,
-} from "../collaboration/pictureStore";
+import { PictureStore, type PictureCodec, type StoredPicture } from "../collaboration/pictureStore";
 import { generateRoomKey, seal, unseal } from "../collaboration/roomKey";
 import { CanvasFiles } from "./canvasFiles";
 import { importDocument } from "./canvasFile";
 
 const BYTES = new Uint8Array([1, 2, 3]);
+const TEST_CODEC: PictureCodec = { seal: async (bytes) => bytes, open: async (bytes) => bytes };
 const MARKDOWN = "# 日本語\n\n```python\nprint(1)\n```\n\n$x^2$";
 const PIXEL = Uint8Array.from(
   atob(
@@ -22,7 +18,7 @@ const PIXEL = Uint8Array.from(
 const cleanups: (() => void)[] = [];
 afterEach(() => cleanups.splice(0).forEach((close) => close()));
 
-function workspace(codec: PictureCodec = PLAIN_CODEC) {
+function workspace(codec: PictureCodec = TEST_CODEC) {
   const document = new CanvasDocument();
   const shelf = new Map<string, StoredPicture>();
   const pictures = new PictureStore({
@@ -49,6 +45,56 @@ function workspace(codec: PictureCodec = PLAIN_CODEC) {
   return { document, pictures, files, lifetime, imported, shelf };
 }
 
+it("inserts independent library sections with pictures and internal references without replacing destination metadata", async () => {
+  const source = workspace();
+  const target = workspace();
+  source.document.meta.set("title", "Source title");
+  source.document.styles.set("shared", { fill: "#ff0000" });
+  source.document.create("frame", 20, 20, { id: "holder", name: "Layout frame" });
+  source.document.create("node", 40, 50, {
+    id: "source_node",
+    name: "Styled item",
+    inside: "holder",
+    style: "shared",
+  });
+  const hash = await source.pictures.add(PIXEL, "image/png");
+  source.document.create("picture", 210, 50, {
+    id: "photo",
+    name: "Layout picture",
+    inside: "holder",
+    picture: { hash, format: "image/png", stored: false },
+  });
+  source.document.create("line", 0, 0, {
+    id: "wire",
+    from: "source_node",
+    to: "photo",
+    inside: "holder",
+  });
+  target.document.meta.set("title", "Destination title");
+  target.document.styles.set("shared", { fill: "#0000ff" });
+  target.document.create("note", 0, 0, { id: "existing", name: "Keep this" });
+  const text = await source.files.canvas(["holder"]);
+  const first = await target.files.insertSection(text, () => {});
+  const second = await target.files.insertSection(text, () => {});
+  expect(first).toHaveLength(4);
+  expect(second.some((id) => first.includes(id))).toBe(false);
+  expect(first.some((id) => source.document.items.has(id))).toBe(false);
+  expect(target.document.title()).toBe("Destination title");
+  expect(target.document.styles.get("shared")).toEqual({ fill: "#0000ff" });
+  const inserted = first.map((id) => target.document.get(id)!);
+  const line = inserted.find((item) => item.type === "line")!;
+  expect(first).toContain(line.from);
+  expect(first).toContain(line.to);
+  expect(inserted.find((item) => item.name === "Styled item")?.look.fill).toBe("#ff0000");
+  expect(
+    await target.pictures.readOpen(inserted.find((item) => item.type === "picture")!.picture!.hash)
+  ).toEqual({ bytes: PIXEL, type: "image/png" });
+  target.document.undo.undo();
+  expect(second.every((id) => !target.document.items.has(id))).toBe(true);
+  expect(first.every((id) => target.document.items.has(id))).toBe(true);
+  expect(target.document.items.has("existing")).toBe(true);
+});
+
 it.each([false, true])(
   "imports portable pictures through the destination codec, encrypted=%s, and exports plain hashes",
   async (encrypted) => {
@@ -64,7 +110,7 @@ it.each([false, true])(
     const target = workspace(
       encrypted
         ? { seal: (bytes) => seal(key, bytes), open: (bytes) => unseal(key, bytes) }
-        : PLAIN_CODEC
+        : TEST_CODEC
     );
     target.document.create("note", 0, 0, { id: "photo", name: "Existing item" });
     const count = await target.files.import(new File([text], "copy.arconis"));

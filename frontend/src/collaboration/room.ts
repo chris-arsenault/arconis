@@ -1,4 +1,3 @@
-import { IndexeddbPersistence } from "y-indexeddb";
 import { CanvasDocument } from "../document/canvasDocument";
 import { CollaborationProvider } from "./provider";
 import { LocalTransport, readConfig } from "./transport";
@@ -8,13 +7,7 @@ import { RelayTransport } from "./relayTransport";
 import { EditCounter } from "./relayStart";
 import { LockedTransport } from "./lockedTransport";
 import { RoomLock, indexedDbLockedStorage } from "./roomLock";
-import {
-  PLAIN_CODEC,
-  PictureStore,
-  browserPictureUrls,
-  downloadPicture,
-  indexedDbShelf,
-} from "./pictureStore";
+import { PictureStore, browserPictureUrls, downloadPicture, indexedDbShelf } from "./pictureStore";
 import { putToStorage, uploadWaitingPictures } from "./pictureUploads";
 import { SavedRoom } from "../account/savedRoom";
 import { CanvasFiles } from "../files/canvasFiles";
@@ -83,9 +76,7 @@ function createCarrier(id: string): {
 
 export class RoomSession {
   readonly document = new CanvasDocument();
-  readonly persistence: { whenSynced: Promise<unknown>; destroy(): unknown };
-  /** Present in a password room. */
-  readonly lock: RoomLock | null;
+  readonly lock: RoomLock;
   readonly provider: CollaborationProvider;
   state: ConnectionState = "connecting";
   detail = "Restoring this device's canvas";
@@ -112,20 +103,23 @@ export class RoomSession {
   ) {
     const peerId = crypto.randomUUID();
     const carrier = createCarrier(id);
-    const locked = isLockedRoom(id) ? new LockedTransport(carrier.channel, peerId) : null;
-    const transport = locked ?? carrier.channel;
+    const transport = new LockedTransport(carrier.channel, peerId);
     this.activation = carrier.activation;
     this.sharedPictures = carrier.pictures;
-    this.lock = locked
-      ? new RoomLock(indexedDbLockedStorage(id), locked, this.document.doc, this.emit, created)
-      : null;
+    this.lock = new RoomLock(
+      indexedDbLockedStorage(id),
+      transport,
+      this.document.doc,
+      this.emit,
+      created,
+      isLockedRoom(id) ? null : id
+    );
     this.pictures = new PictureStore({
       shelf: indexedDbShelf(),
-      codec: this.lock?.codec ?? PLAIN_CODEC,
+      codec: this.lock.codec,
       download: carrier.pictures?.download ?? null,
       ...browserPictureUrls(),
     });
-    this.persistence = this.lock ?? new IndexeddbPersistence(`arconis:${id}`, this.document.doc);
     this.files = new CanvasFiles(
       this.document,
       this.pictures,
@@ -137,8 +131,8 @@ export class RoomSession {
       this.document,
       this.pictures,
       this.lock,
-      this.persistence,
-      this.lifetime.signal
+      this.lifetime.signal,
+      () => void this.uploadPictures()
     );
     this.provider = new CollaborationProvider(
       this.document.doc,
@@ -163,12 +157,12 @@ export class RoomSession {
     this.document.doc.on("update", this.onEdit);
   }
   async start() {
-    await this.persistence.whenSynced;
+    await this.lock.whenSynced;
     if (!this.disposed) {
       this.stored = true;
       // A person arriving at a room or at their own saved work is about to use the relay. Someone
       // following a link with no local copy has nothing to send yet, and can use the button.
-      const hasCopy = this.lock?.hasLocalCopy ?? this.document.doc.store.clients.size > 0;
+      const hasCopy = this.lock.hasLocalCopy;
       if (this.created || hasCopy) {
         this.activation?.markFresh();
         this.activation?.start();
@@ -194,7 +188,7 @@ export class RoomSession {
           request,
           put: putToStorage,
           // Encrypted bytes must not claim to be an image.
-          contentType: (type) => (this.lock ? "application/octet-stream" : type),
+          contentType: () => "application/octet-stream",
         })
       );
     } catch {
@@ -211,7 +205,7 @@ export class RoomSession {
     this.activation?.start();
   };
   private onEdit = (_update: Uint8Array, origin: unknown) => {
-    if (origin === this.persistence || this.state !== "stopped") return;
+    if (origin === this.lock || this.state !== "stopped") return;
     if (this.edits.record(Date.now())) this.startCollaboration();
   };
   subscribe = (listener: () => void) => {
@@ -232,7 +226,7 @@ export class RoomSession {
     this.lifetime.abort();
     this.pictures.close();
     this.provider.destroy();
-    Promise.resolve(this.persistence.destroy()).catch(() => {});
+    void this.lock.destroy();
     this.document.destroy();
     this.listeners.clear();
   }

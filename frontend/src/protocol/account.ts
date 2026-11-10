@@ -1,4 +1,5 @@
 /** HTTP metadata only. Saved canvas contents and account/runtime implementations stay separate. */
+import type { LibraryRequest } from "./library";
 export interface AccountProfile {
   name: string;
   bytes: number;
@@ -19,8 +20,13 @@ export interface SaveWorkspaceRequest {
   checksum: string;
   name: string;
   roomId: string;
+  expectedRevision: string;
 }
-export type AccountRequestBody = UpdateProfileRequest | SaveWorkspaceRequest;
+export interface PublishWorkspaceRequest extends SaveWorkspaceRequest {
+  revision: string;
+}
+export type AccountRequestBody =
+  UpdateProfileRequest | SaveWorkspaceRequest | PublishWorkspaceRequest | LibraryRequest;
 
 export interface WorkspaceUploadReply {
   url: string;
@@ -35,6 +41,7 @@ export interface WorkspaceListReply {
 export type EmptyReply = Record<string, never>;
 export interface AccountError {
   error: string;
+  code?: "workspace_conflict";
 }
 
 /** Each endpoint checks its own successful construction, including the two empty replies. */
@@ -46,6 +53,7 @@ export interface AccountReplies {
   saveWorkspace: WorkspaceUploadReply;
   getWorkspace: WorkspaceDownloadReply;
   deleteWorkspace: EmptyReply;
+  publishWorkspace: { revision: string };
 }
 export type AccountFailure = { status: 400 | 404 | 409; body: AccountError };
 export type AccountReply<K extends keyof AccountReplies = keyof AccountReplies> =

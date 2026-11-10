@@ -2,7 +2,17 @@ import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { UNACTIVATED_EMAIL } from "../collaboration/accountFixture";
-import { add, browser, errors, fixture, objectCount, open, row } from "./browserHarness";
+import {
+  add,
+  browser,
+  errors,
+  fixture,
+  objectCount,
+  open,
+  row,
+  pastePicture,
+  drawnPictures,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const EMAIL = `ada-${Date.now()}@example.com`;
@@ -13,6 +23,14 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: "Account" });
 const openAccount = (page: Page) => page.locator(".account-button").click();
 const press = (page: Page, name: string) =>
   dialog(page).getByRole("button", { name, exact: true }).click();
+
+const commit = (page: Page) =>
+  page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.startsWith("/api/workspaces/") &&
+      response.request().method() === "POST" &&
+      response.status() === 200
+  );
 
 /** Signs in through the sign-in page, and comes back to the same place. */
 async function signIn(page: Page, email = EMAIL, ready = "Rectangle (R)") {
@@ -50,13 +68,12 @@ it("signs in through Ahara's sign-in page, names the account, and saves a worksp
   await page.getByRole("button", { name: "Save to my account", exact: true }).click();
   await page.getByRole("button", { name: "Save now", exact: true }).waitFor();
   expect(fixture.savedObjects().length).toBe(1);
-  // An ordinary room is saved as it is.
-  const inner = JSON.parse(Buffer.from(storedCopy().contents!, "base64").toString()) as {
-    update: string;
-  };
-  expect(Buffer.from(inner.update, "base64").includes(SECRET)).toBe(true);
+  expect(storedCopy().contents).toBeUndefined();
+  expect(typeof storedCopy().sealed).toBe("string");
 
   // A new browser with no copy, and nobody else online, opens it from the account.
+  await page.context().close();
+  await peer.context().close();
   const elsewhere = await open(await browser.newContext(VIEWPORT), createRoomId());
   await signIn(elsewhere);
   await openAccount(elsewhere);
@@ -65,6 +82,35 @@ it("signs in through Ahara's sign-in page, names the account, and saves a worksp
   await expect.poll(() => new URL(elsewhere.url()).hash).toBe(`#room=${room}`);
   expect(await objectCount(elsewhere)).toBe(1);
   expect(errors).toEqual([]);
+}, 120_000);
+
+it("keeps local copies usable when account browsing fails and removes account results on sign-out", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  const page = await open(context, createRoomId());
+  await signIn(page, `browser-${EMAIL}`);
+  await add(page, "Rectangle (R)", "Locally retained work", 300, 240);
+  await page.getByRole("button", { name: "Save to my account", exact: true }).click();
+  await page.getByRole("button", { name: "Save now", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Arconis home", exact: true }).click();
+  const work = page.getByRole("region", { name: "Saved work browser" }).first();
+  await work.getByText("Private account copy", { exact: true }).waitFor();
+  await work.getByRole("button", { name: /^Open local/ }).waitFor();
+  await page.route("**/api/workspaces", (route) =>
+    route.fulfill({ status: 503, json: { error: "Account is offline" } })
+  );
+  await page.reload();
+  await work.getByRole("alert").getByText("Account is offline", { exact: true }).waitFor();
+  await work.getByRole("button", { name: /^Open local/ }).click();
+  await row(page, "Locally retained work").waitFor();
+  await page.unroute("**/api/workspaces");
+  await openAccount(page);
+  await press(page, "Sign out");
+  await page.getByRole("button", { name: "Create a room", exact: true }).waitFor();
+  expect(await work.getByText("Private account copy", { exact: true }).count()).toBe(0);
+  await work.getByRole("button", { name: /^Open local/ }).waitFor();
+  await work.getByRole("button", { name: /^Remove local/ }).click();
+  await expect.poll(() => work.getByRole("button", { name: /^Open local/ }).count()).toBe(0);
+  await context.close();
 }, 120_000);
 
 it("refuses an account that was never activated, and says how to activate it", async () => {
@@ -80,6 +126,110 @@ it("refuses an account that was never activated, and says how to activate it", a
   await dialog(page).getByRole("button", { name: "Sign in or create an account" }).waitFor();
   expect(errors).toEqual([]);
 }, 60_000);
+
+it("recovers an older saved copy into an independent room that a fresh peer can join", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  const peerContext = await browser.newContext(VIEWPORT);
+  try {
+    const page = await open(context, createRoomId());
+    await signIn(page, `history-${EMAIL}`);
+    await add(page, "Rectangle (R)", "Before deletion", 300, 240);
+    await pastePicture(page, "blue");
+    await expect.poll(() => drawnPictures(page)).toBe(1);
+    await Promise.all([
+      commit(page),
+      page.getByRole("button", { name: "Save to my account", exact: true }).click(),
+    ]);
+    const originalUrl = page.url();
+    await page.getByTestId("canvas").click({ position: { x: 620, y: 440 } });
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Delete");
+    await expect.poll(() => objectCount(page)).toBe(0);
+    await Promise.all([
+      commit(page),
+      page.getByRole("button", { name: "Save now", exact: true }).click(),
+    ]);
+    await openAccount(page);
+    await dialog(page)
+      .getByRole("button", { name: /^History of / })
+      .click();
+    const history = dialog(page).getByRole("region", { name: "Saved-copy history", exact: true });
+    await expect.poll(() => history.getByRole("button", { name: /^Recover / }).count()).toBe(2);
+    await history
+      .getByRole("button", { name: /^Recover / })
+      .last()
+      .click();
+    await row(page, "Before deletion").waitFor();
+    expect(page.url()).not.toBe(originalUrl);
+    const roomId = new URL(page.url()).hash.slice("#room=".length);
+    const peer = await open(peerContext, roomId);
+    await row(peer, "Before deletion").waitFor();
+    await expect.poll(() => drawnPictures(peer)).toBe(1);
+    await page.goto(originalUrl);
+    await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
+    expect(await objectCount(page)).toBe(0);
+  } finally {
+    await context.close();
+    await peerContext.close();
+  }
+}, 120_000);
+
+it("inserts a private selection on another device without replacing the destination", async () => {
+  const source = await open(await browser.newContext(VIEWPORT), createRoomId());
+  const target = await open(await browser.newContext(VIEWPORT), createRoomId());
+  try {
+    const email = `layouts-${EMAIL}`;
+    await signIn(source, email);
+    await add(source, "Rectangle (R)", "Reusable idea", 300, 240);
+    await pastePicture(source, "red");
+    await expect.poll(() => drawnPictures(source)).toBe(1);
+    await source.getByTestId("canvas").click({ position: { x: 620, y: 440 } });
+    await source.keyboard.press("Control+a");
+    await source.getByRole("button", { name: "My layouts", exact: true }).click();
+    const library = (page: Page) => page.getByRole("dialog", { name: "My layouts", exact: true });
+    await library(source).getByLabel("Layout name", { exact: true }).fill("Diagram");
+    await library(source)
+      .getByRole("button", { name: "Save selected layout", exact: true })
+      .click();
+    await library(source).getByRole("button", { name: "Insert Diagram", exact: true }).waitFor();
+    await signIn(target, email);
+    await target.getByLabel("Canvas title", { exact: true }).fill("Destination title");
+    await target.getByLabel("Canvas title", { exact: true }).press("Enter");
+    await add(target, "Sticky note (N)", "Keep me", 300, 240);
+    await target.getByRole("button", { name: "My layouts", exact: true }).click();
+    await library(target).getByRole("button", { name: "Insert Diagram", exact: true }).click();
+    await row(target, "Reusable idea").waitFor();
+    await expect.poll(() => drawnPictures(target)).toBe(1);
+    expect(await objectCount(target)).toBe(3);
+    expect(await target.getByLabel("Canvas title", { exact: true }).inputValue()).toBe(
+      "Destination title"
+    );
+    await target.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect.poll(() => objectCount(target)).toBe(1);
+    await row(target, "Keep me").waitFor();
+    await target.getByRole("button", { name: "My layouts", exact: true }).click();
+    await library(target)
+      .getByLabel("Layout name for Diagram", { exact: true })
+      .fill("Saved diagram");
+    await library(target).getByRole("button", { name: "Rename layout", exact: true }).click();
+    await library(target)
+      .getByRole("button", { name: "Insert Saved diagram", exact: true })
+      .waitFor();
+    await library(target)
+      .getByRole("button", { name: "Delete Saved diagram", exact: true })
+      .click();
+    await expect
+      .poll(() =>
+        library(target)
+          .getByRole("button", { name: /^Insert / })
+          .count()
+      )
+      .toBe(0);
+  } finally {
+    await source.context().close();
+    await target.context().close();
+  }
+}, 120_000);
 
 it("saves a password room sealed, and opening it elsewhere asks for the room's password", async () => {
   const context = await browser.newContext(VIEWPORT);
