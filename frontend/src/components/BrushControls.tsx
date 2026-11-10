@@ -5,6 +5,7 @@ interface BrushProps {
   settings: InkSettings;
   change: (values: Partial<InkSettings>) => void;
 }
+const CLOSE_PATHS_HELP = "Join or separate the two ends of each selected path.";
 const COLORS = ["#6554c0", "#e64980", "#ffcc00", "#2f9e44", "#1971c2", "#212529", "#ffffff"];
 
 function capabilities(settings: InkSettings, selected: boolean, closed: boolean) {
@@ -70,6 +71,7 @@ export function BrushControls({
           <span className="drawing-opacity">
             <input
               aria-label="Ink opacity"
+              data-hint-detail="How see-through the ink is, from 0 to 100 percent."
               type="range"
               min="0"
               max="100"
@@ -81,7 +83,9 @@ export function BrushControls({
         </label>
       )}
       {selected && settings.mode !== "highlight" && (
-        <button onClick={onClose}>{closed ? "Open selected paths" : "Close selected paths"}</button>
+        <button data-hint-detail={CLOSE_PATHS_HELP} onClick={onClose}>
+          {closed ? "Open selected paths" : "Close selected paths"}
+        </button>
       )}
     </>
   );
@@ -97,6 +101,7 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
             key={width}
             aria-label={`Brush size ${width}`}
             aria-pressed={settings.width === width}
+            data-hint-detail="Use this width, in pixels."
             onClick={() => change({ width })}
           >
             {width}
@@ -104,6 +109,7 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
         ))}
         <NumericInput
           label="Stroke width"
+          detail="Type any width in pixels greater than 0."
           positive
           value={settings.width}
           onCommit={(width) => change({ width })}
@@ -134,6 +140,7 @@ function ColorControls({
           className="no-paint"
           aria-label={`No ${label.toLowerCase()}`}
           aria-pressed={value === "none"}
+          data-hint-detail={`Leave the ${label.toLowerCase()} unpainted.`}
           onClick={() => change("none")}
         >
           ∅
@@ -143,6 +150,7 @@ function ColorControls({
             key={color}
             aria-label={`${label} ${color}`}
             aria-pressed={value === color}
+            data-hint-detail={`Use this color for the ${label.toLowerCase()}.`}
             className="ink-swatch"
             onClick={() => change(color)}
           >
@@ -154,6 +162,7 @@ function ColorControls({
         <input
           aria-label={`${label} color`}
           type="color"
+          data-hint-detail={`Pick any ${label.toLowerCase()} color from the full color chooser.`}
           value={value === "none" ? "#ffffff" : value}
           onChange={(event) => change(event.target.value)}
         />
@@ -166,9 +175,11 @@ function PaintControls({ settings, change }: Readonly<BrushProps>) {
   const angleId = useId();
   return (
     <details className="drawing-group">
-      <summary>Fill gradient</summary>
+      <summary data-hint-detail="Blend the fill from its color into a second color.">
+        Fill gradient
+      </summary>
       <div className="drawing-tools">
-        <label className="drawing-field">
+        <label className="drawing-field" data-hint-detail="The second color the fill blends into.">
           Gradient color
           <span className="drawing-options">
             <input
@@ -177,12 +188,20 @@ function PaintControls({ settings, change }: Readonly<BrushProps>) {
               value={settings.gradient === "none" ? "#ffffff" : settings.gradient}
               onChange={(event) => change({ gradient: event.target.value })}
             />
-            <button type="button" onClick={() => change({ gradient: "none" })}>
+            <button
+              type="button"
+              data-hint-detail="Remove the gradient so the fill is one color."
+              onClick={() => change({ gradient: "none" })}
+            >
               Solid fill
             </button>
           </span>
         </label>
-        <label className="drawing-field" htmlFor={angleId}>
+        <label
+          className="drawing-field"
+          htmlFor={angleId}
+          data-hint-detail="The direction the gradient runs, in degrees."
+        >
           Gradient angle <small>°</small>
           <NumericInput
             id={angleId}

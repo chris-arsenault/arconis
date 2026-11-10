@@ -69,6 +69,7 @@ export const STRUCTURE_KEYS: Command[] = [
   ...DIRECTIONS.map(({ direction, key, label }): Command => ({
     id: `select.${direction}`,
     label: `Select ${label}`,
+    help: "Move the selection to the neighbouring object that way, walking the tree when in one.",
     group: "select",
     shortcuts: [{ key }],
     keywords: ["walk", "arrow", "neighbour"],
@@ -81,6 +82,7 @@ export const STRUCTURE_KEYS: Command[] = [
   ...DIRECTIONS.map(({ direction, key, label }): Command => ({
     id: `arrange.nudge.${direction}`,
     label: `Nudge ${label}`,
+    help: "Move the selection one grid step, carrying its contents and branches as a drag would.",
     group: "arrange",
     shortcuts: [{ key, ctrl: true }],
     keywords: ["move by grid"],
@@ -90,6 +92,7 @@ export const STRUCTURE_KEYS: Command[] = [
   ...DIRECTIONS.map(({ direction, key, label }): Command => ({
     id: `arrange.nudgeFar.${direction}`,
     label: `Nudge ${label} by ten`,
+    help: "Move the selection ten grid steps, carrying its contents and branches as a drag would.",
     group: "arrange",
     shortcuts: [{ key, ctrl: true, shift: true }],
     when: ({ selected }) => selected.some((item) => !item.locked),
@@ -98,6 +101,7 @@ export const STRUCTURE_KEYS: Command[] = [
   ...DIRECTIONS.map(({ direction, key, label }): Command => ({
     id: `structure.clone.${direction}`,
     label: `Connected copy ${label}`,
+    help: "Place a copy one gap away that way, joined to the original, and start typing in it.",
     group: "structure",
     shortcuts: [{ key, ctrl: true, alt: true }],
     keywords: ["duplicate and connect", "grow"],
@@ -113,6 +117,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "structure.earlier",
     label: "Move earlier among siblings",
+    help: "Swap this topic and its subtree with the sibling before it.",
     group: "structure",
     shortcuts: [{ key: "arrowup", alt: true }],
     keywords: ["reorder", "swap"],
@@ -122,6 +127,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "structure.later",
     label: "Move later among siblings",
+    help: "Swap this topic and its subtree with the sibling after it.",
     group: "structure",
     shortcuts: [{ key: "arrowdown", alt: true }],
     keywords: ["reorder", "swap"],
@@ -131,6 +137,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "structure.promote",
     label: "Promote to the parent's level",
+    help: "Move this topic up to branch from its grandparent, keeping its place on the canvas.",
     group: "structure",
     shortcuts: [{ key: "tab", shift: true }],
     keywords: ["outdent", "grandparent"],
@@ -141,6 +148,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "structure.insertParent",
     label: "Insert a parent topic",
+    help: "Put a new topic between this one and its parent, and start typing in it.",
     group: "structure",
     keywords: ["wrap", "above"],
     when: one,
@@ -155,6 +163,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "structure.deleteKeeping",
     label: "Delete, keeping branches and contents",
+    help: "Remove this object, handing its branches to its parent and its contents to its holder.",
     group: "structure",
     shortcuts: [
       { key: "delete", ctrl: true },
@@ -167,6 +176,7 @@ export const STRUCTURE_KEYS: Command[] = [
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((levels): Command => ({
     id: `structure.levels.${levels}`,
     label: `Show ${levels} ${levels === 1 ? "level" : "levels"} of the tree`,
+    help: "Fold the selected tree's topics below that depth and unfold the ones above it.",
     group: "structure",
     shortcuts: [{ key: String(levels) }],
     keywords: ["fold", "collapse", "depth"],
@@ -176,6 +186,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "structure.slides",
     label: "Slides from branches",
+    help: "Make a deck with a slide over the whole tree, then one over each main branch.",
     group: "structure",
     keywords: ["deck", "present", "one per branch"],
     when: inTree,
@@ -187,6 +198,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "create.capture",
     label: "Capture notes",
+    help: "Open a box where each Enter drops a new note under the last one.",
     group: "create",
     shortcuts: [{ key: "n", shift: true }],
     keywords: ["brainstorm", "quick entry", "stack"],
@@ -196,6 +208,7 @@ export const STRUCTURE_KEYS: Command[] = [
   {
     id: "view.focus",
     label: ({ editor }) => (editor.focus ? "Leave focus" : "Focus on the selection"),
+    help: "Dim or restore everything outside the selection's tree, contents and references, in your view only.",
     group: "view",
     shortcuts: [{ key: "." }],
     keywords: ["dim", "spotlight", "subtree"],

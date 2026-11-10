@@ -44,7 +44,7 @@ export function LayersPanel({ editor }: Readonly<{ editor: EditorController }>) 
         className="layer-move-selection"
         disabled={!movable.length}
         data-hint={`Move selection to ${current.name}`}
-        data-hint-detail="Moves the selected objects onto the top of the chosen layer."
+        data-hint-detail="Move the selected objects onto the top of the chosen layer."
         onClick={moveSelection}
       >
         <MoveRight size={14} /> Move selection to {current.name}
@@ -111,7 +111,7 @@ function LayerList({
               className="rail-entry layer-name"
               aria-pressed={layer.id === active}
               data-hint={`Draw into ${layer.name}`}
-              data-hint-detail="New objects go into this layer. Double-click to rename."
+              data-hint-detail="Make this the layer new objects go into; double-click to rename it."
               onClick={() => editor.layers.setActive(layer.id)}
               onDoubleClick={() => setRenaming(layer.id)}
             >
@@ -139,16 +139,21 @@ function LayerToolbar({
     <div className="layer-toolbar" role="toolbar" aria-label={`Layer actions for ${current.name}`}>
       <LayerAction
         label="New layer"
-        detail="Adds a layer above the chosen one and draws into it."
+        detail="Add a layer above the chosen one, where new objects then go."
         onClick={() => editor.layers.setActive(layerCommands.create(document, "", active))}
       >
         <Plus size={14} />
       </LayerAction>
-      <LayerAction label={`Rename ${current.name}`} onClick={onRename}>
+      <LayerAction
+        label={`Rename ${current.name}`}
+        detail="Give the chosen layer a new name for everyone in the room."
+        onClick={onRename}
+      >
         <Pencil size={13} />
       </LayerAction>
       <LayerAction
         label={`Move ${current.name} up`}
+        detail="Stack the chosen layer above the next layer, so it draws on top."
         disabled={layers.at(-1)?.id === active}
         onClick={() => layerCommands.move(document, active, index + 1)}
       >
@@ -156,6 +161,7 @@ function LayerToolbar({
       </LayerAction>
       <LayerAction
         label={`Move ${current.name} down`}
+        detail="Stack the chosen layer below the next layer, so it draws underneath."
         disabled={layers[0]?.id === active}
         onClick={() => layerCommands.move(document, active, index - 1)}
       >
@@ -163,7 +169,7 @@ function LayerToolbar({
       </LayerAction>
       <LayerAction
         label={`Merge ${current.name} down`}
-        detail="Moves its objects into the layer beneath, keeping how they stack."
+        detail="Move the chosen layer's objects into the layer beneath, keeping how they stack."
         disabled={active === BASE_LAYER || !layerBelow(layers, active)}
         onClick={() => {
           const into = layerBelow(layers, active);
@@ -174,7 +180,7 @@ function LayerToolbar({
       </LayerAction>
       <LayerAction
         label={`Delete ${current.name}`}
-        detail="Removes the layer and its objects for everyone. Undo restores them."
+        detail="Remove the chosen layer and its objects for everyone; Undo restores them."
         disabled={active === BASE_LAYER}
         onClick={() => {
           if (layerCommands.delete(document, active)) editor.layers.setActive(BASE_LAYER);
@@ -202,7 +208,10 @@ export function LayerField({
   const current = new Set(inLayer.map((item) => layerOf(item, byId)));
   const free = inLayer.filter((item) => !item.inside);
   return (
-    <label className="layer-field">
+    <label
+      className="layer-field"
+      data-hint-detail="Move the selected objects to another layer; contents follow their frame or group."
+    >
       <span>Layer</span>
       <select
         aria-label="Object layer"
@@ -241,7 +250,7 @@ function VisibilityButton({
       aria-label={label}
       aria-pressed={!hidden}
       data-hint={label}
-      data-hint-detail="Changes only your view."
+      data-hint-detail="Show or hide this layer in your view only; others still see it."
       onClick={onToggle}
     >
       {hidden ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -301,6 +310,7 @@ function RenameLayer({
           onFocus={(event) => event.currentTarget.select()}
           className="rail-rename"
           aria-label={`New name for ${layer.name}`}
+          data-hint-detail="Type the layer's new name; Enter keeps it and Escape cancels."
           value={name}
           onChange={(event) => setName(event.target.value)}
           onBlur={commit}

@@ -27,6 +27,7 @@ function ToggleButton({
   on,
   label,
   offLabel,
+  detail,
   icon: Icon,
   offIcon: OffIcon,
   onClick,
@@ -34,6 +35,7 @@ function ToggleButton({
   on: boolean;
   label: string;
   offLabel: string;
+  detail: string;
   icon: LucideIcon;
   offIcon: LucideIcon;
   onClick: () => void;
@@ -44,6 +46,7 @@ function ToggleButton({
       className="text-action"
       aria-label={title}
       data-hint={title}
+      data-hint-detail={detail}
       aria-pressed={on}
       onClick={onClick}
     >
@@ -55,12 +58,14 @@ function ToggleButton({
 /** A text field that commits on Enter or blur. It is keyed by its value, so outside edits reset it. */
 function CommittedField({
   label,
+  detail,
   placeholder,
   value,
   className,
   onCommit,
 }: Readonly<{
   label: string;
+  detail: string;
   placeholder: string;
   value: string;
   className: string;
@@ -74,6 +79,7 @@ function CommittedField({
     <input
       className={className}
       aria-label={label}
+      data-hint-detail={detail}
       placeholder={placeholder}
       value={text}
       onChange={(event) => setText(event.target.value)}
@@ -106,6 +112,7 @@ export function StateToggles({
         on={locked}
         label="Lock"
         offLabel="Unlock"
+        detail="Locked objects can't be moved, resized, edited or deleted by anyone until unlocked."
         icon={Lock}
         offIcon={Unlock}
         onClick={() => onChange({ locked: locked ? undefined : true })}
@@ -114,6 +121,7 @@ export function StateToggles({
         on={hidden}
         label="Hide"
         offLabel="Show"
+        detail="Hidden objects, with their contents and lines, disappear for everyone until shown."
         icon={EyeOff}
         offIcon={Eye}
         onClick={() => onChange({ hidden: hidden ? undefined : true })}
@@ -123,6 +131,7 @@ export function StateToggles({
           on={collapsed}
           label="Collapse"
           offLabel="Expand"
+          detail="Collapsing folds away what an object holds and its branches, for everyone."
           icon={ChevronsDownUp}
           offIcon={ChevronsUpDown}
           onClick={() => onChange({ collapsed: collapsed ? undefined : true })}
@@ -145,6 +154,7 @@ export function NumberBranchesToggle({
       on={numbered}
       label="Number branches"
       offLabel="Unnumber branches"
+      detail="Numbered topics label their branches 1, 1.1, 1.2 in the order they sit."
       icon={ListOrdered}
       offIcon={ListOrdered}
       onClick={() => onChange({ numbered: numbered ? undefined : true })}
@@ -168,6 +178,7 @@ export function StatusFields({
       <span>Marker</span>
       <select
         aria-label="Marker"
+        data-hint-detail="Put a priority or progress sign beside the selected objects."
         value={marker ?? "mixed"}
         onChange={(event) =>
           onChange({ marker: (event.target.value || undefined) as Marker | undefined })
@@ -188,6 +199,7 @@ export function StatusFields({
       <span>Task</span>
       <select
         aria-label="Task"
+        data-hint-detail="Make the selected objects to-dos; done tasks fade on the canvas."
         value={task ?? "mixed"}
         onChange={(event) =>
           onChange({ task: (event.target.value || undefined) as TaskState | undefined })
@@ -232,6 +244,7 @@ function LinkControl({
         key={`link ${selected.map((item) => item.id).join(" ")} ${value}`}
         className="link-field"
         label="Link"
+        detail="Point the selected objects at a web address, saved view or object id."
         placeholder={value === null ? "Mixed links" : "Web address or item id"}
         value={link}
         onCommit={(text) => onChange({ link: text.trim() || undefined })}
@@ -241,6 +254,7 @@ function LinkControl({
           className="icon-action link-follow"
           aria-label={followLabel}
           data-hint={followLabel}
+          data-hint-detail="Web addresses open in a new tab; objects and saved views fly into sight."
           onClick={() => onFollow(link)}
         >
           <LinkIcon size={14} />

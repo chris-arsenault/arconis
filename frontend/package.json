@@ -26,6 +26,7 @@
     "@maxgraph/core": "0.25.1",
     "@mdit/plugin-katex": "^1.1.5",
     "@modelcontextprotocol/sdk": "1.32.2",
+    "driver.js": "1.11.0",
     "highlight.js": "^11.12.0",
     "jose": "6.2.13",
     "katex": "^0.19.1",

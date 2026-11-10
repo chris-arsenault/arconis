@@ -38,6 +38,7 @@ export const FIELD_COMMANDS: Command[] = [
     id: "view.filter",
     label: ({ editor }) =>
       editor.ui.filter ? "Close the filter" : "Filter by tag, marker, task or editor",
+    help: "Open or close the bar that dims everything but matching objects, in your view only.",
     group: "view",
     shortcuts: [{ key: "f", ctrl: true, shift: true }],
     keywords: ["dim", "tags", "markers", "tasks", "author"],
@@ -49,6 +50,7 @@ export const FIELD_COMMANDS: Command[] = [
       isEmptyFilter(editor.filter)
         ? "Gather the selection into a frame"
         : "Gather matches into a frame",
+    help: "Move the filter's matches, or the selection, into a new grid frame to the right of everything.",
     group: "structure",
     keywords: ["cluster", "sort", "collect"],
     when: (context) => gathered(context).length > 0,
@@ -60,6 +62,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.lock",
     label: ({ selected }) => (selected.every((item) => item.locked) ? "Unlock" : "Lock"),
+    help: "Lock or release the selection against moving, resizing, editing and deleting, for everyone.",
     group: "fields",
     shortcuts: [{ key: "l", ctrl: true, shift: true }],
     when: some,
@@ -71,6 +74,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.unlockAll",
     label: ({ items }) => `Unlock all (${items.filter((item) => item.locked).length})`,
+    help: "Release every locked object on the canvas at once.",
     group: "fields",
     when: ({ items }) => items.some((item) => item.locked),
     run: ({ editor, items }) =>
@@ -83,6 +87,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.hide",
     label: "Hide",
+    help: "Take the selection off the canvas for everyone; it stays in the document.",
     group: "fields",
     shortcuts: [{ key: "h", ctrl: true, shift: true }],
     when: ({ selected }) => selected.some((item) => !item.hidden),
@@ -91,6 +96,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.showHidden",
     label: ({ items }) => `Show ${items.filter((item) => item.hidden).length} hidden`,
+    help: "Bring every hidden object back onto the canvas for everyone.",
     group: "fields",
     keywords: ["unhide", "reveal"],
     when: ({ items }) => items.some((item) => item.hidden),
@@ -104,6 +110,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.collapse",
     label: ({ selected }) => (selected.every((item) => item.collapsed) ? "Expand" : "Collapse"),
+    help: "Fold away or bring back what the selection holds or heads; everyone sees the same fold.",
     group: "fields",
     shortcuts: [{ key: ".", ctrl: true }],
     keywords: ["fold", "unfold"],
@@ -119,6 +126,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.tag",
     label: "Tag…",
+    help: "Open the tag editor above the selection to add or remove tags.",
     group: "fields",
     keywords: ["tags", "label", "category", "hashtag"],
     when: some,
@@ -127,6 +135,9 @@ export const FIELD_COMMANDS: Command[] = [
   ...MARKERS.map((marker): Command => ({
     id: `fields.marker.${marker}`,
     label: MARKER_LABELS[marker],
+    help: marker.startsWith("p")
+      ? "Badge the selection with this priority, replacing any marker it had."
+      : "Badge the selection with this progress quarter, replacing any marker it had.",
     group: "fields",
     keywords: ["marker", "priority", "progress"],
     when: some,
@@ -135,6 +146,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.marker.none",
     label: "No marker",
+    help: "Remove the priority or progress badge from the selection.",
     group: "fields",
     keywords: ["clear marker"],
     when: ({ selected }) => selected.some((item) => item.marker),
@@ -143,6 +155,7 @@ export const FIELD_COMMANDS: Command[] = [
   {
     id: "fields.task",
     label: taskLabel,
+    help: "Step the selection's task from none to open, to done, and back to none.",
     group: "fields",
     shortcuts: [{ key: "enter", ctrl: true }],
     keywords: ["todo", "checkbox", "complete"],

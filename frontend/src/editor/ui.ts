@@ -40,6 +40,8 @@ export interface EditorUi {
   relating: string | null;
   /** Whether a native move or resize is in progress, when floating controls step aside. */
   dragging: boolean;
+  /** The help reference, open at a topic: a guide id, `guide#anchor`, or `commands`. */
+  help: string | null;
 }
 
 /** Nothing open, nothing followed, nothing dragged: how an editor starts. */
@@ -61,6 +63,7 @@ export function initialUi(): EditorUi {
     tagging: false,
     relating: null,
     dragging: false,
+    help: null,
   };
 }
 
@@ -84,6 +87,15 @@ export function showPalette(editor: EditorController, open: boolean) {
   editor.ui.palette = open;
   editor.emit();
   if (!open) editor.element.focus({ preventScroll: true });
+}
+
+/**
+ * Opens the help reference at a topic, or closes it. It sits beside the canvas without blocking
+ * it, so people can read and try at once.
+ */
+export function showHelp(editor: EditorController, topic: string | null) {
+  editor.ui.help = topic;
+  editor.emit();
 }
 
 /** Opens or closes find on canvas, returning focus to the canvas when it closes. */

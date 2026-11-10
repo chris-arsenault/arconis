@@ -28,6 +28,7 @@ export function CaptureBox({ editor }: Readonly<{ editor: EditorController }>) {
         ref={input}
         aria-label="Captured note"
         placeholder="Type an idea, Enter adds it"
+        data-hint-detail="Each idea you send becomes a sticky note stacked under the last one."
         rows={2}
         value={text}
         onChange={(event) => setText(event.target.value)}
@@ -44,6 +45,7 @@ export function CaptureBox({ editor }: Readonly<{ editor: EditorController }>) {
         </span>
         <button
           className="text-action"
+          data-hint-detail="Turn the captured notes into a tree headed by the first one, then stop capturing."
           disabled={count + (text.trim() ? 1 : 0) < 2}
           onClick={() => {
             add();
@@ -57,6 +59,7 @@ export function CaptureBox({ editor }: Readonly<{ editor: EditorController }>) {
         <button
           className="icon-action"
           aria-label="Stop capturing"
+          data-hint-detail="End capture; the notes already added stay on the canvas."
           onClick={() => endCapture(editor)}
         >
           <X size={14} />

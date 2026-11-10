@@ -12,6 +12,7 @@ import {
   type RingMode,
   type MenuEntry,
 } from "../editor/contextMenu";
+import { RING_MODE_HELP } from "../editor/ringHelp";
 import { commandContext, findCommand, runCommand } from "../editor/registry";
 import { closeMenu } from "../editor/ui";
 import { shortcutLabel } from "../editor/shortcuts";
@@ -117,6 +118,7 @@ function ModeSegment({
       tabIndex={0}
       aria-label={mode}
       data-hint={mode}
+      data-hint-detail={RING_MODE_HELP[mode]}
       onClick={onChoose}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -167,7 +169,7 @@ function Wedge({
       tabIndex={0}
       aria-label={entry.label}
       data-hint={color ? `Fill ${colorName}` : entry.label}
-      data-hint-detail={color || undefined}
+      data-hint-detail={color || entry.help}
       onClick={onChoose}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -196,6 +198,8 @@ function MenuItem({ editor, entry }: Readonly<{ editor: EditorController; entry:
       <button
         type="button"
         role="menuitem"
+        data-hint={entry.label}
+        data-hint-detail={entry.help}
         onClick={() => {
           closeMenu(editor);
           runCommand(editor, entry.id);
@@ -230,6 +234,8 @@ function Submenu({
         role="menuitem"
         aria-haspopup="menu"
         aria-expanded={open}
+        data-hint={entry.label}
+        data-hint-detail={entry.help}
         onClick={() => onOpen(open ? null : entry.id)}
         onKeyDown={(event) => {
           if (event.key === "ArrowRight") onOpen(entry.id);

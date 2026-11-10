@@ -11,6 +11,8 @@ interface NumericProps {
   integer?: boolean;
   increment?: number;
   arithmetic?: boolean;
+  /** The field's help sentence, for a field without a `<label>` to carry it. */
+  detail?: string;
 }
 
 function parseNumber(source: string, options: NumericProps) {
@@ -113,6 +115,7 @@ export function NumericInput(options: Readonly<NumericProps>) {
         step={options.increment ?? "any"}
         {...bounds.accessibility}
         aria-label={options.label}
+        data-hint-detail={options.detail}
         aria-invalid={field.error ? true : undefined}
         aria-describedby={field.error ? errorId : undefined}
         placeholder={options.value === undefined ? "Mixed" : undefined}

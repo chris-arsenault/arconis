@@ -117,6 +117,20 @@ export async function unfoldSource(context: BrowserContext) {
   });
 }
 
+const oriented = new WeakSet<BrowserContext>();
+
+/** Makes a context arrive as a first-time visitor, so the orientation offer appears. */
+export function firstVisit(context: BrowserContext) {
+  oriented.add(context);
+}
+
+/** Journeys arrive as returning visitors unless they ask to see the orientation offer. */
+async function skipOrientation(context: BrowserContext) {
+  if (oriented.has(context)) return;
+  oriented.add(context);
+  await context.addInitScript(() => localStorage.setItem("arconis-orientation", "done"));
+}
+
 /** Opens a menu command for the selection through the property panel's More button. */
 export async function more(page: Page, command: string) {
   await page
@@ -147,6 +161,7 @@ export async function open(context: BrowserContext, room = "", join = false, sta
   }
   await serveFixtures(context);
   await unfoldSource(context);
+  await skipOrientation(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => {
     errors.push(error.message);

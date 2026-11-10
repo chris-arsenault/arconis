@@ -34,18 +34,26 @@ const ALIGN_ACTIONS: { mode: AlignMode; label: string; icon: LucideIcon }[] = [
   { mode: "bottom", label: "Align bottom edges", icon: AlignEndHorizontal },
 ];
 
+const ALIGN_DETAIL = "Line up the selected objects on this edge or center of the group.";
+const DISTRIBUTE_DETAIL =
+  "Even out the gaps between three or more selected objects; the outermost stay put.";
+
 function SmallAction({
   label,
+  detail,
   icon: Icon,
   onClick,
   disabled = false,
 }: Readonly<
-  { label: string; icon: LucideIcon; onClick: () => void } & Partial<{ disabled: boolean }>
+  { label: string; detail: string; icon: LucideIcon; onClick: () => void } & Partial<{
+    disabled: boolean;
+  }>
 >) {
   return (
     <button
       className="icon-action"
       data-hint={label}
+      data-hint-detail={detail}
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
@@ -70,16 +78,24 @@ export function AlignControls({
     <Section title="Align">
       <div className="selection-actions" role="toolbar" aria-label="Align">
         {ALIGN_ACTIONS.map(({ mode, label, icon }) => (
-          <SmallAction key={mode} label={label} icon={icon} onClick={() => onAlign(mode)} />
+          <SmallAction
+            key={mode}
+            label={label}
+            detail={ALIGN_DETAIL}
+            icon={icon}
+            onClick={() => onAlign(mode)}
+          />
         ))}
         <SmallAction
           label="Distribute horizontally"
+          detail={DISTRIBUTE_DETAIL}
           icon={AlignHorizontalSpaceAround}
           disabled={objects.length < 3}
           onClick={() => onDistribute("horizontal")}
         />
         <SmallAction
           label="Distribute vertically"
+          detail={DISTRIBUTE_DETAIL}
           icon={AlignVerticalSpaceAround}
           disabled={objects.length < 3}
           onClick={() => onDistribute("vertical")}
@@ -101,6 +117,7 @@ export function ScreenSizeControl({
     <Section title="Screen size">
       <select
         aria-label="Screen size"
+        data-hint-detail="Resize this frame to match a common device screen."
         value={current?.name ?? ""}
         onChange={(event) => {
           const size = SCREEN_SIZES.find((candidate) => candidate.name === event.target.value);
@@ -137,6 +154,7 @@ function RelationRow({
       <button
         className="relation-target"
         data-hint={`Go to ${name}`}
+        data-hint-detail="Select this object and fly the view to it."
         onClick={() => onJump(target.id)}
       >
         {name}
@@ -146,6 +164,7 @@ function RelationRow({
           className="icon-action"
           aria-label={`Remove reference to ${name}`}
           data-hint="Remove reference"
+          data-hint-detail="Delete this reference for everyone; both objects stay."
           onClick={onRemove}
         >
           <X size={13} />
@@ -204,13 +223,24 @@ function lineRelation(look: Appearance, forward: boolean) {
   return "— Linked";
 }
 
+const ACTION_DETAILS: Record<string, string> = {
+  "Relate these two":
+    "Add a reference between them; its line shows only while either one is selected.",
+  "Connect with a line":
+    "Draw a connector from the first selected object to the second that always shows.",
+  Tidy: "Lay this topic's branches out again as a neat tree.",
+  "Add branch": "Add a connected topic branching from this object and start typing in it.",
+  "Relate to…": "Pick another object to reference; the line shows while either one is selected.",
+  "Zoom into": "Fly your view in until this object fills the screen; others keep their view.",
+};
+
 function Action({
   label,
   icon: Icon,
   onClick,
 }: Readonly<{ label: string; icon: LucideIcon; onClick: () => void }>) {
   return (
-    <button className="text-action" onClick={onClick}>
+    <button className="text-action" data-hint-detail={ACTION_DETAILS[label]} onClick={onClick}>
       <Icon size={14} /> {label}
     </button>
   );

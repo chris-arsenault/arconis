@@ -1,41 +1,120 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { HELP_DETAIL_ID, helpZone, type Help } from "../help/zone";
 
-type Hint = { anchor: Element; label: string; detail: string };
+/**
+ * Hover, keyboard focus and touch-and-hold feed two surfaces. Help, the name of a control and
+ * one sentence about it, goes to the help zone at the foot of the left rail. Information about
+ * content or people, marked `data-tip`, opens a small floating tooltip beside it.
+ */
+type Tip = { anchor: Element; text: string };
+
+const TIP_ID = "context-tip";
+const CONTROLS =
+  "[data-hint], [data-hint-detail], button, a[href], input, select, textarea, label, summary, " +
+  "[role=menuitem], [role=menuitemcheckbox], [role=menuitemradio], [role=tab], [role=radio], " +
+  "[role=switch], [role=option], [role=slider]";
+
+function nameOf(anchor: Element) {
+  const labelled =
+    anchor instanceof HTMLInputElement ||
+    anchor instanceof HTMLSelectElement ||
+    anchor instanceof HTMLTextAreaElement
+      ? anchor.labels?.[0]?.textContent
+      : null;
+  return (
+    anchor.getAttribute("data-hint") ||
+    anchor.getAttribute("aria-label") ||
+    labelled ||
+    anchor.textContent ||
+    ""
+  )
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
+/** A control's sentence, shared between a form field and its label so either one explains it. */
+export function helpDetail(anchor: Element) {
+  return (
+    anchor.getAttribute("data-hint-detail") ||
+    partnerOf(anchor)?.getAttribute("data-hint-detail") ||
+    ""
+  );
+}
+
+function partnerOf(anchor: Element): Element | null | undefined {
+  if (anchor instanceof HTMLLabelElement) return anchor.control;
+  const field =
+    anchor instanceof HTMLInputElement ||
+    anchor instanceof HTMLSelectElement ||
+    anchor instanceof HTMLTextAreaElement;
+  return field ? anchor.labels?.[0] : null;
+}
+
+/** The control under a target, skipping the help zone's own readout. */
+export function helpAt(target: EventTarget | null): Help | null {
+  const anchor = target instanceof Element ? target.closest(CONTROLS) : null;
+  if (!anchor || anchor.closest(".help-zone-readout")) return null;
+  const label = nameOf(anchor);
+  const detail = helpDetail(anchor);
+  return label || detail
+    ? {
+        anchor,
+        label,
+        detail,
+        topic: anchor.closest("[data-help-topic]")?.getAttribute("data-help-topic") ?? "",
+      }
+    : null;
+}
+
+function tipAt(target: EventTarget | null): Tip | null {
+  const anchor = target instanceof Element ? target.closest("[data-tip]") : null;
+  const text = anchor?.getAttribute("data-tip");
+  return anchor && text ? { anchor, text } : null;
+}
+
+const publish = (help: Help | null) => helpZone.publish(help);
+
+/** Adds an id to an element's descriptions and returns how to take it away again. */
+function describe(anchor: Element, id: string) {
+  const ids = () => (anchor.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean);
+  if (ids().includes(id)) return () => {};
+  anchor.setAttribute("aria-describedby", [...ids(), id].join(" "));
+  // Only this id comes off; descriptions the control gained meanwhile stay.
+  return () => {
+    const rest = ids().filter((other) => other !== id);
+    if (rest.length) anchor.setAttribute("aria-describedby", rest.join(" "));
+    else anchor.removeAttribute("aria-describedby");
+  };
+}
+
 type HelpEvents = {
   anchor: Element | null;
-  shown: boolean;
+  tip: boolean;
   pressed: boolean;
   touch: boolean;
   held: boolean;
   show(target: EventTarget | null, delay: number, held?: boolean): void;
   clear(): void;
+  clearTip(): void;
   cancelTimer(): void;
 };
-const ID = "context-help";
 
-function hintAt(target: EventTarget | null): Hint | null {
-  const anchor =
-    target instanceof Element
-      ? target.closest("[data-hint], button[aria-label], [role=menuitem][aria-label]")
-      : null;
-  const label = anchor?.getAttribute("data-hint") || anchor?.getAttribute("aria-label");
-  return anchor && label
-    ? { anchor, label, detail: anchor.getAttribute("data-hint-detail") || "" }
-    : null;
-}
-
-/** A touch hold opens help without also activating the control on release. */
+/** A touch hold shows help without also activating the control on release. */
 function pointerHelp(events: HelpEvents, signal: AbortSignal) {
   let origin = { x: 0, y: 0 };
   document.addEventListener(
     "pointerdown",
     (event) => {
-      events.clear();
       events.pressed = true;
       events.touch = event.pointerType === "touch";
       origin = { x: event.clientX, y: event.clientY };
-      if (events.touch) events.show(event.target, 450, true);
+      events.clearTip();
+      if (events.touch) {
+        events.clear();
+        events.show(event.target, 450, true);
+      }
     },
     { signal, capture: true }
   );
@@ -115,11 +194,11 @@ function focusHelp(events: HelpEvents, signal: AbortSignal) {
       events.touch = false;
       events.held = false;
       if (event.key === "Enter" || event.key === " ") {
-        events.clear();
+        events.clearTip();
         return;
       }
-      if (event.key !== "Escape" || !events.shown) return;
-      events.clear();
+      if (event.key !== "Escape" || !events.tip) return;
+      events.clearTip();
       // Menus, dialogs and drafts keep their own Escape behavior.
       const scope =
         event.target instanceof Element &&
@@ -130,49 +209,86 @@ function focusHelp(events: HelpEvents, signal: AbortSignal) {
     },
     { signal, capture: true }
   );
-  document.addEventListener("scroll", events.clear, { signal, capture: true });
-  window.addEventListener("resize", events.clear, { signal });
+  document.addEventListener("scroll", events.clearTip, { signal, capture: true });
+  window.addEventListener("resize", events.clearTip, { signal });
 }
 
-function bindHelp(setHint: (hint: Hint | null) => void) {
+/** Follows live changes to the help or information an element carries. */
+function watch(nodes: (Element | null | undefined)[], onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  for (const node of new Set(nodes))
+    if (node)
+      observer.observe(node, {
+        attributes: true,
+        attributeFilter: ["data-hint", "data-hint-detail", "aria-label", "data-tip"],
+      });
+  return observer;
+}
+
+function bindHelp(setTip: (tip: Tip | null) => void) {
   const abort = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let observer: MutationObserver | null = null;
+  let undescribe = () => {};
+  let tipAnchor: Element | null = null;
+  const showHelp = (shown: Help | null | undefined) => {
+    if (!shown) return;
+    undescribe();
+    const help = shown.anchor.isConnected ? helpAt(shown.anchor) : null;
+    publish(help);
+    undescribe =
+      help?.detail && document.getElementById(HELP_DETAIL_ID)
+        ? describe(shown.anchor, HELP_DETAIL_ID)
+        : () => {};
+  };
+  const refresh = (help: Help | null) => {
+    if (help && helpZone.snapshot()?.anchor === help.anchor) showHelp(help);
+    if (events.tip && tipAnchor) setTip(tipAt(tipAnchor));
+  };
+  // Pointing and focusing update the zone at once; a touch hold waits for its delay.
+  const reveal = (anchor: Element, help: Help | null, held: boolean) => {
+    if (!anchor.isConnected) return;
+    events.held = held;
+    if (held) showHelp(help);
+    if (!tipAnchor) return;
+    events.tip = true;
+    setTip(tipAt(tipAnchor));
+  };
   const events: HelpEvents = {
     anchor: null,
-    shown: false,
+    tip: false,
     pressed: false,
     touch: false,
     held: false,
     cancelTimer: () => clearTimeout(timer),
+    clearTip: () => {
+      events.tip = false;
+      setTip(null);
+    },
     clear: () => {
       clearTimeout(timer);
       observer?.disconnect();
       observer = null;
+      undescribe();
+      undescribe = () => {};
       events.anchor = null;
-      events.shown = false;
+      tipAnchor = null;
       events.held = false;
-      setHint(null);
+      events.clearTip();
+      publish(null);
     },
     show: (target, delay, held = false) => {
-      const hint = hintAt(target);
-      if (hint && events.anchor?.isSameNode(hint.anchor)) return;
+      const help = helpAt(target);
+      const tip = tipAt(target);
+      const anchor = help?.anchor ?? tip?.anchor;
+      if (!anchor) return events.clear();
+      if (events.anchor === anchor) return;
       events.clear();
-      if (!hint) return;
-      events.anchor = hint.anchor;
-      observer = new MutationObserver(() => {
-        if (events.shown) setHint(hintAt(hint.anchor));
-      });
-      observer.observe(hint.anchor, {
-        attributes: true,
-        attributeFilter: ["data-hint", "data-hint-detail", "aria-label"],
-      });
-      timer = setTimeout(() => {
-        if (!hint.anchor.isConnected) return;
-        events.shown = true;
-        events.held = held;
-        setHint(hintAt(hint.anchor));
-      }, delay);
+      events.anchor = anchor;
+      tipAnchor = tip ? tip.anchor : null;
+      observer = watch([anchor, tipAnchor], () => refresh(help));
+      if (!held) showHelp(help);
+      timer = setTimeout(() => reveal(anchor, help, held), delay);
     },
   };
   pointerHelp(events, abort.signal);
@@ -181,33 +297,33 @@ function bindHelp(setHint: (hint: Hint | null) => void) {
     abort.abort();
     events.cancelTimer();
     observer?.disconnect();
+    undescribe();
+    publish(null);
   };
 }
 
-/** One lightweight help surface for hover, keyboard focus and touch-and-hold. */
+/**
+ * Binds help for the whole workspace and shows information tooltips. Help itself appears in
+ * the help zone, never in a floating popup.
+ */
 export function ContextHelp() {
-  const [hint, setHint] = useState<Hint | null>(null);
+  const [tip, setTip] = useState<Tip | null>(null);
   const popup = useRef<HTMLDivElement>(null);
-  useEffect(() => bindHelp(setHint), []);
+  useEffect(() => bindHelp(setTip), []);
   useLayoutEffect(() => {
-    if (!hint || !popup.current) return;
-    const previous = hint.anchor.getAttribute("aria-describedby");
-    hint.anchor.setAttribute("aria-describedby", [previous, ID].filter(Boolean).join(" "));
-    const anchor = hint.anchor.getBoundingClientRect();
+    if (!tip || !popup.current) return;
+    const undescribe = describe(tip.anchor, TIP_ID);
+    const anchor = tip.anchor.getBoundingClientRect();
     const box = popup.current.getBoundingClientRect();
     popup.current.style.left = `${Math.max(8, Math.min(anchor.left + anchor.width / 2 - box.width / 2, window.innerWidth - box.width - 8))}px`;
     popup.current.style.top = `${Math.max(8, Math.min(anchor.top > box.height + 16 ? anchor.top - box.height - 8 : anchor.bottom + 8, window.innerHeight - box.height - 8))}px`;
-    return () => {
-      if (previous) hint.anchor.setAttribute("aria-describedby", previous);
-      else hint.anchor.removeAttribute("aria-describedby");
-    };
-  }, [hint]);
+    return undescribe;
+  }, [tip]);
   return (
-    hint &&
+    tip &&
     createPortal(
-      <div ref={popup} id={ID} role="tooltip" className="context-help">
-        <strong>{hint.label}</strong>
-        {hint.detail && <span>{hint.detail}</span>}
+      <div ref={popup} id={TIP_ID} role="tooltip" className="context-tip">
+        {tip.text}
       </div>,
       document.body
     )

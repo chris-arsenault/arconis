@@ -28,6 +28,9 @@ importers:
       "@modelcontextprotocol/sdk":
         specifier: 1.32.2
         version: 1.32.2(zod@4.6.7)
+      driver.js:
+        specifier: 1.11.0
+        version: 1.11.0
       highlight.js:
         specifier: ^11.12.0
         version: 11.12.0
@@ -1985,6 +1988,12 @@ packages:
         integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==,
       }
     engines: { node: ">=0.10.0" }
+
+  driver.js@1.11.0:
+    resolution:
+      {
+        integrity: sha512-Xp/tYNYQ4Wth6AN3HqVVYdrCF4ahe4FVBDphWKylVDBBbeDEsFqnogxko6Gv30Yf9T/B92g0RZOCp4xfl1gqqw==,
+      }
 
   dunder-proto@1.0.1:
     resolution:
@@ -5387,6 +5396,8 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
+
+  driver.js@1.11.0: {}
 
   dunder-proto@1.0.1:
     dependencies:

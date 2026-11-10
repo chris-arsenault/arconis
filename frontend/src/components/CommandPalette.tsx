@@ -32,11 +32,20 @@ function PaletteList({
   return (
     <ul ref={listRef} role="listbox" aria-label="Commands">
       {commands.map((command, index) => (
-        <li key={command.id} role="option" aria-selected={index === current} data-index={index}>
+        <li
+          key={command.id}
+          role="option"
+          aria-selected={index === current}
+          data-index={index}
+          data-hint={commandLabel(command, context)}
+          data-hint-detail={command.help}
+        >
           <button
             type="button"
             tabIndex={-1}
             className={index === current ? "active" : ""}
+            data-hint={commandLabel(command, context)}
+            data-hint-detail={command.help}
             onPointerMove={() => onHover(index)}
             onClick={() => onRun(command)}
           >
@@ -102,6 +111,7 @@ export function CommandPalette({ editor }: Readonly<{ editor: EditorController }
         <input
           ref={input}
           aria-label="Search commands"
+          data-hint-detail="Type part of a command's name; arrow keys choose and Enter runs it."
           placeholder="Type a command"
           value={query}
           onChange={(event) => {

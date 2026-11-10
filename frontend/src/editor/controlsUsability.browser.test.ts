@@ -232,7 +232,10 @@ it("explains invalid property names and lets people correct and save them", asyn
       "Start with a letter or underscore; use letters, digits, underscores or hyphens.",
       { exact: true }
     );
-    expect(await name.getAttribute("aria-describedby")).toBe(await feedback.getAttribute("id"));
+    // The error describes the field, beside the help zone's sentence about it.
+    expect((await name.getAttribute("aria-describedby"))?.split(" ")).toContain(
+      await feedback.getAttribute("id")
+    );
     await name.fill("service-owner");
     expect(await name.getAttribute("aria-invalid")).toBe(null);
     expect(await addProperty.isEnabled()).toBe(true);

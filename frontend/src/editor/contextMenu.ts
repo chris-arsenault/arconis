@@ -7,6 +7,7 @@ import { findCommand, isAvailable, runCommand } from "./registry";
 import { closeMenu, openMenu, openSubRing } from "./ui";
 import type { EditorController } from "./controller";
 import { DRAWING_SHAPES } from "./drawingTools";
+import { SUB_RING_HELP } from "./ringHelp";
 
 /**
  * What the right button offers: a ring of eight commands laid out like a compass, and a menu of
@@ -25,22 +26,26 @@ export function menuContextOf(selected: Item[]): MenuContext {
 /** A submenu in the menu: a label and the command ids it holds. */
 interface Submenu {
   label: string;
+  help: string;
   ids: string[];
 }
 type MenuSlot = string | Submenu;
 
 const ALIGN: Submenu = {
   label: "Align",
+  help: "Choose an edge or centre to line the selected objects up on.",
   ids: ["left", "center", "right", "top", "middle", "bottom"].map(
     (mode) => `arrange.align.${mode}`
   ),
 };
 const DISTRIBUTE: Submenu = {
   label: "Distribute",
+  help: "Choose an axis to space the selected objects evenly along.",
   ids: ["arrange.distribute.horizontal", "arrange.distribute.vertical"],
 };
 const TIDY: Submenu = {
   label: "Tidy branches",
+  help: "Choose how to lay out the selected topic's tree.",
   ids: [
     "structure.tidy",
     "structure.tidyRight",
@@ -53,6 +58,7 @@ const TIDY: Submenu = {
 };
 const MARKER: Submenu = {
   label: "Marker",
+  help: "Choose a priority or progress badge for the selection.",
   ids: [...MARKERS.map((marker) => `fields.marker.${marker}`), "fields.marker.none"],
 };
 const TAGS_AND_STATUS: MenuSlot[] = ["fields.tag", "fields.task", MARKER];
@@ -252,7 +258,6 @@ const SUB_RING_LABELS: Record<string, string> = {
   "ring.colour": "Colour",
   "ring.shape": "Shape",
 };
-
 /**
  * The canvas ring's Mode wedge opens a small arc beside it with the editing modes. Nothing else
  * in the ring changes until a mode is chosen: Select, Draw and Connect switch the tool, and Add
@@ -289,6 +294,8 @@ export function chooseRingMode(editor: EditorController, mode: RingMode) {
 export interface MenuEntry {
   id: string;
   label: string;
+  /** The help zone's sentence: the command's help, or what the entry opens. */
+  help: string;
   /** Opens a sub-ring rather than running. */
   opens?: string[];
   /** Folds the ring away and leaves the menu in its place. */
@@ -302,18 +309,33 @@ export interface MenuEntry {
 }
 
 function entryFor(id: string, context: CommandContext): MenuEntry | null {
-  if (id === MORE) return { id, label: "More…", more: true };
-  if (id === MODES) return { id, label: "Switch mode", short: "Mode", modes: true };
+  if (id === MORE)
+    return {
+      id,
+      label: "More…",
+      help: "Fold the ring away and show every command that applies here as a menu.",
+      more: true,
+    };
+  if (id === MODES)
+    return {
+      id,
+      label: "Switch mode",
+      help: "Open an arc of editing modes beside this wedge.",
+      short: "Mode",
+      modes: true,
+    };
   if (id in SUB_RINGS) {
     const inner = SUB_RINGS[id].filter(
       (sub) => sub in SUB_RINGS || isAvailable(findCommand(sub), context)
     );
-    return inner.length ? { id, label: SUB_RING_LABELS[id], opens: inner } : null;
+    return inner.length
+      ? { id, label: SUB_RING_LABELS[id], help: SUB_RING_HELP[id], opens: inner }
+      : null;
   }
   const command = findCommand(id);
   if (!isAvailable(command, context)) return null;
   const label = typeof command.label === "string" ? command.label : command.label(context);
-  return { id, label, short: RING_LABELS[id] };
+  return { id, label, help: command.help, short: RING_LABELS[id] };
 }
 
 function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {
@@ -322,7 +344,7 @@ function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {
   if (!inner.length) return null;
   // A submenu of one is just that command.
   if (inner.length === 1) return inner[0];
-  return { id: `menu.${slot.label}`, label: slot.label, submenu: inner };
+  return { id: `menu.${slot.label}`, label: slot.label, help: slot.help, submenu: inner };
 }
 
 export function menuGroups(context: CommandContext): MenuEntry[][] {

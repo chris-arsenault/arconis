@@ -99,7 +99,7 @@ function StencilButton({
     <button
       className="tool stencil"
       data-hint={label}
-      data-hint-detail="Drag onto the canvas, or choose and click to place."
+      data-hint-detail="Drag this onto the canvas, or choose it and then click where it goes."
       aria-label={label}
       aria-pressed={pressed}
       onPointerDown={startDrag}
@@ -192,6 +192,18 @@ const VENDOR_TITLES: Record<IconVendor, string> = {
   gcp: "Google Cloud",
 };
 
+/** Help for each library's header, which opens and closes that library. */
+const LIBRARY_DETAILS: Record<string, string> = {
+  Basics: "Sticky notes, text, simple shapes and frames.",
+  Architecture: "Service, database, cloud and person shapes for system diagrams.",
+  Screens: "Frames sized like phone, tablet, laptop and desktop screens.",
+  Infrastructure: "Generic icons for servers, storage, networks, security, devices and more.",
+  Technology: "Logos of common technologies, such as Docker, to label parts of a diagram.",
+  aws: "Amazon Web Services architecture icons, loaded when you open this library.",
+  azure: "Microsoft Azure architecture icons, loaded when you open this library.",
+  gcp: "Google Cloud architecture icons, loaded when you open this library.",
+};
+
 function VendorGroup({
   editor,
   vendor,
@@ -215,7 +227,13 @@ function VendorGroup({
     [open, vendor, version]
   );
   return (
-    <RailSection id={vendor} title={VENDOR_TITLES[vendor]} open={open} onToggle={onToggle}>
+    <RailSection
+      id={vendor}
+      title={VENDOR_TITLES[vendor]}
+      detail={LIBRARY_DETAILS[vendor]}
+      open={open}
+      onToggle={onToggle}
+    >
       {open && (
         <div className="stencil-grid">
           {!entries.length && (
@@ -279,6 +297,7 @@ export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }
         type="search"
         aria-label="Search stencils"
         placeholder="Search shapes and icons"
+        data-hint-detail="Find shapes, screens and icons from every library by name."
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
@@ -319,6 +338,7 @@ function Libraries({ editor, sections, version }: Readonly<LibraryProps>) {
           key={group.title}
           id={group.title}
           title={group.title}
+          detail={LIBRARY_DETAILS[group.title]}
           open={sections.open[group.title]}
           onToggle={sections.toggle}
         >
@@ -332,6 +352,7 @@ function Libraries({ editor, sections, version }: Readonly<LibraryProps>) {
       <RailSection
         id="Screens"
         title="Screens"
+        detail={LIBRARY_DETAILS.Screens}
         open={sections.open.Screens}
         onToggle={sections.toggle}
       >
@@ -349,6 +370,7 @@ function Libraries({ editor, sections, version }: Readonly<LibraryProps>) {
           key={title}
           id={title}
           title={title}
+          detail={LIBRARY_DETAILS[title]}
           open={sections.open[title]}
           onToggle={sections.toggle}
         >

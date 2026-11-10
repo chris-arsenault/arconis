@@ -20,6 +20,7 @@ export function HistoryPanel({ editor }: Readonly<{ editor: EditorController }>)
             <button
               className="rail-entry"
               data-hint="Go forward to just after this step"
+              data-hint-detail="Redo your undone changes up to and including this one."
               onClick={() => travelHistory(editor.document, "redo", all.length - index)}
             >
               {label}
@@ -32,6 +33,7 @@ export function HistoryPanel({ editor }: Readonly<{ editor: EditorController }>)
             className="rail-entry"
             aria-current={index === 0 ? "step" : undefined}
             data-hint={index === 0 ? "Where the canvas is now" : "Return to just after this step"}
+            data-hint-detail="Undo your changes made after this step; other people's changes stay."
             onClick={() => travelHistory(editor.document, "undo", index)}
           >
             {label}

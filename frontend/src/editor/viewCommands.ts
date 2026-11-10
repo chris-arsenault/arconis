@@ -2,7 +2,8 @@ import type { View, Item } from "../document/types";
 import { worldBounds } from "../document/relations";
 import type { EditorController } from "./controller";
 import type { Command, CommandContext } from "./registry";
-import { showFind, showPalette } from "./ui";
+import { showFind, showHelp, showPalette } from "./ui";
+import { helpZone } from "../help/zone";
 import { zoomIntoSelection, zoomOutOfSelection } from "./topics";
 import { fittingView, flyToView, saveCurrentView } from "./views";
 
@@ -28,14 +29,27 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.palette",
     label: "Command palette",
+    help: "Search every command that applies now and run it, with its shortcut shown.",
     group: "view",
     shortcuts: [{ key: "k", ctrl: true }],
     keywords: ["commands", "shortcuts", "help"],
     run: ({ editor }) => showPalette(editor, !editor.ui.palette),
   },
   {
+    id: "view.help",
+    label: "Help",
+    help: "Open the guides, every command and the tour, at the area you are pointing at.",
+    group: "view",
+    shortcuts: [{ key: "?", shift: true }],
+    keywords: ["guide", "manual", "reference", "tour", "tutorial"],
+    // The area named in the help zone, if any, opens at its guide.
+    run: ({ editor }) =>
+      showHelp(editor, editor.ui.help === null ? helpZone.snapshot()?.topic || "contents" : null),
+  },
+  {
     id: "view.zoomIn",
     label: "Zoom in",
+    help: "Magnify the canvas one step in your view.",
     group: "view",
     shortcuts: [
       { key: "=", ctrl: true },
@@ -46,6 +60,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.zoomOut",
     label: "Zoom out",
+    help: "Shrink the canvas one step in your view to see more of it.",
     group: "view",
     shortcuts: [{ key: "-", ctrl: true }],
     run: ({ editor }) => editor.zoom(1 / 1.2),
@@ -53,6 +68,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.zoomInto",
     label: "Zoom into selection",
+    help: "Fly in until the selected object fills the window, revealing what it holds.",
     group: "view",
     shortcuts: [{ key: "z" }],
     when: one,
@@ -61,6 +77,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.zoomOutOf",
     label: "Zoom back out",
+    help: "Fly out to the object holding the selection, or to the whole canvas.",
     group: "view",
     shortcuts: [{ key: "z", shift: true }],
     run: ({ editor }) => zoomOutOfSelection(editor),
@@ -68,6 +85,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.fit",
     label: "Fit canvas",
+    help: "Zoom and scroll so everything on the canvas is in view.",
     group: "view",
     shortcuts: [{ key: "1", shift: true }],
     keywords: ["zoom to fit", "everything", "back to content"],
@@ -77,6 +95,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.fitSelection",
     label: "Fit selection",
+    help: "Zoom and scroll so the selection fills most of the window.",
     group: "view",
     shortcuts: [{ key: "2", shift: true }],
     keywords: ["zoom to selection"],
@@ -86,6 +105,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.actualSize",
     label: "Zoom to 100%",
+    help: "Show the canvas at actual size without changing which part you are looking at.",
     group: "view",
     shortcuts: [{ key: "0", shift: true }],
     keywords: ["actual size", "reset zoom"],
@@ -95,6 +115,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.back",
     label: "Back to previous view",
+    help: "Fly back to the place and zoom you were at before your last jump.",
     group: "view",
     shortcuts: [{ key: "[", ctrl: true }],
     keywords: ["history", "return"],
@@ -104,6 +125,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.forward",
     label: "Forward to next view",
+    help: "Fly forward again to the view you went back from.",
     group: "view",
     shortcuts: [{ key: "]", ctrl: true }],
     keywords: ["history"],
@@ -113,6 +135,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.find",
     label: "Find on canvas",
+    help: "Search the canvas for text and visit each matching object in turn.",
     group: "view",
     shortcuts: [{ key: "f", ctrl: true }],
     keywords: ["search", "locate"],
@@ -122,6 +145,7 @@ export const VIEW_COMMANDS: Command[] = [
   {
     id: "view.grid",
     label: ({ editor }) => (editor.grid.visible ? "Hide grid" : "Show grid"),
+    help: "Show or hide the grid objects snap to; the choice stays in your browser.",
     group: "view",
     keywords: ["snap"],
     run: ({ editor }) => editor.grid.toggle(),
@@ -130,12 +154,14 @@ export const VIEW_COMMANDS: Command[] = [
     id: "view.references",
     label: ({ editor }) =>
       editor.referencesVisible ? "Hide reference lines" : "Show reference lines",
+    help: "Show or hide all reference lines, not only the selection's, in your view only.",
     group: "view",
     run: ({ editor }) => editor.toggleReferences(),
   },
   {
     id: "view.save",
     label: "Save this view",
+    help: "Save the window's place and zoom as a named view everyone in the room can visit.",
     group: "view",
     keywords: ["bookmark", "place"],
     run: ({ editor }) => saveCurrentView(editor, `View ${editor.document.views.size + 1}`),

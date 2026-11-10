@@ -15,7 +15,7 @@ function TemplateToggle({
     <label
       className="slide-template"
       data-hint="Deck template"
-      data-hint-detail="Number 0: drawn under every slide of the deck."
+      data-hint-detail="Make this slide number 0, drawn beneath every other slide of its deck."
     >
       <input
         type="checkbox"
@@ -53,7 +53,11 @@ export function SlideControls({
   return (
     <Section title="Slide">
       <div className="slide-fields">
-        <label className="slide-field" htmlFor={deckId}>
+        <label
+          className="slide-field"
+          htmlFor={deckId}
+          data-hint-detail="Name the deck this slide belongs to; slides sharing a name present together."
+        >
           <span>Deck</span>
           <DeckInput
             id={deckId}
@@ -68,7 +72,11 @@ export function SlideControls({
             <option key={name} value={name} />
           ))}
         </datalist>
-        <label className="slide-field slide-number" htmlFor={numberId}>
+        <label
+          className="slide-field slide-number"
+          htmlFor={numberId}
+          data-hint-detail="Set where this slide comes in its deck's presenting order."
+        >
           <span>No.</span>
           <NumericInput
             id={numberId}
@@ -83,7 +91,11 @@ export function SlideControls({
       </div>
       <TemplateToggle item={item} onTemplate={onTemplate} />
       <SlideSize item={item} onSize={onSize} />
-      <button className="text-action" onClick={onPresent}>
+      <button
+        className="text-action"
+        data-hint-detail="Present this slide's deck, starting with this slide."
+        onClick={onPresent}
+      >
         <Play size={14} /> Present from here
       </button>
     </Section>
@@ -146,6 +158,7 @@ function SlideSize({
   return (
     <select
       aria-label="Slide size"
+      data-hint-detail="Resize this slide to a standard screen proportion."
       value={size?.name ?? ""}
       onChange={(event) => {
         const chosen = SLIDE_SIZES.find((candidate) => candidate.name === event.target.value);

@@ -39,7 +39,7 @@ export function DrawingDestination({
           aria-label="Markup (M)"
           aria-pressed={markup}
           data-hint="Markup (M)"
-          data-hint-detail="Annotations float above every content layer."
+          data-hint-detail="Ink becomes an annotation floating above every content layer."
           onClick={() => actions.destination("markup")}
         >
           <StickyNote size={16} />
@@ -49,7 +49,10 @@ export function DrawingDestination({
       {markup ? (
         <MarkupControls destination={destination} actions={actions} />
       ) : (
-        <label className="drawing-field">
+        <label
+          className="drawing-field"
+          data-hint-detail="Choose the layer new ink joins; it also becomes your active layer."
+        >
           Layer
           <select
             aria-label="Drawing layer"
@@ -77,7 +80,7 @@ function MarkupControls({
       <label
         className="annotation-visibility"
         data-hint="Show annotations"
-        data-hint-detail="Changes only your view."
+        data-hint-detail="Show or hide markup in your view only; others keep their own setting."
       >
         <input
           type="checkbox"
@@ -92,7 +95,7 @@ function MarkupControls({
         className="delete-annotations"
         aria-label="Delete all annotations"
         data-hint="Delete all annotations"
-        data-hint-detail="Removes annotations for everyone. Content layers stay; Undo restores them."
+        data-hint-detail="Remove every annotation for everyone; content layers stay, and Undo restores them."
         disabled={!destination.markupCount}
         onClick={actions.clear}
       >

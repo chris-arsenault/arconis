@@ -51,6 +51,7 @@ function Suggestions({
           type="button"
           key={tag}
           className="tag-suggestion"
+          data-hint-detail="Add this tag, already used in the room, to the selected objects."
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => onAdd([tag])}
         >
@@ -80,7 +81,12 @@ export function TagEditor(props: Readonly<Props>) {
         {tags.map((tag) => (
           <span className="tag-chip" key={tag}>
             #{tag}
-            <button type="button" aria-label={`Remove tag ${tag}`} onClick={() => onRemove(tag)}>
+            <button
+              type="button"
+              aria-label={`Remove tag ${tag}`}
+              data-hint-detail="Take this tag off every selected object."
+              onClick={() => onRemove(tag)}
+            >
               <X size={11} />
             </button>
           </span>
@@ -88,6 +94,7 @@ export function TagEditor(props: Readonly<Props>) {
         <input
           className="tag-input"
           aria-label="Add a tag"
+          data-hint-detail="Type a word and press Enter, comma or space to tag the selected objects."
           placeholder={tags.length ? "Add tag" : "Add a tag"}
           value={text}
           // The floating tag editor opens to type straight away.

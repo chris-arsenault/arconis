@@ -96,17 +96,26 @@ function AccountCopy({
     });
   return (
     <span>
-      <button className="workspace-open" onClick={open}>
+      <button
+        className="workspace-open"
+        data-hint-detail="Open the copy saved in your account."
+        onClick={open}
+      >
         <FolderOpen size={14} /> {item.name}
       </button>
       <small>Private account copy</small>
-      <button onClick={() => setHistory((value) => !value)} aria-label={`History of ${item.name}`}>
+      <button
+        onClick={() => setHistory((value) => !value)}
+        aria-label={`History of ${item.name}`}
+        data-hint-detail="Show or hide earlier saved copies you can recover."
+      >
         History
       </button>
       {history && <WorkspaceHistory account={account} id={item.id} onOpen={onOpen} />}
       <button
         className="icon-action"
         aria-label={`Delete ${item.name}`}
+        data-hint-detail="Remove this saved copy from your account; copies on devices stay."
         onClick={() => run(() => account.removeWorkspace(item.id))}
       >
         <Trash2 size={13} />
@@ -129,13 +138,17 @@ function WorkRow({
       <span className="recent-room-title">{title}</span>
       {here && (
         <>
-          <button onClick={() => onJoin(here.id)}>
+          <button
+            data-hint-detail="Go to this room, using any copy kept in this browser."
+            onClick={() => onJoin(here.id)}
+          >
             {here.retained ? `Open local ${title}` : `Join remembered ${title}`}
           </button>
           <small>{here.retained ? "On this browser" : "No local copy"}</small>
           <button
             className="icon-action"
             aria-label={`Remove local ${title}`}
+            data-hint-detail="Delete this browser's copy and forget the room; not available for the room you are in."
             disabled={parseRoom(location.hash.slice(1)) === here.id}
             onClick={() => run(() => removeLocalRoom(here.id))}
           >
@@ -169,6 +182,7 @@ export function WorkBrowser(props: Readonly<Props>) {
       <input
         aria-label="Find saved work"
         placeholder="Find a canvas"
+        data-hint-detail="Show only canvases whose title contains this text."
         value={filter}
         onChange={(event) => setFilter(event.target.value)}
       />

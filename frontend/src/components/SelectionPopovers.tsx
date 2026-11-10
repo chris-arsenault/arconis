@@ -9,6 +9,9 @@ import { TagEditor } from "./TagEditor";
 import { useSelectionAnchor } from "./useSelectionAnchor";
 import "./relate.css";
 
+const RELATE_RESULT =
+  "Add a reference to this object; its line shows while either one is selected.";
+
 /** Closes a popover on a press outside it. */
 function useCloseOutside(ref: RefObject<HTMLDivElement | null>, close: () => void) {
   useEffect(() => {
@@ -65,7 +68,11 @@ export function RelatePicker({ editor }: Readonly<{ editor: EditorController }>)
     <div ref={ref} className="selection-popover relate-picker" role="dialog" aria-label="Relate to">
       <div className="relate-mode-head">
         <strong>Relate to another object</strong>
-        <button type="button" onClick={close}>
+        <button
+          type="button"
+          data-hint-detail="Stop choosing a target without adding a reference."
+          onClick={close}
+        >
           Cancel
         </button>
       </div>
@@ -73,7 +80,12 @@ export function RelatePicker({ editor }: Readonly<{ editor: EditorController }>)
         Click an object on the canvas. Esc or right-click cancels.
       </p>
       {!searching && (
-        <button type="button" className="relate-search-toggle" onClick={() => setSearching(true)}>
+        <button
+          type="button"
+          className="relate-search-toggle"
+          data-hint-detail="List objects by name, for targets too far away to click."
+          onClick={() => setSearching(true)}
+        >
           Search by name
         </button>
       )}
@@ -81,6 +93,7 @@ export function RelatePicker({ editor }: Readonly<{ editor: EditorController }>)
         <>
           <input
             aria-label="Relate to"
+            data-hint-detail="Type part of a name; Enter relates the selection to the highlighted match."
             placeholder={`Relate ${itemName(from)} to…`}
             value={query}
             // Searching is optional and explicitly opened to type straight away.
@@ -101,22 +114,44 @@ export function RelatePicker({ editor }: Readonly<{ editor: EditorController }>)
               event.preventDefault();
             }}
           />
-          {results.length ? (
-            <ul role="listbox" aria-label="Objects to relate to">
-              {results.map((item, index) => (
-                <li key={item.id} role="option" aria-selected={index === active}>
-                  <button onMouseEnter={() => setActive(index)} onClick={() => pick(item)}>
-                    <span className="relate-name">{itemName(item)}</span>
-                    <span className="relate-kind">{typeLabel(item)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="relate-empty">No object has that name.</p>
-          )}
+          <RelateResults results={results} active={active} onActive={setActive} onPick={pick} />
         </>
       )}
     </div>
+  );
+}
+
+function RelateResults({
+  results,
+  active,
+  onActive,
+  onPick,
+}: Readonly<{
+  results: Item[];
+  active: number;
+  onActive: (index: number) => void;
+  onPick: (item: Item) => void;
+}>) {
+  if (!results.length) return <p className="relate-empty">No object has that name.</p>;
+  return (
+    <ul role="listbox" aria-label="Objects to relate to">
+      {results.map((item, index) => (
+        <li
+          key={item.id}
+          role="option"
+          aria-selected={index === active}
+          data-hint-detail={RELATE_RESULT}
+        >
+          <button
+            data-hint-detail={RELATE_RESULT}
+            onMouseEnter={() => onActive(index)}
+            onClick={() => onPick(item)}
+          >
+            <span className="relate-name">{itemName(item)}</span>
+            <span className="relate-kind">{typeLabel(item)}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

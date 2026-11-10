@@ -39,6 +39,20 @@ All notable user-visible changes are recorded here.
   moving or deleting a slide leaves them in place. Earlier rooms and files read slide contents as
   top-level objects where they were. Templates repeat the objects centred within them.
 
+### Help
+
+- Added a help zone at the foot of the left panel that names the control under the pointer or
+  focus and explains it in one sentence; every workspace control and command has its sentence.
+  It docks below the header when the panel is hidden, and Settings can hide it. Floating tooltips
+  now carry only information about content and people.
+- Added **Help** and the **?** key: a searchable reference beside the canvas built from the user
+  guides, with every command and its shortcut. **?** opens the guide for the area under the pointer.
+- Added an orientation tour, offered on a first visit in any room, that highlights each area of the
+  workspace in turn without changing the room.
+- Added **Practice in a sample room**: a device-only room with a sample diagram where each step
+  waits for the person to edit, connect, mark up and present.
+- Fixed a guide link to the Lasso section of the drawing guide.
+
 ### Canvas interactions
 
 - Split Draw (P), which paints into the selected content layer, from Markup (M), which creates

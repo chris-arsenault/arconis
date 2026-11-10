@@ -42,6 +42,7 @@ export function SavedViews({
                   className="rail-action"
                   data-hint={`Rename ${view.name}`}
                   aria-label={`Rename view ${view.name}`}
+                  data-hint-detail="Give this saved view a new name for everyone in the room."
                   onClick={() => setRenaming(view.id)}
                 >
                   <Pencil size={12} />
@@ -50,6 +51,7 @@ export function SavedViews({
                   className="rail-action"
                   data-hint={`Remove ${view.name}`}
                   aria-label={`Remove view ${view.name}`}
+                  data-hint-detail="Delete this saved view for everyone; the canvas itself is unchanged."
                   onClick={() => onRemove(view.id)}
                 >
                   <X size={13} />
@@ -81,13 +83,14 @@ function SaveViewForm({
       <input
         aria-label="View name"
         placeholder="Name this place"
+        data-hint-detail="Name the view you are about to save; left empty, it gets a number."
         value={name}
         onChange={(event) => setName(event.target.value)}
       />
       <button
         aria-label="Save current view"
         data-hint="Save current view"
-        data-hint-detail="Saves this position and zoom for everyone in the room."
+        data-hint-detail="Save your current position and zoom for everyone in the room."
       >
         <Plus size={15} /> Save view
       </button>
@@ -119,6 +122,7 @@ function RenameView({
         ref={input}
         className="rail-rename"
         aria-label={`New name for ${view.name}`}
+        data-hint-detail="Type the view's new name; Enter or leaving the field keeps it."
         value={name}
         onChange={(event) => setName(event.target.value)}
         onBlur={commit}

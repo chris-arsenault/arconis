@@ -47,6 +47,7 @@ function RenameField({
     <input
       className="outline-name"
       aria-label={`Rename ${name}`}
+      data-hint-detail="Type the new text for this branch; Enter keeps it and Escape cancels."
       defaultValue={item.name}
       ref={(input) => input?.select()}
       onBlur={(event) => {
@@ -85,6 +86,7 @@ function Row({
         <button
           className="outline-fold"
           aria-label={item.collapsed ? `Expand ${name}` : `Collapse ${name}`}
+          data-hint-detail="Fold or unfold this branch's children, on the canvas for everyone too."
           onClick={fold}
         >
           {item.collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
@@ -97,6 +99,7 @@ function Row({
       ) : (
         <button
           className={selected ? "outline-name selected" : "outline-name"}
+          data-hint-detail="Select this branch and move your view to it; double-click to rename."
           onClick={() => jumpTo(editor, item.id)}
           onDoubleClick={() => onRename(item.id)}
           onKeyDown={rowKeys(editor, item, () => onRename(item.id))}
@@ -133,7 +136,13 @@ export function OutlinePanel({
   if (!rows.length) return null;
   const chosen = new Set(selected.map((item) => item.id));
   return (
-    <RailSection id="outline" title="Outline" open={open} onToggle={onToggle}>
+    <RailSection
+      id="outline"
+      title="Outline"
+      detail="The selected tree, or every tree, as an indented list you can edit."
+      open={open}
+      onToggle={onToggle}
+    >
       <ul className="outline-list rail-list">
         {rows.map((row) => (
           <Row
@@ -147,7 +156,11 @@ export function OutlinePanel({
         ))}
       </ul>
       {selected.length === 1 && (
-        <button className="text-action" onClick={() => tidySelection(editor)}>
+        <button
+          className="text-action"
+          data-hint-detail="Lay out the selected object's branches again in a neat tree."
+          onClick={() => tidySelection(editor)}
+        >
           Tidy branches
         </button>
       )}

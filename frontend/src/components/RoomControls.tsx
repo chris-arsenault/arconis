@@ -19,7 +19,8 @@ export function RoomControls(props: Readonly<Props>) {
       <button
         className="icon-button"
         aria-label="Create another room"
-        title="New room"
+        data-hint="New room"
+        data-hint-detail="Start a fresh, empty room with a link of its own."
         onClick={props.onCreate}
       >
         <Plus size={18} />
@@ -27,13 +28,20 @@ export function RoomControls(props: Readonly<Props>) {
       <button
         className="icon-button"
         aria-label="Join another room"
-        title="Join room"
+        data-hint="Join room"
+        data-hint-detail="Go to another room by pasting its link or code."
         onClick={() => setDialog("join")}
       >
         <LogIn size={18} />
       </button>
       {props.shareable && (
-        <button className="primary share-button" onClick={() => setDialog("share")}>
+        <button
+          className="primary share-button"
+          data-help-id="share"
+          data-help-topic="collaboration"
+          data-hint-detail="Get this room's link; anyone who has it can join and edit."
+          onClick={() => setDialog("share")}
+        >
           <Link2 size={16} /> Share room
         </button>
       )}
@@ -75,11 +83,16 @@ function RoomDialog({
         aria-modal="true"
         aria-labelledby="room-dialog-title"
       >
-        <button className="close-dialog icon-button" aria-label="Close dialog" onClick={onClose}>
+        <button
+          className="close-dialog icon-button"
+          aria-label="Close dialog"
+          data-hint-detail="Close this dialog without joining or copying anything."
+          onClick={onClose}
+        >
           <X size={18} />
         </button>
         <h2 id="room-dialog-title">{mode === "share" ? "Share this room" : "Join a room"}</h2>
-        <label>
+        <label data-hint-detail="The name other people in the room see for you.">
           Your display name
           <input
             value={props.name}
@@ -123,9 +136,14 @@ function ShareLink() {
         aria-label="Shareable room link"
         readOnly
         value={location.href}
+        data-hint-detail="The address of this room, selected so you can copy it by hand."
         onFocus={(event) => event.target.select()}
       />
-      <button className="primary" onClick={() => void copy()}>
+      <button
+        className="primary"
+        data-hint-detail="Put this room's link on your clipboard to send to others."
+        onClick={() => void copy()}
+      >
         {copied ? <Check size={17} /> : <Copy size={17} />}
         {copied ? "Copied" : "Copy room link"}
       </button>
@@ -158,8 +176,11 @@ function JoinRoom({ onJoin }: Readonly<{ onJoin: (id: string) => void }>) {
         value={code}
         onChange={(event) => setCode(event.target.value)}
         placeholder="Room link or code"
+        data-hint-detail="Paste a full room link or its 48-character code."
       />
-      <button className="primary">Join room</button>
+      <button className="primary" data-hint-detail="Leave this room and open the one you pasted.">
+        Join room
+      </button>
       {error && (
         <p className="error" role="alert">
           {error}

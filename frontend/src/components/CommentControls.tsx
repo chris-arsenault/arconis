@@ -12,7 +12,7 @@ function CommentBody({
         <strong>{comment.author}</strong>
         <time
           dateTime={new Date(comment.time).toISOString()}
-          title={new Date(comment.time).toLocaleString()}
+          data-tip={new Date(comment.time).toLocaleString()}
         >
           {new Date(comment.time).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
           {" · "}
@@ -72,7 +72,7 @@ function CommentBox({
         ref={ref}
         aria-label={label}
         placeholder={placeholder}
-        data-hint="Enter to send · Shift Enter for a new line"
+        data-hint-detail="Enter posts it for everyone in the room; Shift Enter starts a new line."
         value={text}
         rows={Math.min(6, Math.max(2, text.split("\n").length))}
         maxLength={MAX_COMMENT_LENGTH}
@@ -86,7 +86,11 @@ function CommentBox({
       />
       <div className="comment-compose-actions">
         {onCancel && (
-          <button type="button" onClick={onCancel}>
+          <button
+            type="button"
+            data-hint-detail="Close the reply box and discard what you typed."
+            onClick={onCancel}
+          >
             Cancel
           </button>
         )}
@@ -95,7 +99,7 @@ function CommentBox({
           className="primary"
           disabled={!text.trim()}
           aria-label={label.startsWith("Reply") ? "Send reply" : "Post comment"}
-          data-hint="Enter to send · Shift Enter for a new line"
+          data-hint-detail="Post this for everyone in the room to read."
         >
           <Send size={13} /> {label.startsWith("Reply") ? "Reply" : "Post"}
         </button>
@@ -147,6 +151,7 @@ function ThreadView({
           className="comment-resolve"
           aria-label={root.resolved ? "Reopen thread" : "Resolve thread"}
           data-hint={root.resolved ? "Reopen" : "Resolve"}
+          data-hint-detail="Resolved threads fold away under a count for everyone; reopening brings one back."
           onClick={() => onResolve(root.id, !root.resolved)}
         >
           {root.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
@@ -183,6 +188,7 @@ function ThreadReply({
         <button
           className="comment-reply-action"
           aria-label={`Reply to thread by ${root.author}`}
+          data-hint-detail="Open a box to answer in this thread."
           onClick={() => setReplying(true)}
         >
           Reply{replyCount > 0 && ` (${replyCount})`}
@@ -235,6 +241,7 @@ export function CommentControls({
           <button
             className="text-action resolved-toggle"
             aria-expanded={showResolved}
+            data-hint-detail="Show or hide the threads already marked resolved; this changes your view only."
             onClick={() => setShowResolved(!showResolved)}
           >
             <ChevronDown size={13} /> {resolved.length} resolved

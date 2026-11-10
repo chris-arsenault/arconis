@@ -212,7 +212,12 @@ function RelationshipBadge({
 function TaskSummary({ count }: Readonly<{ count: DetailCounts["tasks"] }>) {
   if (!count) return null;
   return (
-    <span className="metadata-badge" data-hint={`${count.done} of ${count.total} tasks complete`}>
+    <span
+      className="metadata-badge"
+      data-hint="Task progress"
+      data-hint-detail="Counts the tasks this object holds or heads as branches, and how many are done."
+      data-tip={`${count.done} of ${count.total} tasks complete`}
+    >
       <CheckSquare size={12} />
       {count.done}/{count.total}
     </span>
@@ -223,7 +228,11 @@ function StateBadges({ item }: Readonly<{ item: Item }>) {
   return (
     <>
       {item.locked && (
-        <span className="metadata-badge" data-hint="Locked object">
+        <span
+          className="metadata-badge"
+          data-hint="Locked object"
+          data-hint-detail="Nobody can move or edit this object until it is unlocked in Properties."
+        >
           <LockKeyhole size={12} />
         </span>
       )}
@@ -231,6 +240,7 @@ function StateBadges({ item }: Readonly<{ item: Item }>) {
         <span
           className="metadata-badge"
           data-hint={item.task === "done" ? "Task complete" : "Open task"}
+          data-hint-detail="This object is a to-do; change its status under Tags and status in Properties."
         >
           {item.task === "done" ? <CheckSquare size={13} /> : <Square size={13} />}
         </span>
@@ -295,8 +305,9 @@ function TagBadge({
         className="metadata-badge metadata-tags"
         aria-label={`Highlight tag ${tags[0]}`}
         aria-pressed={editor.filter.tags.includes(tags[0])}
-        data-hint={tags.map((tag) => `#${tag}`).join(" ")}
-        data-hint-detail="Highlight objects by tag."
+        data-hint={`Tag #${tags[0]}`}
+        data-hint-detail="Highlight every object with this tag."
+        data-tip={tags.map((tag) => `#${tag}`).join(" ")}
         onClick={() => {
           editor.setFilter(toggled(editor.filter, "tags", tags[0]));
           showFilter(editor, true);
@@ -309,8 +320,9 @@ function TagBadge({
         <button
           className="metadata-badge"
           aria-label={`View all tags on ${item.name || typeLabel(item)}`}
-          data-hint={tags.map((tag) => `#${tag}`).join(" ")}
+          data-hint="More tags"
           data-hint-detail="Choose tags to highlight in Find and filter."
+          data-tip={tags.map((tag) => `#${tag}`).join(" ")}
           onClick={() => showFilter(editor, true)}
         >
           +{tags.length - 1}

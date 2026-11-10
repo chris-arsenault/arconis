@@ -12,6 +12,7 @@ import { parseRoom } from "./protocol/room";
 import { Welcome } from "./components/Welcome";
 import { Workspace } from "./components/Workspace";
 import { rememberRoom } from "./collaboration/recentRooms";
+import { onPracticeRequest } from "./help/practice";
 
 const NAME_KEY = "arconis:name";
 
@@ -84,6 +85,23 @@ function useAccountName(session: RoomSession | null) {
 const noSubscribe = () => () => {};
 const noSnapshot = () => 0;
 
+/** Help's hands-on tutorial asks for a new room on this device and starts there. */
+function usePracticeRooms(create: (id: string) => void) {
+  const latest = useRef(create);
+  useEffect(() => {
+    latest.current = create;
+  });
+  useEffect(
+    () =>
+      onPracticeRequest(() => {
+        const id = createLocalRoomId();
+        latest.current(id);
+        return id;
+      }),
+    []
+  );
+}
+
 function returnToRoom(room: string | null) {
   location.hash = room ? roomHash(room) : "";
 }
@@ -117,6 +135,7 @@ export function App() {
     setCreated(id);
     open(id);
   };
+  usePracticeRooms(create);
   const openSaved = (copy: SavedCopy) => {
     if (session?.id === copy.roomId) {
       if (session.canStartCollaboration) session.startCollaboration();

@@ -7,6 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { Download, FileText, ImageDown, Upload, Shapes } from "lucide-react";
+import { HelpButton } from "./HelpSurfaces";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { downloadFile } from "../files/download";
@@ -37,25 +38,21 @@ interface Props {
   onOpenSaved: (copy: SavedCopy) => void;
 }
 
+const HOME_HELP = "Go to the Arconis start page and leave this canvas.";
+
 export function WorkspaceHeader(props: Readonly<Props>) {
   const { session, name, onName, onCreate, onJoin } = props;
   useSyncExternalStore(session.subscribe, session.snapshot);
-  const [participants, setParticipants] = useState(false);
-  const states = [...session.provider.awareness.getStates().values()] as Partial<{
-    user: { name: string };
-  }>[];
-  const people = states.length;
-  const names = states.map((state) => state.user?.name || "Guest").join(", ");
   return (
     <header className="topbar">
-      <a className="brand compact" href="/" aria-label="Arconis home">
+      <a className="brand compact" href="/" aria-label="Arconis home" data-hint-detail={HOME_HELP}>
         <span className="brand-mark">
           <Shapes size={21} />
         </span>
         arconis
       </a>
       <span className="header-divider" />
-      <div className="document-title">
+      <div className="document-title" data-help-id="canvas-title">
         <CanvasTitle key={session.id} document={session.document} />
       </div>
       <div className="topbar-actions">
@@ -75,31 +72,11 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         )}
         <DocumentActions session={session} editor={props.editor} onMessage={props.onMessage} />
         {props.editor && <Settings editor={props.editor} />}
+        {props.editor && <HelpButton editor={props.editor} />}
         {props.editor && (
           <Feedback session={session} editor={props.editor} name={name} account={props.account} />
         )}
-        <button
-          className="participant-badge"
-          data-hint="Participants"
-          data-hint-detail={`In this room: ${names}. See who is here, follow someone or change your name.`}
-          aria-label="Participants"
-          aria-expanded={participants}
-          onClick={() => setParticipants(!participants)}
-        >
-          <span>{name.slice(0, 1).toUpperCase()}</span>
-          {people > 1 && <small>+{people - 1}</small>}
-        </button>
-        {participants && (
-          <Participants
-            editor={props.editor}
-            session={session}
-            onEditName={() => {
-              setParticipants(false);
-              props.onEditName();
-            }}
-            onClose={() => setParticipants(false)}
-          />
-        )}
+        <ParticipantsControl {...props} />
         <RoomControls
           onCreate={onCreate}
           onJoin={onJoin}
@@ -109,6 +86,43 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         />
       </div>
     </header>
+  );
+}
+
+/** Who is in the room: the badge names them as information and opens the participant list. */
+function ParticipantsControl({ session, name, editor, onEditName }: Readonly<Props>) {
+  const [open, setOpen] = useState(false);
+  const states = [...session.provider.awareness.getStates().values()] as Partial<{
+    user: { name: string };
+  }>[];
+  const names = states.map((state) => state.user?.name || "Guest").join(", ");
+  return (
+    <>
+      <button
+        className="participant-badge"
+        data-help-id="participants"
+        data-help-topic="collaboration"
+        data-hint-detail="See who is here, follow someone or change your name."
+        data-tip={`In this room: ${names}`}
+        aria-label="Participants"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{name.slice(0, 1).toUpperCase()}</span>
+        {states.length > 1 && <small>+{states.length - 1}</small>}
+      </button>
+      {open && (
+        <Participants
+          editor={editor}
+          session={session}
+          onEditName={() => {
+            setOpen(false);
+            onEditName();
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -130,6 +144,7 @@ function CanvasTitle({ document }: Readonly<{ document: CanvasDocument }>) {
   return (
     <input
       aria-label="Canvas title"
+      data-hint-detail="Rename this canvas for everyone in the room; Escape keeps the old name."
       value={draft ?? document.title()}
       onChange={(event) => {
         cancelled.current = false;
@@ -272,7 +287,7 @@ function FileMenuItems({
         role="menuitem"
         onClick={run(() => void exportCanvas(props, includeMarkup))}
         data-hint="Export document"
-        data-hint-detail="Download a readable canvas file any room can import"
+        data-hint-detail="Download the whole canvas as a readable file any room can import."
       >
         <Download size={15} /> Export document
       </button>
@@ -280,14 +295,21 @@ function FileMenuItems({
         role="menuitem"
         onClick={run(() => void exportPng(props, includeMarkup))}
         data-hint="Export PNG"
-        data-hint-detail="Download the selection or whole canvas with editable source inside the image"
+        data-hint-detail="Download the selection, or the whole canvas, as a picture with editable source inside."
       >
         <ImageDown size={15} /> Export PNG
       </button>
-      <button role="menuitem" onClick={onImport}>
+      <button
+        role="menuitem"
+        onClick={onImport}
+        data-hint-detail="Add the objects from a canvas file or Arconis PNG to this canvas."
+      >
         <Upload size={15} /> Import document
       </button>
-      <label className="export-markup">
+      <label
+        className="export-markup"
+        data-hint-detail="Choose whether exports carry the markup drawn over the canvas."
+      >
         <input
           type="checkbox"
           role="menuitemcheckbox"
@@ -319,7 +341,6 @@ function DocumentActions(props: FileProps) {
     const items = menu.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]');
     if (items?.length) items[edge.current === "last" ? items.length - 1 : 0].focus();
   }, [open]);
-  const load = (file: File) => loadFile(props, file);
   const run = (action: () => void) => () => {
     setOpen(false);
     trigger.current?.focus();
@@ -331,12 +352,13 @@ function DocumentActions(props: FileProps) {
     input.current?.click();
   };
   return (
-    <div className="file-menu" ref={menu}>
+    <div className="file-menu" ref={menu} data-help-id="file" data-help-topic="files">
       <button
         ref={trigger}
         className="text-action file-menu-button"
         aria-haspopup="menu"
         aria-expanded={open}
+        data-hint-detail="Export this canvas as a file or picture, or import one into it."
         onClick={() => setOpen(!open)}
         onKeyDown={(event) => {
           if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
@@ -373,7 +395,7 @@ function DocumentActions(props: FileProps) {
         aria-label="Import file"
         onChange={(event) => {
           const file = event.target.files?.[0];
-          if (file) void load(file);
+          if (file) void loadFile(props, file);
           event.target.value = "";
         }}
       />

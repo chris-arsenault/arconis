@@ -29,7 +29,7 @@ function FillSwatches({ editor, look }: Readonly<{ editor: EditorController; loo
       aria-label={`Fill ${color}`}
       aria-pressed={!mixed && look.fill === color}
       data-hint={`Fill ${["Yellow", "Rose", "Blue", "Green", "Purple", "White"][index]}`}
-      data-hint-detail={`${color} · Applies to selected objects`}
+      data-hint-detail="Fill the selection with this color."
       onClick={() => runCommand(editor, `colour.${index}`)}
     />
   ));
@@ -48,10 +48,18 @@ function TextSizeButtons({
   };
   return (
     <span className="toolbar-group" aria-label="Text size">
-      <button aria-label="Smaller text" onClick={() => step(-1)}>
+      <button
+        aria-label="Smaller text"
+        data-hint-detail="Step the selection's text down to the next preset size."
+        onClick={() => step(-1)}
+      >
         <Type size={11} />
       </button>
-      <button aria-label="Larger text" onClick={() => step(1)}>
+      <button
+        aria-label="Larger text"
+        data-hint-detail="Step the selection's text up to the next preset size."
+        onClick={() => step(1)}
+      >
         <Type size={16} />
       </button>
     </span>
@@ -101,6 +109,7 @@ export function SelectionToolbar({
               type="button"
               aria-label="Finish editing text"
               data-hint="Finish editing (Esc)"
+              data-hint-detail="Close the text editor; what you typed is already saved for everyone."
               onClick={() => {
                 editor.closeEditor();
                 editor.element.focus({ preventScroll: true });
@@ -153,6 +162,7 @@ function SelectionActions({
           className="color-chip"
           type="color"
           aria-label="Line color"
+          data-hint-detail="Color the lines and outlines of the selected objects."
           value={/^#[0-9a-f]{6}$/i.test(look.line) ? look.line : "#9ca5b8"}
           onChange={(event) => changeSelectionLook(canvas, selected, { line: event.target.value })}
         />
@@ -162,6 +172,7 @@ function SelectionActions({
         <button
           aria-label="Change shape"
           data-hint="Change shape"
+          data-hint-detail="Open a ring of shapes to turn the selected objects into."
           onClick={() => openOverSelection(editor, "ring.shape")}
         >
           <Shapes size={15} />
@@ -171,6 +182,7 @@ function SelectionActions({
         <button
           aria-label="Comment"
           data-hint="Comment"
+          data-hint-detail="Open this object's discussion, which everyone in the room can read."
           onClick={() => showComments(editor, first.id)}
         >
           <MessageSquare size={15} />
@@ -179,6 +191,7 @@ function SelectionActions({
       <button
         aria-label="More commands"
         data-hint="More commands"
+        data-hint-detail="Open the menu of all commands that apply to the selection."
         onClick={() => openOverSelection(editor, null)}
       >
         <MoreHorizontal size={15} />

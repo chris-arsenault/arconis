@@ -103,6 +103,7 @@ export function CommentModal({
         <button
           className="icon-action"
           aria-label={`Close ${heading.toLowerCase()}`}
+          data-hint-detail="Close the discussion; text not yet posted is discarded."
           onClick={() => showComments(editor, null)}
         >
           <X size={14} />

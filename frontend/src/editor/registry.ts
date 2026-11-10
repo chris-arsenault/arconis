@@ -32,6 +32,8 @@ export interface Command {
   id: string;
   /** A verb phrase, or a function of the context when it names a toggle's next state. */
   label: string | ((context: CommandContext) => string);
+  /** One sentence for the help zone and the reference: what the command does, plainly. */
+  help: string;
   group: CommandGroup;
   shortcuts?: Shortcut[];
   /** Words people might type into the palette beyond the label. */

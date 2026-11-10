@@ -31,6 +31,7 @@ function HiddenObjects({ editor }: Readonly<{ editor: EditorController }>) {
       className="hidden-objects"
       aria-label={label}
       data-hint={label}
+      data-hint-detail="Unhide every hidden object for everyone in the room."
       onClick={() =>
         changeFields(
           editor.document,
@@ -66,6 +67,7 @@ function ZoomInput({
       ref={input}
       className="zoom-readout"
       aria-label="Zoom percent"
+      data-hint-detail="Type a percentage and press Enter to zoom your view; Escape cancels."
       value={typing}
       onChange={(event) => setTyping(event.target.value)}
       onBlur={apply}
@@ -90,7 +92,7 @@ function ZoomReadout({ editor }: Readonly<{ editor: EditorController }>) {
       className="zoom-readout"
       data-testid="zoom-level"
       data-hint="Type a zoom"
-      data-hint-detail="Changes your view only. Enter a percentage."
+      data-hint-detail="Type an exact zoom percentage for your view only."
       onClick={() => setTyping(true)}
     >
       {label}
@@ -103,7 +105,11 @@ function BackToContent({ editor }: Readonly<{ editor: EditorController }>) {
   const items = editor.document.list();
   if (!items.length || anythingInView(editor.graph, editor.element, items)) return null;
   return (
-    <button className="back-to-content" onClick={() => runCommand(editor, "view.fit")}>
+    <button
+      className="back-to-content"
+      data-hint-detail="Your view shows none of the canvas; bring everything back into view."
+      onClick={() => runCommand(editor, "view.fit")}
+    >
       <Scan size={14} /> Back to content
     </button>
   );
@@ -111,20 +117,38 @@ function BackToContent({ editor }: Readonly<{ editor: EditorController }>) {
 
 function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
   return (
-    <div className="canvas-zoom">
-      <button aria-label="Zoom out" onClick={() => editor.zoom(1 / 1.2)}>
+    <div
+      className="canvas-zoom"
+      data-help-id="view-controls"
+      data-help-topic="editing#pan-zoom-and-grid"
+    >
+      <button
+        aria-label="Zoom out"
+        data-hint-detail="Show more of the canvas; pinching or Ctrl/⌘ scrolling also zooms."
+        onClick={() => editor.zoom(1 / 1.2)}
+      >
         <Minus size={17} />
       </button>
       <ZoomReadout editor={editor} />
-      <button aria-label="Zoom in" onClick={() => editor.zoom(1.2)}>
+      <button
+        aria-label="Zoom in"
+        data-hint-detail="Look closer at the canvas; pinching or Ctrl/⌘ scrolling also zooms."
+        onClick={() => editor.zoom(1.2)}
+      >
         <Plus size={17} />
       </button>
       <span className="zoom-divider" />
-      <button aria-label="Fit canvas" data-hint="Fit to contents" onClick={() => editor.fit()}>
+      <button
+        aria-label="Fit canvas"
+        data-hint="Fit to contents"
+        data-hint-detail="Zoom and scroll so everything on the canvas is in view."
+        onClick={() => editor.fit()}
+      >
         <Scan size={17} />
       </button>
       <button
         aria-label="Grid and snapping"
+        data-hint-detail="A grid helps line objects up; while it shows, moved objects snap to it."
         data-hint={editor.grid.visible ? "Hide grid and stop snapping" : "Show grid and snap to it"}
         aria-pressed={editor.grid.visible}
         onClick={() => {
@@ -137,6 +161,7 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         aria-label="Reference lines"
         data-hint={editor.referencesVisible ? "Hide reference lines" : "Show references as lines"}
+        data-hint-detail="Draw a line for each reference between objects, in your view only."
         aria-pressed={editor.referencesVisible}
         onClick={() => editor.toggleReferences()}
       >
@@ -151,7 +176,11 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
   return (
     <>
       <BackToContent editor={editor} />
-      <div className="canvas-discovery">
+      <div
+        className="canvas-discovery"
+        data-help-id="find"
+        data-help-topic="editing#find-on-canvas"
+      >
         <HiddenObjects editor={editor} />
         {editor.ui.find || editor.ui.filter ? (
           <FindBar editor={editor} />
@@ -159,17 +188,18 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
           <button
             className="canvas-discovery-button"
             data-hint="Find and filter (Ctrl/⌘ F)"
-            data-hint-detail="Find text or highlight objects by tag, marker and task status. Changes your view only."
+            data-hint-detail="Find text, or highlight objects by tag, marker and task, in your view only."
             onClick={() => showFind(editor, true)}
           >
             <Search size={16} /> Find and filter
           </button>
         )}
       </div>
-      <div className="canvas-history">
+      <div className="canvas-history" data-help-id="history" data-help-topic="editing#history">
         <button
           aria-label="Undo"
           data-hint="Undo (Ctrl/⌘ Z)"
+          data-hint-detail="Take back your last change. Other people's changes stay."
           disabled={!editor.document.undo.canUndo()}
           onClick={() => editor.document.undo.undo()}
         >
@@ -178,6 +208,7 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
         <button
           aria-label="Redo"
           data-hint="Redo (Ctrl/⌘ Shift Z)"
+          data-hint-detail="Bring back the change you last undid."
           disabled={!editor.document.undo.canRedo()}
           onClick={() => editor.document.undo.redo()}
         >
@@ -187,8 +218,11 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
       <ViewControls editor={editor} />
       <button
         className="help-button"
+        data-help-id="palette"
+        data-help-topic="commands"
         aria-label="Commands and shortcuts"
         data-hint={`Commands and shortcuts (${shortcutLabel({ key: "k", ctrl: true })})`}
+        data-hint-detail="Search every command by name and see its keyboard shortcut."
         onClick={() => runCommand(editor, "view.palette")}
       >
         <Keyboard size={18} />

@@ -18,6 +18,12 @@ interface Props {
   account: AccountStore | null;
 }
 
+const HELP = {
+  done: "Close this dialog and return to the canvas.",
+  cancel: "Close this dialog without sending; what you wrote is discarded.",
+  send: "Send your message, with the screenshot if chosen, to the Arconis team.",
+};
+
 export function Feedback(props: Readonly<Props>) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -32,6 +38,7 @@ export function Feedback(props: Readonly<Props>) {
         className="feedback-button"
         aria-label="Feedback"
         aria-haspopup="dialog"
+        data-hint-detail="Tell the Arconis team what got in your way, optionally with a screenshot."
         onClick={() => setOpen(true)}
       >
         <MessageSquare size={16} /> <span>Feedback</span>
@@ -99,6 +106,7 @@ function FeedbackDialog({ context, onClose }: Readonly<{ context: Props; onClose
         <button
           className="icon-action"
           aria-label="Close feedback"
+          data-hint-detail="Close this dialog; unsent feedback is discarded."
           disabled={Boolean(busy)}
           onClick={close}
         >
@@ -108,7 +116,9 @@ function FeedbackDialog({ context, onClose }: Readonly<{ context: Props; onClose
       {sent ? (
         <div className="feedback-content" role="status">
           <p>Your feedback was sent. Thank you for helping improve Arconis.</p>
-          <button onClick={close}>Done</button>
+          <button data-hint-detail={HELP.done} onClick={close}>
+            Done
+          </button>
         </div>
       ) : (
         <form
@@ -125,17 +135,32 @@ function FeedbackDialog({ context, onClose }: Readonly<{ context: Props; onClose
             busy={Boolean(busy)}
             error={error}
           />
-          <footer>
-            <button type="button" disabled={Boolean(busy)} onClick={close}>
-              Cancel
-            </button>
-            <button type="submit" disabled={Boolean(busy) || !message.trim()}>
-              {busy ?? "Send feedback"}
-            </button>
-          </footer>
+          <FeedbackFooter busy={busy} empty={!message.trim()} onCancel={close} />
         </form>
       )}
     </dialog>
+  );
+}
+
+function FeedbackFooter({
+  busy,
+  empty,
+  onCancel,
+}: Readonly<{ busy: string | null; empty: boolean; onCancel: () => void }>) {
+  return (
+    <footer>
+      <button
+        type="button"
+        disabled={Boolean(busy)}
+        data-hint-detail={HELP.cancel}
+        onClick={onCancel}
+      >
+        Cancel
+      </button>
+      <button type="submit" disabled={Boolean(busy) || empty} data-hint-detail={HELP.send}>
+        {busy ?? "Send feedback"}
+      </button>
+    </footer>
   );
 }
 
@@ -161,7 +186,12 @@ function FeedbackFields({
           {error}
         </p>
       )}
-      <label htmlFor="feedback-message">What could be easier?</label>
+      <label
+        htmlFor="feedback-message"
+        data-hint-detail="Describe what you were trying to do and what got in your way."
+      >
+        What could be easier?
+      </label>
       <p id="feedback-prompt">Tell us what you were trying to do and what got in your way.</p>
       <textarea
         id="feedback-message"
@@ -173,7 +203,10 @@ function FeedbackFields({
         disabled={busy}
         rows={6}
       />
-      <label className="feedback-screenshot">
+      <label
+        className="feedback-screenshot"
+        data-hint-detail="Attach a PNG export of the visible canvas, readable without the room password."
+      >
         <input
           type="checkbox"
           checked={screenshot}

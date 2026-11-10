@@ -51,6 +51,7 @@ export function WorkspaceHistory({
             </time>
             <button
               aria-label={`Recover ${new Date(entry.updated).toISOString()}`}
+              data-hint-detail="Open this saved copy in a separate room; your current room stays intact."
               onClick={() => void recover(entry.revision)}
             >
               Recover copy

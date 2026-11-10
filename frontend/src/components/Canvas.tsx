@@ -103,6 +103,7 @@ export function Canvas({
       role="application"
       tabIndex={0}
       aria-label="Shared canvas"
+      data-help-id="canvas"
     />
   );
 }
@@ -160,6 +161,7 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
           ref={ref}
           className="inline-editor"
           aria-label="Edit canvas text"
+          data-hint-detail="Your typing shows live for everyone; Tab adds a branch and Escape finishes."
           onBlur={(event) => {
             if (
               event.relatedTarget instanceof Element &&

@@ -72,6 +72,7 @@ export const EXPORT_COMMANDS: Command[] = [
   {
     id: "export.copyPng",
     label: ({ selected }) => (selected.length ? "Copy selection as PNG" : "Copy canvas as PNG"),
+    help: "Copy a picture of the selection, or of everything you can see, to the clipboard.",
     group: "edit",
     keywords: ["picture", "image", "clipboard", "screenshot"],
     when: (context) => inRoom(context) && context.items.length > 0,
@@ -80,6 +81,7 @@ export const EXPORT_COMMANDS: Command[] = [
   {
     id: "export.svg",
     label: ({ selected }) => (selected.length ? "Export selection as SVG" : "Export canvas as SVG"),
+    help: "Download the selection, or everything you can see, as a vector picture file.",
     group: "edit",
     keywords: ["vector", "download", "picture"],
     when: (context) => inRoom(context) && context.items.length > 0,
@@ -88,6 +90,7 @@ export const EXPORT_COMMANDS: Command[] = [
   {
     id: "export.markdown",
     label: "Copy tree as Markdown",
+    help: "Copy this topic's whole tree to the clipboard as an indented Markdown list.",
     group: "edit",
     keywords: ["outline", "text", "list", "opml"],
     when: heads,

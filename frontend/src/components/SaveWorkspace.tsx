@@ -35,7 +35,8 @@ export function SaveWorkspace({
     <button
       className="icon-button"
       aria-label={saved ? "Save now" : "Save to my account"}
-      title={saved ? "Saved to your account, and kept up to date" : "Save to my account"}
+      data-hint-detail="Store this room in your account now; later edits save automatically."
+      data-tip={saved ? "Saved to your account, and kept up to date" : undefined}
       onClick={() => void saver.save()}
     >
       {saved ? <Cloud size={18} /> : <CloudUpload size={18} />}

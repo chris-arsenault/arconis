@@ -13,6 +13,7 @@ interface Props {
   editor: EditorController;
 }
 type Run = (action: () => Promise<void>) => void;
+const CLOSE_HELP = "Close your layouts and return to the canvas.";
 
 function LibraryEntryControls({
   entry,
@@ -28,7 +29,12 @@ function LibraryEntryControls({
   const [name, setName] = useState(entry.name);
   return (
     <li>
-      <button onClick={() => run(() => insert(entry.id))}>Insert {entry.name}</button>
+      <button
+        data-hint-detail="Place a copy of this layout at the center of your view, selected."
+        onClick={() => run(() => insert(entry.id))}
+      >
+        Insert {entry.name}
+      </button>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -37,12 +43,20 @@ function LibraryEntryControls({
       >
         <input
           aria-label={`Layout name for ${entry.name}`}
+          data-hint-detail="Type a new name for this layout, then rename it."
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <button>Rename layout</button>
+        <button data-hint-detail="Store the typed name for this layout in your account.">
+          Rename layout
+        </button>
       </form>
-      <button onClick={() => run(() => account.removeLayout(entry.id))}>Delete {entry.name}</button>
+      <button
+        data-hint-detail="Remove this layout from your account; copies already inserted stay."
+        onClick={() => run(() => account.removeLayout(entry.id))}
+      >
+        Delete {entry.name}
+      </button>
     </li>
   );
 }
@@ -69,7 +83,7 @@ function SaveLayoutForm({ onSave }: Readonly<{ onSave: (name: string) => void }>
         onSave(name);
       }}
     >
-      <label>
+      <label data-hint-detail="The name the new layout is listed under.">
         Layout name
         <input
           aria-label="Layout name"
@@ -78,7 +92,9 @@ function SaveLayoutForm({ onSave }: Readonly<{ onSave: (name: string) => void }>
           required
         />
       </label>
-      <button>Save selected layout</button>
+      <button data-hint-detail="Keep a copy of the selected objects in your account to insert anywhere.">
+        Save selected layout
+      </button>
     </form>
   );
 }
@@ -144,16 +160,12 @@ function LibraryPanel({
         <SaveLayoutForm onSave={(name) => run(() => save(name))} />
         <ul>
           {entries.map((entry) => (
-            <LibraryEntryControls
-              key={entry.id}
-              entry={entry}
-              account={account}
-              insert={insert}
-              run={run}
-            />
+            <LibraryEntryControls key={entry.id} {...{ entry, account, insert, run }} />
           ))}
         </ul>
-        <button onClick={close}>Close layouts</button>
+        <button data-hint-detail={CLOSE_HELP} onClick={close}>
+          Close layouts
+        </button>
       </section>
     </div>
   );
@@ -164,7 +176,11 @@ export function ReusableSections(props: Readonly<Props>) {
   if (props.account.status !== "in") return null;
   return (
     <>
-      <button className="icon-button" onClick={() => setOpen(true)}>
+      <button
+        className="icon-button"
+        data-hint-detail="Save selected objects to your account and insert them into any room."
+        onClick={() => setOpen(true)}
+      >
         My layouts
       </button>
       {open && <LibraryPanel {...props} close={() => setOpen(false)} />}

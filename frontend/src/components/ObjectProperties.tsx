@@ -26,6 +26,7 @@ function NamedStyle({
     <Section title="Style">
       <select
         aria-label="Named style"
+        data-hint-detail="Draw the selection with a style this canvas defines; each object's own settings still win."
         value={mixed ? "__mixed__" : item.style}
         onChange={(event) => onStyle(event.target.value)}
       >
@@ -73,6 +74,7 @@ export function StyleControls({
         <Section title="Icon">
           <ColorChip
             label="Icon color"
+            detail="Recolor the icon drawn on the selected objects."
             value={drawn.iconColor ?? "#283249"}
             mixed={isMixed(appearances, "iconColor")}
             onChange={(color) => change({ iconColor: color })}
@@ -86,11 +88,13 @@ export function StyleControls({
 
 function ColorChip({
   label,
+  detail,
   value,
   onChange,
   mixed = false,
 }: Readonly<{
   label: string;
+  detail: string;
   value: unknown;
   onChange: (color: string) => void;
   mixed?: boolean;
@@ -104,7 +108,8 @@ function ColorChip({
         data-hint={label}
         type="color"
         value={color}
-        data-hint-detail={mixed ? "Mixed values" : undefined}
+        data-hint-detail={detail}
+        data-tip={mixed ? "The selected objects use different colors" : undefined}
         onChange={(event) => onChange(event.target.value)}
       />
       {mixed && <span className="mixed-color-label">Mixed</span>}
@@ -122,6 +127,7 @@ function FillControls({ drawn, appearances, change }: StyleProps) {
             key={color}
             data-hint={`Fill ${color}`}
             aria-label={`Fill ${color}`}
+            data-hint-detail="Fill the selection with this color."
             className={`swatch swatch-${index}`}
             aria-pressed={!mixed && drawn.fill === color}
             onClick={() => change({ fill: color })}
@@ -129,6 +135,7 @@ function FillControls({ drawn, appearances, change }: StyleProps) {
         ))}
         <ColorChip
           label="Fill color"
+          detail="Pick any fill color for the selected objects."
           value={drawn.fill}
           mixed={mixed}
           onChange={(color) => change({ fill: color })}
@@ -146,6 +153,7 @@ function LineControls({ drawn, appearances, change }: StyleProps) {
       <div className="control-row">
         <ColorChip
           label="Line color"
+          detail="Color the lines and outlines of the selected objects."
           value={drawn.line}
           mixed={isMixed(appearances, "line")}
           onChange={(color) => change({ line: color })}
@@ -185,7 +193,7 @@ function NumberField({
     <label
       className="number-field"
       data-hint={label}
-      data-hint-detail="Enter a value or arithmetic expression. Arrow keys step by 1; Shift steps by 10."
+      data-hint-detail="Type a value or sum like 200+40; a leading +10 or *2 changes the current value."
     >
       <span aria-hidden="true">{prefix}</span>
       <NumericInput

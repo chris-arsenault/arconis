@@ -37,10 +37,17 @@ const two = ({ selected }: CommandContext) => selected.length === 2;
 const several = ({ selected }: CommandContext) => selected.length > 1;
 const boxes = ({ selected }: CommandContext) => selected.filter(isBox);
 
-function tool(id: Tool, label: string, key?: string, keywords: string[] = []): Command {
+function tool(
+  id: Tool,
+  label: string,
+  help: string,
+  key?: string,
+  keywords: string[] = []
+): Command {
   return {
     id: `tool.${id}`,
     label,
+    help,
     group: "tools",
     keywords,
     shortcuts: key ? [{ key }] : undefined,
@@ -48,32 +55,59 @@ function tool(id: Tool, label: string, key?: string, keywords: string[] = []): C
   };
 }
 
+/** A placing tool: the next click on the canvas puts one down, then Select returns. */
+function place(id: Tool, label: string, what: string, key?: string, keywords: string[] = []) {
+  return tool(id, label, `Click the canvas to place ${what}.`, key, keywords);
+}
+
 const TOOLS: Command[] = [
-  tool("select", "Select", "v"),
-  tool("pan", "Pan", "h", ["hand", "move view"]),
-  tool("connect", "Connector: click two objects", "c", ["line", "arrow", "link"]),
-  tool("draw", "Draw", "p", ["pen", "ink", "content layer"]),
-  tool("markup", "Markup", "m", ["annotate", "annotation", "highlighter"]),
+  tool("select", "Select", "Click or drag on the canvas to select and move objects.", "v"),
+  tool("pan", "Pan", "Drag the canvas to move your view instead of objects.", "h", [
+    "hand",
+    "move view",
+  ]),
+  tool(
+    "connect",
+    "Connector: click two objects",
+    "Click one object, then another, to join them with a connector that stays attached.",
+    "c",
+    ["line", "arrow", "link"]
+  ),
+  tool("draw", "Draw", "Draw ink into the active content layer, where it stays as artwork.", "p", [
+    "pen",
+    "ink",
+    "content layer",
+  ]),
+  tool(
+    "markup",
+    "Markup",
+    "Draw shared annotations above the workspace, kept apart from its content.",
+    "m",
+    ["annotate", "annotation", "highlighter"]
+  ),
 ];
 
 const CREATE: Command[] = [
-  tool("note", "Sticky note", "n"),
-  tool("text", "Text", "t"),
-  tool("rectangle", "Rectangle", "r"),
-  tool("ellipse", "Ellipse", "e", ["circle"]),
-  tool("decision", "Decision", "d", ["diamond"]),
-  tool("frame", "Frame", "f", ["container"]),
-  tool("slide", "Slide", undefined, ["deck"]),
-  tool("service", "Service"),
-  tool("database", "Database"),
-  tool("cloud", "Cloud"),
-  tool("person", "Person"),
+  place("note", "Sticky note", "a sticky note and start typing in it", "n"),
+  place("text", "Text", "a text block and start typing in it", "t"),
+  place("rectangle", "Rectangle", "a rectangle", "r"),
+  place("ellipse", "Ellipse", "an ellipse", "e", ["circle"]),
+  place("decision", "Decision", "a diamond for a decision in a flow", "d", ["diamond"]),
+  place("frame", "Frame", "a frame that holds the objects dropped into it", "f", ["container"]),
+  place("slide", "Slide", "a slide, an area of the canvas you can present in a deck", undefined, [
+    "deck",
+  ]),
+  place("service", "Service", "a service node for an architecture diagram"),
+  place("database", "Database", "a database node for an architecture diagram"),
+  place("cloud", "Cloud", "a cloud node for an architecture diagram"),
+  place("person", "Person", "a person node for a user or actor"),
 ].map((command) => ({ ...command, group: "create" as const }));
 
 const EDIT: Command[] = [
   {
     id: "edit.undo",
     label: "Undo",
+    help: "Take back your last change; other people's changes stay.",
     group: "edit",
     shortcuts: [{ key: "z", ctrl: true }],
     when: ({ editor }) => editor.document.undo.canUndo(),
@@ -82,6 +116,7 @@ const EDIT: Command[] = [
   {
     id: "edit.redo",
     label: "Redo",
+    help: "Put back the change you last took back with Undo.",
     group: "edit",
     shortcuts: [
       { key: "z", ctrl: true, shift: true },
@@ -93,6 +128,7 @@ const EDIT: Command[] = [
   {
     id: "edit.text",
     label: "Edit text",
+    help: "Open the selected object's label for typing on the canvas.",
     group: "edit",
     shortcuts: [{ key: "enter" }],
     keywords: ["rename", "label"],
@@ -102,6 +138,7 @@ const EDIT: Command[] = [
   {
     id: "edit.cut",
     label: "Cut",
+    help: "Copy the selection to the clipboard as canvas text, then delete it.",
     group: "edit",
     shortcuts: [{ key: "x", ctrl: true }],
     native: true,
@@ -111,6 +148,7 @@ const EDIT: Command[] = [
   {
     id: "edit.copy",
     label: "Copy",
+    help: "Copy the selection, what it holds and the lines among it to the clipboard.",
     group: "edit",
     shortcuts: [{ key: "c", ctrl: true }],
     native: true,
@@ -120,6 +158,7 @@ const EDIT: Command[] = [
   {
     id: "edit.paste",
     label: "Paste",
+    help: "Paste the clipboard under the pointer, or in the middle of the window.",
     group: "edit",
     shortcuts: [{ key: "v", ctrl: true }],
     native: true,
@@ -129,6 +168,7 @@ const EDIT: Command[] = [
   {
     id: "edit.pasteInPlace",
     label: "Paste in place",
+    help: "Paste the clipboard at the positions its objects were copied from.",
     group: "edit",
     shortcuts: [{ key: "v", ctrl: true, shift: true }],
     native: true,
@@ -139,6 +179,7 @@ const EDIT: Command[] = [
   {
     id: "edit.duplicate",
     label: "Duplicate",
+    help: "Place a copy of the selection and what it holds just beside it, and select the copy.",
     group: "edit",
     shortcuts: [{ key: "d", ctrl: true }],
     keywords: ["copy"],
@@ -148,6 +189,7 @@ const EDIT: Command[] = [
   {
     id: "edit.delete",
     label: "Delete",
+    help: "Remove the selected objects, with what they hold and the lines attached to them.",
     group: "edit",
     shortcuts: [{ key: "delete" }, { key: "backspace" }],
     keywords: ["remove"],
@@ -157,6 +199,7 @@ const EDIT: Command[] = [
   {
     id: "edit.group",
     label: "Group",
+    help: "Put the selected objects in a new group that moves and selects as one.",
     group: "edit",
     shortcuts: [{ key: "g", ctrl: true }],
     when: several,
@@ -165,6 +208,7 @@ const EDIT: Command[] = [
   {
     id: "edit.ungroup",
     label: "Ungroup",
+    help: "Dissolve the selected groups and leave their objects where they are.",
     group: "edit",
     shortcuts: [{ key: "g", ctrl: true, shift: true }],
     when: ({ selected }) => selected.some((item) => item.type === "group"),
@@ -173,6 +217,7 @@ const EDIT: Command[] = [
   {
     id: "edit.fitText",
     label: "Fit to text",
+    help: "Change each selected text box's height so it fits its text exactly.",
     group: "edit",
     keywords: ["resize", "shrink"],
     when: ({ selected }) => selected.some(hasText),
@@ -182,6 +227,7 @@ const EDIT: Command[] = [
   {
     id: "edit.escape",
     label: "Finish editing",
+    help: "Close text editing, leave focus, clear the selection and return to Select.",
     group: "edit",
     shortcuts: [{ key: "escape" }],
     keywords: ["deselect", "cancel"],
@@ -206,6 +252,7 @@ const ARRANGE: Command[] = [
   {
     id: "arrange.front",
     label: "Bring to front",
+    help: "Stack the selection above everything else on the canvas.",
     group: "arrange",
     shortcuts: [{ key: "]" }],
     when: some,
@@ -214,6 +261,7 @@ const ARRANGE: Command[] = [
   {
     id: "arrange.back",
     label: "Send to back",
+    help: "Stack the selection beneath everything else on the canvas.",
     group: "arrange",
     shortcuts: [{ key: "[" }],
     when: some,
@@ -222,6 +270,7 @@ const ARRANGE: Command[] = [
   ...ALIGN.map(({ mode, label }): Command => ({
     id: `arrange.align.${mode}`,
     label,
+    help: "Move the selected objects into line on that edge or centre, carrying what they hold.",
     group: "arrange",
     when: (context) => boxes(context).length >= 2,
     run: ({ editor }) => alignSelection(editor, mode),
@@ -229,6 +278,7 @@ const ARRANGE: Command[] = [
   ...DISTRIBUTE.map(({ axis, label }): Command => ({
     id: `arrange.distribute.${axis}`,
     label,
+    help: "Space three or more selected objects evenly along that axis.",
     group: "arrange",
     when: (context) => boxes(context).length >= 3,
     run: ({ editor }) => distributeSelection(editor, axis),
@@ -236,6 +286,7 @@ const ARRANGE: Command[] = [
   {
     id: "arrange.route",
     label: "Route around items",
+    help: "Give the selected line a route that avoids the objects and labels between its ends.",
     group: "arrange",
     when: (context) => one(context) && !isBox(context.selected[0]),
     run: ({ editor, selected }) => routeAround(editor.document, selected[0]),
@@ -246,6 +297,7 @@ const STRUCTURE: Command[] = [
   {
     id: "structure.branch",
     label: "Add branch",
+    help: "Grow a new topic out of the selection, joined by a branch, and start typing in it.",
     group: "structure",
     shortcuts: [{ key: "tab" }],
     keywords: ["child", "topic"],
@@ -255,6 +307,7 @@ const STRUCTURE: Command[] = [
   {
     id: "structure.sibling",
     label: "Add sibling",
+    help: "Add a topic beside the selection under the same parent, and start typing in it.",
     group: "structure",
     shortcuts: [{ key: "enter", alt: true }],
     keywords: ["topic"],
@@ -264,6 +317,7 @@ const STRUCTURE: Command[] = [
   {
     id: "structure.connect",
     label: "Connect",
+    help: "Join the two selected objects with a line from the first to the second.",
     group: "structure",
     keywords: ["line", "arrow"],
     when: two,
@@ -272,6 +326,7 @@ const STRUCTURE: Command[] = [
   {
     id: "structure.relate",
     label: (context) => (two(context) ? "Relate these two" : "Relate to…"),
+    help: "Add a see-also reference, with no line or tree structure, to a picked object or between the two.",
     group: "structure",
     keywords: ["reference", "link", "see also", "mind map"],
     when: (context) => one(context) || two(context),
@@ -281,6 +336,7 @@ const STRUCTURE: Command[] = [
   {
     id: "structure.tidy",
     label: "Tidy branches",
+    help: "Lay out the selected topic's tree, keeping each branch on the side it is on.",
     group: "structure",
     keywords: ["layout", "tree"],
     when: (context) =>
@@ -290,6 +346,7 @@ const STRUCTURE: Command[] = [
   {
     id: "structure.present",
     label: ({ selected }) => `Present ${isSlide(selected[0]) ? deckOf(selected[0]) : "deck"}`,
+    help: "Present this slide's deck in your window, starting from this slide.",
     group: "structure",
     keywords: ["slides", "slideshow"],
     when: (context) => one(context) && isSlide(context.selected[0]),
@@ -301,6 +358,7 @@ const SELECT: Command[] = [
   {
     id: "select.all",
     label: "Select all",
+    help: "Select every top-level object on the canvas except locked ones.",
     group: "select",
     shortcuts: [{ key: "a", ctrl: true }],
     when: ({ items }) => items.length > 0,

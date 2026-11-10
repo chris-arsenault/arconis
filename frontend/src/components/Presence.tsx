@@ -71,6 +71,7 @@ function CursorChat({
       className="cursor-chat"
       aria-label="Say something beside your cursor"
       placeholder="Say something"
+      data-hint-detail="Others see your words beside your cursor as you type; Enter clears, Escape closes."
       value={text}
       onChange={(event) => {
         setText(event.target.value);
@@ -102,6 +103,7 @@ function FollowingPill({
       <button
         className="icon-action"
         aria-label="Stop following"
+        data-hint-detail="Stop matching their view and move around on your own again."
         onClick={() => stopFollowing(editor)}
       >
         <X size={13} />
@@ -130,10 +132,16 @@ function SpotlightBanner({
   return (
     <div className="spotlight-banner" role="status" data-testid="spotlight">
       <Megaphone size={14} /> {state.user?.name ?? "Someone"} asks everyone to look at their view
-      <button className="primary" onClick={() => followPeer(editor, session, clientId)}>
+      <button
+        className="primary"
+        data-hint-detail="Your view follows theirs until you stop following."
+        onClick={() => followPeer(editor, session, clientId)}
+      >
         Follow
       </button>
-      <button onClick={dismiss}>Not now</button>
+      <button data-hint-detail="Dismiss this call and keep your own view." onClick={dismiss}>
+        Not now
+      </button>
     </div>
   );
 }
@@ -212,7 +220,11 @@ export function Participants({
         <li>
           <ParticipantDot color={own?.user?.color} />
           {own?.user?.name ?? "You"} (you)
-          <button className="text-action" onClick={onEditName}>
+          <button
+            className="text-action"
+            data-hint-detail="Pick the name other people in the room see for you."
+            onClick={onEditName}
+          >
             Change your name
           </button>
         </li>
@@ -224,6 +236,7 @@ export function Participants({
               <button
                 className="text-action"
                 aria-label={`Follow ${state.user?.name ?? "Guest"}`}
+                data-hint-detail="Your view follows this person's until you stop following."
                 onClick={() => {
                   followPeer(editor, session, clientId);
                   onClose();
@@ -238,6 +251,7 @@ export function Participants({
       {peers.length > 0 && (
         <button
           className="text-action"
+          data-hint-detail="Ask everyone else here to follow your view; each can accept or decline."
           onClick={() => {
             callEveryone(session);
             onClose();

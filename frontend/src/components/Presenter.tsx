@@ -31,8 +31,6 @@ export function PresenterStage({
   useSyncExternalStore(editor.subscribeView, editor.viewSnapshot);
   const { presenter } = editor;
   const slide = presenter.slide();
-  const total = presenter.slides().length;
-  const index = presenter.index();
   const mounted = useRef(false);
   // The chrome has just gone, or the notes changed the room left for the slide: fit it again.
   useLayoutEffect(() => {
@@ -66,35 +64,61 @@ export function PresenterStage({
   return (
     <div className="presenter-stage" data-testid="presenter">
       <StageMask editor={editor} />
-      <div className="presenter-bar" role="toolbar" aria-label="Presentation">
-        <button aria-label="Previous slide" disabled={index <= 1} onClick={() => presenter.go(-1)}>
-          <ChevronLeft size={18} />
-        </button>
-        <span data-testid="slide-position">
-          {index} / {total}
-        </span>
-        <button aria-label="Next slide" disabled={index >= total} onClick={() => presenter.go(1)}>
-          <ChevronRight size={18} />
-        </button>
-        <span className="presenter-divider" />
-        <button
-          aria-label="Speaker notes"
-          data-hint="Speaker notes"
-          aria-pressed={notes}
-          onClick={onToggleNotes}
-        >
-          <NotebookText size={17} />
-        </button>
-        <FullscreenButton />
-        <AnnotationVisibility editor={editor} />
-        <button
-          aria-label="Leave presentation"
-          data-hint="Leave presentation (Escape)"
-          onClick={() => presenter.stop()}
-        >
-          <X size={18} />
-        </button>
-      </div>
+      <PresenterBar editor={editor} notes={notes} onToggleNotes={onToggleNotes} />
+    </div>
+  );
+}
+
+/** Moves through the deck, reads the notes and leaves. */
+function PresenterBar({
+  editor,
+  notes,
+  onToggleNotes,
+}: Readonly<{ editor: EditorController; notes: boolean; onToggleNotes: () => void }>) {
+  const { presenter } = editor;
+  const total = presenter.slides().length;
+  const index = presenter.index();
+  return (
+    <div className="presenter-bar" role="toolbar" aria-label="Presentation">
+      <button
+        aria-label="Previous slide"
+        data-hint-detail="Move the stage back to the slide before this one."
+        disabled={index <= 1}
+        onClick={() => presenter.go(-1)}
+      >
+        <ChevronLeft size={18} />
+      </button>
+      <span data-testid="slide-position">
+        {index} / {total}
+      </span>
+      <button
+        aria-label="Next slide"
+        data-hint-detail="Move the stage on to the slide after this one."
+        disabled={index >= total}
+        onClick={() => presenter.go(1)}
+      >
+        <ChevronRight size={18} />
+      </button>
+      <span className="presenter-divider" />
+      <button
+        aria-label="Speaker notes"
+        data-hint="Speaker notes"
+        data-hint-detail="Show or hide this slide's comments beside the stage as your notes."
+        aria-pressed={notes}
+        onClick={onToggleNotes}
+      >
+        <NotebookText size={17} />
+      </button>
+      <FullscreenButton />
+      <AnnotationVisibility editor={editor} />
+      <button
+        aria-label="Leave presentation"
+        data-hint="Leave presentation (Escape)"
+        data-hint-detail="Stop presenting and return to editing the canvas."
+        onClick={() => presenter.stop()}
+      >
+        <X size={18} />
+      </button>
     </div>
   );
 }
@@ -104,7 +128,7 @@ function AnnotationVisibility({ editor }: Readonly<{ editor: EditorController }>
     <button
       aria-label="Show annotations"
       data-hint="Show annotations"
-      data-hint-detail="Show or hide annotations in your view only. Other participants keep their own setting."
+      data-hint-detail="Show or hide markup over the slides, in your view only."
       aria-pressed={editor.drawing.visible}
       onClick={() => editor.drawing.toggle()}
     >
@@ -129,7 +153,13 @@ function FullscreenButton() {
     else document.documentElement.requestFullscreen?.().catch(ignore);
   };
   return (
-    <button aria-label="Full screen" data-hint="Full screen" aria-pressed={full} onClick={toggle}>
+    <button
+      aria-label="Full screen"
+      data-hint="Full screen"
+      data-hint-detail="Let the presentation fill the whole screen, or return to the browser window."
+      aria-pressed={full}
+      onClick={toggle}
+    >
       {full ? <Minimize size={17} /> : <Maximize size={17} />}
     </button>
   );
@@ -169,7 +199,12 @@ export function PresenterNotes({
     <aside className="presenter-notes" aria-label="Speaker notes" data-testid="presenter-notes">
       <header>
         <h3>{slide.name || "Speaker notes"}</h3>
-        <button className="icon-action" aria-label="Close speaker notes" onClick={onClose}>
+        <button
+          className="icon-action"
+          aria-label="Close speaker notes"
+          data-hint-detail="Hide the notes so the slide gets the whole stage."
+          onClick={onClose}
+        >
           <X size={16} />
         </button>
       </header>

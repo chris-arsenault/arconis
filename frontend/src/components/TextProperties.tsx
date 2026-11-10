@@ -36,7 +36,10 @@ export function TextProperties({
       <div className="text-box-controls" data-text-tools="true">
         <div className="text-box-main">
           <FontControl value={value("font", "sans")} change={change} />
-          <label htmlFor={fontId}>
+          <label
+            htmlFor={fontId}
+            data-hint-detail="Set the text size for the selected objects; arrow keys step it by 1."
+          >
             <NumericInput
               id={fontId}
               label="Font size"
@@ -49,6 +52,7 @@ export function TextProperties({
             <input
               type="color"
               aria-label="Text color"
+              data-hint-detail="Color all the text in the selected objects."
               value={String(value("textColor", "#283249") ?? "#283249")}
               onChange={(event) => change({ textColor: event.target.value })}
             />
@@ -80,10 +84,13 @@ function SpacingControls({
 }>) {
   return (
     <details>
-      <summary>Spacing and sizing</summary>
+      <summary data-hint-detail="Show line height, paragraph spacing, padding and text highlight settings.">
+        Spacing and sizing
+      </summary>
       <div className="text-box-controls">
         <NumericLook
           label="Line height"
+          detail="Set the distance between lines as a multiple of the text size."
           value={value("lineHeight", 1.35)}
           property="lineHeight"
           positive
@@ -91,6 +98,7 @@ function SpacingControls({
         />
         <NumericLook
           label="Paragraph spacing"
+          detail="Set the extra gap between paragraphs, in multiples of the text size."
           value={value("paragraphGap", 0.5)}
           property="paragraphGap"
           positive={false}
@@ -98,6 +106,7 @@ function SpacingControls({
         />
         <NumericLook
           label="Text padding"
+          detail="Set the space between the text and the edges of its object."
           value={value("padding", 8)}
           property="padding"
           positive={false}
@@ -108,11 +117,16 @@ function SpacingControls({
           <input
             type="color"
             aria-label="Text highlight"
+            data-hint-detail="Paint a background color behind the text of the selected objects."
             value={String(value("textHighlight", "#fff0ad") ?? "#fff0ad")}
             onChange={(event) => change({ textHighlight: event.target.value })}
           />
         </label>
-        <button type="button" onClick={() => change({ textHighlight: undefined })}>
+        <button
+          type="button"
+          data-hint-detail="Remove the background color behind the text."
+          onClick={() => change({ textHighlight: undefined })}
+        >
           Clear text highlight
         </button>
         {children}
@@ -130,6 +144,7 @@ function FontControl({
     <label>
       <select
         aria-label="Text font"
+        data-hint-detail="Set the typeface for all the text in the selected objects."
         value={font ?? ""}
         onChange={(event) => change({ font: event.target.value as TextFont })}
       >
@@ -161,6 +176,7 @@ function TextToggles({
             key={key}
             type="button"
             aria-label={label}
+            data-hint-detail="Turn this style on or off for all the text in the selected objects."
             aria-pressed={on ?? "mixed"}
             onClick={() => change({ [key]: !on })}
           >
@@ -182,6 +198,7 @@ function TextPosition({
   return (
     <select
       aria-label="Text position"
+      data-hint-detail="Place the text within its object, from top left to bottom right."
       value={current}
       onChange={(event) => {
         const [vertical, horizontal] = event.target.value.split("-") as [VerticalAlign, Align];
@@ -202,12 +219,14 @@ function TextPosition({
 
 function NumericLook({
   label,
+  detail,
   value,
   property,
   positive,
   change,
 }: Readonly<{
   label: string;
+  detail: string;
   value: unknown;
   property: "lineHeight" | "paragraphGap" | "padding";
   positive: boolean;
@@ -217,7 +236,7 @@ function NumericLook({
   const increment = { lineHeight: 0.05, paragraphGap: 0.1, padding: 1 }[property];
   const inputId = useId();
   return (
-    <label htmlFor={inputId}>
+    <label htmlFor={inputId} data-hint-detail={detail}>
       {label} <small>{unit}</small>
       <NumericInput
         id={inputId}
@@ -251,6 +270,7 @@ function TextSizing({
           <input
             type="checkbox"
             aria-label="Grow text height"
+            data-hint-detail="Keep the text box exactly as tall as its text while anyone types."
             checked={Boolean(growing)}
             onChange={(event) => change({ textFit: event.target.checked ? "height" : "fixed" })}
           />
@@ -258,7 +278,11 @@ function TextSizing({
         </label>
       )}
       {selected.every(textCanResize) && (
-        <button type="button" onClick={onFit}>
+        <button
+          type="button"
+          data-hint-detail="Change each selected object's height to match its text."
+          onClick={onFit}
+        >
           Fit to text
         </button>
       )}

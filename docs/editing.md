@@ -13,8 +13,28 @@ panel starts hidden; choosing a task opens it over the canvas. On phones and tab
 stencil closes the panel for placement. **Properties** opens the selected object's controls;
 tools and properties share that space so the canvas stays available.
 
-Hover or focus a control for contextual help; on touch screens, hold it to read the help without
-activating it. Escape dismisses the help before affecting the canvas selection.
+The **help zone** at the foot of the left panel names the control under the pointer or keyboard
+focus and says in one sentence what it does. When the panel is hidden, the help appears below the
+header while you point at a control. On touch screens, hold a control to read its help without
+activating it. **Settings** can hide the help zone on this device.
+
+**Help** in the header, or **?**, opens the help reference beside the canvas: these guides,
+searchable and linked to one another, and every command with its shortcut. Pressing **?** while
+pointing at a panel or header control opens the guide for that area. The reference stays open while
+you work, and Escape closes it.
+
+The first time you open a room in a browser, Arconis offers a short tour. Each step highlights one
+area of the workspace, from the canvas and tools to slides, settings and help, and the tour changes
+nothing in the room. **Take the tour** in the help reference runs it again. Arrow keys or **Next**
+and **Back** move through it; Escape ends it.
+
+**Practice in a sample room**, also in the help reference, opens a new room on this device with a
+small diagram and a slide. Each step waits for you to do what it describes: edit a note, connect two
+objects, mark up the diagram and present the slide. Nothing in the practice room leaves your browser.
+
+Information about content and people, such as who is in the room, an object's tags or the full
+text of a clipped label, appears in a small tooltip beside it. Escape closes the tooltip before
+affecting the canvas selection.
 
 Open **Settings** in the header to control your canvas display. Comments, tags, markers,
 relationships and task/lock indicators each offer **Show**, **Selected** and **Hide**. These
@@ -81,7 +101,7 @@ style** (Ctrl/Command Alt V) applies them to the selection in place of its own. 
 default for new …** makes the selected object's look what new objects of its kind start with
 on this page.
 
-Ordinary selection reaches workspace objects beneath markup. Use [Lasso](drawing.md#select-transform-and-erase-ink)
+Ordinary selection reaches workspace objects beneath markup. Use [Lasso](drawing.md#select-edit-and-transfer-ink)
 for annotation paths. Use **Properties** to open the panel in the narrow layout.
 
 ## Pan, zoom and grid

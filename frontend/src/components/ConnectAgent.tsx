@@ -19,7 +19,8 @@ function CopyField({ label, value }: Readonly<{ label: string; value: string }>)
       <button
         className="icon-action"
         aria-label={`Copy the ${label.toLowerCase()}`}
-        title={copied ? "Copied" : "Copy"}
+        data-hint-detail="Put this value on your clipboard to paste into the assistant's connector settings."
+        data-tip={copied ? "Copied" : undefined}
         onClick={() => void navigator.clipboard.writeText(value).then(() => setCopied(true))}
       >
         <Copy size={13} />

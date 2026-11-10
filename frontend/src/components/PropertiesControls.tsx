@@ -49,6 +49,7 @@ export function PropertiesControls({
         <input
           className="object-subtitle property-key-input"
           aria-label="New property name"
+          data-hint-detail="Name a value to keep on this object; {name} in its text shows the value."
           placeholder="name"
           aria-invalid={invalidName || undefined}
           aria-describedby={invalidName ? feedback : undefined}
@@ -58,11 +59,17 @@ export function PropertiesControls({
         <input
           className="object-subtitle property-value"
           aria-label="New property value"
+          data-hint-detail="The value stored under the new name; hovering the object lists its values."
           placeholder="value"
           value={value}
           onChange={(event) => setValue(event.target.value)}
         />
-        <button className="icon-action" aria-label="Add property" disabled={!isId(key.trim())}>
+        <button
+          className="icon-action"
+          aria-label="Add property"
+          data-hint-detail="Store this name and value on the object for everyone in the room."
+          disabled={!isId(key.trim())}
+        >
           <Plus size={13} />
         </button>
       </form>
@@ -97,6 +104,7 @@ function PropertyRow({
       <button
         className="icon-action"
         aria-label={`Remove property ${name}`}
+        data-hint-detail="Delete this named value from the object."
         onClick={() => {
           const next = { ...properties };
           delete next[name];

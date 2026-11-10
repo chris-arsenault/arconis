@@ -8,11 +8,15 @@ function PasswordForm({
   label,
   action,
   note,
+  fieldDetail,
+  actionDetail,
   onSubmit,
 }: Readonly<{
   label: string;
   action: string;
   note: string;
+  fieldDetail: string;
+  actionDetail: string;
   onSubmit: (password: string) => Promise<void>;
 }>) {
   const [password, setPassword] = useState("");
@@ -25,7 +29,7 @@ function PasswordForm({
         void onSubmit(password).finally(() => setBusy(false));
       }}
     >
-      <label>
+      <label data-hint-detail={fieldDetail}>
         {label}
         <input
           type="password"
@@ -35,7 +39,11 @@ function PasswordForm({
         />
       </label>
       <p className="password-note">{note}</p>
-      <button className="primary" disabled={busy || password.length < MIN_PASSWORD_LENGTH}>
+      <button
+        className="primary"
+        disabled={busy || password.length < MIN_PASSWORD_LENGTH}
+        data-hint-detail={actionDetail}
+      >
         {busy ? "Working…" : action}
       </button>
     </form>
@@ -77,6 +85,8 @@ export function PasswordGate({
             label="Choose a password"
             action="Create room"
             note="Everything in this room is encrypted with it, in this browser. Nothing can recover a forgotten password, and the room would be lost."
+            fieldDetail="The password everyone needs to open this room, at least 8 characters."
+            actionDetail="Lock the room with this password and open it."
             onSubmit={(password) => lock.choose(password)}
           />
         )}
@@ -85,6 +95,8 @@ export function PasswordGate({
             label="Room password"
             action="Open room"
             note="At least 8 characters."
+            fieldDetail="Type the password someone in this room shared with you."
+            actionDetail="Unlock the room's contents with this password."
             onSubmit={(password) => lock.enter(password)}
           />
         )}
@@ -99,7 +111,11 @@ export function PasswordGate({
             {lock.error}
           </p>
         )}
-        <button type="button" onClick={onCancel}>
+        <button
+          type="button"
+          data-hint-detail="Leave this password room without opening it."
+          onClick={onCancel}
+        >
           Cancel joining
         </button>
       </section>
@@ -118,6 +134,7 @@ export function ChangePassword({ session }: Readonly<{ session: RoomSession }>) 
         className="icon-button"
         aria-label="Change room password"
         data-hint="Change room password"
+        data-hint-detail="Set a new password for joining; people already in the room stay in."
         onClick={() => setOpen(true)}
       >
         <KeyRound size={18} />
@@ -129,12 +146,19 @@ export function ChangePassword({ session }: Readonly<{ session: RoomSession }>) 
               label="New password"
               action="Change password"
               note="People already in the room stay in. Anyone joining later needs the new one."
+              fieldDetail="The password anyone joining from now on must enter, at least 8 characters."
+              actionDetail="Replace the room password for everyone who joins later."
               onSubmit={async (password) => {
                 await lock.changePassword(password);
                 setOpen(false);
               }}
             />
-            <button onClick={() => setOpen(false)}>Cancel</button>
+            <button
+              data-hint-detail="Keep the current password and close this dialog."
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </button>
           </section>
         </div>
       )}

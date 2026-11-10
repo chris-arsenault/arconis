@@ -61,7 +61,8 @@ sticky notes and freehand drawing in one shared document.
 | `frontend/src/editor/`        | maxGraph projection, mutation capture, input, rendering and drag previews                    |
 | `frontend/src/collaboration/` | Peer protocol, frames, persistence, presence and transports                                  |
 | `frontend/src/components/`    | UI composition, focused controls, selection frame and canonical browser bindings             |
-| `frontend/src/protocol/`      | Runtime-neutral account, room-address and MCP metadata contracts                              |
+| `frontend/src/help/`          | Help zone state, bundled user guides for the reference, and the orientation tour             |
+| `frontend/src/protocol/`      | Runtime-neutral account, room-address and MCP metadata contracts                             |
 | `frontend/src/account/`       | Browser accounts, saved-copy adapter/codec and autosave coordination                         |
 | `frontend/src/relay/`         | The relay process, its MCP endpoint and its control Lambda, bundled separately from the site |
 | `infrastructure/terraform/`   | Relay, control Lambda and Ahara website deployment                                           |

@@ -1,0 +1,330 @@
+/* The help reference reads beside the canvas, over the property panel, without blocking it. */
+.help-reference {
+  position: absolute;
+  z-index: 40;
+  inset: 0 0 0 auto;
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px #1118271f;
+  font-size: 13px;
+}
+.help-reference > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 6px;
+}
+.help-reference > header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.help-reference > input {
+  margin: 4px 14px 10px;
+  padding: 7px 10px;
+}
+.help-body:focus {
+  outline: none;
+}
+.help-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden auto;
+  padding: 0 14px 20px;
+  border-top: 1px solid var(--line);
+}
+.help-loading,
+.help-empty {
+  color: var(--text-soft);
+  padding: 16px 0;
+}
+.help-start {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+}
+.help-start button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;
+  color: var(--pressed-text);
+}
+.help-guide h3 {
+  margin: 12px 0 2px;
+  font-size: 13px;
+}
+.help-guide ul,
+.help-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.help-reference nav button,
+.help-results button,
+.help-back {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 4px 6px;
+  border-radius: 5px;
+}
+.help-guide h3 button {
+  font-weight: 600;
+}
+.help-guide li button {
+  color: var(--text-soft);
+}
+.help-reference nav button:hover,
+.help-results button:hover,
+.help-back:hover {
+  background: var(--hover);
+}
+.help-results li {
+  border-bottom: 1px solid var(--line);
+}
+.help-results button {
+  display: grid;
+  gap: 2px;
+  padding: 10px 6px;
+}
+.help-results small,
+.help-crumb {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.help-results span {
+  color: var(--text-soft);
+  font-size: 12px;
+}
+.help-back {
+  display: inline-flex;
+  width: auto;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  color: var(--text-soft);
+}
+.help-crumb {
+  margin: 10px 0 0;
+}
+.help-article h2 {
+  font-size: 18px;
+  margin: 6px 0 10px;
+}
+.help-markdown {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.help-markdown h2 {
+  font-size: 18px;
+  margin: 6px 0 10px;
+}
+.help-markdown h3 {
+  font-size: 14px;
+  margin: 18px 0 6px;
+}
+.help-markdown img {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.help-markdown table {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+}
+.help-markdown th,
+.help-markdown td {
+  border: 1px solid var(--line);
+  padding: 4px 6px;
+  text-align: left;
+}
+.help-markdown code,
+.help-commands kbd {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 12px;
+  background: var(--hover);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.help-markdown pre {
+  overflow-x: auto;
+  background: var(--hover);
+  padding: 8px;
+  border-radius: 6px;
+}
+.help-markdown pre code {
+  background: none;
+  padding: 0;
+}
+.help-markdown a {
+  color: var(--pressed-text);
+}
+.help-markdown a[data-help-outside] {
+  color: inherit;
+  text-decoration: none;
+  cursor: text;
+}
+.help-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.help-pager button {
+  width: auto !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pressed-text);
+}
+.help-pager button:last-child {
+  margin-left: auto;
+}
+.help-commands h3 {
+  margin: 18px 0 6px;
+  font-size: 13px;
+}
+.help-commands dl {
+  margin: 0;
+}
+.help-commands dl > div {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.help-commands dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-weight: 600;
+}
+.help-commands dd {
+  margin: 2px 0 0;
+  color: var(--text-soft);
+}
+
+/* A first visit's offer waits in a corner of the canvas without covering the work. */
+.orientation-offer {
+  position: absolute;
+  z-index: 30;
+  left: 16px;
+  bottom: 64px;
+  display: flex;
+  gap: 12px;
+  width: min(340px, calc(100% - 32px));
+  padding: 14px 16px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 32px #11182733;
+  font-size: 13px;
+}
+.orientation-offer > svg {
+  flex: none;
+  color: var(--pressed-text);
+  margin-top: 2px;
+}
+.orientation-offer p {
+  margin: 4px 0 10px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+.orientation-actions {
+  display: flex;
+  gap: 8px;
+}
+.orientation-actions .primary {
+  background: var(--pressed-text);
+  border-color: var(--pressed-text);
+  color: var(--panel);
+}
+
+/*
+ * A highlighted canvas stays usable during the hands-on tutorial. Driver.js turns pointer events
+ * on for everything inside a highlight, which would let label layers swallow clicks; canvas labels
+ * keep their own setting, as outside a tutorial.
+ */
+.driver-active [data-help-id="canvas"] foreignObject {
+  pointer-events: none;
+}
+.driver-active [data-help-id="canvas"] foreignObject * {
+  pointer-events: inherit;
+}
+
+/* The orientation's popups take the workspace's own colours in light and dark modes. */
+.driver-popover.arconis-tour {
+  font-family: inherit;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 32px #11182740;
+  max-width: 340px;
+  padding: 16px;
+}
+.arconis-tour .driver-popover-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.arconis-tour .driver-popover-description {
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.arconis-tour .driver-popover-progress-text {
+  color: var(--muted);
+}
+.arconis-tour .driver-popover-footer-btn {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 12px;
+  text-shadow: none;
+}
+.arconis-tour .driver-popover-footer-btn:hover {
+  background: var(--hover);
+}
+.arconis-tour .driver-popover-next-btn {
+  background: var(--pressed-text);
+  border-color: var(--pressed-text);
+  color: var(--panel);
+}
+.arconis-tour .driver-popover-next-btn:hover {
+  background: var(--pressed-text);
+  opacity: 0.9;
+}
+.arconis-tour .driver-popover-footer-btn:focus-visible,
+.arconis-tour .driver-popover-close-btn:focus-visible {
+  outline: 2px solid var(--pressed-text);
+  outline-offset: 2px;
+}
+.arconis-tour .driver-popover-close-btn {
+  color: var(--muted);
+}
+.arconis-tour .driver-popover-arrow-side-left {
+  border-left-color: var(--panel);
+}
+.arconis-tour .driver-popover-arrow-side-right {
+  border-right-color: var(--panel);
+}
+.arconis-tour .driver-popover-arrow-side-top {
+  border-top-color: var(--panel);
+}
+.arconis-tour .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--panel);
+}

@@ -2,15 +2,6 @@
 
 Planned-but-not-built work. Each item is a positive assertion of future-state behavior.
 
-## Help and tutorials
-
-- Offer guided tutorials in popup windows, highlighting the relevant screen areas as each feature
-  is explained.
-- Provide a Help button opening an encyclopedia-style in-app reference for features, commands
-  and workflows.
-- Reserve a dedicated help zone in the left rail that shows one sentence about the hovered
-  control or feature, following Ableton Live's contextual-help approach.
-
 ## Agents
 
 - Let a person ask an assistant from the canvas, with one key on a selected topic sending

@@ -23,7 +23,12 @@ export function MarkdownPreview({
     <div className="markdown-preview" aria-label="Markdown preview">
       <div ref={ref} className="canvas-markdown" dir="auto" dangerouslySetInnerHTML={markup} />
       {blocks.map((block, index) => (
-        <button key={index} type="button" onClick={() => void copy(block.source)}>
+        <button
+          key={index}
+          type="button"
+          data-hint-detail="Copy this code block's contents, without its fences, to the clipboard."
+          onClick={() => void copy(block.source)}
+        >
           Copy code {index + 1}
           {block.language && ` (${block.language})`}
         </button>

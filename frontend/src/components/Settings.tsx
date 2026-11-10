@@ -16,6 +16,7 @@ import {
   type IndicatorType,
   type IndicatorVisibility,
 } from "../editor/displayPreferences";
+import { HelpZoneToggle } from "./HelpZone";
 import "./settings.css";
 
 const INDICATORS: { type: IndicatorType; label: string; icon: LucideIcon }[] = [
@@ -25,11 +26,20 @@ const INDICATORS: { type: IndicatorType; label: string; icon: LucideIcon }[] = [
   { type: "relationships", label: "Relationships", icon: GitBranch },
   { type: "status", label: "Tasks and locks", icon: CheckSquare },
 ];
-const VISIBILITY: { value: IndicatorVisibility; label: string }[] = [
-  { value: "show", label: "Show" },
-  { value: "selected", label: "Selected" },
-  { value: "hide", label: "Hide" },
+const VISIBILITY: { value: IndicatorVisibility; label: string; detail: string }[] = [
+  { value: "show", label: "Show", detail: "Show these indicators on every object in your view." },
+  {
+    value: "selected",
+    label: "Selected",
+    detail: "Show these indicators only on objects you select.",
+  },
+  {
+    value: "hide",
+    label: "Hide",
+    detail: "Hide these indicators; their details stay in Properties.",
+  },
 ];
+const CLOSE_DETAIL = "Close settings; your choices are already applied.";
 
 export function Settings({ editor }: Readonly<{ editor: EditorController }>) {
   const [open, setOpen] = useState(false);
@@ -43,6 +53,8 @@ export function Settings({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         ref={trigger}
         className="settings-button icon-action"
+        data-help-id="settings"
+        data-help-topic="editing"
         aria-label="Settings"
         aria-haspopup="dialog"
         data-hint="Settings"
@@ -82,7 +94,12 @@ function SettingsDialog({
     >
       <header>
         <h2 id="settings-title">Settings</h2>
-        <button className="icon-action" aria-label="Close settings" onClick={onClose}>
+        <button
+          className="icon-action"
+          aria-label="Close settings"
+          data-hint-detail={CLOSE_DETAIL}
+          onClick={onClose}
+        >
           <X size={18} />
         </button>
       </header>
@@ -90,7 +107,7 @@ function SettingsDialog({
         <h3>Canvas display</h3>
         <p>Changes apply to your view on this device.</p>
         <div className="settings-toggles">
-          <label>
+          <label data-hint-detail="Show or hide the markup drawn over the canvas, in your view only.">
             <input
               type="checkbox"
               checked={editor.drawing.visible}
@@ -98,7 +115,7 @@ function SettingsDialog({
             />
             Show markup
           </label>
-          <label>
+          <label data-hint-detail="Show a grid in your view; while it shows, moved objects snap to it.">
             <input
               type="checkbox"
               checked={editor.grid.visible}
@@ -109,6 +126,7 @@ function SettingsDialog({
             />
             Show grid and snap
           </label>
+          <HelpZoneToggle />
         </div>
         <h3>Object indicators</h3>
         <p>
@@ -117,7 +135,9 @@ function SettingsDialog({
         <IndicatorSettings preferences={preferences} />
       </div>
       <footer>
-        <button onClick={onClose}>Done</button>
+        <button data-hint-detail={CLOSE_DETAIL} onClick={onClose}>
+          Done
+        </button>
       </footer>
     </dialog>
   );
@@ -130,8 +150,8 @@ function IndicatorSettings({ preferences }: Readonly<{ preferences: DisplayPrefe
         <Icon size={16} /> {label}
       </span>
       <div className="indicator-options" role="radiogroup" aria-labelledby={`indicator-${type}`}>
-        {VISIBILITY.map(({ value, label: option }) => (
-          <label key={value}>
+        {VISIBILITY.map(({ value, label: option, detail }) => (
+          <label key={value} data-hint-detail={detail}>
             <input
               type="radio"
               name={`indicator-${type}`}

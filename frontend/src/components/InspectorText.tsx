@@ -20,6 +20,7 @@ export function ObjectText({ editor, item }: Readonly<{ editor: EditorController
         ref={textRef}
         className="object-text"
         aria-label="Object text"
+        data-hint-detail="The Markdown behind this object's text; edits show on the canvas for everyone."
         rows={3}
         onKeyDown={(event) =>
           markdownKey(event, (element, edit) => editSource(canvas, item.id, element, edit))
@@ -54,6 +55,7 @@ export function SubtitleField({
       className="object-subtitle"
       aria-label="Object subtitle"
       placeholder="Subtitle"
+      data-hint-detail="A second line of plain text drawn under the object's bold name."
       value={value}
       onChange={(event) => {
         edit.start();

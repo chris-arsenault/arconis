@@ -26,12 +26,14 @@ export function Section({ title, children }: Readonly<{ title: string; children:
 function SelectRow({
   title,
   label,
+  detail,
   value,
   options,
   onChange,
 }: Readonly<{
   title: string;
   label: string;
+  detail: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
@@ -39,7 +41,12 @@ function SelectRow({
   return (
     <Fragment>
       <span>{title}</span>
-      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+      <select
+        aria-label={label}
+        data-hint-detail={detail}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -68,6 +75,7 @@ export function ConnectionControls({
         <SelectRow
           title="Type"
           label="Line type"
+          detail="Draw this line with square corners, straight diagonals or curves."
           value={look.path ?? defaultPath}
           options={PATHS}
           onChange={(path) => onLook({ path: path as LinePath })}
@@ -75,6 +83,7 @@ export function ConnectionControls({
         <SelectRow
           title="Start"
           label="Connector start arrow"
+          detail="Choose the arrowhead, if any, where the line leaves its first object."
           value={look.startArrow ?? "none"}
           options={ARROWS}
           onChange={(arrow) => onLook({ startArrow: arrow as Arrow })}
@@ -82,12 +91,17 @@ export function ConnectionControls({
         <SelectRow
           title="End"
           label="Connector arrow"
+          detail="Choose the arrowhead, if any, where the line arrives at its second object."
           value={look.arrow ?? "arrow"}
           options={ARROWS}
           onChange={(arrow) => onLook({ arrow: arrow as Arrow })}
         />
       </div>
-      <button className="text-action" onClick={onRoute}>
+      <button
+        className="text-action"
+        data-hint-detail="Add bends so the line goes around the objects between its ends."
+        onClick={onRoute}
+      >
         <Route size={14} /> Route around items
       </button>
     </Section>

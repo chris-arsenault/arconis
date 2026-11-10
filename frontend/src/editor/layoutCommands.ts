@@ -58,43 +58,55 @@ const heads = ({ selected, items }: CommandContext) =>
   selected.length === 1 && branchChildren(items, selected[0].id).length > 0;
 const severalBoxes = ({ selected }: CommandContext) => selected.filter(isBox).length >= 2;
 
-const TIDIES: { id: string; label: string; options: TreeLayoutOptions; keywords: string[] }[] = [
+const TIDIES: {
+  id: string;
+  label: string;
+  help: string;
+  options: TreeLayoutOptions;
+  keywords: string[];
+}[] = [
   {
     id: "structure.tidyRight",
     label: "Tidy branches to the right",
+    help: "Lay out the selected tree with every branch growing right of its root.",
     options: { direction: "right", compact: false, sorted: false },
     keywords: ["layout", "tree"],
   },
   {
     id: "structure.tidyLeft",
     label: "Tidy branches to the left",
+    help: "Lay out the selected tree with every branch growing left of its root.",
     options: { direction: "left", compact: false, sorted: false },
     keywords: ["layout", "tree"],
   },
   {
     id: "structure.tidyDown",
     label: "Tidy branches downward",
+    help: "Lay out the selected tree top-down, like an org chart.",
     options: { direction: "down", compact: false, sorted: false },
     keywords: ["layout", "tree", "org chart", "top-down"],
   },
   {
     id: "structure.tidyCompact",
     label: "Tidy branches compactly",
+    help: "Lay out the selected tree on both sides with tighter gaps between branches.",
     options: { direction: "sides", compact: true, sorted: false },
     keywords: ["layout", "tree", "dense"],
   },
   {
     id: "structure.sort",
     label: "Sort branches by name",
+    help: "Lay out the selected tree with its branches in alphabetical order.",
     options: { direction: "sides", compact: false, sorted: true },
     keywords: ["alphabetical", "order"],
   },
 ];
 
 export const LAYOUT_COMMANDS: Command[] = [
-  ...TIDIES.map(({ id, label, options, keywords }): Command => ({
+  ...TIDIES.map(({ id, label, help, options, keywords }): Command => ({
     id,
     label,
+    help,
     group: "structure",
     keywords,
     when: heads,
@@ -103,6 +115,7 @@ export const LAYOUT_COMMANDS: Command[] = [
   {
     id: "structure.balance",
     label: "Balance branches on both sides",
+    help: "Alternate the root's branches between its two sides, then tidy the tree.",
     group: "structure",
     keywords: ["layout", "tree", "mind map"],
     when: heads,
@@ -118,6 +131,7 @@ export const LAYOUT_COMMANDS: Command[] = [
   {
     id: "arrange.grid",
     label: "Tidy into a grid",
+    help: "Lay the selected loose objects out in rows, keeping their reading order.",
     group: "arrange",
     keywords: ["rows", "layout", "notes"],
     when: severalBoxes,
@@ -130,6 +144,7 @@ export const LAYOUT_COMMANDS: Command[] = [
   {
     id: "arrange.layered",
     label: "Lay out as a flow",
+    help: "Rank the selected objects left to right along the lines between them.",
     group: "arrange",
     keywords: ["layered", "graph", "diagram", "left to right", "dagre"],
     when: severalBoxes,

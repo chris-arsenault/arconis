@@ -22,6 +22,8 @@ import { roomTags } from "../editor/tags";
 import { toggled } from "../editor/filter";
 import { showFilter } from "../editor/ui";
 import { isInkTool } from "../editor/drawingTools";
+import { HelpZone } from "./HelpZone";
+import { PANEL_DETAILS, PANEL_TOPICS, TOOL_DETAILS, type Panel } from "./railHelp";
 
 const TOOL_NAMES: Record<string, string> = { select: "Select", pan: "Pan", connect: "Connect" };
 const SECTION_DEFAULTS = {
@@ -32,7 +34,6 @@ const SECTION_DEFAULTS = {
 };
 
 type Sections = ReturnType<typeof useRailSections>;
-type Panel = "add" | "draw" | "layers" | "explore" | "slides";
 const PANELS = [
   { id: "add", label: "Add", icon: Shapes },
   { id: "draw", label: "Draw", icon: Pencil },
@@ -79,6 +80,34 @@ function usePanel(
   return { panel: state.panel, expanded, choose, toggle };
 }
 
+/** Select, Pan and Connect stay above every panel. */
+function ToolRow({ editor }: Readonly<{ editor: EditorController }>) {
+  return (
+    <div
+      className="tool-row"
+      role="toolbar"
+      aria-label="Canvas tools"
+      data-help-id="rail-tools"
+      data-help-topic="editing#select-and-transform"
+    >
+      {TOOLS.filter((tool) => !isInkTool(tool.id)).map((tool) => (
+        <button
+          key={tool.id}
+          data-hint={tool.label}
+          data-hint-detail={TOOL_DETAILS[tool.id]}
+          aria-label={tool.label}
+          aria-pressed={editor.tool === tool.id}
+          className="tool"
+          onClick={() => editor.setTool(tool.id)}
+        >
+          <tool.icon size={17} />
+          <span>{TOOL_NAMES[tool.id]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function LeftRail({
   editor,
   compact = false,
@@ -95,22 +124,7 @@ export function LeftRail({
   const { panel, expanded, choose, toggle } = usePanel(editor, compact, shown, onExpand);
   return (
     <aside className="left-rail" aria-label="Tools and stencils" data-expanded={expanded}>
-      <div className="tool-row" role="toolbar" aria-label="Canvas tools">
-        {TOOLS.filter((tool) => !isInkTool(tool.id)).map((tool) => (
-          <button
-            key={tool.id}
-            data-hint={tool.label}
-            data-hint-detail="Select and move objects, pan the view, or connect two objects."
-            aria-label={tool.label}
-            aria-pressed={editor.tool === tool.id}
-            className="tool"
-            onClick={() => editor.setTool(tool.id)}
-          >
-            <tool.icon size={17} />
-            <span>{TOOL_NAMES[tool.id]}</span>
-          </button>
-        ))}
-      </div>
+      <ToolRow editor={editor} />
       <nav className="rail-tabs" aria-label="Workspace panels">
         {PANELS.map(({ id, label, icon: Icon }) => (
           <button
@@ -118,7 +132,10 @@ export function LeftRail({
             aria-label={label}
             aria-pressed={panel === id}
             aria-controls="rail-content"
+            data-help-id={`rail-${id}`}
+            data-help-topic={PANEL_TOPICS[id]}
             data-hint={id === "draw" ? "Draw (P) or Markup (M)" : label}
+            data-hint-detail={PANEL_DETAILS[id]}
             onClick={() => choose(id)}
           >
             <Icon size={18} />
@@ -126,16 +143,27 @@ export function LeftRail({
           </button>
         ))}
       </nav>
-      <button className="rail-collapse" aria-expanded={expanded} onClick={toggle}>
+      <button
+        className="rail-collapse"
+        aria-expanded={expanded}
+        data-hint-detail="Fold this panel away for more canvas, or bring it back."
+        onClick={toggle}
+      >
         {expanded ? "Hide panel" : "Show panel"}
       </button>
-      <div className="rail-content" id="rail-content">
+      <div
+        className="rail-content"
+        id="rail-content"
+        data-help-id="rail-content"
+        data-help-topic={PANEL_TOPICS[panel]}
+      >
         {panel === "add" && <StencilBrowser editor={editor} />}
         {panel === "draw" && <DrawingSection editor={editor} />}
         {panel === "layers" && <LayersPanel editor={editor} />}
         {panel === "explore" && <ExploreSection editor={editor} sections={sections} />}
         {panel === "slides" && <SlidesSection editor={editor} />}
       </div>
+      <HelpZone />
     </aside>
   );
 }
@@ -206,6 +234,7 @@ function ExploreSection({
         id="views"
         title="Saved views"
         count={views.length}
+        detail="Positions and zoom levels saved for everyone in this room."
         open={sections.open.views}
         onToggle={sections.toggle}
       >
@@ -227,6 +256,7 @@ function ExploreSection({
           id="history"
           title="History"
           count={steps}
+          detail="Your recent changes, which you can undo or redo back to any step."
           open={sections.open.history}
           onToggle={sections.toggle}
         >
@@ -245,7 +275,11 @@ function SlidesSection({ editor }: Readonly<{ editor: EditorController }>) {
         Frame parts of the canvas and present them in order.
       </PanelHeading>
       <div className="rail-panel-actions">
-        <button aria-pressed={editor.tool === "slide"} onClick={() => editor.setTool("slide")}>
+        <button
+          aria-pressed={editor.tool === "slide"}
+          data-hint-detail="Then click the canvas to place a slide frame where you want it."
+          onClick={() => editor.setTool("slide")}
+        >
           <Plus size={16} /> Add slide
         </button>
         <p className="rail-description">
@@ -285,6 +319,7 @@ function TagsSection({
       id="tags"
       title="Tags"
       count={tags.length}
+      detail="Every tag used in this room, with how many objects carry it."
       open={sections.open.tags}
       onToggle={sections.toggle}
     >
@@ -295,6 +330,7 @@ function TagsSection({
               className="rail-entry"
               aria-pressed={editor.filter.tags.includes(tag)}
               data-hint={`Show only what is tagged #${tag}`}
+              data-hint-detail="Filter the canvas to objects with this tag; choose it again to drop it."
               onClick={() => choose(tag)}
             >
               #{tag}
@@ -354,13 +390,19 @@ function Decks({
               className="rail-action deck-present"
               data-hint={`Present ${deck}`}
               aria-label={`Present ${deck}`}
+              data-hint-detail="Show this deck slide by slide with the editing tools hidden."
               onClick={() => onPresent(deck)}
             >
               <Play size={13} /> Present
             </button>
           </div>
           {slides.map((slide) => (
-            <button key={slide.id} className="rail-entry" onClick={() => onGo(slide.id)}>
+            <button
+              key={slide.id}
+              className="rail-entry"
+              data-hint-detail="Select this slide and move your view to it."
+              onClick={() => onGo(slide.id)}
+            >
               {slideEntry(slide)}
             </button>
           ))}

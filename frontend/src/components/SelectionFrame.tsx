@@ -126,12 +126,16 @@ function Frame({
             key={corner}
             className={`frame-handle ${corner}`}
             data-testid={`frame-${corner}`}
+            data-hint="Scale selection"
+            data-hint-detail="Drag to scale everything selected from the opposite corner; Shift keeps proportions."
             onPointerDown={(event) => track(editor, event, scaling(world, corner))}
           />
         ))}
       <span
         className="frame-rotate"
         data-testid="frame-rotate"
+        data-hint="Rotate selection"
+        data-hint-detail="Drag to turn everything selected around its center; Shift snaps to 15° steps."
         onPointerDown={(event) => track(editor, event, rotating(world, editor.worldPoint(event)))}
       />
     </div>

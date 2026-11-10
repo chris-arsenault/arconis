@@ -11,6 +11,7 @@ export function RailSection({
   open,
   onToggle,
   className = "",
+  detail,
   children,
 }: Readonly<{
   id: string;
@@ -19,6 +20,8 @@ export function RailSection({
   open: boolean;
   onToggle: (id: string, open: boolean) => void;
   className?: string;
+  /** The help sentence for the section's header: what the section holds. */
+  detail?: string;
   children: ReactNode;
 }>) {
   const toggled = (event: SyntheticEvent<HTMLDetailsElement>) =>
@@ -30,7 +33,7 @@ export function RailSection({
       onToggle={toggled}
       aria-label={title}
     >
-      <summary className="rail-summary">
+      <summary className="rail-summary" data-hint-detail={detail}>
         <span className="rail-title">{title}</span>
         {count > 0 && <span className="rail-count">{count}</span>}
       </summary>

@@ -264,6 +264,17 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   the canvas alone, in the same place in the tree so the editor lives on, `components/Presenter.tsx`
   masks everything outside the slide and takes the pointer, and slides project with no outline or
   label. The presentation skips templates and draws their copies at full strength.
+- **Help.** Help is per-viewer interface state, never document data. A control carries its own
+  help as `data-hint` (its name) and `data-hint-detail` (one sentence), and each command carries
+  `help` in the command table. `components/ContextHelp.tsx` follows hover, focus and touch-hold and
+  publishes the control under them to `help/zone.ts`, which `components/HelpZone.tsx` shows.
+  Information about content or people uses `data-tip` and floats beside its element. An area's
+  `data-help-topic` names its guide section, and `data-help-id` marks it for the orientation.
+  `help/guides.ts` bundles the user guides from `docs/` at build time and splits them at their
+  section headings for the reference; `help/orientation.ts` drives the tour with Driver.js and
+  records in browser storage that it was offered. `help/practice.ts` asks the app for a new
+  device-only room, imports a bundled sample canvas there, and advances each Driver.js step when
+  the editor's state shows the task done.
 
 ## Collaboration
 

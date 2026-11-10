@@ -13,6 +13,8 @@ import "./canvasObjectLink.css";
 
 type LinkRange = { start: Y.RelativePosition; end: Y.RelativePosition };
 
+const LINK_RESULT = "Link the text to this object; following the link later flies the view there.";
+
 /** Select a destination visually without leaving the source or losing its CRDT text selection. */
 export function CanvasObjectLink({
   editor,
@@ -73,7 +75,7 @@ export function CanvasObjectLink({
         aria-label="Insert canvas object link"
         aria-pressed={range !== null}
         data-hint="Link to a canvas object"
-        data-hint-detail="Select text, then click an object to link to it. Search is available for distant objects."
+        data-hint-detail="Link the selected text to an object you click; with no text selected, its name is inserted."
         onMouseDown={(event) => event.preventDefault()}
         onClick={begin}
       >
@@ -149,13 +151,21 @@ function ObjectLinkPanel({
     <div ref={ref} className="canvas-link-picker" role="group" aria-label="Choose link target">
       <div className="canvas-link-heading">
         <strong>Click an object to link to it</strong>
-        <button type="button" onClick={onClose}>
+        <button
+          type="button"
+          data-hint-detail="Stop picking a target and leave the text unlinked."
+          onClick={onClose}
+        >
           Cancel
         </button>
       </div>
       <p>Esc or right-click cancels. Middle-drag pans.</p>
       {!searching ? (
-        <button type="button" onClick={() => setSearching(true)}>
+        <button
+          type="button"
+          data-hint-detail="Find the target by name, tag or id instead of clicking it."
+          onClick={() => setSearching(true)}
+        >
           <Search size={13} /> Search objects
         </button>
       ) : (
@@ -179,6 +189,7 @@ function ObjectLinkSearch({
         type="search"
         role="combobox"
         aria-label="Search canvas objects"
+        data-hint-detail="Type a name, tag or id; Enter links the text to the highlighted object."
         placeholder="Name, tag or id"
         value={query}
         aria-expanded="true"
@@ -233,11 +244,18 @@ function ObjectLinkResults({
   return (
     <ul id={listId} role="listbox" aria-label="Objects to link to">
       {items.map((item, index) => (
-        <li key={item.id} id={`${listId}-${index}`} role="option" aria-selected={active === index}>
+        <li
+          key={item.id}
+          id={`${listId}-${index}`}
+          role="option"
+          aria-selected={active === index}
+          data-hint-detail={LINK_RESULT}
+        >
           <button
             type="button"
             data-hint={itemName(item)}
-            data-hint-detail={`${typeLabel(item)} · ${item.id}`}
+            data-hint-detail={LINK_RESULT}
+            data-tip={`${typeLabel(item)} · ${item.id}`}
             onMouseEnter={() => onActive(index)}
             onClick={() => onPick(item)}
           >

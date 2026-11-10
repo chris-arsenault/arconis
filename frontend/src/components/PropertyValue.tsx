@@ -22,6 +22,7 @@ export function PropertyValue({
       <input
         className="object-subtitle property-value"
         aria-label={`Value of ${name}`}
+        data-hint-detail="Change this value; Enter applies it and Escape returns to the current one."
         aria-describedby={conflict ? feedbackId : undefined}
         value={text}
         onChange={(event) =>

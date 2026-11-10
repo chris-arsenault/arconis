@@ -199,11 +199,16 @@ function ToolOptions({ props }: Readonly<{ props: Props }>) {
         <span>Sample into</span>
         <button
           aria-pressed={props.colorTarget === "color"}
+          data-hint-detail="Picked colors become the stroke color."
           onClick={() => actions.target("color")}
         >
           Stroke
         </button>
-        <button aria-pressed={props.colorTarget === "fill"} onClick={() => actions.target("fill")}>
+        <button
+          aria-pressed={props.colorTarget === "fill"}
+          data-hint-detail="Picked colors become the fill color."
+          onClick={() => actions.target("fill")}
+        >
           Fill
         </button>
       </div>
@@ -260,6 +265,7 @@ function Geometry({
               aria-label={label}
               aria-pressed={settings.shape === id}
               data-hint={label}
+              data-hint-detail="Draw this shape with the next drag."
               onClick={() => change({ shape: id })}
             >
               <Icon size={17} />
@@ -333,7 +339,9 @@ function PaintHeading({ editing, props }: Readonly<{ editing: boolean; props: Pr
 function SavedBrushes({ favorites, actions }: Readonly<Pick<Props, "favorites" | "actions">>) {
   return (
     <details className="drawing-group saved-brushes">
-      <summary>Saved brushes</summary>
+      <summary data-hint-detail="Brush settings kept in slots on this device for quick reuse.">
+        Saved brushes
+      </summary>
       <p className="drawing-hint">
         Click a brush to use it. Save replaces that brush with your current settings, on this
         device.
@@ -342,6 +350,7 @@ function SavedBrushes({ favorites, actions }: Readonly<Pick<Props, "favorites" |
         <div className="saved-brush" key={index}>
           <button
             aria-label={`Use saved brush ${index + 1}`}
+            data-hint-detail="Draw with this saved brush's tool, color, width and opacity."
             onClick={() => actions.favorite(index, false)}
           >
             <svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true">
@@ -387,8 +396,22 @@ function DrawingObjectActions({
   if (!selection.canPromote && !selection.canDemote) return null;
   return (
     <div className="drawing-object-actions">
-      {selection.canPromote && <button onClick={actions.promote}>Move to content layer</button>}
-      {selection.canDemote && <button onClick={actions.demote}>Move to Markup</button>}
+      {selection.canPromote && (
+        <button
+          data-hint-detail="Make the selected markup part of the active layer's content."
+          onClick={actions.promote}
+        >
+          Move to content layer
+        </button>
+      )}
+      {selection.canDemote && (
+        <button
+          data-hint-detail="Lift the selected ink out of its layer into markup above all content."
+          onClick={actions.demote}
+        >
+          Move to Markup
+        </button>
+      )}
     </div>
   );
 }

@@ -57,7 +57,7 @@ export function GradientDirection({ editor }: Readonly<{ editor: EditorControlle
       ref={ref}
       className="gradient-direction"
       aria-label="Gradient direction"
-      title="Drag gradient direction"
+      data-hint-detail="Drag to aim the drawing's gradient; Shift snaps to 15° steps."
       onPointerDown={begin}
     >
       ↗

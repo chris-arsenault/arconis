@@ -64,7 +64,12 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   const selectionKey = ids(selected).join(" ");
   const props = { editor, selected, sections };
   return (
-    <aside className="inspector" aria-label="Object properties">
+    <aside
+      className="inspector"
+      aria-label="Object properties"
+      data-help-id="properties"
+      data-help-topic="editing#property-panel"
+    >
       <InspectorHeader editor={editor} selected={selected} />
       <PrimaryControls key={selectionKey} {...props} />
       <LayerField editor={editor} selected={selected} />
@@ -124,6 +129,7 @@ function InspectorHeader({
           <button
             className="inspector-name"
             data-hint="Edit text on the canvas (Enter)"
+            data-hint-detail="Type straight onto the object; everyone in the room sees the text change."
             onClick={() => runCommand(editor, "edit.text")}
           >
             {item.name.trim() ? itemName(item) : "Add text"}
@@ -133,6 +139,7 @@ function InspectorHeader({
       <button
         className="text-action inspector-more"
         data-hint="Every command for the selection"
+        data-hint-detail="Open the menu of all commands that apply to the selection, beside it on the canvas."
         onClick={() => openMenuOverSelection(editor)}
       >
         <MoreHorizontal size={14} /> More
@@ -161,6 +168,7 @@ function Content({
         <RailSection
           id="source"
           title="Edit source"
+          detail="Show or hide the object's text as editable source, Markdown included."
           open={sections.open.source}
           onToggle={sections.toggle}
           className="source-section"
@@ -180,6 +188,7 @@ function RelationsSection({ editor, selected, sections }: PanelProps) {
     <RailSection
       id="relations"
       title="Relationships"
+      detail="Show or hide what this object connects to, references and branches from."
       open={sections.open.relations}
       onToggle={sections.toggle}
     >
@@ -210,6 +219,7 @@ function TagsSection({ editor, selected, sections }: PanelProps) {
     <RailSection
       id="tags"
       title="Tags and status"
+      detail="Show or hide tags, marker, task status, link and named properties."
       count={tags.length}
       open={sections.open.tags}
       onToggle={sections.toggle}
@@ -246,6 +256,7 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
     <RailSection
       id="appearance"
       title="Appearance"
+      detail="Show or hide style, colours, lines and text formatting."
       open={sections.open.appearance}
       onToggle={sections.toggle}
     >
@@ -290,7 +301,13 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
   const single = selected.length === 1;
   const look = effectiveAppearance(item, canvas.namedStyle(item.style));
   return (
-    <RailSection id="layout" title="Layout" open={sections.open.layout} onToggle={sections.toggle}>
+    <RailSection
+      id="layout"
+      title="Layout"
+      detail="Show or hide position, size, alignment, lock and visibility."
+      open={sections.open.layout}
+      onToggle={sections.toggle}
+    >
       {single && !isLink(item) && item.type !== "drawing" && (
         <GeometryControls
           item={item}
@@ -316,7 +333,10 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
         onChange={(values) => changeFields(canvas, ids(selected), values)}
       />
       {single && isFrame(item) && (
-        <label className="annotation-visibility">
+        <label
+          className="annotation-visibility"
+          data-hint-detail="Resizing this frame also scales everything inside it."
+        >
           <input
             type="checkbox"
             checked={item.scaleContents === true}
@@ -341,6 +361,7 @@ function SlideSection({
     <RailSection
       id="slide"
       title="Slide"
+      detail="Show or hide this slide's deck, order, template and size."
       open={sections.open.slide}
       onToggle={sections.toggle}
       className="slide-section"
@@ -377,11 +398,16 @@ function CommentsSection({
     <RailSection
       id="comments"
       title={slide ? "Speaker notes" : "Comments"}
+      detail="Show or hide this object's comments, or a slide's speaker notes."
       count={open}
       open={sections.open.comments}
       onToggle={sections.toggle}
     >
-      <button className="text-action" onClick={() => showComments(editor, item.id)}>
+      <button
+        className="text-action"
+        data-hint-detail="Open the threads attached to this object, which everyone in the room can read."
+        onClick={() => showComments(editor, item.id)}
+      >
         <MessageSquare size={14} /> {label}
       </button>
     </RailSection>

@@ -13,6 +13,7 @@ export const PRESENCE_COMMANDS: Command[] = [
   {
     id: "presence.spotlight",
     label: "Bring everyone to me",
+    help: "Show everyone else a banner with your name; each decides whether to follow you.",
     group: "view",
     keywords: ["spotlight", "call", "look here", "follow me"],
     when: withPeers,
@@ -21,6 +22,7 @@ export const PRESENCE_COMMANDS: Command[] = [
   {
     id: "presence.stopFollowing",
     label: "Stop following",
+    help: "Stop your view tracking the person you are following.",
     group: "view",
     when: ({ editor }) => editor.ui.following !== null,
     run: ({ editor }) => stopFollowing(editor),
@@ -28,6 +30,7 @@ export const PRESENCE_COMMANDS: Command[] = [
   {
     id: "presence.laser",
     label: "Point with the laser (hold)",
+    help: "While held, a fading trail in your colour follows your pointer on everyone's screen.",
     group: "view",
     shortcuts: [{ key: LASER_KEY }],
     native: true,
@@ -38,6 +41,7 @@ export const PRESENCE_COMMANDS: Command[] = [
   {
     id: "presence.chat",
     label: "Say something beside your cursor",
+    help: "Type a short message that shows under your name at your cursor for everyone here.",
     group: "view",
     shortcuts: [{ key: "/" }],
     keywords: ["cursor chat", "message"],
@@ -47,6 +51,7 @@ export const PRESENCE_COMMANDS: Command[] = [
   {
     id: "presence.copyLink",
     label: "Copy a link to this object",
+    help: "Copy an address that opens this room at the selected object.",
     group: "edit",
     keywords: ["deep link", "share", "url"],
     when: (context) => inRoom(context) && context.selected.length === 1,

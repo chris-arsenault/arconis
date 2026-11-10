@@ -879,7 +879,7 @@ dialog.password-gate {
   color: var(--pressed-text);
 }
 .rail-collapse {
-  order: 1;
+  order: 2;
   flex: none;
   border-width: 1px 0 0;
   border-radius: 0;
@@ -3033,8 +3033,8 @@ input.outline-name {
   color: var(--pressed-text);
 }
 
-/* Context stays near its action, above every panel, without taking pointer ownership. */
-.context-help {
+/* Information about content or people stays beside it without taking pointer ownership. */
+.context-tip {
   position: fixed;
   z-index: 1000;
   pointer-events: none;
@@ -3042,7 +3042,7 @@ input.outline-name {
   max-width: min(300px, calc(100vw - 16px));
   max-height: min(360px, 60dvh);
   overflow: hidden;
-  padding: 9px 11px;
+  padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--panel);
@@ -3051,15 +3051,63 @@ input.outline-name {
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
-}
-.context-help strong,
-.context-help span {
-  display: block;
-}
-.context-help span {
-  color: var(--text-soft);
   white-space: pre-wrap;
-  margin-top: 3px;
+}
+/* Help reads in one fixed place: the foot of the rail, or a dock when the rail is folded. */
+.help-zone {
+  order: 1;
+  flex: none;
+  height: 112px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+.help-zone strong {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.help-zone p {
+  margin: 3px 0 0;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.help-zone p:empty {
+  display: none;
+}
+.help-zone-title::before {
+  content: attr(data-label);
+}
+.help-zone .help-zone-more {
+  color: var(--muted);
+  font-size: 11px;
+}
+.help-zone .help-zone-idle {
+  margin: 0;
+  color: var(--muted);
+}
+.left-rail[data-expanded="false"] .help-zone {
+  position: fixed;
+  z-index: 900;
+  left: 72px;
+  right: 8px;
+  /* Along the top, clear of the bottom controls a finger is usually holding. */
+  top: var(--help-dock-top, 60px);
+  max-width: 440px;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 5px 20px #11182726;
+  pointer-events: none;
+}
+.left-rail[data-expanded="false"] .help-zone[data-active="false"] {
+  display: none;
 }
 .property-draft {
   flex: 1;

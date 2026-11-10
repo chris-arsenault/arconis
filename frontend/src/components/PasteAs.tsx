@@ -27,19 +27,34 @@ export function PasteAs({ editor }: Readonly<{ editor: EditorController }>) {
   };
   const treeLabel = topic ? `Branches under ${topic.name || "the selection"}` : "Topic tree";
   const suggested: PasteForm = isOutline(pending.text) || topic ? "tree" : "notes";
-  const forms: { form: PasteForm; label: string }[] = [
-    { form: "notes", label: `${lines} notes` },
-    { form: "tree", label: treeLabel },
-    { form: "text", label: "One text block" },
+  const forms: { form: PasteForm; label: string; detail: string }[] = [
+    {
+      form: "notes",
+      label: `${lines} notes`,
+      detail: "Make a sticky note from each line, laid out in rows of four.",
+    },
+    {
+      form: "tree",
+      label: treeLabel,
+      detail: topic
+        ? "Add the lines as branches of the selected object, nested by their indentation."
+        : "Build a topic tree headed by the first line, nested by indentation.",
+    },
+    {
+      form: "text",
+      label: "One text block",
+      detail: "Keep all the lines together in a single text object.",
+    },
   ];
   return (
     <div className="paste-as" role="dialog" aria-label="Paste as">
       <span>Paste {lines} lines as</span>
-      {forms.map(({ form, label }) => (
+      {forms.map(({ form, label, detail }) => (
         <button
           key={form}
           ref={form === suggested ? first : undefined}
           className={form === suggested ? "primary" : ""}
+          data-hint-detail={detail}
           onClick={() => choose(form)}
         >
           {label}
@@ -48,7 +63,7 @@ export function PasteAs({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         className="icon-action"
         aria-label="Cancel paste"
-        title="Cancel"
+        data-hint-detail="Drop the pasted lines without adding anything."
         onClick={() => dismissPasteAs(editor)}
       >
         <X size={14} />

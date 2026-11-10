@@ -9,9 +9,15 @@ function Field({
   label,
   value,
   onChange,
-}: Readonly<{ label: string; value: string; onChange: (value: string) => void }>) {
+  detail,
+}: Readonly<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  detail: string;
+}>) {
   return (
-    <label>
+    <label data-hint-detail={detail}>
       {label}
       <input aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
@@ -22,8 +28,14 @@ function Field({
 function ActionForm({
   action,
   label,
+  detail,
   children,
-}: Readonly<{ action: () => Promise<void>; label: string; children: ReactNode }>) {
+}: Readonly<{
+  action: () => Promise<void>;
+  label: string;
+  detail: string;
+  children: ReactNode;
+}>) {
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
   return (
@@ -46,7 +58,7 @@ function ActionForm({
           {error}
         </p>
       )}
-      <button className="primary" disabled={working}>
+      <button className="primary" disabled={working} data-hint-detail={detail}>
         {working ? "Working…" : label}
       </button>
     </form>
@@ -66,7 +78,11 @@ function SignedOut({ account }: Readonly<{ account: AccountStore }>) {
           {account.error}
         </p>
       )}
-      <button className="primary" onClick={() => void account.signIn()}>
+      <button
+        className="primary"
+        data-hint-detail="Go to Ahara's sign-in page, where you can also create an account."
+        onClick={() => void account.signIn()}
+      >
         Sign in or create an account
       </button>
       <p className="password-note">A new account is activated from the email it is sent.</p>
@@ -88,18 +104,32 @@ function SignedIn({
   return (
     <>
       <p className="password-note">{account.email}</p>
-      <ActionForm label="Save name" action={() => account.rename(name)}>
-        <Field label="Your name" value={name} onChange={setName} />
+      <ActionForm
+        label="Save name"
+        detail="Store this name on your account."
+        action={() => account.rename(name)}
+      >
+        <Field
+          label="Your name"
+          value={name}
+          onChange={setName}
+          detail="The name on your account, shown on the account button."
+        />
       </ActionForm>
       <WorkBrowser account={account} onOpen={onOpen} onJoin={onJoin} />
       <ConnectAgent />
       {error && <p role="alert">{error}</p>}
       <div className="account-links">
-        <button type="button" onClick={() => void account.signOut()}>
+        <button
+          type="button"
+          data-hint-detail="Sign out on this device; your saved work stays in the account."
+          onClick={() => void account.signOut()}
+        >
           Sign out
         </button>
         <button
           type="button"
+          data-hint-detail="Permanently remove your account with its saved workspaces, history and layouts."
           onClick={() => {
             if (window.confirm("Delete your account, saved workspaces and history, and layouts?")) {
               setError("");
@@ -127,13 +157,19 @@ function Deleting({ account }: Readonly<{ account: AccountStore }>) {
       <button
         className="primary"
         disabled={account.deletionPending}
+        data-hint-detail="Try again to remove your saved work and then the account itself."
         onClick={() => {
           void account.deleteAccount().catch(() => {});
         }}
       >
         {account.deletionPending ? "Working…" : "Retry account deletion"}
       </button>
-      <button onClick={() => void account.signOut()}>Sign out</button>
+      <button
+        data-hint-detail="Sign out on this device without finishing the deletion."
+        onClick={() => void account.signOut()}
+      >
+        Sign out
+      </button>
     </div>
   );
 }
@@ -158,7 +194,13 @@ export function AccountButton({
   const open = chosen || (account.error !== "" && account.error !== dismissed);
   return (
     <>
-      <button className="icon-button account-button" onClick={() => setOpen(true)}>
+      <button
+        className="icon-button account-button"
+        data-help-id="account"
+        data-help-topic="accounts"
+        data-hint-detail="Sign in, or manage your saved work, agent connections and account."
+        onClick={() => setOpen(true)}
+      >
         <CircleUser size={18} /> {deleting ? "Account deletion" : name}
       </button>
       {open && (
@@ -167,6 +209,7 @@ export function AccountButton({
             <button
               className="icon-action account-close"
               aria-label="Close account"
+              data-hint-detail="Close the account panel and return to the canvas."
               onClick={() => {
                 setOpen(false);
                 setDismissed(account.error);

@@ -25,7 +25,8 @@ export function TextOverflow({ editor }: Readonly<{ editor: EditorController }>)
       className="text-overflow-indicator"
       aria-label={`Fit clipped text: ${item.name.split("\n")[0] || "Object"}`}
       data-hint="Text clipped · Fit to text"
-      data-hint-detail={item.name}
+      data-hint-detail="Grow this object until all of its hidden text shows."
+      data-tip={item.name}
       onClick={() => {
         editor.select(item.id);
         void fitText(editor.document, item.id);

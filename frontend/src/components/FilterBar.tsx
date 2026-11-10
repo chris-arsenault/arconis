@@ -49,7 +49,8 @@ function Chips<K extends keyof Filter>({
               aria-label={text}
               aria-pressed={chosen.includes(value)}
               data-hint={`Highlight ${text}`}
-              data-hint-detail={`${count} ${count === 1 ? "object" : "objects"}. Other objects stay in place and fade. Choose again to clear.`}
+              data-hint-detail="Highlight matching objects in your view while the rest fade in place."
+              data-tip={`${count} ${count === 1 ? "object" : "objects"}`}
               onClick={() => editor.setFilter(toggled(editor.filter, kind, value))}
             >
               <span>{text}</span>
@@ -94,7 +95,9 @@ export function FilterBar({ editor }: Readonly<{ editor: EditorController }>) {
       />
       {choices.authors.length > 0 && (
         <details className="discovery-editors">
-          <summary>Edited by</summary>
+          <summary data-hint-detail="Highlight objects by the person who last edited them.">
+            Edited by
+          </summary>
           <Chips
             editor={editor}
             kind="authors"
@@ -111,13 +114,17 @@ export function FilterBar({ editor }: Readonly<{ editor: EditorController }>) {
       )}
       {active && (
         <div className="discovery-filter-actions">
-          <button className="text-action" onClick={() => editor.setFilter(EMPTY_FILTER)}>
+          <button
+            className="text-action"
+            data-hint-detail="Turn off every chosen tag, marker, task and person so nothing fades."
+            onClick={() => editor.setFilter(EMPTY_FILTER)}
+          >
             Clear highlights
           </button>
           <button
             className="text-action"
             data-hint="Gather matches into a frame"
-            data-hint-detail="Moves highlighted objects into a new shared frame. Use Undo to restore their positions."
+            data-hint-detail="Move the highlighted objects into a new frame for everyone; Undo puts them back."
             onClick={() => runCommand(editor, "structure.gather")}
           >
             Gather into frame

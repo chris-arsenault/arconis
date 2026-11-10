@@ -54,6 +54,7 @@ function MatchList({
           <button
             type="button"
             className={position === current ? "active" : ""}
+            data-hint-detail="Move your view to this match and select it."
             onClick={() => onShow(position)}
           >
             {describeMatch(match)}
@@ -64,7 +65,7 @@ function MatchList({
               className="find-reveal"
               aria-label={`Reveal ${match.item.name.split("\n")[0] || "this object"}`}
               data-hint="Reveal this object"
-              data-hint-detail="Leave other hidden objects hidden. Hidden containers needed to show this object are revealed too."
+              data-hint-detail="Unhide this object, and any hidden holder it needs, for everyone; other hidden objects stay hidden."
               onClick={() => onShow(position, true)}
             >
               <Eye size={14} />
@@ -102,7 +103,7 @@ function FindQuery({
       aria-label="Find on canvas"
       placeholder="Search text, tags or markers"
       data-hint="Find on canvas"
-      data-hint-detail="Search names, text, comments, tags and markers. Choose tags or markers below to highlight related objects."
+      data-hint-detail="Search names, text, comments, tags and markers; Enter visits each match."
       value={query}
       onChange={(event) => onChange(event.target.value)}
       onKeyDown={(event) => {
@@ -115,6 +116,25 @@ function FindQuery({
         event.stopPropagation();
       }}
     />
+  );
+}
+
+function FindHeading({ onClose }: Readonly<{ onClose: () => void }>) {
+  return (
+    <>
+      <div className="discovery-heading">
+        <Search size={16} />
+        <strong>Find and filter</strong>
+      </div>
+      <button
+        className="icon-action discovery-close"
+        aria-label="Close find"
+        data-hint-detail="Close find and filter; nothing stays highlighted."
+        onClick={onClose}
+      >
+        <X size={14} />
+      </button>
+    </>
   );
 }
 
@@ -150,13 +170,7 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
   return (
     <div className="find-bar discovery-panel" role="search" aria-label="Find on canvas">
       {shown && !shown.hidden && <Pulse editor={editor} match={shown} />}
-      <div className="discovery-heading">
-        <Search size={16} />
-        <strong>Find and filter</strong>
-      </div>
-      <button className="icon-action discovery-close" aria-label="Close find" onClick={close}>
-        <X size={14} />
-      </button>
+      <FindHeading onClose={close} />
       <FindQuery
         query={query}
         onChange={(value) => {
@@ -173,6 +187,7 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         className="icon-action"
         aria-label="Previous match"
+        data-hint-detail="Move your view back to the match before this one."
         disabled={!matches.length}
         onClick={() => step(-1)}
       >
@@ -181,6 +196,7 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         className="icon-action"
         aria-label="Next match"
+        data-hint-detail="Move your view on to the next match, in reading order."
         disabled={!matches.length}
         onClick={() => step(1)}
       >

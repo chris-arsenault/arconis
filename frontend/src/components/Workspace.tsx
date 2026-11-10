@@ -25,6 +25,7 @@ import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 import { useNarrowLayout } from "./useNarrowLayout";
 import { ContextHelp } from "./ContextHelp";
+import { HelpSurfaces } from "./HelpSurfaces";
 import { TextOverflow } from "./TextOverflow";
 import { ObjectMetadata } from "./ObjectMetadata";
 
@@ -99,7 +100,9 @@ export function Workspace(props: Readonly<Props>) {
       {message && (
         <div className="toast" role="status">
           {message}
-          <button onClick={() => setMessage("")}>Dismiss</button>
+          <button data-hint-detail="Hide this message." onClick={() => setMessage("")}>
+            Dismiss
+          </button>
         </div>
       )}
     </div>
@@ -171,6 +174,7 @@ function PropertyPanel({
           className="properties-toggle"
           aria-label={open ? "Close properties" : "Object properties"}
           aria-expanded={open}
+          data-hint-detail="Show or hide the properties of the selected objects."
           onClick={onToggle}
         >
           {open ? <X size={16} /> : <SlidersHorizontal size={16} />} Properties
@@ -194,7 +198,7 @@ function NamePrompt({
         onClose();
       }}
     >
-      <label>
+      <label data-hint-detail="The name other people in the room see for you and your edits.">
         Your name
         <input
           aria-label="Your name in this room"
@@ -203,7 +207,11 @@ function NamePrompt({
           onChange={(event) => onName(event.target.value)}
         />
       </label>
-      <button type="submit" className="primary">
+      <button
+        type="submit"
+        className="primary"
+        data-hint-detail="Keep this name; an empty one becomes Guest."
+      >
         Done
       </button>
     </form>
@@ -238,6 +246,7 @@ function EditingOverlays({
       {editor.ui.comments && <CommentModal editor={editor} author={author} />}
       {editor.ui.tagging && <TagPopover editor={editor} />}
       {editor.ui.relating && <RelatePicker editor={editor} />}
+      <HelpSurfaces editor={editor} session={session} />
     </>
   );
 }
@@ -306,6 +315,7 @@ function EmptyCanvasHint({
         </p>
       )}
       <button
+        data-hint-detail="Place a sticky note on the canvas and start typing in it."
         onClick={() => {
           editor.edit(editor.add("note"), true);
         }}
@@ -351,7 +361,7 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
     <footer className="statusbar">
       <span
         className={`connection-status ${session.state}`}
-        data-hint={session.detail || syncDescription(session)}
+        data-tip={session.detail || syncDescription(session)}
       >
         {session.state === "online" ? <CheckCircle2 size={14} /> : <WifiOff size={14} />}
         <span data-testid="connection-status">
@@ -359,7 +369,12 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
         </span>
       </span>
       {session.canStartCollaboration && (
-        <button type="button" className="start-collaboration" onClick={session.startCollaboration}>
+        <button
+          type="button"
+          className="start-collaboration"
+          data-hint-detail="Turn the relay back on so people in this room edit together live."
+          onClick={session.startCollaboration}
+        >
           Start collaboration
         </button>
       )}
@@ -368,13 +383,28 @@ function ConnectionStatus({ session }: Readonly<{ session: RoomSession }>) {
         {session.stored ? "Local copy enabled" : "Opening local copy"} ·{" "}
         <span data-testid="object-count">{session.document.list().length}</span> objects
       </span>
-      <a href="/licenses.txt" target="_blank" rel="noreferrer">
+      <a
+        href="/licenses.txt"
+        target="_blank"
+        rel="noreferrer"
+        data-hint-detail="Open the licenses of the software Arconis is built with, in a new tab."
+      >
         Licenses
       </a>
-      <a href="/third-party-icons.txt" target="_blank" rel="noreferrer">
+      <a
+        href="/third-party-icons.txt"
+        target="_blank"
+        rel="noreferrer"
+        data-hint-detail="Open the terms for the vendor architecture icons, in a new tab."
+      >
         Icon terms
       </a>
-      <a href="/third-party-fonts.txt" target="_blank" rel="noreferrer">
+      <a
+        href="/third-party-fonts.txt"
+        target="_blank"
+        rel="noreferrer"
+        data-hint-detail="Open the licenses of the bundled fonts, in a new tab."
+      >
         Font terms
       </a>
     </footer>

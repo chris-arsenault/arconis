@@ -31,6 +31,22 @@ const KIND_LABELS: Record<Kind, string> = {
   junction: "Junction",
 };
 
+/** What choosing each drawing tool lets the pointer do, wherever the ink is going. */
+const DRAWING_HELP: Record<DrawingTool, string> = {
+  freehand: "Drag on the canvas to draw a freehand ink stroke.",
+  marker: "Drag on the canvas to highlight freely with translucent ink.",
+  highlightShape: "Drag on the canvas to draw a translucent highlight in the chosen shape.",
+  outline: "Click an object to add or remove an outline that follows it.",
+  vector: "Drag on the canvas to construct an ink shape; Shift constrains it.",
+  lasso: "Drag around ink paths to select them whole.",
+  eraser: "Click or sweep across ink to remove whole strokes.",
+  precision: "Drag across ink to cut away only the part you touch.",
+  fill: "Click a closed ink path to give it the current fill colour.",
+  eyedropper: "Click to sample a colour into the chosen stroke or fill swatch.",
+};
+
+const article = (word: string) => (/^[aeiou]/.test(word) ? "an" : "a");
+
 /** Where a menu's "here" is: the point it opened at, else under the pointer, else the middle. */
 function here({ editor }: CommandContext) {
   return editor.ui.menu?.world ?? (editor.pointer ? editor.worldPoint(editor.pointer) : null);
@@ -50,6 +66,7 @@ export const POINTER_COMMANDS: Command[] = [
   ...(Object.keys(DRAWING_TOOLS) as DrawingTool[]).map((tool): Command => ({
     id: `draw.${tool}`,
     label: DRAWING_TOOLS[tool].label,
+    help: DRAWING_HELP[tool],
     group: "tools",
     run: ({ editor }) => editor.drawing.activate(tool),
   })),
@@ -57,6 +74,7 @@ export const POINTER_COMMANDS: Command[] = [
     {
       id: `draw.shape.${id}`,
       label: `Draw ${label.toLowerCase()}`,
+      help: `Drag on the canvas to draw ${article(label.toLowerCase())} ${label.toLowerCase()} in ink.`,
       group: "tools",
       run: ({ editor }) => {
         editor.drawing.activate("vector");
@@ -66,6 +84,7 @@ export const POINTER_COMMANDS: Command[] = [
     {
       id: `draw.highlight.${id}`,
       label: `Highlight ${label.toLowerCase()}`,
+      help: `Drag on the canvas to draw a translucent ${label.toLowerCase()} highlight.`,
       group: "tools",
       run: ({ editor }) => {
         editor.drawing.activate("highlightShape");
@@ -76,6 +95,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "create.noteHere",
     label: "Add note here",
+    help: "Place a sticky note where the menu opened, or under the pointer, and start typing.",
     group: "create",
     keywords: ["sticky"],
     run: (context) => addHere(context, "note"),
@@ -83,12 +103,14 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "create.textHere",
     label: "Add text here",
+    help: "Place a text block where the menu opened, or under the pointer, and start typing.",
     group: "create",
     run: (context) => addHere(context, "text"),
   },
   {
     id: "create.frameHere",
     label: "Add frame here",
+    help: "Place a frame where the menu opened, or under the pointer, and start typing its title.",
     group: "create",
     keywords: ["container", "group area"],
     run: (context) => addHere(context, "frame"),
@@ -96,6 +118,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "edit.pasteHere",
     label: "Paste here",
+    help: "Paste the clipboard where the menu opened, or under the pointer.",
     group: "edit",
     when: ({ editor }) => editor.room !== null,
     run: (context) => {
@@ -106,6 +129,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "comments.open",
     label: "Comment…",
+    help: "Open this object's discussion thread to read or add comments.",
     group: "edit",
     shortcuts: [{ key: "c", shift: true }],
     keywords: ["discussion", "thread", "note to others"],
@@ -115,6 +139,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "structure.swapPositions",
     label: "Swap positions",
+    help: "Exchange the two objects' places, each with what it holds; their lines follow.",
     group: "arrange",
     keywords: ["exchange places"],
     when: ({ selected }) => selected.length === 2 && selected.every(isBox),
@@ -123,6 +148,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "line.reverse",
     label: "Reverse direction",
+    help: "Turn the line around so its ends, ports and arrowheads trade places.",
     group: "arrange",
     keywords: ["flip arrow", "turn around"],
     when: ({ selected }) => selected.length === 1 && isLink(selected[0]),
@@ -131,6 +157,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "line.clearPoints",
     label: "Clear bend points",
+    help: "Forget the line's bends and label position so it routes itself again.",
     group: "arrange",
     keywords: ["straighten", "reset route", "waypoints"],
     when: ({ selected }) =>
@@ -142,6 +169,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "arrange.fitFrame",
     label: "Fit frame to contents",
+    help: "Resize the frame snugly around what it holds, keeping its padding and title room.",
     group: "arrange",
     keywords: ["shrink wrap", "snug"],
     when: ({ selected, items }) =>
@@ -153,6 +181,7 @@ export const POINTER_COMMANDS: Command[] = [
   ...COLORS.map((color, index): Command => ({
     id: `colour.${index}`,
     label: `Fill ${color}`,
+    help: "Fill the selected objects and drawings with this colour.",
     group: "edit",
     keywords: ["colour", "color", "swatch"],
     when: ({ selected }) => selected.some((item) => isBox(item) || item.type === "drawing"),
@@ -161,6 +190,7 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "colour.clear",
     label: "Default fill",
+    help: "Remove the selection's own fill so it returns to its style's colour.",
     group: "edit",
     keywords: ["colour", "color", "reset"],
     when: ({ selected }) => selected.some((item) => item.look.fill !== undefined),
@@ -170,6 +200,7 @@ export const POINTER_COMMANDS: Command[] = [
   ...KINDS.map((kind): Command => ({
     id: `shape.${kind}`,
     label: `Change to ${KIND_LABELS[kind].toLowerCase()}`,
+    help: "Turn the selection into this kind, keeping its text, size, contents and lines.",
     group: "edit",
     keywords: ["swap shape", "convert", "stencil"],
     when: changeable,
