@@ -4,6 +4,10 @@ The left side holds what you make with; the right side holds the document and th
 same room holds diagrams, notes, topic trees, pictures, ink and slides.
 
 For a first walkthrough, start with [your first shared canvas](getting-started.md).
+For a particular command, jump to [commands and shortcuts](#commands-and-shortcuts) or search
+Help in the app. For a drawing with real distances, see [scale and measurement](#scale-units-and-measurement).
+
+## Workspace controls
 
 The left rail has the tools **Select**, **Pan**, **Connect** and **Markup**, and two panels:
 **Shapes** for stencils and icon libraries, and **Draw** for ink in the active layer. Markup opens
@@ -20,6 +24,8 @@ On phones, the left panel starts hidden; choosing a panel opens it over the canv
 a stencil closes it for placement. **Properties**, or **Panels** when nothing is selected, opens
 the dock over the canvas. The left panel and the dock share that space so the canvas stays
 available.
+
+## Help and practice
 
 The **help zone** at the foot of the left panel names the control under the pointer or keyboard
 focus and says in one sentence what it does. When the panel is hidden, the help appears below the
@@ -45,6 +51,8 @@ objects, mark up the diagram and present the slide. Nothing in the practice room
 Information about content and people, such as who is in the room, an object's tags or the full
 text of a clipped label, appears in a small tooltip beside it. Escape closes the tooltip before
 affecting the canvas selection.
+
+## Canvas display
 
 Open **Settings** in the header to control your canvas display. Comments, tags, markers,
 relationships and task/lock indicators each offer **Show**, **Selected** and **Hide**. These
@@ -122,6 +130,30 @@ Press **H** or hold Space to pan with a drag; release Space to return to Select.
 button drags the view as well. Mouse-wheel scrolling zooms around the pointer; trackpad
 horizontal or smooth scroll gestures pan, and Ctrl/Command scrolling zooms.
 
+Use the bottom view controls to zoom or fit the canvas; click the multiplier to type a zoom,
+such as `0.5` or `2`. The normal view is `1×`, centered in a reciprocal range from `2⁻²⁰` to
+`2²⁰`. Four button or shortcut steps double or halve magnification. Wheel zoom keeps the
+point beneath the pointer; buttons and typed values keep the viewport center.
+**Z** zooms into the selection; **Shift Z** returns toward the previous scale. **Shift 0**,
+**Shift 1** and **Shift 2** go to normal zoom, fit the canvas and fit the selection. Every jump, from
+fitting to following a link or a found match, is remembered: **Ctrl/Command [** returns to the
+view before it and **Ctrl/Command ]** goes forward again. When the view holds none of the
+canvas, a **Back to content** button appears. New objects created at deep zoom have an
+appropriate scale for that view.
+
+At distant zoom, details too small to read can disappear from the view. Zoom in or select an
+object to see it again. Objects outside the window are also skipped while drawing the view;
+they remain in the document and can still appear in a full-canvas export. This is separate
+from hiding an object, hiding a layer or collapsing a topic. Use
+[Find on canvas](#find-on-canvas) to locate something you cannot see.
+
+Resizing the browser window preserves the center of your view. Opening or closing a side panel
+keeps content in place; neither operation changes the drawing's scale calibration or geometry.
+
+The grid button shows or hides the grid. Objects snap while the grid is shown. This preference
+belongs to your browser. Fine drawing paths follow the pointer rather than snapping to the grid.
+For distances and grid intervals in concrete units, see [scale and measurement](#scale-units-and-measurement).
+
 ## Right button: ring and menu
 
 A right click opens the menu at the pointer. Holding the right button, or moving it, brings a
@@ -183,24 +215,30 @@ Everyone sees shared comments signed with the display name used when they were w
 object's comment badge counts open threads without changing the label layout. Comments stay outside document Undo; undoing an
 object's deletion brings its retained comments back with it.
 
-Use the bottom view controls to zoom or fit the canvas; click the multiplier to type a zoom,
-such as `0.5` or `2`. The normal view is `1×`, centered in a reciprocal range from `2⁻²⁰` to
-`2²⁰`. Four button or shortcut steps double or halve magnification. Wheel zoom keeps the
-point beneath the pointer; buttons and typed values keep the viewport center.
-**Z** zooms into the selection; **Shift Z** returns toward the previous scale. **Shift 0**,
-**Shift 1** and **Shift 2** go to normal zoom, fit the canvas and fit the selection. Every jump, from
-fitting to following a link or a found match, is remembered: **Ctrl/Command [** returns to the
-view before it and **Ctrl/Command ]** goes forward again. When the view holds none of the
-canvas, a **Back to content** button appears. New objects created at deep zoom have an
-appropriate scale for that view.
-
 ## Scale, units and measurement
+
+Use a scale when the size of objects should mean something: a room plan in metres, a component
+layout in millimetres, or a custom drawing in your own units. Leave the canvas uncalibrated
+for diagrams whose box sizes are just for readability.
 
 The scale bar above the bottom controls shows a distance at the current zoom. Click it to open
 **Scale and units**. Paper, Electronics, Product, House, Site and Geography presets assign a
 distance to the reference line of 100 canvas units, shown at `1×` in the settings. For example,
 House makes that line represent 1 m. Custom accepts any positive distance and a unit label.
 The bar chooses readable intervals and changes units as you zoom; calibration itself stays fixed.
+
+| Preset      | Distance represented by the reference line at 1× |
+| ----------- | ------------------------------------------------ |
+| Paper       | 25 mm                                            |
+| Electronics | 10 mm                                            |
+| Product     | 100 mm                                           |
+| House       | 1 m                                              |
+| Site        | 100 m                                            |
+| Geography   | 1 km                                             |
+
+These are starting scales. Choose one for the size of drawing you are making, then use a known
+distance to calibrate an imported plan when necessary. A custom unit can be a label such as
+`tiles`; it has no automatic conversion to metres or other physical units.
 
 Calibration is shared with collaborators, supports Undo and travels with a complete canvas file.
 Changing it reinterprets distances without moving or resizing objects. Display units are a local
@@ -225,6 +263,10 @@ interval. **Set fixed grid** keeps an explicit distance, such as 2.54 mm for ele
 zoomed out, the display skips lines while retaining that snapping interval. The settings show the
 actual interval. Grid spacing stays fixed during an active drag; changing zoom never moves objects.
 
+Your calibration is part of the shared drawing. The display unit, grid visibility and fixed grid
+choice belong to your view. For example, one person can read a house plan in metres while
+another reads the same geometry in feet.
+
 ## Find on canvas
 
 **Find and filter** at the top right, or **Ctrl/Command F**, opens search and metadata highlights.
@@ -234,9 +276,6 @@ Enter, Shift Enter and the arrows step through the matches in reading
 order, flying to each one, selecting it and ringing it briefly; the list beneath shows the first
 matches, with hidden objects marked. The first Enter visits the first match. **Reveal** beside a
 hidden result restores that object without revealing the rest. Escape closes find.
-
-The grid button shows or hides the grid. Objects snap while the grid is shown. This preference
-belongs to your browser. Fine drawing paths follow the pointer rather than snapping to the grid.
 
 ## Containers and groups
 
@@ -427,7 +466,9 @@ assistants carry them as `property owner "Ada"`.
 objects", "Edit text of Orders API", "Delete 2 objects". Click an earlier step to return to just
 after it; the steps you passed move to the top as redo steps you can click to go forward
 again. Each object's **Last edited by** names who changed it most recently. There is no history
-beyond this: the relay stores nothing, and a saved copy is the way to keep a version.
+beyond this in the canvas's Undo history. Account saves have a separate
+[recent-version history](accounts.md#recover-a-recent-saved-copy); an exported document is
+another way to keep a version.
 
 ## Touch and pen
 
@@ -568,7 +609,7 @@ text field is not consuming the key; [text editing](text.md#text-editing-shortcu
 | Ctrl/Command Enter                      | Make a task, mark it done, then clear it                       |
 | Z / Shift Z                             | Zoom into the selection / back out                             |
 | Ctrl/Command + / Ctrl/Command -         | Zoom in / out                                                  |
-| Shift 0 / Shift 1 / Shift 2             | Zoom to 100% / fit canvas / fit selection                      |
+| Shift 0 / Shift 1 / Shift 2             | Normal zoom (1×) / fit canvas / fit selection                  |
 | Ctrl/Command [ / Ctrl/Command ]         | Back to the previous view / forward again                      |
 | Ctrl/Command F                          | Find on canvas                                                 |
 | Ctrl/Command Shift F                    | Filter by tag, marker, task or editor                          |

@@ -5,6 +5,9 @@ Markdown supplies inline emphasis and structure. Subtitles are separate plain te
 
 Ordinary objects and sticky notes use 8 units of text padding; free text and frame headers use 4. Change padding
 under **Appearance → Text → Spacing and sizing** when an object needs a different inset.
+Padding and text sizes are style values; setting a drawing's scale does not convert them to
+physical units. [Scale and measurement](editing.md#scale-units-and-measurement) applies to
+distances and object geometry.
 
 ## Edit and finish text
 
@@ -22,7 +25,7 @@ editor also offers **Markdown tools**. Actions preserve the source
 selection so you can apply several without restarting the edit. Undo reverses your own changes
 while peers' completed edits continue to merge.
 
-![Editable Markdown source, preview, highlighted code and rendered mathematics](images/text.png)
+![Editing a Markdown note with the canvas text tools](images/text.png)
 
 ## Format content
 

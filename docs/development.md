@@ -1,5 +1,8 @@
 # Development
 
+This guide is for changing Arconis or running a local development copy. To use the application,
+open [Arconis](https://arconis.ahara.io) and follow the [getting-started guide](getting-started.md).
+
 The frontend lives in `frontend/` and uses pnpm. Runtime and package-manager versions are in
 [.node-version](../frontend/.node-version) and [package.json](../frontend/package.json).
 
@@ -19,6 +22,23 @@ Deployed configuration is delivered through Ahara's `config.js`, including relay
 MCP addresses. The ordinary local configuration provides canvas editing without deployed
 account or relay services. Keep secrets out of frontend assets and runtime browser configuration.
 
+## Make a contribution
+
+Read [AGENTS.md](../AGENTS.md) for repository rules and [architecture](architecture.md) for the
+owner of the behavior you are changing. Keep changes focused on the problem and update the
+relevant guide when the user workflow changes. The [backlog](backlog.md) separates planned work
+from the [current product scope](product.md).
+
+The user guides in `docs/` also supply the application's Help. Keep existing section anchors
+working when reorganizing them; controls and other guides link directly to those sections.
+Keep implementation details in this guide or the architecture reference, and put task
+instructions in the user guide for that task. Screenshots live in `docs/images/` and should
+show the current interface with example content, without personal room data.
+
+Before submitting a change, describe the problem, the resulting behavior and the checks you ran.
+The commands below establish the local checks; publishing and infrastructure deployment are
+separate actions covered by [deployment](deployment.md).
+
 ## Required checks
 
 Run these from the repository root:
@@ -33,6 +53,14 @@ Run these from the repository root:
 The [Makefile](../Makefile) and frontend package scripts are the command authority. Before a
 commit, complete `make ci`; run build and browser checks appropriate to the changed behavior.
 Documentation changes also need local link, anchor and example checks.
+
+For changes to the bundled guides, check section links and the in-app reading experience:
+
+```sh
+cd frontend
+pnpm test src/help/guides.test.ts
+pnpm test:browser src/editor/helpReference.browser.test.ts
+```
 
 Local and hosted CI use the same ESLint configuration, including type-aware TypeScript rules
 and Ahara's custom rules. Source JavaScript and JSX also receive the TypeScript-extension rule;

@@ -4,6 +4,10 @@ An assistant joins an ordinary room as another participant. It reads and writes 
 language used by files and browser edits, including diagrams, topic trees, Markdown, slides,
 editable ink, markup and comments.
 
+Use this when you want help building a diagram, reorganizing an existing canvas or adding a
+review alongside your own work. Arconis provides the canvas connection; you use your own
+compatible assistant client. There is no assistant chat built into the canvas.
+
 ## Connect an assistant
 
 1. Sign in to Arconis and open the account panel.
@@ -33,6 +37,12 @@ and comments are shared with the people in the room. People can continue editing
 The same connector supports inspection and editing. To change the room, the assistant must call
 `write`; returning a plan or canvas-language example in chat does not place that content.
 
+You can edit, move or delete the result with ordinary canvas tools. Keep a local, exported or
+account-saved copy as you would for work made by a person. An assistant's connection is not an
+independent backup of the room.
+
+## How assistants edit
+
 The MCP instructions carry four working rules, so an assistant receives them without reading
 this guide. It plans the whole result and sends it in one write or a few large ones, choosing
 its own ids so lines and placements in the same write can name them. It treats slides as
@@ -53,6 +63,9 @@ Reports are advisory: preserve intentional overlaps and human edits. Text estima
 rendered Markdown, equations or font metrics.
 
 ## Tool workflow
+
+The following reference is for assistant clients and people writing canvas language. You can
+use a configured connector by asking for an outcome without composing these tool calls yourself.
 
 | Tool              | Use                                                                                       |
 | ----------------- | ----------------------------------------------------------------------------------------- |

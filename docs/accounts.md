@@ -84,9 +84,8 @@ Neither operation deletes objects from an open peer's canvas or the other kind o
 **Sign out** ends account access in this browser. **Delete account** asks for confirmation and
 removes the account, its saved workspaces and histories, and reusable layouts.
 Export any portable copies you want before deleting saved data.
-Deletion stops new account writes before removing data. If it fails partway through, the account
-panel offers **Retry account deletion**, including after a reload. A small server-side deletion
-marker prevents still-valid sign-in tokens from recreating the account's saved data.
+If deletion fails partway through, the account panel offers **Retry account deletion**, including
+after a reload. New account saves are blocked while deletion is underway.
 
 ## When saving or signing in fails
 

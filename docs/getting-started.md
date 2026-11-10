@@ -3,6 +3,10 @@
 Arconis combines diagrams, sticky notes, Markdown, drawings and slides in one room. You can
 work as a guest; an account adds saved workspaces and assistant connections.
 
+This walkthrough makes a small diagram, adds review annotations and keeps an editable copy.
+You can also open **Help → Practice in a sample room** for a guided exercise in a separate
+device-only canvas, or **Take the tour** for an introduction to the controls.
+
 ![An example room with a service diagram, shared notes and markup](images/workspace.png)
 
 ## Start a room
@@ -51,19 +55,42 @@ Your browser retains the room locally. For a portable copy, open **File** in the
 choose **Export document**.
 An account's **Save to my account** button keeps a workspace available on other devices.
 
+A room link is an invitation, not a backup. Another device needs an online participant holding
+the canvas, an account-saved copy or a portable file. Clearing browser storage removes the
+local copy, so export or save work you want to retain independently.
+
 **Export PNG** exports the selection, or the whole canvas when nothing is selected, and includes
 an editable copy. **Include markup**, in the same menu, controls whether annotations appear in document and PNG
 exports. [Files and pictures](files.md) explains import, export and storage choices.
 
+## Navigate and measure
+
+Hold Space and drag to pan. Use the zoom controls at the bottom to zoom in, zoom out or fit the
+canvas; `1×` is the normal view. Your view is independent of other participants' views.
+
+For a drawing with real distances, click the scale bar above those controls to open **Scale and
+units**. Choose a preset or enter a custom distance and unit. Choose **Measure distance** beside
+the bar and drag between two points. The scale bar and grid adapt as you zoom, while the
+measured distance keeps its meaning. [Scale and measurement](editing.md#scale-units-and-measurement)
+explains calibration and unit-aware geometry fields.
+
+## Get help while working
+
+Open **Help** in the header, or press **?**, to search these guides. **Ctrl/Command K** opens the
+command palette with available commands and shortcuts. Point at a control or focus it to read
+its help; on touch screens, hold it. Use **Feedback** in the header to describe a problem or
+an interaction that was unclear.
+
 ## Continue by task
 
-| Task                                                | Guide                                        |
-| --------------------------------------------------- | -------------------------------------------- |
-| Arrange objects, connect them or build a topic tree | [Using the canvas](editing.md)               |
-| Annotate or draw editable shapes in layers          | [Drawing and markup](drawing.md)             |
-| Write Markdown, code or equations                   | [Text and formatting](text.md)               |
-| Turn a canvas into a presentation                   | [Slides and presentations](slides.md)        |
-| Invite people, work offline or use a password       | [Rooms and collaboration](collaboration.md)  |
-| Save across devices or manage an account            | [Accounts and saved workspaces](accounts.md) |
-| Exchange documents, PNGs and pictures               | [Files and pictures](files.md)               |
-| Work alongside Claude or ChatGPT                    | [Assistants and MCP](agents.md)              |
+| Task                                                         | Guide                                                           |
+| ------------------------------------------------------------ | --------------------------------------------------------------- |
+| Arrange objects, connect them or build a topic tree          | [Using the canvas](editing.md)                                  |
+| Set drawing units, measure a distance or change grid spacing | [Scale and measurement](editing.md#scale-units-and-measurement) |
+| Annotate or draw editable shapes in layers                   | [Drawing and markup](drawing.md)                                |
+| Write Markdown, code or equations                            | [Text and formatting](text.md)                                  |
+| Turn a canvas into a presentation                            | [Slides and presentations](slides.md)                           |
+| Invite people, work offline or use a password                | [Rooms and collaboration](collaboration.md)                     |
+| Save across devices or manage an account                     | [Accounts and saved workspaces](accounts.md)                    |
+| Exchange documents, PNGs and pictures                        | [Files and pictures](files.md)                                  |
+| Work alongside Claude or ChatGPT                             | [Assistants and MCP](agents.md)                                 |

@@ -28,7 +28,8 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 - Author Markdown labels, nested lists, highlighted code and LaTeX mathematics as editable source.
 - Choose bundled fonts, box-level typography, alignment, colors, spacing and text sizing.
 - Preview and copy Markdown, plain text and fenced code from the source tools.
-- Paste or drop pictures, then move, label, connect and resize them with preserved proportions.
+- Paste or drop pictures, then move, label, connect and resize them; proportional transforms
+  preserve their aspect ratio while numeric width and height can be edited independently.
 
 ## Drawing and markup
 
@@ -66,7 +67,8 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 - Continue editing offline, restore the browser's local copy and merge when collaboration returns.
 - Create password rooms with browser encryption, or rooms that use no relay connection.
 - Export editable documents or selection/whole-canvas PNGs carrying an editable copy; import them
-  into another room with pictures and references.
+  into another room with pictures and references. Export vector pictures as SVG and topic outlines
+  as Markdown through the command palette.
 - Use optional Ahara accounts for verified sign-in, display names and saved workspaces across devices.
   All saved copies are sealed under their room keys; the guest room workflow stays unchanged.
 - Find local and private account copies in **Your canvases**, with separate open and removal actions.

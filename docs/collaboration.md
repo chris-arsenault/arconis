@@ -55,11 +55,12 @@ property panel names who changed it most recently.
 
 ## Understand what is shared
 
-Object edits, relationships, comments, slides, named styles, saved views and markup are shared.
+Object edits, relationships, comments, slides, named styles, saved views, scale calibration and
+markup are shared.
 Names, cursors and dashed drag previews show who is present and what they are moving.
 
-Your viewport, selection, grid visibility, drawing preferences, markup visibility and active
-presentation stay local. A shared saved view lets each person navigate to the same place without
+Your viewport, selection, display units, grid settings, hidden layers, drawing preferences,
+markup visibility and active presentation stay local. A shared saved view lets each person navigate to the same place without
 moving everyone else there.
 
 Text appears locally as you type and is shared when you finish the edit. Leave its source/tools,
@@ -99,8 +100,8 @@ come online before it can open.
 
 The document, presence, pictures and local persisted content are encrypted in the browser.
 The relay still sees connection and message metadata. Use the header's **Change room password**
-button to change the password. People already holding the room key remain members; changing
-the password does not revoke their access. Use a new room to establish new membership.
+button to change the password. People already holding the room key retain access; changing
+the password does not revoke it. Use a new room when the people who should have access change.
 
 A forgotten room password cannot be recovered. It is distinct from an account password:
 resetting the latter preserves saved workspaces, but opening a saved password room still needs

@@ -3,6 +3,9 @@
 A slide is a bounded viewport over the canvas. Slides with the same **Deck** name form a
 presentation, ordered by **Slide number**. Content stays in the same workspace while you present.
 
+Use a deck to walk through a diagram, show sections of a workshop canvas, or present the same
+work you are still editing. You can keep more than one deck in a room.
+
 ## Build a deck
 
 1. Open **Slides** in the right dock, choose **Add slide**, and click the canvas.
@@ -39,7 +42,7 @@ one selects the slide beneath it. If slide sizes differ, the template content sc
 The template itself is skipped during a presentation.
 
 Turning off the template checkbox gives that slide a number at the end of the deck. Editable
-Drawings, pictures and Markdown labels work inside templates as they do elsewhere.
+drawings, pictures and Markdown labels work inside templates as they do elsewhere.
 
 ## Add speaker notes
 
@@ -50,7 +53,7 @@ a bounded area below the slide; **Close speaker notes** restores the full stage.
 
 ## Present
 
-![A presentation with a template, service diagram and shared speaker notes](images/presentation.png)
+![A service diagram and review notes shown in presentation mode](images/presentation.png)
 
 Choose **Present** beside a deck in the Slides panel, or **Present from here** in the selected
 slide's properties. The editor controls give way to the slide and its presentation bar.
@@ -72,8 +75,12 @@ they do not move other participants' views.
 ## Save and export
 
 Documents and account saves preserve slides, deck names, templates, content and notes. PNG export
-uses the selected canvas items, not the presentation's current viewport. Selecting a slide includes
-what it holds; independently overlapping objects need to be selected too.
+uses the selected canvas items, not the presentation's current viewport. Selecting a slide alone
+does not select the content inside its viewport: slides hold nothing. Select the content itself,
+or a frame or group holding it, to include it in a picture export.
+
+PDF and PowerPoint deck exports are not currently available. Present within Arconis or export
+canvas content as pictures or an editable document.
 
 See [files and pictures](files.md) for PNG and editable export, and [assistants and MCP](agents.md)
 for creating slides through the canvas language.

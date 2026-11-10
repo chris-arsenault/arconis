@@ -10,7 +10,7 @@ Arconis has two ink tools for two different jobs:
 Each remembers its own tools, so choosing a review pen never changes the Draw brush. Workspace
 connection points, connected-copy controls and resize handles stay hidden while either is armed.
 
-![Drawing controls and selected gradient ink](images/drawing.png)
+![Draw's Vector tools beside an editable canvas](images/drawing.png)
 
 ## Markup
 
@@ -122,7 +122,7 @@ In a frame or group's **Layout** properties, enable **Scale content on resize** 
 held artwork with the container. It applies to nested content, ink points, shapes, text, pictures
 and internal routes. Paint and text scale too; pictures and vendor icons retain their proportions.
 With the property off, resizing keeps the ordinary panel behavior and leaves content sizes intact.
-The property defaults to off. Old Drawing holders open as ordinary frames with it enabled.
+The property defaults to off. Older files may group artwork in a frame with it enabled.
 
 Panels do not crop ink to their bounds. Container contents inherit the container's layer.
 
