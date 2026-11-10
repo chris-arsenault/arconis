@@ -15,7 +15,7 @@ export const INK_KINDS: InkKind[] = [
 ];
 
 /** Annotation membership is explicit; existing drawings stay workspace content. */
-export const isMarkup = (item: Item) => item.markup ?? item.type === "highlight";
+export const isMarkup = (item: Item) => item.markup;
 
 /** Ink is a drawn path or an outline attached to an object, wherever it lives. */
 export const isInk = (item: Item) => item.type === "drawing" || item.type === "highlight";

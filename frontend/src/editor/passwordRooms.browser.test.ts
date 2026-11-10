@@ -82,7 +82,7 @@ async function createRoom() {
 async function downloadPng(page: Page) {
   const pending = page.waitForEvent("download");
   await exportPng(page);
-  return readFile((await (await pending).path())!);
+  return readFile(await (await pending).path());
 }
 
 const importPng = (page: Page, buffer: Buffer) =>

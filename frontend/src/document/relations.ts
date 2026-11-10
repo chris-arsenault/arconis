@@ -162,7 +162,7 @@ function aboveTask(items: Item[], id: string) {
 /** How many of the tasks each item holds or heads are done, and how many there are. */
 export function taskCounts(items: Item[]) {
   const counts = new Map<string, { done: number; total: number }>();
-  for (const task of items.filter((item) => item.task)) {
+  for (const task of items.filter((item) => item.task !== "none")) {
     for (const id of aboveTask(items, task.id)) {
       const count = counts.get(id) ?? { done: 0, total: 0 };
       count.total++;

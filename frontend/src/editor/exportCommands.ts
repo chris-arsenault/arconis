@@ -1,7 +1,7 @@
 import { branchChildren } from "../document/relations";
 import type { Item } from "../document/types";
 import { downloadFile } from "../files/download";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { renderPng, renderSvgFile } from "./pngExport";
 import { treeRootOf } from "./outline";
 import { pictureScope } from "./layerView";
@@ -43,7 +43,7 @@ async function copyPng({ editor, selected }: CommandContext) {
   }
   try {
     await navigator.clipboard.write([
-      new ClipboardItem({ "image/png": new Blob([png as BlobPart], { type: "image/png" }) }),
+      new ClipboardItem({ "image/png": new Blob([png], { type: "image/png" }) }),
     ]);
     room.setNotice("Picture copied.");
   } catch {

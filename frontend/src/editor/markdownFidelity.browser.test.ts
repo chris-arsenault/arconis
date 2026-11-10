@@ -93,7 +93,7 @@ it("exports actual highlighted/math pixels with bundled fonts and reimports exac
   const pending = page.waitForEvent("download");
   await exportPng(page);
   const download = await pending;
-  const path = (await download.path())!;
+  const path = await download.path();
   const bytes = await readFile(path);
   const colors = await imagePixels(page, bytes.toString("base64"));
   expect(colors.ink).toBeGreaterThan(300);

@@ -202,7 +202,7 @@ export function showLevels(document: CanvasDocument, rootId: string, levels: num
   step(document, () => {
     for (const [id, depth] of depths) {
       const heads = branchChildren(items, id).length > 0;
-      document.patch(id, { collapsed: heads && depth >= levels ? true : undefined });
+      document.patch(id, { collapsed: heads && depth >= levels });
     }
   });
 }

@@ -229,6 +229,7 @@ function VendorGroup({
   return (
     <RailSection
       id={vendor}
+      count={0}
       title={VENDOR_TITLES[vendor]}
       detail={LIBRARY_DETAILS[vendor]}
       open={open}
@@ -337,6 +338,7 @@ function Libraries({ editor, sections, version }: Readonly<LibraryProps>) {
         <RailSection
           key={group.title}
           id={group.title}
+          count={0}
           title={group.title}
           detail={LIBRARY_DETAILS[group.title]}
           open={sections.open[group.title]}
@@ -351,6 +353,7 @@ function Libraries({ editor, sections, version }: Readonly<LibraryProps>) {
       ))}
       <RailSection
         id="Screens"
+        count={0}
         title="Screens"
         detail={LIBRARY_DETAILS.Screens}
         open={sections.open.Screens}
@@ -369,6 +372,7 @@ function Libraries({ editor, sections, version }: Readonly<LibraryProps>) {
         <RailSection
           key={title}
           id={title}
+          count={0}
           title={title}
           detail={LIBRARY_DETAILS[title]}
           open={sections.open[title]}

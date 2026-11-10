@@ -34,6 +34,11 @@ The [Makefile](../Makefile) and frontend package scripts are the command authori
 commit, complete `make ci`; run build and browser checks appropriate to the changed behavior.
 Documentation changes also need local link, anchor and example checks.
 
+Local and hosted CI use the same ESLint configuration, including type-aware TypeScript rules
+and Ahara's custom rules. Source JavaScript and JSX also receive the TypeScript-extension rule;
+the ESLint configuration itself remains JavaScript. Auth0's post-login action keeps its required
+runtime async signature even though its current body performs synchronous checks.
+
 ## Focus a test run
 
 ```sh

@@ -6,15 +6,17 @@ import { libraryListSchema } from "../protocol/library";
 function setup() {
   const table = memoryAccountTable();
   const revision = crypto.randomUUID();
-  const services: AccountServices = {
-    objectInfo: vi.fn(() => Promise.resolve({ size: 100, checksum: "checked" })),
+  const services = {
+    objectInfo: vi.fn<AccountServices["objectInfo"]>(() =>
+      Promise.resolve({ size: 100, checksum: "checked" })
+    ),
     signUpload: (user, path) => Promise.resolve(`put:${user}/${path}`),
     signDownload: (user, path) => Promise.resolve(`get:${user}/${path}`),
     deleteObject: vi.fn(() => Promise.resolve()),
     deleteLogin: vi.fn(() => Promise.resolve()),
     now: () => 1000,
     newRevision: () => revision,
-  };
+  } satisfies AccountServices;
   const api = new AccountsApi(table, services);
   const id = crypto.randomUUID();
   const values = { name: "Reusable diagram", size: 100, checksum: "checked" };

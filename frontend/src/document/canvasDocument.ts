@@ -7,26 +7,9 @@ import { removalClosure } from "./relations";
 import { canHoldAnything } from "./capabilities";
 import { BASE_LAYER, inLayers, layerOf, orderedLayers, type LayerRecord } from "./layers";
 import { upgradeDrawingHolders } from "./legacyDrawing";
-
-/** Fields every item has, with the values an item starts from. */
-export const BLANK: Omit<Item, "id" | "type"> = {
-  name: "",
-  subtitle: "",
-  inside: "",
-  x: 0,
-  y: 0,
-  width: 160,
-  height: 90,
-  order: 0,
-  style: "",
-  look: {},
-  stencil: "rectangle",
-  icon: "",
-  from: "",
-  to: "",
-  points: [],
-  onLine: "",
-};
+import { BLANK } from "./itemDefaults";
+import { readArrangement } from "./arrangement";
+export { BLANK } from "./itemDefaults";
 
 /** The size a new item of a type takes when none is given. */
 export function defaultSize(type: ItemType, stencil = "rectangle"): [number, number] {
@@ -125,6 +108,11 @@ export class CanvasDocument {
       width,
       height,
       order: this.nextOrder(),
+      markup: type === "highlight",
+      tags: [],
+      properties: {},
+      points: [],
+      look: {},
       ...extras,
     };
     const active = this.layers.has(this.activeLayer) ? this.activeLayer : "";
@@ -144,7 +132,7 @@ export class CanvasDocument {
     text.insert(0, name);
     const looks = new Y.Map<unknown>();
     record.set("look", looks);
-    Object.entries(look).forEach(([key, value]) => {
+    (Object.entries(look) as [string, unknown][]).forEach(([key, value]) => {
       if (value !== undefined) looks.set(key, value);
     });
     this.stamp(record);
@@ -191,7 +179,13 @@ export class CanvasDocument {
     // Slides once held what was dropped on them; such contents now sit at the top level.
     if (stored.inside && !canHoldAnything(this.items.get(stored.inside)?.get("type")))
       stored.inside = "";
-    return { ...BLANK, ...stored, id } as Item;
+    return {
+      ...BLANK,
+      ...stored,
+      id,
+      markup: stored.markup ?? stored.type === "highlight",
+      arrange: readArrangement(stored.arrange),
+    } as Item;
   }
 
   /** Visible items in stacking order. Callers must not mutate the shared result. */
@@ -215,12 +209,12 @@ export class CanvasDocument {
     return item;
   }
 
-  /** Changes fields of an item. An undefined value clears an optional field. */
   /** Every content layer, bottom to top, the base layer included. */
   layerList() {
     return orderedLayers(this.layers.entries());
   }
 
+  /** Applies named edits; omitted keys stay unchanged. Removing a stored key restores its default. */
   patch(id: string, values: Partial<Item>) {
     const record = this.items.get(id);
     if (!record) return;
@@ -228,7 +222,7 @@ export class CanvasDocument {
     // Contents are in their holder's layer; one leaving its holders stays in the layer it was in.
     if (values.inside !== undefined && values.inside !== current.inside && !("layer" in values)) {
       const layer = values.inside ? "" : layerOf(current, (holder) => this.get(holder));
-      values = { ...values, layer: layer && layer !== BASE_LAYER ? layer : undefined };
+      values = { ...values, layer: layer && layer !== BASE_LAYER ? layer : "" };
     }
     this.doc.transact(() => {
       let changed = false;
@@ -260,7 +254,7 @@ export class CanvasDocument {
     if (!record || !looks) return;
     this.doc.transact(() => {
       let changed = false;
-      Object.entries(values).forEach(([key, value]) => {
+      (Object.entries(values) as [string, unknown][]).forEach(([key, value]) => {
         if (value === undefined) {
           if (looks.has(key)) {
             looks.delete(key);

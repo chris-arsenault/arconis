@@ -1,4 +1,4 @@
-import { DEFAULT_GAP, type Box } from "../document/layout";
+import type { Box } from "../document/layout";
 import type { Attribute, Edge } from "./syntax";
 import { attributesFor, type RoutedAttribute } from "./attributeRouting";
 
@@ -18,8 +18,8 @@ export interface AxisRule {
   value: (own: Extent) => number;
 }
 export interface Rules {
-  x?: AxisRule;
-  y?: AxisRule;
+  x: AxisRule | null;
+  y: AxisRule | null;
 }
 
 const fixed = (value: number): AxisRule => ({ sized: false, value: () => value });
@@ -57,17 +57,17 @@ function besideRules(direction: string, target: Extent, gap: number, holder: boo
 function alignRules(edge: Edge, { box }: Extent): Rules {
   switch (edge) {
     case "left":
-      return { x: fixed(box.x) };
+      return { x: fixed(box.x), y: null };
     case "center":
-      return { x: sized((own) => box.x + (box.width - own.box.width) / 2) };
+      return { x: sized((own) => box.x + (box.width - own.box.width) / 2), y: null };
     case "right":
-      return { x: sized((own) => box.x + box.width - own.box.width) };
+      return { x: sized((own) => box.x + box.width - own.box.width), y: null };
     case "top":
-      return { y: fixed(box.y) };
+      return { x: null, y: fixed(box.y) };
     case "middle":
-      return { y: sized((own) => box.y + (box.height - own.box.height) / 2) };
+      return { x: null, y: sized((own) => box.y + (box.height - own.box.height) / 2) };
     default:
-      return { y: sized((own) => box.y + box.height - own.box.height) };
+      return { x: null, y: sized((own) => box.y + box.height - own.box.height) };
   }
 }
 
@@ -84,12 +84,7 @@ export function placementRules(
     case "at":
       return { x: fixed(attribute.x), y: fixed(attribute.y) };
     case "beside":
-      return besideRules(
-        attribute.direction,
-        target(attribute.ref),
-        attribute.gap ?? DEFAULT_GAP,
-        holder
-      );
+      return besideRules(attribute.direction, target(attribute.ref), attribute.gap, holder);
     case "align":
       return alignRules(attribute.edge, target(attribute.ref));
   }
@@ -102,7 +97,7 @@ export function combineRules(
   holder = false,
   context: "item" | "arrangement" = "item"
 ): Rules {
-  const rules: Rules = {};
+  const rules: Rules = { x: null, y: null };
   for (const attribute of attributesFor(attributes, context, "rules")) {
     const set = placementRules(attribute, target, holder);
     if (set.x) rules.x = set.x;

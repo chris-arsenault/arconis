@@ -41,7 +41,7 @@ it("rotates a drawing's gradient with its path and keeps unrelated source fields
     angle: 90,
   }).get(id)!;
   expect(transformed).toMatchObject({
-    gradientAngle: 110,
+    paint: { gradientAngle: 110 },
     points: [
       [0, 0],
       [0, 100],

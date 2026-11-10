@@ -5,7 +5,7 @@ import { BASE_LAYER, BASE_LAYER_NAME, type Layer } from "../document/layers";
 import {
   FLAGS,
   isLink,
-  type Arrangement,
+  type FlowArrangement,
   type Item,
   type Look,
   type Port,
@@ -48,13 +48,11 @@ function word(text: string) {
 function fieldWords(item: Item) {
   const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
   if (item.scaleContents) parts.push("scale-contents");
-  if (item.tags?.length) parts.push("tags", item.tags.join(", "));
-  if (item.marker) parts.push("marker", item.marker);
-  if (item.task) parts.push("task", item.task);
+  if (item.tags.length) parts.push("tags", item.tags.join(", "));
+  if (item.marker !== "none") parts.push("marker", item.marker);
+  if (item.task !== "none") parts.push("task", item.task);
   if (item.link) parts.push("link", isWebLink(item.link) ? quote(item.link) : item.link);
-  for (const [key, value] of Object.entries(item.properties ?? {}).sort(([a], [b]) =>
-    a.localeCompare(b)
-  ))
+  for (const [key, value] of Object.entries(item.properties).sort(([a], [b]) => a.localeCompare(b)))
     parts.push("property", key, quote(value));
   return parts;
 }
@@ -64,7 +62,7 @@ function layerWords(item: Item) {
 }
 
 function editedWords(item: Item) {
-  if (item.editedBy === undefined || item.editedAt === undefined) return [];
+  if (!item.editedBy) return [];
   return ["edited", quote(item.editedBy), "at", String(Math.round(item.editedAt))];
 }
 
@@ -97,7 +95,7 @@ function names(item: Item) {
   return parts;
 }
 
-function portText(port: Port | undefined) {
+function portText(port: Port | null) {
   if (!port) return "";
   const side = Object.entries(SIDES).find(
     ([, value]) => value[0] === port[0] && value[1] === port[1]
@@ -166,22 +164,24 @@ function identity(item: Item) {
 
 function inkWords(item: Item) {
   const parts: string[] = [];
-  if (item.markup !== undefined) parts.push(item.markup ? "markup" : "workspace");
-  if (item.ink) parts.push("ink", item.ink);
+  if (item.type === "drawing" || item.type === "highlight")
+    parts.push(item.markup ? "markup" : "workspace");
+  if (item.type === "drawing") parts.push("ink", item.ink);
   if (item.target) parts.push("target", item.target);
   return parts;
 }
 
 /** A slide's deck and number; nothing for other items. */
 function deckWords(item: Item) {
-  return item.type === "slide" ? ["deck", word(deckOf(item)), number(item.slide ?? 0)] : [];
+  return item.type === "slide" ? ["deck", word(deckOf(item)), number(item.slide)] : [];
 }
 
 /** A kept arrangement: `row`, `column` or `grid N`, then how members line up and their gap. */
-function arrangeWords({ how, columns, align, gap }: Arrangement) {
-  const parts: string[] = how === "grid" ? [how, number(columns ?? 1)] : [how];
-  if (align) parts.push(align);
-  if (gap !== undefined) parts.push("gap", number(gap));
+function arrangeWords(arrangement: FlowArrangement) {
+  const { how, align, gap } = arrangement;
+  const parts: string[] = how === "grid" ? [how, number(arrangement.columns)] : [how];
+  if (align !== "center") parts.push(align);
+  parts.push("gap", number(gap));
   return parts;
 }
 
@@ -189,7 +189,7 @@ function arrangeWords({ how, columns, align, gap }: Arrangement) {
 export function itemStatement(item: Item, standalone = false) {
   if (isLink(item)) return linkStatement(item);
   const parts: string[] = [item.type, item.id, ...names(item), ...identity(item)];
-  if (item.arrange) parts.push(...arrangeWords(item.arrange));
+  if (item.arrange.how !== "free") parts.push(...arrangeWords(item.arrange));
   parts.push(...fieldWords(item), ...lookWords(item.look));
   if (item.type === "drawing") parts.push("points", ...item.points.map(([x, y]) => pair(x, y)));
   else parts.push("at", pair(item.x, item.y), "size", pair(item.width, item.height));
@@ -255,7 +255,7 @@ export function layerStatements(layers: Layer[], used?: Set<string>) {
     if (used && !used.has(layer.id)) return;
     if (layer.id === BASE_LAYER && index === 0 && layer.name === BASE_LAYER_NAME) return;
     const words = ["layer", layer.id, quote(layer.name)];
-    if (layer.id === BASE_LAYER && index > 0) words.push("above", layers[index - 1]!.id);
+    if (layer.id === BASE_LAYER && index > 0) words.push("above", layers[index - 1].id);
     lines.push(words.join(" "));
   });
   return lines;
@@ -269,37 +269,42 @@ export function printItems(items: Item[]) {
 }
 
 export interface PrintOptions {
-  includeMarkup?: boolean;
+  includeMarkup: boolean;
   /** Only these items, with what they hold; everything when empty. */
-  ids?: string[];
+  ids: string[];
   /** Picture bytes to carry, for a file that must open anywhere. */
-  data?: { hash: string; type: string; data: string }[];
+  data: { hash: string; type: string; data: string }[];
   /** Picture storage identities in this output; authored text is unchanged. */
-  pictureRenames?: Map<string, string>;
+  pictureRenames: Map<string, string>;
 }
 
 /** The canvas, or part of it, as a complete text: the saved file and what agents read. */
-export function printCanvas(document: CanvasDocument, options: PrintOptions = {}) {
-  const all = options.pictureRenames
-    ? renamePictures(document.list(), options.pictureRenames)
-    : document.list();
+export function printCanvas(document: CanvasDocument, input: Partial<PrintOptions> = {}) {
+  const options: PrintOptions = {
+    includeMarkup: true,
+    ids: [],
+    data: [],
+    pictureRenames: new Map(),
+    ...input,
+  };
+  const all = renamePictures(document.list(), options.pictureRenames);
   const layers = document.layerList();
   const known = new Set(layers.map((layer) => layer.id));
   // A layer a peer deleted while another moved items into it reads, and prints, as the base layer.
-  const chosen = exportItems(all, options.ids ?? [], options.includeMarkup !== false).map((item) =>
-    item.layer && !known.has(item.layer) ? { ...item, layer: undefined } : item
+  const chosen = exportItems(all, options.ids, options.includeMarkup).map((item) =>
+    item.layer && !known.has(item.layer) ? { ...item, layer: "" } : item
   );
   const ids = new Set(chosen.map((item) => item.id));
   const used = new Set(chosen.map((item) => item.style).filter(Boolean));
-  const whole = !options.ids?.length;
+  const whole = !options.ids.length;
   const lines = [`arconis ${LANGUAGE_VERSION}`, `title ${quote(document.title())}`];
   lines.push(...styleStatements(document, whole ? undefined : used));
-  const layersUsed = new Set(chosen.filter((item) => !item.inside).map((item) => item.layer ?? ""));
+  const layersUsed = new Set(chosen.filter((item) => !item.inside).map((item) => item.layer));
   lines.push(...layerStatements(layers, whole ? undefined : layersUsed));
   printTree(chosen, lines);
   lines.push(...discussionStatements(listComments(document).filter((c) => ids.has(c.on))));
   if (whole) lines.push(...[...document.views.values()].map(viewStatement));
-  for (const picture of options.data ?? [])
+  for (const picture of options.data)
     lines.push(`data ${picture.hash} ${picture.type} ${quote(picture.data)}`);
   return `${lines.join("\n")}\n`;
 }

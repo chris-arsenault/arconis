@@ -35,7 +35,7 @@ function nameOf(anchor: Element) {
 }
 
 /** A control's sentence, shared between a form field and its label so either one explains it. */
-export function helpDetail(anchor: Element) {
+function helpDetail(anchor: Element) {
   return (
     anchor.getAttribute("data-hint-detail") ||
     partnerOf(anchor)?.getAttribute("data-hint-detail") ||
@@ -53,7 +53,7 @@ function partnerOf(anchor: Element): Element | null | undefined {
 }
 
 /** The control under a target, skipping the help zone's own readout. */
-export function helpAt(target: EventTarget | null): Help | null {
+function helpAt(target: EventTarget | null): Help | null {
   const anchor = target instanceof Element ? target.closest(CONTROLS) : null;
   if (!anchor || anchor.closest(".help-zone-readout")) return null;
   const label = nameOf(anchor);
@@ -97,7 +97,7 @@ type HelpEvents = {
   held: boolean;
   show(target: EventTarget | null, delay: number, held?: boolean): void;
   clear(): void;
-  clearTip(): void;
+  clearTip(this: void): void;
   cancelTimer(): void;
 };
 

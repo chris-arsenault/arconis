@@ -4,6 +4,7 @@ import { lookAttribute, type LookDefinition } from "./look";
 import { INK_KINDS } from "../document/ink";
 import { FLAGS, MARKERS, TASK_STATES, type Flag } from "../document/types";
 import { isId } from "../document/ids";
+import { DEFAULT_GAP } from "../document/layout";
 
 /** Parsing of the attributes that follow an item, a line or a style. */
 
@@ -28,6 +29,7 @@ function beside(cursor: Cursor, side: Side): Attribute {
       kind: "beside",
       direction: side === "left" ? "left of" : "right of",
       ref: cursor.ref(),
+      gap: DEFAULT_GAP,
     };
   if (!cursor.word("with")) {
     const also = horizontal ? ` or "${side} of <id>"` : "";
@@ -38,7 +40,10 @@ function beside(cursor: Cursor, side: Side): Attribute {
 
 function size(cursor: Cursor, dimension: "width" | "height"): Attribute {
   if (cursor.word("of")) return { kind: "match", dimension, ref: cursor.ref() };
-  return { kind: "size", [dimension]: cursor.number(`the ${dimension}`) };
+  return {
+    kind: "size",
+    dimensions: { kind: dimension, value: cursor.number(`the ${dimension}`) },
+  };
 }
 
 function offset(cursor: Cursor, kind: "by" | "nudge"): Attribute {
@@ -73,22 +78,20 @@ function tags(cursor: Cursor): Attribute {
 
 /** One of a fixed set of words, or `none` to clear the field. */
 function choice<Value extends string>(
+  cursor: Cursor,
   kind: "marker" | "task",
   values: readonly Value[],
   what: string
-) {
-  return (cursor: Cursor): Attribute => {
-    if (cursor.word("none")) return { kind };
-    const value = cursor.expectWord(`${what} after ${kind}`);
-    const found = values.find((candidate) => candidate === value);
-    if (!found) return cursor.fail(`Choose ${kind} ${values.join("|")} or none.`);
-    return { kind, [kind]: found } as Attribute;
-  };
+): Value {
+  const value = cursor.expectWord(`${what} after ${kind}`);
+  const found = values.find((candidate) => candidate === value);
+  if (!found) cursor.fail(`Choose ${kind} ${values.join("|")}.`);
+  return found;
 }
 
 /** A web address in quotes, or the bare id of an item, slide or view; `none` clears it. */
 function link(cursor: Cursor): Attribute {
-  if (cursor.word("none")) return { kind: "link" };
+  if (cursor.word("none")) return { kind: "link", link: "" };
   if (cursor.kindIs("string")) return { kind: "link", link: cursor.next().text };
   return { kind: "link", link: cursor.expectWord("a web address in quotes or an item's id") };
 }
@@ -97,8 +100,12 @@ function link(cursor: Cursor): Attribute {
 function property(cursor: Cursor): Attribute {
   const key = cursor.expectWord("the property's name");
   if (!isId(key)) cursor.fail(`"${key}" cannot name a property: use letters, digits, _ and -.`);
-  if (cursor.word("none")) return { kind: "property", key };
-  return { kind: "property", key, value: cursor.expectString("the property's value") };
+  if (cursor.word("none")) return { kind: "property", key, edit: { kind: "remove" } };
+  return {
+    kind: "property",
+    key,
+    edit: { kind: "set", value: cursor.expectString("the property's value") },
+  };
 }
 
 function edited(cursor: Cursor): Attribute {
@@ -110,8 +117,14 @@ function edited(cursor: Cursor): Attribute {
 const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   ...Object.fromEntries(FLAGS.map((name) => [name, flag(name)])),
   tags,
-  marker: choice("marker", MARKERS, "a marker"),
-  task: choice("task", TASK_STATES, "open or done"),
+  marker: (cursor) => ({
+    kind: "marker",
+    marker: choice(cursor, "marker", [...MARKERS, "none"] as const, "a marker"),
+  }),
+  task: (cursor) => ({
+    kind: "task",
+    task: choice(cursor, "task", [...TASK_STATES, "none"] as const, "open or done"),
+  }),
   link,
   edited,
   property,
@@ -137,14 +150,14 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   },
   size: (cursor) => {
     const [width, height] = cursor.point("a size as width,height");
-    return { kind: "size", width, height };
+    return { kind: "size", dimensions: { kind: "both", width, height } };
   },
   width: (cursor) => size(cursor, "width"),
   height: (cursor) => size(cursor, "height"),
   by: (cursor) => offset(cursor, "by"),
   nudge: (cursor) => offset(cursor, "nudge"),
-  below: (cursor) => ({ kind: "beside", direction: "below", ref: cursor.ref() }),
-  above: (cursor) => ({ kind: "beside", direction: "above", ref: cursor.ref() }),
+  below: (cursor) => ({ kind: "beside", direction: "below", ref: cursor.ref(), gap: DEFAULT_GAP }),
+  above: (cursor) => ({ kind: "beside", direction: "above", ref: cursor.ref(), gap: DEFAULT_GAP }),
   left: (cursor) => beside(cursor, "left"),
   right: (cursor) => beside(cursor, "right"),
   top: (cursor) => beside(cursor, "top"),
@@ -163,8 +176,10 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
     const deck = cursor.kindIs("string")
       ? cursor.next().text
       : cursor.expectWord("the deck's name");
-    const slide = cursor.kindIs("number") ? cursor.number("the slide's number") : undefined;
-    return { kind: "deck", deck, slide };
+    const numbering = cursor.kindIs("number")
+      ? { kind: "number" as const, value: cursor.number("the slide's number") }
+      : { kind: "next" as const };
+    return { kind: "deck", deck, numbering };
   },
   "label-at": (cursor) => {
     const [x, y] = cursor.point("the label's position");
@@ -180,10 +195,13 @@ export function isAttributeWord(word: string) {
 
 /** The rest of `row`, `column` or `grid N`: an optional edge members line up by. */
 export function arrangeTail(cursor: Cursor, how: Arrangement, columns?: number): Attribute {
-  const attribute: Attribute & { kind: "arrange" } = { kind: "arrange", how, columns };
-  if (cursor.isWord() && EDGES.has(cursor.token.text as Edge))
-    attribute.align = cursor.next().text as Edge;
-  return attribute;
+  const align =
+    cursor.isWord() && EDGES.has(cursor.token.text as Edge)
+      ? (cursor.next().text as Edge)
+      : "center";
+  return how === "grid"
+    ? { kind: "arrange", how, columns: columns ?? 1, gap: DEFAULT_GAP, align: "center" }
+    : { kind: "arrange", how, gap: DEFAULT_GAP, align };
 }
 
 function lookValue(

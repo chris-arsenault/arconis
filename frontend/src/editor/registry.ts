@@ -1,6 +1,6 @@
 import type { Item } from "../document/types";
 import type { EditorController } from "./controller";
-import { matchesShortcut, type Shortcut } from "./shortcuts";
+import { matchesShortcut, type Shortcut, type ShortcutDeclaration } from "./shortcuts";
 import { COMMANDS } from "./commandTable";
 
 /**
@@ -35,15 +35,19 @@ export interface Command {
   /** One sentence for the help zone and the reference: what the command does, plainly. */
   help: string;
   group: CommandGroup;
-  shortcuts?: Shortcut[];
+  shortcuts: Shortcut[];
   /** Words people might type into the palette beyond the label. */
-  keywords?: string[];
-  /** Whether the command applies now; absent means always. */
-  when?: (context: CommandContext) => boolean;
+  keywords: string[];
+  /** Whether the command applies now; declarations default to always. */
+  when: (context: CommandContext) => boolean;
   run: (context: CommandContext) => void;
   /** The browser's own event runs it on its shortcut, which is shown but not dispatched here. */
-  native?: boolean;
+  native: boolean;
 }
+type Defaulted = "shortcuts" | "keywords" | "when" | "native";
+export type CommandDefinition = Omit<Command, Defaulted> &
+  Partial<Pick<Command, Exclude<Defaulted, "shortcuts">>> &
+  Partial<{ shortcuts: ShortcutDeclaration[] }>;
 
 const byId = new Map(COMMANDS.map((command) => [command.id, command]));
 
@@ -56,7 +60,7 @@ export function commandLabel(command: Command, context: CommandContext) {
 }
 
 export function isAvailable(command: Command, context: CommandContext) {
-  return command.when ? command.when(context) : true;
+  return command.when(context);
 }
 
 export function findCommand(id: string) {
@@ -71,7 +75,7 @@ export function commandForKey(event: KeyboardEvent, context: CommandContext) {
     COMMANDS.find(
       (command) =>
         !command.native &&
-        command.shortcuts?.some((shortcut) => matchesShortcut(shortcut, event)) &&
+        command.shortcuts.some((shortcut) => matchesShortcut(shortcut, event)) &&
         isAvailable(command, context)
     ) ?? null
   );

@@ -129,7 +129,7 @@ it("leaves a free end on a body drop, re-anchors an end, and drags from the body
   await expect.poll(() => objectCount(page)).toBe(3);
   const edge = await connector(page);
   expect(edge.fromPort?.[0]).toBe(1);
-  expect(edge.toPort).toBeUndefined();
+  expect(edge.toPort).toBeNull();
   await selectConnector(page);
   const end = (await canvas(page).locator('rect[fill="#0000ff"]').last().boundingBox())!;
   await page.mouse.move(0, 0);

@@ -5,6 +5,7 @@ import type { Item } from "../document/types";
 import { Section } from "./ConnectionControls";
 import type { CompletedActions } from "../document/actions";
 import { NumericInput } from "./NumericInput";
+import { SLIDE_NUMBER } from "./numericRules";
 
 /** Makes the slide its deck's template, number 0, or gives it back a number at the deck's end. */
 function TemplateToggle({
@@ -82,9 +83,9 @@ export function SlideControls({
             id={numberId}
             key={item.id}
             label="Slide number"
-            value={item.slide ?? 0}
-            minimum={0}
-            integer
+            value={item.slide}
+            rules={SLIDE_NUMBER}
+            detail="Set where this slide comes in its deck's presenting order."
             onCommit={onNumber}
           />
         </label>

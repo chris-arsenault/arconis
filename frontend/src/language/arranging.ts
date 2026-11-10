@@ -1,4 +1,4 @@
-import { isBox, isFrame, type Arrangement, type Item } from "../document/types";
+import { isArranged, isBox, isFrame, type FlowArrangement, type Item } from "../document/types";
 import type { Draft } from "./draft";
 import { DEFAULT_GAP, paddingOf, union, type Box } from "../document/layout";
 import { slots, arrangedLayout } from "../document/arrangement";
@@ -10,7 +10,7 @@ import { hiddenIds } from "../document/relations";
 export type Arrange = Extract<Attribute, { kind: "arrange" }>;
 
 /** Lays members out from 0,0 in a row, column or grid, returning the box they fill. */
-export function arrangeMembers(draft: Draft, members: string[], arrange: Arrangement): Box {
+export function arrangeMembers(draft: Draft, members: string[], arrange: FlowArrangement): Box {
   const present = members
     .map((id) => ({ id, space: draft.spaceOf(id) }))
     .filter((member): member is { id: string; space: Box } => member.space !== null);
@@ -50,7 +50,7 @@ function laidOut(draft: Draft, holder: Item) {
 }
 
 export function reflowDraft(draft: Draft) {
-  const frames = [...draft.items.values()].filter((item) => item.arrange);
+  const frames = [...draft.items.values()].filter(isArranged);
   frames.sort((a, b) => draft.ancestors(b).length - draft.ancestors(a).length);
   for (const frame of frames) {
     const members = laidOut(draft, frame);

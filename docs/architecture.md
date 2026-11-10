@@ -24,6 +24,13 @@ itself after each write, and opening a file keeps the editors the file names. Na
 views and comments sit in maps beside the items. Undo tracks local origins, so remote edits stay
 independent of a participant's undo history. Records a peer writes in an unknown shape are ignored.
 
+Ordinary item state is complete: flags are booleans, tags and properties are collections, and
+marker/task states include `none`. Kept layout distinguishes a free frame from a complete row,
+column or grid arrangement. The peer reader supplies these values for omitted wire fields.
+Authored appearance remains a sparse override map because omission means inheritance; resolving
+it produces a complete semantic appearance. Parser records distinguish preserving text from
+setting it, automatic from named identities, and references from inline declarations.
+
 - **Geometry.** Box positions and line and drawing points are world coordinates, and only maxGraph
   uses holder-relative geometry ([ADR-0004](adr/0004-canonical-world-geometry.md)). A line's `x` and
   `y` place its label.
@@ -37,7 +44,7 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Stacking.** Each item's `order` sets its stacking position, with its id breaking ties, because
   `Y.Map` iteration differs between peers.
 - **Layers.** The `layers` map holds content layers' names and stacking orders
-  ([ADR-0017](adr/0017-content-layers.md)), and an item's `layer` names its own; absent is the
+  ([ADR-0017](adr/0017-content-layers.md)), and an item's `layer` names its own; an empty id is the
   base layer. `document/layers.ts` resolves an item's layer from its outermost holder, orders
   slides, then each layer, then markup for the projection, and computes what a person's hidden
   layers take off their graph. `document/layerCommands.ts` plans create, rename, move, merge,
@@ -89,8 +96,8 @@ independent of a participant's undo history. Records a peer writes in an unknown
   carry raw multiline names in the same language, and Copy Markdown returns the exact source.
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
   so the selection frame scales and rotates them.
-  The `drawing` item remains a world-coordinate path, with optional ink geometry and markup
-  membership. Ordinary frames and groups collect paths alongside other content.
+  The `drawing` item remains a world-coordinate path, with an ink geometry (freehand by default)
+  and explicit markup membership. Ordinary frames and groups collect paths alongside other content.
   `highlight` references a target, and shared removal policy follows
   that relation. Semantic appearance resolves closed fills, stroke opacity and gradient terms.
   Language attributes, files and MCP read/write carry the same fields.

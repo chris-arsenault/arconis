@@ -1,11 +1,4 @@
-import {
-  Cell,
-  Geometry,
-  VertexHandler,
-  type CellStyle,
-  type ConnectionHandler,
-  type Graph,
-} from "@maxgraph/core";
+import { Cell, Geometry, VertexHandler, type ConnectionHandler, type Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { isBox } from "../document/types";
 
@@ -26,7 +19,7 @@ export function configureCreateTarget(graph: Graph, document: CanvasDocument) {
     const vertex = new Cell(
       "",
       new Geometry(point.x - width / 2, point.y - height / 2, width, height),
-      style as CellStyle
+      style
     );
     vertex.setVertex(true);
     vertex.setConnectable(true);

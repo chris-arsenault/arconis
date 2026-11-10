@@ -61,7 +61,7 @@ function cloneDrawPane(graph: Graph, cells: Set<Cell>) {
       hidden.push(node);
     }
   });
-  const pane = graph.view.getDrawPane()!.cloneNode(true) as Element;
+  const pane = graph.view.getDrawPane().cloneNode(true) as Element;
   hidden.forEach((node) => node.removeAttribute(HIDE_ATTRIBUTE));
   pane.querySelectorAll(`[${HIDE_ATTRIBUTE}]`).forEach((node) => node.remove());
   pane.querySelectorAll("[data-canvas-chrome]").forEach((node) => node.remove());
@@ -88,7 +88,10 @@ function renderSvg(graph: Graph, cells: Cell[], box: WorldBox) {
 function readDataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
+    reader.onload = () =>
+      typeof reader.result === "string"
+        ? resolve(reader.result)
+        : reject(new Error("A picture could not be drawn."));
     reader.onerror = () => reject(new Error("A picture could not be drawn."));
     reader.readAsDataURL(blob);
   });

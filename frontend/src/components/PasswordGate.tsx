@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { KeyRound } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 
@@ -20,13 +20,12 @@ function PasswordForm({
   onSubmit: (password: string) => Promise<void>;
 }>) {
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, startSubmit] = useTransition();
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        setBusy(true);
-        void onSubmit(password).finally(() => setBusy(false));
+        startSubmit(() => onSubmit(password));
       }}
     >
       <label data-hint-detail={fieldDetail}>

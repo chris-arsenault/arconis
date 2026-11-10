@@ -9,7 +9,6 @@ interface CapturedRequest {
   method: string;
   path: string;
   headers: Record<string, string>;
-  body?: unknown;
 }
 function setup() {
   const requests: CapturedRequest[] = [];
@@ -20,11 +19,11 @@ function setup() {
     credentials: { accessKeyId: "fixture", secretAccessKey: "fixture" },
     requestChecksumCalculation: "WHEN_REQUIRED",
     requestHandler: {
-      handle: async (request: CapturedRequest) => {
+      handle: (request: CapturedRequest) => {
         requests.push(request);
-        return {
+        return Promise.resolve({
           response: { statusCode: 200, headers: replies.shift() ?? {}, body: new Uint8Array() },
-        };
+        });
       },
     },
   });

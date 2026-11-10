@@ -27,9 +27,9 @@ export function filterChoices(items: Item[]) {
   const tasks = new Set<TaskState>();
   const authors = new Set<string>();
   for (const item of items) {
-    item.tags?.forEach((tag) => tags.add(tag));
-    if (item.marker) markers.add(item.marker);
-    if (item.task) tasks.add(item.task);
+    item.tags.forEach((tag) => tags.add(tag));
+    if (item.marker !== "none") markers.add(item.marker);
+    if (item.task !== "none") tasks.add(item.task);
     if (item.editedBy) authors.add(item.editedBy);
   }
   return { tags: [...tags], markers: [...markers], tasks: [...tasks], authors: [...authors] };
@@ -37,9 +37,9 @@ export function filterChoices(items: Item[]) {
 
 /** What each kind of the filter reads from an item. */
 const VALUES: { [K in keyof Filter]: (item: Item) => string[] } = {
-  tags: (item) => item.tags ?? [],
-  markers: (item) => (item.marker ? [item.marker] : []),
-  tasks: (item) => (item.task ? [item.task] : []),
+  tags: (item) => item.tags,
+  markers: (item) => (item.marker !== "none" ? [item.marker] : []),
+  tasks: (item) => (item.task !== "none" ? [item.task] : []),
   authors: (item) => (item.editedBy ? [item.editedBy] : []),
 };
 

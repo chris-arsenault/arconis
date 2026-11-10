@@ -1,6 +1,6 @@
 import { CheckSquare, GitBranch, LockKeyhole, MessageSquare, Square, Tags } from "lucide-react";
 import { Rectangle, type CellState } from "@maxgraph/core";
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import type { EditorController } from "../editor/controller";
 import { listComments, openThreadCounts } from "../document/comments";
 import { referenceCounts, taskCounts } from "../document/relations";
@@ -81,44 +81,52 @@ export function ObjectMetadata({ editor }: Readonly<{ editor: EditorController }
   const bright = isEmptyFilter(editor.filter)
     ? null
     : filterMatches(editor.document.list(), editor.filter);
-  return editor.document.list().map((item) => (
-    <MetadataItem
-      key={item.id}
-      editor={editor}
-      item={item}
-      preferences={preferences}
-      counts={{
-        comments: comments.get(item.id) ?? 0,
-        references: references.get(item.id) ?? 0,
-        tasks: tasks.get(item.id) ?? null,
-      }}
-      dimmed={bright !== null && !bright.has(item.id)}
-    />
-  ));
+  return editor.document
+    .list()
+    .map((item) => (
+      <MetadataItem
+        key={item.id}
+        editor={editor}
+        item={item}
+        preferences={preferences}
+        comments={comments.get(item.id) ?? 0}
+        references={references.get(item.id) ?? 0}
+        tasks={tasks.get(item.id) ?? null}
+        dimmed={bright !== null && !bright.has(item.id)}
+      />
+    ));
 }
 
 function MetadataItem({
   editor,
   item,
-  counts,
+  comments,
+  references,
+  tasks,
   dimmed,
   preferences,
 }: Readonly<{
   editor: EditorController;
   item: Item;
-  counts: DetailCounts;
+  comments: number;
+  references: number;
+  tasks: DetailCounts["tasks"];
   dimmed: boolean;
   preferences: DisplayPreferences;
 }>) {
   const cell = editor.graph.getDataModel().getCell(item.id);
   const selected = cell !== null && editor.graph.isCellSelected(cell);
-  const visible = {
-    comments: indicatorVisible(preferences.comments, selected),
-    tags: indicatorVisible(preferences.tags, selected),
-    markers: indicatorVisible(preferences.markers, selected),
-    relationships: indicatorVisible(preferences.relationships, selected),
-    status: indicatorVisible(preferences.status, selected),
-  };
+  const counts = useMemo(() => ({ comments, references, tasks }), [comments, references, tasks]);
+  const visible = useMemo(
+    () => ({
+      comments: indicatorVisible(preferences.comments, selected),
+      tags: indicatorVisible(preferences.tags, selected),
+      markers: indicatorVisible(preferences.markers, selected),
+      relationships: indicatorVisible(preferences.relationships, selected),
+      status: indicatorVisible(preferences.status, selected),
+    }),
+    [preferences, selected]
+  );
   if (!hasVisibleMetadata(item, counts, visible)) return null;
   const bounds = metadataBounds(editor, item);
   if (!bounds) return null;
@@ -148,9 +156,9 @@ function hasVisibleMetadata(item: Item, counts: DetailCounts, visible: Visible) 
   return [
     visible.comments && counts.comments,
     visible.relationships && counts.references,
-    visible.markers && item.marker,
-    visible.tags && item.tags?.length,
-    visible.status && (item.task || item.locked || counts.tasks),
+    visible.markers && item.marker !== "none",
+    visible.tags && item.tags.length,
+    visible.status && (item.task !== "none" || item.locked || counts.tasks),
   ].some(Boolean);
 }
 
@@ -170,7 +178,7 @@ function MetadataBadges({
   return (
     <>
       {visible.status && <StateBadges item={item} />}
-      {visible.markers && item.marker && <MarkerBadge editor={editor} item={item} />}
+      {visible.markers && item.marker !== "none" && <MarkerBadge editor={editor} item={item} />}
       {visible.tags && <TagBadge editor={editor} item={item} selected={selected} />}
       {visible.relationships && (
         <RelationshipBadge
@@ -236,7 +244,7 @@ function StateBadges({ item }: Readonly<{ item: Item }>) {
           <LockKeyhole size={12} />
         </span>
       )}
-      {item.task && (
+      {item.task !== "none" && (
         <span
           className="metadata-badge"
           data-hint={item.task === "done" ? "Task complete" : "Open task"}
@@ -272,7 +280,8 @@ function CommentBadge({
 }
 
 function MarkerBadge({ editor, item }: Readonly<{ editor: EditorController; item: Item }>) {
-  const marker = item.marker!;
+  const marker = item.marker;
+  if (marker === "none") return null;
   return (
     <button
       className={`metadata-badge metadata-marker marker-${marker}`}
@@ -295,7 +304,7 @@ function TagBadge({
   item,
   selected,
 }: Readonly<{ editor: EditorController; item: Item; selected: boolean }>) {
-  const tags = item.tags ?? [];
+  const tags = item.tags;
   if (!tags.length) return null;
   const text = selected ? tags[0] : String(tags.length);
   const showText = selected || tags.length > 1;

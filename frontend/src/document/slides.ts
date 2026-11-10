@@ -43,7 +43,7 @@ export function deckOf(item: Item) {
 }
 
 export function compareSlides(a: Item, b: Item) {
-  return (a.slide ?? 0) - (b.slide ?? 0) || a.id.localeCompare(b.id);
+  return a.slide - b.slide || a.id.localeCompare(b.id);
 }
 
 /** Every deck with its slides in order, decks by name. */
@@ -67,7 +67,7 @@ export function presentedSlides(items: Item[], deck: string) {
 
 /** The number a slide added to this deck takes: one past the highest, or 1. */
 export function nextSlideNumber(items: Item[], deck: string) {
-  const numbers = deckSlides(items, deck).map((slide) => slide.slide ?? 0);
+  const numbers = deckSlides(items, deck).map((slide) => slide.slide);
   return numbers.length ? Math.floor(Math.max(...numbers)) + 1 : 1;
 }
 

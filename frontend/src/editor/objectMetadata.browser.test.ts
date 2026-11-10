@@ -86,7 +86,7 @@ clients -> cloud as incoming
       .getByText("Check the TLS boundary.", { exact: true })
       .waitFor();
     await page.getByRole("button", { name: "Close comments", exact: true }).click();
-    await page.getByLabel("Marker", { exact: true }).selectOption("");
+    await page.getByLabel("Marker", { exact: true }).selectOption({ label: "None" });
     await page.getByRole("button", { name: "Remove tag edge", exact: true }).click();
     await page
       .getByRole("button", { name: "Remove reference to Application", exact: true })

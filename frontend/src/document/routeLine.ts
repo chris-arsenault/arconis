@@ -13,7 +13,7 @@ const SEARCH_MARGIN = 240;
 /** Room kept between a line and the items it passes, at most. */
 const CLEARANCE = 16;
 
-function endOf(box: Box, other: Box, port: Port | undefined): RouteEnd {
+function endOf(box: Box, other: Box, port: Port | null): RouteEnd {
   if (!port) return facing(box, other);
   const point = { x: box.x + box.width * port[0], y: box.y + box.height * port[1] };
   return { ...point, side: sideOf(box, point.x, point.y) };

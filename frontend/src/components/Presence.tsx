@@ -10,6 +10,7 @@ import {
   freshSpotlights,
   liveLaser,
   peerStates,
+  readPeerState,
   sendChat,
   stopFollowing,
   type PeerState,
@@ -96,10 +97,10 @@ function FollowingPill({
 }: Readonly<{ editor: EditorController; session: RoomSession }>) {
   const target = editor.ui.following;
   if (target === null) return null;
-  const state = session.provider.awareness.getStates().get(target) as PeerState | undefined;
+  const state = readPeerState(session.provider.awareness.getStates().get(target));
   return (
     <div className="following-pill" data-testid="following">
-      <Eye size={14} /> Following {state?.user?.name ?? "someone"}
+      <Eye size={14} /> Following {state.user.name}
       <button
         className="icon-action"
         aria-label="Stop following"
@@ -180,7 +181,7 @@ export function PresenceOverlays({
   session,
 }: Readonly<{ editor: EditorController; session: RoomSession }>) {
   useSyncExternalStore(session.subscribe, session.snapshot);
-  const own = session.provider.awareness.getLocalState() as PeerState | null;
+  const own = readPeerState(session.provider.awareness.getLocalState());
   return (
     <>
       <LaserTrail editor={editor} points={editor.ui.laser} color={own?.user?.color ?? "#7863d4"} />
@@ -192,10 +193,10 @@ export function PresenceOverlays({
   );
 }
 
-function ParticipantDot({ color }: Readonly<{ color: string | undefined }>) {
+function ParticipantDot({ color }: Readonly<{ color: string }>) {
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    if (ref.current) ref.current.style.background = color ?? "#7863d4";
+    if (ref.current) ref.current.style.background = color;
   }, [color]);
   return <span ref={ref} className="participant-dot" />;
 }
@@ -213,12 +214,12 @@ export function Participants({
   onClose: () => void;
 }>) {
   const peers = peerStates(session);
-  const own = session.provider.awareness.getLocalState() as PeerState | null;
+  const own = readPeerState(session.provider.awareness.getLocalState());
   return (
     <div className="participants" role="dialog" aria-label="Participants">
       <ul>
         <li>
-          <ParticipantDot color={own?.user?.color} />
+          <ParticipantDot color={own?.user?.color ?? "#7863d4"} />
           {own?.user?.name ?? "You"} (you)
           <button
             className="text-action"
@@ -230,7 +231,7 @@ export function Participants({
         </li>
         {peers.map(([clientId, state]) => (
           <li key={clientId}>
-            <ParticipantDot color={state.user?.color} />
+            <ParticipantDot color={state.user?.color ?? "#7863d4"} />
             {state.user?.name ?? "Guest"}
             {editor && (
               <button

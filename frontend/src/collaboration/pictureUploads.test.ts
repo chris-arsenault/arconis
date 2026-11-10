@@ -20,7 +20,7 @@ async function setup(reply: UploadReply | ((hash: string) => UploadReply)) {
         return Promise.resolve();
       },
     },
-    codec: { seal: async (bytes) => bytes, open: async (bytes) => bytes },
+    codec: { seal: (bytes) => Promise.resolve(bytes), open: (bytes) => Promise.resolve(bytes) },
     download: null,
     createUrl: () => "",
     revokeUrl: () => {},
@@ -94,7 +94,10 @@ describe("uploading", () => {
 
   it("uploads again after a failed PUT before advertising shared storage", async () => {
     const context = await setup((hash) => ({ status: "upload", hash, url: "u" }));
-    const uploads = new Uploads({ list: async () => new Map(), sign: async () => "u" });
+    const uploads = new Uploads({
+      list: () => Promise.resolve(new Map()),
+      sign: () => Promise.resolve("u"),
+    });
     context.request.mockImplementation((request) => uploads.prepare(request));
     context.put.mockResolvedValueOnce(false);
     await context.run();

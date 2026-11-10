@@ -44,10 +44,9 @@ export function resizedPanelContents(
     lookOf
   );
   return descendants.map((item) => {
-    const { x, y, width, height, points, gradientAngle } = values.get(item.id)!;
+    const { x, y, width, height, points, paint } = values.get(item.id)!;
     const geometry = { x, y, width, height, points };
-    const look: Look = { scale: (lookOf(item).scale ?? 1) * paintScale };
-    if (gradientAngle !== undefined) look.gradientAngle = gradientAngle;
+    const look: Look = { ...paint, scale: (lookOf(item).scale ?? 1) * paintScale };
     return { id: item.id, geometry, look };
   });
 }

@@ -9,19 +9,20 @@ import {
 } from "../protocol/mcp";
 import { reportFailure } from "./errors";
 
-export interface AlbRequest {
+interface AlbFields {
   path: string;
   httpMethod: string;
-  headers?: Record<string, string>;
-  body?: string | null;
-  isBase64Encoded?: boolean;
+  headers: Record<string, string>;
+  body: string | null;
+  isBase64Encoded: boolean;
 }
+export type AlbRequest = Pick<AlbFields, "path" | "httpMethod"> &
+  Partial<Omit<AlbFields, "path" | "httpMethod">>;
 
-interface RpcRequest {
+type RpcRequest = {
   jsonrpc: "2.0";
-  id?: string | number;
   method: string;
-}
+} & ({ kind: "notification" } | { kind: "request"; id: string | number });
 
 interface AlbResponse {
   statusCode: number;
@@ -56,8 +57,12 @@ function reply(
 
 function parseRequest(raw: string): RpcRequest | null {
   try {
-    const request = JSON.parse(raw) as RpcRequest;
-    return request?.jsonrpc === "2.0" && typeof request.method === "string" ? request : null;
+    const request = JSON.parse(raw) as Record<string, unknown>;
+    if (request?.jsonrpc !== "2.0" || typeof request.method !== "string") return null;
+    const content = { jsonrpc: "2.0" as const, method: request.method };
+    return typeof request.id === "string" || typeof request.id === "number"
+      ? { ...content, kind: "request", id: request.id }
+      : { ...content, kind: "notification" };
   } catch {
     return null;
   }
@@ -72,7 +77,7 @@ function copyHeaders(headers: Headers, names: string[]) {
   return result;
 }
 
-function requestBody(event: AlbRequest) {
+function requestBody(event: AlbFields) {
   const raw = event.body ?? "";
   return event.isBase64Encoded ? Buffer.from(raw, "base64").toString("utf8") : raw;
 }
@@ -86,7 +91,8 @@ export class McpProxy {
     private upstream: typeof fetch = fetch
   ) {}
 
-  async handle(event: AlbRequest) {
+  async handle(input: AlbRequest) {
+    const event: AlbFields = { headers: {}, body: "", isBase64Encoded: false, ...input };
     if (event.path.startsWith("/.well-known/oauth-protected-resource"))
       return reply(200, resourceMetadata(this.config));
     if (event.path !== MCP_PATH) return null;
@@ -191,7 +197,7 @@ export class McpProxy {
   }
 
   private unavailable(request: RpcRequest, message: string) {
-    if (request.id === undefined) return reply(202, undefined);
+    if (request.kind === "notification") return reply(202, undefined);
     const envelope = { jsonrpc: "2.0", id: request.id };
     if (request.method === "tools/call")
       return reply(

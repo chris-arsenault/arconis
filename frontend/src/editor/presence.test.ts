@@ -9,6 +9,7 @@ import {
   itemInHash,
   itemLink,
   liveLaser,
+  readPeerState,
   type PeerState,
 } from "./presence";
 
@@ -25,10 +26,10 @@ describe("presence helpers", () => {
 
   it("answers only recent calls to follow, newest first", () => {
     const peers: [number, PeerState][] = [
-      [1, { spotlight: { at: 1000 } }],
-      [2, { spotlight: { at: 5000 } }],
-      [3, {}],
-      [4, { spotlight: { at: 5000 - SPOTLIGHT_WINDOW_MS - 1 } }],
+      [1, readPeerState({ spotlight: { at: 1000 } })],
+      [2, readPeerState({ spotlight: { at: 5000 } })],
+      [3, readPeerState({})],
+      [4, readPeerState({ spotlight: { at: 5000 - SPOTLIGHT_WINDOW_MS - 1 } })],
     ];
     expect(freshSpotlights(peers, 6000).map(([id]) => id)).toEqual([2, 1]);
     expect(freshSpotlights(peers, 5000 + SPOTLIGHT_WINDOW_MS + 1)).toEqual([]);

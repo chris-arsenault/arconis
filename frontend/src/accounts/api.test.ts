@@ -10,7 +10,9 @@ const ROOM = "ab".repeat(24);
 function setup() {
   const table = memoryAccountTable();
   const services = {
-    objectInfo: vi.fn<AccountServices["objectInfo"]>(async () => ({ size: 100, checksum: "abc=" })),
+    objectInfo: vi.fn<AccountServices["objectInfo"]>(() =>
+      Promise.resolve({ size: 100, checksum: "abc=" })
+    ),
     signUpload: vi.fn((user: string, id: string) => Promise.resolve(`put:${user}:${id}`)),
     signDownload: vi.fn((user: string, id: string) => Promise.resolve(`get:${user}:${id}`)),
     deleteObject: vi.fn(() => Promise.resolve()),
@@ -74,8 +76,8 @@ describe("workspaces", () => {
   it("signs an upload, lists the record, and signs a download", async () => {
     const { api, save } = setup();
     expect((await save("a", ID)).body).toEqual({
-      url: expect.stringContaining(`put:a:snapshots/${ID}/`),
-      revision: expect.any(String),
+      url: expect.stringContaining(`put:a:snapshots/${ID}/`) as unknown,
+      revision: expect.any(String) as unknown,
     });
     expect((await api.handle("a", "GET", "/api/workspaces", "")).body).toEqual({
       workspaces: [
@@ -84,14 +86,14 @@ describe("workspaces", () => {
           name: "Roadmap",
           roomId: ROOM,
           size: 100,
-          revision: expect.any(String),
+          revision: expect.any(String) as unknown,
           updated: 1000,
         },
       ],
     });
     expect((await api.handle("a", "GET", `/api/workspaces/${ID}`, "")).body).toMatchObject({
-      url: expect.stringContaining(`get:a:snapshots/${ID}/`),
-      revision: expect.any(String),
+      url: expect.stringContaining(`get:a:snapshots/${ID}/`) as unknown,
+      revision: expect.any(String) as unknown,
     });
   });
 

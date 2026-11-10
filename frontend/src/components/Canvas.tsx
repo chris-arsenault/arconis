@@ -6,7 +6,7 @@ import { useCollaborativeText } from "./useCollaborativeText";
 import { notifyPictures, setPictureSource } from "../editor/pictureSource";
 import { addBranch, jumpTo } from "../editor/topics";
 import { splitAtCaret } from "../editor/structureCommands";
-import { bindPresence, itemInHash } from "../editor/presence";
+import { bindPresence, itemInHash, peerStates, type PeerState } from "../editor/presence";
 import { bindLaser } from "../editor/laserInput";
 import { addTaskAfter, taskListOf } from "../editor/stencils";
 import { labelHistory } from "../editor/history";
@@ -190,13 +190,6 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
   );
 }
 
-type Peer = Partial<{
-  user: { name: string; color: string };
-  cursor: { x: number; y: number };
-  preview: PreviewBox[] | null;
-  chat: string | null;
-  laser: { x: number; y: number; at: number }[] | null;
-}>;
 export function Cursors({
   editor,
   session,
@@ -204,25 +197,19 @@ export function Cursors({
   useSyncExternalStore(session.subscribe, session.snapshot);
   return (
     <div className="cursors" aria-hidden="true">
-      {[...session.provider.awareness.getStates()]
-        .filter(([id]) => id !== session.document.doc.clientID)
-        .map(([id, state]) => (
-          <Fragment key={id}>
-            <PeerPreview peer={state as Peer} editor={editor} />
-            <LaserTrail
-              editor={editor}
-              points={(state as Peer).laser ?? []}
-              color={(state as Peer).user?.color ?? "#7863d4"}
-            />
-            <PeerCursor peer={state as Peer} editor={editor} />
-          </Fragment>
-        ))}
+      {peerStates(session).map(([id, state]) => (
+        <Fragment key={id}>
+          <PeerPreview peer={state} editor={editor} />
+          <LaserTrail editor={editor} points={state.laser} color={state.user.color} />
+          <PeerCursor peer={state} editor={editor} />
+        </Fragment>
+      ))}
     </div>
   );
 }
-function PeerPreview({ peer, editor }: Readonly<{ peer: Peer; editor: EditorController }>) {
-  return (peer.preview || []).map((box, index) => (
-    <PreviewOutline key={index} box={box} color={peer.user?.color || "#7863d4"} editor={editor} />
+function PeerPreview({ peer, editor }: Readonly<{ peer: PeerState; editor: EditorController }>) {
+  return peer.preview.map((box, index) => (
+    <PreviewOutline key={index} box={box} color={peer.user.color} editor={editor} />
   ));
 }
 function PreviewOutline({
@@ -244,13 +231,13 @@ function PreviewOutline({
   });
   return <div ref={ref} className="peer-preview" data-testid="peer-preview" />;
 }
-function PeerCursor({ peer, editor }: Readonly<{ peer: Peer; editor: EditorController }>) {
+function PeerCursor({ peer, editor }: Readonly<{ peer: PeerState; editor: EditorController }>) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (ref.current && peer.cursor) {
       const view = editor.graph.view;
       ref.current.style.transform = `translate(${(peer.cursor.x + view.translate.x) * view.scale}px, ${(peer.cursor.y + view.translate.y) * view.scale}px)`;
-      ref.current.style.color = peer.user?.color || "#7863d4";
+      ref.current.style.color = peer.user.color;
     }
   });
   if (!peer.cursor) return null;
@@ -260,7 +247,7 @@ function PeerCursor({ peer, editor }: Readonly<{ peer: Peer; editor: EditorContr
         <path d="M1 1 L16 12 L8 13 L5 21 Z" fill="currentColor" stroke="white" />
       </svg>
       <span>
-        {peer.user?.name || "Guest"}
+        {peer.user.name}
         {peer.chat && (
           <span className="peer-chat" data-testid="peer-chat">
             {peer.chat}

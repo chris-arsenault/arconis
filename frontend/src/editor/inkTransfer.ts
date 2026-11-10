@@ -20,7 +20,7 @@ export function transferInk(
     return false;
   inkAction(document, () => {
     for (const item of items)
-      document.patch(item.id, { markup, inside: "", layer: markup ? undefined : layer });
+      document.patch(item.id, { markup, inside: "", layer: markup ? "" : layer });
   });
   return true;
 }

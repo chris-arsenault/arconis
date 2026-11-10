@@ -57,7 +57,7 @@ export function planMove(layers: Layer[], id: string, index: number) {
   const from = layers.findIndex((l) => l.id === id);
   if (from < 0) return plan;
   const next = layers.filter((l) => l.id !== id);
-  next.splice(Math.max(0, Math.min(index, next.length)), 0, layers[from]!);
+  next.splice(Math.max(0, Math.min(index, next.length)), 0, layers[from]);
   renumber(plan, next);
   return plan;
 }
@@ -79,8 +79,7 @@ export function planMoveItems(items: Item[], ids: string[], to: string, nextOrde
   for (const item of items) {
     if (!chosen.has(item.id) || !inLayers(item)) continue;
     if (item.inside) refused.push(item.id);
-    else
-      plan.patches.set(item.id, { layer: to === BASE_LAYER ? undefined : to, order: nextOrder() });
+    else plan.patches.set(item.id, { layer: to === BASE_LAYER ? "" : to, order: nextOrder() });
   }
   return { plan, refused };
 }
@@ -116,7 +115,7 @@ export function layerProblem(layers: Layer[], action: "merge" | "delete", id: st
 /** The layer beneath one, which Merge down merges it into. */
 export function layerBelow(layers: Layer[], id: string) {
   const index = layers.findIndex((layer) => layer.id === id);
-  return index > 0 ? layers[index - 1]!.id : "";
+  return index > 0 ? layers[index - 1].id : "";
 }
 
 export function freshLayerId(layers: Iterable<string>) {

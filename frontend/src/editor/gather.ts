@@ -24,7 +24,7 @@ export function gatherIntoFrame(document: CanvasDocument, ids: string[], title =
   const columns = Math.max(1, Math.ceil(Math.sqrt(members.length)));
   const frame = document.build("frame", bounds.x + bounds.width + DEFAULT_GAP * 2, bounds.y, {
     name: title,
-    arrange: { how: "grid", columns, gap: GATHER_GAP },
+    arrange: { how: "grid", columns, gap: GATHER_GAP, align: "center" },
   });
   document.undo.stopCapturing();
   document.doc.transact(() => {

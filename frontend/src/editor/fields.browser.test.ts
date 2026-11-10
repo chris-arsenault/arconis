@@ -26,7 +26,7 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
   await page.getByRole("button", { name: "Unlock", exact: true }).click();
   await drag(page, 910, 210, 120, 80);
   const moved = (await exported(page)).objects.find((item) => item.name === "Loose")!;
-  expect(moved.locked).toBeUndefined();
+  expect(moved.locked).toBe(false);
   expect(moved.x).toBeGreaterThan(before.x);
 
   // Tags, a marker and a task use object chrome without changing the text's layout.

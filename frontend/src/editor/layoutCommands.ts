@@ -5,7 +5,7 @@ import { LOCAL, isBox, type Item } from "../document/types";
 import { DEFAULT_GAP } from "../document/layout";
 import { slots } from "../document/arrangement";
 import { footprint } from "../document/layout";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { layeredLayout } from "./graphLayout";
 
 /** Layout as a verb: tidy a tree a chosen way, balance it, grid loose objects, layer a graph. */
@@ -43,7 +43,7 @@ export function tidyGrid(document: CanvasDocument, ids: string[]) {
   const spaces = boxes.map((box) => footprint(box));
   const columns = Math.ceil(Math.sqrt(boxes.length));
   const origin = { x: Math.min(...spaces.map((s) => s.x)), y: Math.min(...spaces.map((s) => s.y)) };
-  const targets = slots(spaces, { how: "grid", columns, gap: DEFAULT_GAP / 2 });
+  const targets = slots(spaces, { how: "grid", columns, gap: DEFAULT_GAP / 2, align: "center" });
   const moves = new Map<string, { x: number; y: number }>();
   boxes.forEach((box, index) =>
     moves.set(box.id, {

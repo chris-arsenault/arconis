@@ -23,7 +23,7 @@ function same(a: Help | null, b: Help | null) {
 
 export const helpZone = {
   snapshot: () => current,
-  subscribe(listener: () => void) {
+  subscribe(this: void, listener: () => void) {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },

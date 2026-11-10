@@ -1,6 +1,7 @@
 import type { RoomSession } from "../collaboration/room";
 import type { View } from "../document/types";
 import type { EditorController } from "./controller";
+import type { PreviewBox } from "./preview";
 import { flyToView } from "./views";
 
 /**
@@ -9,13 +10,26 @@ import { flyToView } from "./views";
  * All of it rides on awareness and writes nothing to the document.
  */
 export interface PeerState {
-  user?: { name: string; color: string };
-  cursor?: { x: number; y: number } | null;
-  preview?: unknown;
-  viewport?: { center: { x: number; y: number }; zoom: number };
-  laser?: { x: number; y: number; at: number }[];
-  chat?: string;
-  spotlight?: { at: number };
+  user: { name: string; color: string };
+  cursor: { x: number; y: number } | null;
+  preview: PreviewBox[];
+  viewport: { center: { x: number; y: number }; zoom: number } | null;
+  laser: { x: number; y: number; at: number }[];
+  chat: string;
+  spotlight: { at: number } | null;
+}
+/** Awareness fields arrive independently; normalize the wire boundary before using presence. */
+export function readPeerState(value: unknown): PeerState {
+  const state = (value && typeof value === "object" ? value : {}) as Partial<PeerState>;
+  return {
+    user: state.user ?? { name: "Participant", color: "#7863d4" },
+    cursor: state.cursor ?? null,
+    preview: state.preview ?? [],
+    viewport: state.viewport ?? null,
+    laser: state.laser ?? [],
+    chat: state.chat ?? "",
+    spotlight: state.spotlight ?? null,
+  };
 }
 
 /** How long a laser point stays visible, and how many a trail keeps. */
@@ -30,7 +44,7 @@ export function peerStates(session: RoomSession): [number, PeerState][] {
   const own = session.document.doc.clientID;
   return [...session.provider.awareness.getStates()]
     .filter(([id]) => id !== own)
-    .map(([id, state]) => [id, state as PeerState]);
+    .map(([id, state]) => [id, readPeerState(state)]);
 }
 
 /** Calls to follow that are fresh enough to show, newest first. */
@@ -42,7 +56,7 @@ export function freshSpotlights(peers: [number, PeerState][], now = Date.now()) 
 
 /** Points of a laser trail still bright enough to draw. */
 export function liveLaser(points: PeerState["laser"], now = Date.now()) {
-  return (points ?? []).filter((point) => now - point.at < LASER_FADE_MS);
+  return points.filter((point) => now - point.at < LASER_FADE_MS);
 }
 
 /** Adds a point to a trail, keeping it short and fresh. */
@@ -100,12 +114,13 @@ export function bindPresence(editor: EditorController, session: RoomSession) {
   const follow = () => {
     const target = editor.ui.following;
     if (target === null) return;
-    const state = session.provider.awareness.getStates().get(target) as PeerState | undefined;
-    if (!state) {
+    const raw = session.provider.awareness.getStates().get(target);
+    if (!raw) {
       editor.ui.following = null;
       editor.emit();
       return;
     }
+    const state = readPeerState(raw);
     if (state.viewport) showPeerView(editor, state.viewport);
   };
   session.provider.awareness.on("change", follow);
@@ -130,8 +145,8 @@ export function bindPresence(editor: EditorController, session: RoomSession) {
 /** Starts following a peer: their view becomes this view until this person moves. */
 export function followPeer(editor: EditorController, session: RoomSession, clientId: number) {
   editor.ui.following = clientId;
-  const state = session.provider.awareness.getStates().get(clientId) as PeerState | undefined;
-  if (state?.viewport) showPeerView(editor, state.viewport);
+  const state = readPeerState(session.provider.awareness.getStates().get(clientId));
+  if (state.viewport) showPeerView(editor, state.viewport);
   editor.emit();
 }
 

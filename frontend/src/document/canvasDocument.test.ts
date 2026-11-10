@@ -10,6 +10,25 @@ function exchange(a: CanvasDocument, b: CanvasDocument) {
   Y.applyUpdate(b.doc, aUpdate);
 }
 
+it("keeps mutable defaults independent between newly built items", () => {
+  const document = new CanvasDocument();
+  const first = document.build("note", 0, 0);
+  const second = document.build("note", 200, 0);
+  first.tags.push("review");
+  first.properties.owner = "Ada";
+  first.look.fill = "#ffd9da";
+  first.points.push([10, 20]);
+  expect(second).toMatchObject({ tags: [], properties: {}, look: {}, points: [] });
+  document.insert(first);
+  document.insert(second);
+  const copy = new CanvasDocument();
+  importDocument(copy, serializeDocument(document));
+  expect(copy.get(first.id)?.tags).toEqual(["review"]);
+  expect(copy.get(second.id)).toMatchObject({ tags: [], properties: {}, look: {} });
+  document.destroy();
+  copy.destroy();
+});
+
 it("reuses unchanged list entries while text, look, undo and peer changes invalidate their item", () => {
   const a = new CanvasDocument();
   const b = new CanvasDocument();

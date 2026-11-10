@@ -92,14 +92,14 @@ describe("fields on every item type", () => {
     );
     const item = get(document, "a");
     expect(item.properties).toEqual({ owner: "Ada" });
-    expect(item.locked).toBeUndefined();
-    expect(item.tags).toBeUndefined();
-    expect(item.marker).toBeUndefined();
-    expect(item.task).toBeUndefined();
-    expect(item.link).toBeUndefined();
+    expect(item.locked).toBe(false);
+    expect(item.tags).toEqual([]);
+    expect(item.marker).toBe("none");
+    expect(item.task).toBe("none");
+    expect(item.link).toBe("");
     write(document, "edit a hidden tags z");
     expect(get(document, "a")).toMatchObject({ hidden: true, tags: ["z"] });
-    expect(get(document, "a").locked).toBeUndefined();
+    expect(get(document, "a").locked).toBe(false);
   });
 
   it("refuses markers, tasks and tags outside their sets, changing nothing", () => {
@@ -123,14 +123,14 @@ describe("fields on every item type", () => {
       'node locked "Padlock" at 0,0\nnode tags "" at 300,0\nnode other locked'
     );
     expect(get(document, "locked").name).toBe("Padlock");
-    expect(get(document, "locked").locked).toBeUndefined();
-    expect(get(document, "tags").tags).toBeUndefined();
+    expect(get(document, "locked").locked).toBe(false);
+    expect(get(document, "tags").tags).toEqual([]);
     expect(get(document, "other").locked).toBe(true);
     const text = printCanvas(document);
     expect(text).toContain('node tags "" at 300,0');
     const copy = new CanvasDocument();
     importDocument(copy, text);
-    expect(get(copy, "tags").tags).toBeUndefined();
+    expect(get(copy, "tags").tags).toEqual([]);
   });
 });
 
@@ -140,7 +140,7 @@ describe("who last edited an item", () => {
     document.author = "Grace";
     const id = document.create("note", 0, 0, { name: "Hi" });
     expect(get(document, id).editedBy).toBe("Grace");
-    const first = get(document, id).editedAt!;
+    const first = get(document, id).editedAt;
     document.author = "Linus";
     document.patch(id, { x: 10 });
     expect(get(document, id).editedBy).toBe("Linus");

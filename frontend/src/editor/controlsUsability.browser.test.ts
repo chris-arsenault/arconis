@@ -204,7 +204,7 @@ it("preserves a real link named mixed and can clear different links in one selec
     await page.getByRole("button", { name: "Clear links", exact: true }).click();
     const cleared = (await exported(page)).objects;
     expect(cleared.filter((item) => ["a", "b"].includes(item.id)).map((item) => item.link)).toEqual(
-      [undefined, undefined]
+      ["", ""]
     );
     expect(cleared.find((item) => item.id === "origin")?.link).toBe("mixed");
     await page.getByRole("button", { name: "Undo", exact: true }).click();

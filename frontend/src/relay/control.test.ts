@@ -11,11 +11,11 @@ import {
 const NOW = new Date("2026-11-15T12:00:00Z");
 
 function setup({
-  state = "stopped" as InstanceState,
+  state = "stopped",
   dollars = 1,
   override = "none",
   lastAlert = "none",
-} = {}) {
+}: Partial<{ state: InstanceState; dollars: number; override: string; lastAlert: string }> = {}) {
   let time = NOW;
   // Nudged up so that rounding cannot land just under the amount a test names.
   const hours = (dollars + 1e-9) / (INSTANCE_DOLLARS_PER_HOUR + DISK_DOLLARS_PER_HOUR);

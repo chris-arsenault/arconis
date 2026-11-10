@@ -10,7 +10,7 @@ it("emits single-line structured records with time, severity and asynchronous re
     reportEvent("tool_finished", { operation: "read", outcome: "succeeded", durationMs: 12 });
   });
   const line = String(info.mock.calls[0][0]);
-  const record = JSON.parse(line);
+  const record = JSON.parse(line) as Record<string, string | number>;
   expect(record).toMatchObject({
     service_name: "arconis-relay",
     event: "tool_finished",
@@ -22,7 +22,7 @@ it("emits single-line structured records with time, severity and asynchronous re
     durationMs: 12,
     pid: process.pid,
   });
-  expect(new Date(record.timestamp).toISOString()).toBe(record.timestamp);
+  expect(new Date(String(record.timestamp)).toISOString()).toBe(record.timestamp);
   expect(requestLogContext.getStore()).toBeUndefined();
   expect(line).not.toContain("\n");
 });
@@ -39,7 +39,7 @@ it("keeps concurrent requests separate and escapes exception line breaks", async
   );
   const records = log.mock.calls.map(([line]) => {
     expect(String(line)).not.toMatch(/[\r\n]/);
-    return JSON.parse(String(line));
+    return JSON.parse(String(line)) as Record<string, string>;
   });
   expect(records.map((record) => record.requestId).sort((a, b) => a.localeCompare(b))).toEqual([
     "first",

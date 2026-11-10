@@ -20,28 +20,26 @@ export function PanelHeading({
 export function RailSection({
   id,
   title,
-  count = 0,
+  count,
   open,
   onToggle,
-  className = "",
   detail,
   children,
 }: Readonly<{
   id: string;
   title: string;
-  count?: number;
+  count: number;
   open: boolean;
   onToggle: (id: string, open: boolean) => void;
-  className?: string;
   /** The help sentence for the section's header: what the section holds. */
-  detail?: string;
+  detail: string;
   children: ReactNode;
 }>) {
   const toggled = (event: SyntheticEvent<HTMLDetailsElement>) =>
     onToggle(id, event.currentTarget.open);
   return (
     <details
-      className={`rail-section ${className}`.trim()}
+      className={id === "slide" ? "rail-section slide-section" : "rail-section"}
       open={open}
       onToggle={toggled}
       aria-label={title}

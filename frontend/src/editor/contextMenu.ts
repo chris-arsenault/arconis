@@ -269,55 +269,18 @@ const SUB_RING_LABELS: Record<string, string> = {
   "ring.colour": "Colour",
   "ring.shape": "Shape",
 };
-/**
- * The canvas ring's Mode wedge opens a small arc beside it with the editing modes. Nothing else
- * in the ring changes until a mode is chosen: Select and Connect switch the tool, Add shows the
- * shapes to place, and Draw and Markup each show their own tools: the brushes, or Markup's few.
- */
-export const RING_MODES = ["Select", "Add", "Draw", "Markup", "Connect"] as const;
-export type RingMode = (typeof RING_MODES)[number];
-/** The Mode wedge's place in the canvas ring, where its arc opens. */
-export const MODE_WEDGE = 5;
+export { RING_MODES, MODE_WEDGE, currentMode, chooseRingMode, type RingMode } from "./ringModes";
 
-/** The mode the current tool belongs to, for marking it in the arc. */
-export function currentMode(tool: string): RingMode | null {
-  if (["select", "draw", "markup", "connect"].includes(tool))
-    return RING_MODES.find((mode) => mode.toLowerCase() === tool) ?? null;
-  return null;
-}
-
-export function chooseRingMode(editor: EditorController, mode: RingMode) {
-  if (mode === "Draw" || mode === "Markup") {
-    editor.setTool(mode === "Draw" ? "draw" : "markup");
-    if (editor.ui.menu) editor.ui.menu.modes = false;
-    openSubRing(editor, mode === "Draw" ? "ring.draw" : "ring.markup");
-    return;
-  }
-  if (mode === "Add") {
-    if (editor.ui.menu) editor.ui.menu.modes = false;
-    openSubRing(editor, "ring.add");
-    return;
-  }
-  closeMenu(editor);
-  runCommand(editor, `tool.${mode.toLowerCase()}`);
-}
-
-export interface MenuEntry {
+interface EntryLabel {
   id: string;
   label: string;
   /** The help zone's sentence: the command's help, or what the entry opens. */
   help: string;
-  /** Opens a sub-ring rather than running. */
-  opens?: string[];
-  /** Folds the ring away and leaves the menu in its place. */
-  more?: boolean;
-  /** Opens a submenu of these entries rather than running. */
-  submenu?: MenuEntry[];
   /** A shorter name for a ring wedge, which still carries the full label for assistive tech. */
-  short?: string;
-  /** Opens the arc of editing modes beside this wedge. */
-  modes?: boolean;
+  short: string;
 }
+export type MenuEntry = EntryLabel &
+  ({ kind: "command" | "ring" | "more" | "modes" } | { kind: "submenu"; submenu: MenuEntry[] });
 
 function entryFor(id: string, context: CommandContext): MenuEntry | null {
   if (id === MORE)
@@ -325,7 +288,8 @@ function entryFor(id: string, context: CommandContext): MenuEntry | null {
       id,
       label: "More…",
       help: "Fold the ring away and show every command that applies here as a menu.",
-      more: true,
+      kind: "more",
+      short: "More…",
     };
   if (id === MODES)
     return {
@@ -333,20 +297,26 @@ function entryFor(id: string, context: CommandContext): MenuEntry | null {
       label: "Switch mode",
       help: "Open an arc of editing modes beside this wedge.",
       short: "Mode",
-      modes: true,
+      kind: "modes",
     };
   if (id in SUB_RINGS) {
     const inner = SUB_RINGS[id].filter(
       (sub) => sub in SUB_RINGS || isAvailable(findCommand(sub), context)
     );
     return inner.length
-      ? { id, label: SUB_RING_LABELS[id], help: SUB_RING_HELP[id], opens: inner }
+      ? {
+          kind: "ring",
+          id,
+          label: SUB_RING_LABELS[id],
+          help: SUB_RING_HELP[id],
+          short: SUB_RING_LABELS[id],
+        }
       : null;
   }
   const command = findCommand(id);
   if (!isAvailable(command, context)) return null;
   const label = typeof command.label === "string" ? command.label : command.label(context);
-  return { id, label, help: command.help, short: RING_LABELS[id] };
+  return { kind: "command", id, label, help: command.help, short: RING_LABELS[id] ?? label };
 }
 
 function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {
@@ -355,7 +325,14 @@ function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {
   if (!inner.length) return null;
   // A submenu of one is just that command.
   if (inner.length === 1) return inner[0];
-  return { id: `menu.${slot.label}`, label: slot.label, help: slot.help, submenu: inner };
+  return {
+    kind: "submenu",
+    id: `menu.${slot.label}`,
+    label: slot.label,
+    help: slot.help,
+    short: slot.label,
+    submenu: inner,
+  };
 }
 
 export function menuGroups(context: CommandContext): MenuEntry[][] {
@@ -412,17 +389,17 @@ const RING_LABELS: Record<string, string> = {
 /** What choosing a wedge does, by click or by stroke: open a sub-ring, show the menu, or run. */
 export function chooseRingEntry(editor: EditorController, entry: MenuEntry) {
   const menu = editor.ui.menu;
-  if (entry.opens) {
+  if (entry.kind === "ring") {
     openSubRing(editor, entry.id);
     return;
   }
-  if (entry.modes && menu) {
+  if (entry.kind === "modes" && menu) {
     menu.modes = true;
     menu.wedge = null;
     editor.emit();
     return;
   }
-  if (entry.more && menu) {
+  if (entry.kind === "more" && menu) {
     menu.ring = false;
     menu.wedge = null;
     menu.subRing = null;

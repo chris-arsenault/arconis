@@ -5,9 +5,14 @@
 export interface Shortcut {
   /** The key as `KeyboardEvent.key` reports it, in lower case; a digit also matches by its code. */
   key: string;
-  ctrl?: boolean;
-  shift?: boolean;
-  alt?: boolean;
+  ctrl: boolean;
+  shift: boolean;
+  alt: boolean;
+}
+/** Concise declarations are normalized when entering the command registry. */
+export type ShortcutDeclaration = Pick<Shortcut, "key"> & Partial<Omit<Shortcut, "key">>;
+export function completeShortcut(input: ShortcutDeclaration): Shortcut {
+  return { ctrl: false, shift: false, alt: false, ...input };
 }
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -27,7 +32,8 @@ const KEY_NAMES: Record<string, string> = {
 };
 
 /** How a shortcut reads beside a command, on this platform. */
-export function shortcutLabel({ key, ctrl, shift, alt }: Shortcut) {
+export function shortcutLabel(input: ShortcutDeclaration) {
+  const { key, ctrl, shift, alt } = completeShortcut(input);
   const parts: string[] = [];
   if (ctrl) parts.push(IS_MAC ? "⌘" : "Ctrl");
   if (alt) parts.push(IS_MAC ? "⌥" : "Alt");
@@ -37,11 +43,12 @@ export function shortcutLabel({ key, ctrl, shift, alt }: Shortcut) {
 }
 
 /** Whether a key event is this shortcut, with exactly its modifiers. */
-export function matchesShortcut(shortcut: Shortcut, event: KeyboardEvent) {
+export function matchesShortcut(input: ShortcutDeclaration, event: KeyboardEvent) {
+  const shortcut = completeShortcut(input);
   const modifier = event.ctrlKey || event.metaKey;
-  if (modifier !== Boolean(shortcut.ctrl)) return false;
-  if (event.shiftKey !== Boolean(shortcut.shift)) return false;
-  if (event.altKey !== Boolean(shortcut.alt)) return false;
+  if (modifier !== shortcut.ctrl) return false;
+  if (event.shiftKey !== shortcut.shift) return false;
+  if (event.altKey !== shortcut.alt) return false;
   const key = event.key.toLowerCase();
   if (key === shortcut.key) return true;
   // Shift changes what a digit key reports; its code still names the digit.

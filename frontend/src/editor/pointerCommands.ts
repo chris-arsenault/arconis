@@ -1,6 +1,6 @@
 import { COLORS, isBox, isFrame, isLink, type Item } from "../document/types";
 import { changeSelectionLook } from "./commands";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import {
   KINDS,
   changeKind,

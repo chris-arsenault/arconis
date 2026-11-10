@@ -25,8 +25,8 @@ import {
 } from "../help/guides";
 import "./help.css";
 
-export const CONTENTS = "contents";
-export const COMMANDS_TOPIC = "commands";
+const CONTENTS = "contents";
+const COMMANDS_TOPIC = "commands";
 
 /** The tutorials the reference can start: the orientation and the hands-on practice room. */
 export interface Tutorials {
@@ -276,6 +276,7 @@ function Article({
   const body = useRef<HTMLDivElement>(null);
   const section = findSection(sections, topic);
   const html = useMemo(() => (section ? renderGuide(section.source) : ""), [section]);
+  const content = useMemo(() => ({ __html: html }), [html]);
   const anchor = topic.split("#")[1] ?? "";
   useLayoutEffect(() => {
     const scroller = body.current?.closest(".help-body");
@@ -311,7 +312,7 @@ function Article({
     <article className="help-article">
       <p className="help-crumb">{guideTitle(section.guide)}</p>
       {!section.id && <h2>{guideTitle(section.guide)}</h2>}
-      <div ref={body} className="help-markdown" dangerouslySetInnerHTML={{ __html: html }} />
+      <div ref={body} className="help-markdown" dangerouslySetInnerHTML={content} />
       <nav className="help-pager" aria-label="Guide pages">
         {previous && (
           <button

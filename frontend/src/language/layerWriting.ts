@@ -36,8 +36,7 @@ function known(draft: Draft, id: string, line: number) {
 export function assignLayer(draft: Draft, item: Item, ref: string, line: number) {
   if (!inLayers(item)) throw new LanguageError("Markup and slides belong to no layer.", line);
   known(draft, ref, line);
-  if (ref === BASE_LAYER) delete item.layer;
-  else item.layer = ref;
+  item.layer = ref === BASE_LAYER ? "" : ref;
   draft.layered.push({ id: item.id, line });
 }
 
@@ -60,7 +59,7 @@ function apply(draft: Draft, plan: LayerPlan) {
     const item = draft.items.get(id);
     if (!item) return;
     Object.assign(item, values);
-    if (values.layer === undefined) delete item.layer;
+    if (values.layer === undefined) item.layer = "";
   });
   plan.remove.forEach((id) => draft.remove(id));
 }
@@ -80,7 +79,7 @@ export function writeLayer(draft: Draft, statement: LayerStatement, importing: b
 /** Where `above` or `below` puts a layer among the others, counted bottom to top. */
 function placeAmong(draft: Draft, statement: Extract<LayerStatement, { kind: "layer" }>) {
   const { place, id, line } = statement;
-  if (!place) return undefined;
+  if (place.relation === "keep") return undefined;
   known(draft, place.ref, line);
   const others = draftLayers(draft).filter((layer) => layer.id !== id);
   return others.findIndex((layer) => layer.id === place.ref) + (place.relation === "above" ? 1 : 0);
@@ -98,10 +97,10 @@ function declareLayer(
   const at = placeAmong(draft, statement);
   const layers = draftLayers(draft);
   if (!layers.some((layer) => layer.id === id)) {
-    apply(draft, planCreate(layers, id, name ?? id, at));
+    apply(draft, planCreate(layers, id, name.kind === "set" ? name.value : id, at));
     return;
   }
-  if (name !== undefined) apply(draft, planRename(layers, id, name));
+  if (name.kind === "set") apply(draft, planRename(layers, id, name.value));
   if (at !== undefined) apply(draft, planMove(draftLayers(draft), id, at));
 }
 

@@ -115,7 +115,7 @@ describe("arranged frames", () => {
 
   it("keep their arrangement, and print it", () => {
     const document = canvas(ROW);
-    expect(get(document, "f").arrange).toEqual({ how: "row", gap: 20 });
+    expect(get(document, "f").arrange).toEqual({ how: "row", gap: 20, align: "center" });
     expect(printCanvas(document)).toMatch(/frame f "Row" row gap 20 at /);
   });
 

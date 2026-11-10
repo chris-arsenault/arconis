@@ -75,7 +75,7 @@ function boundaryValues(other: Item, before: Box, after: Box): Partial<Item> {
 }
 
 function tableFollowers(items: Item[], frame: Item, before: Box, after: Box): Patch[] | null {
-  const table = items.find((item) => item.id === frame.inside && item.tags?.includes("table"));
+  const table = items.find((item) => item.id === frame.inside && item.tags.includes("table"));
   if (!table) return null;
   const cells = items.filter((item) => item.inside === table.id && isFrame(item));
   const patches: Patch[] = [];

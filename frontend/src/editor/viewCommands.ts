@@ -1,7 +1,7 @@
 import type { View, Item } from "../document/types";
 import { worldBounds } from "../document/relations";
 import type { EditorController } from "./controller";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { showFind, showHelp, showPalette } from "./ui";
 import { helpZone } from "../help/zone";
 import { zoomIntoSelection, zoomOutOfSelection } from "./topics";

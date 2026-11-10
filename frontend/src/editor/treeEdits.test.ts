@@ -103,10 +103,10 @@ describe("editing a tree from the keyboard", () => {
     const document = canvas(TREE);
     showLevels(document, "root", 1);
     expect(document.get("a")!.collapsed).toBe(true);
-    expect(document.get("root")!.collapsed).toBeUndefined();
-    expect(document.get("b")!.collapsed).toBeUndefined();
+    expect(document.get("root")!.collapsed).toBe(false);
+    expect(document.get("b")!.collapsed).toBe(false);
     showLevels(document, "root", 2);
-    expect(document.get("a")!.collapsed).toBeUndefined();
+    expect(document.get("a")!.collapsed).toBe(false);
   });
 
   it("keeps a focused item's tree, contents, references and inner lines bright", () => {

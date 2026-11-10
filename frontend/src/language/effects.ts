@@ -1,4 +1,4 @@
-import type { Statement } from "./syntax";
+import { requestedId, type Statement } from "./syntax";
 
 export type Conversation = Extract<
   Statement,
@@ -24,22 +24,26 @@ type Effects = {
 const EFFECTS: Effects = {
   item: (statement) => ({
     kind: "items",
-    targets: statement.id ? [statement.id] : [],
-    children: statement.body ?? [],
+    targets: statement.identity.kind === "named" ? [requestedId(statement.identity)] : [],
+    children: statement.body.kind === "block" ? statement.body.statements : [],
   }),
   edit: (statement) => ({
     kind: "items",
     targets: [statement.ref],
-    children: statement.body ?? [],
+    children: statement.body.kind === "block" ? statement.body.statements : [],
   }),
   arrange: (statement) => ({ kind: "items", targets: [], children: statement.body }),
   link: (statement) => ({
     kind: "items",
-    targets: statement.id ? [statement.id] : [],
+    targets: statement.identity.kind === "named" ? [requestedId(statement.identity)] : [],
     // Inline declarations may restate existing items. Plain endpoint references only read them.
     children: [
-      ...new Set(statement.segments.flatMap(({ from, to }) => [from.item, to.item])),
-    ].filter((item) => item !== undefined),
+      ...new Set(
+        statement.segments.flatMap(({ from, to }) =>
+          [from, to].flatMap((end) => (end.kind === "item" ? [end.item] : []))
+        )
+      ),
+    ],
   }),
   delete: (statement) => ({ kind: "items", targets: statement.refs, children: [] }),
   tidy: (statement) => ({ kind: "items", targets: [statement.ref], children: [] }),

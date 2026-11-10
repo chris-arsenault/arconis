@@ -19,14 +19,13 @@ const PANELS = [
   { id: "add", label: "Shapes", icon: Shapes, hint: "Shapes" },
   { id: "draw", label: "Draw", icon: Pencil, hint: "Draw (P)" },
 ] as const;
+type RailLayout =
+  { mode: "wide" } | { mode: "compact"; expanded: boolean; onExpand: (open: boolean) => void };
 
 /** Tool shortcuts open their controls; Markup and selection leave the panel as it was. */
-function usePanel(
-  editor: EditorController,
-  compact: boolean,
-  shown: boolean | undefined,
-  onExpand?: (open: boolean) => void
-) {
+function usePanel(editor: EditorController, layout: RailLayout) {
+  const compact = layout.mode === "compact";
+  const onExpand = layout.mode === "compact" ? layout.onExpand : null;
   const [state, setState] = useState<{ panel: RailPanel; tool: string; expanded: boolean }>(() => ({
     panel: "add",
     tool: "select",
@@ -48,7 +47,7 @@ function usePanel(
     setState({ panel, tool: editor.tool, expanded: true });
     onExpand?.(true);
   };
-  const expanded = shown ?? state.expanded;
+  const expanded = layout.mode === "compact" ? layout.expanded : state.expanded;
   const toggle = () => {
     setState({ ...state, expanded: !expanded });
     onExpand?.(!expanded);
@@ -92,19 +91,10 @@ function ToolRow({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-export function LeftRail({
-  editor,
-  compact = false,
-  expanded: shown,
-  onExpand,
-}: Readonly<{
-  editor: EditorController;
-  compact?: boolean;
-  expanded?: boolean;
-  onExpand?: (open: boolean) => void;
-}>) {
+export function LeftRail(props: Readonly<{ editor: EditorController } & RailLayout>) {
+  const { editor } = props;
   useSyncExternalStore(editor.subscribe, editor.snapshot);
-  const { panel, expanded, choose, toggle } = usePanel(editor, compact, shown, onExpand);
+  const { panel, expanded, choose, toggle } = usePanel(editor, props);
   return (
     <aside className="left-rail" aria-label="Tools and stencils" data-expanded={expanded}>
       <ToolRow editor={editor} />

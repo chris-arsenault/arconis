@@ -6,7 +6,7 @@ import type { WorkspaceRecord } from "../protocol/account";
 
 function setup() {
   const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-1" }));
-  const send = vi.spyOn(client, "send").mockImplementation(async () => ({}));
+  const send = vi.spyOn(client, "send").mockImplementation(() => ({}));
   const table = dynamoWorkspaces(client, "accounts");
   const record: WorkspaceRecord = {
     id: crypto.randomUUID(),
@@ -65,7 +65,7 @@ it("guards a shrinking publication against account deletion", async () => {
       ],
     })
   );
-  send.mockImplementationOnce(async () => ({ Item: { deleting: true } }));
+  send.mockImplementationOnce(() => ({ Item: { deleting: true } }));
   expect(await table.commitWorkspace("a", record, "base", [old])).toBe("deleting");
   expect(send.mock.calls[0][0].input).toMatchObject({
     TransactItems: [

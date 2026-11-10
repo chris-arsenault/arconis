@@ -2,6 +2,7 @@ import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer } from "ws";
 import { MAX_MESSAGE_BYTES, type Relay } from "./relay";
+import { socketText } from "./socketText";
 
 const ROOM_PATH = /^\/rooms\/([a-f0-9]{48})$/;
 
@@ -36,7 +37,7 @@ export function attachRelay(server: Server, current: () => Relay, options: Attac
       const fresh = new URLSearchParams(query).get("fresh") === "1";
       const connection = relay.join(roomId, client, fresh);
       client.on("message", (data, isBinary) => {
-        if (!isBinary) connection.receive(String(data));
+        if (!isBinary) connection.receive(socketText(data));
       });
       client.on("pong", connection.pong);
       client.on("close", connection.leave);

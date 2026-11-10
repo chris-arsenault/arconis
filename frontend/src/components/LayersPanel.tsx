@@ -25,7 +25,7 @@ export function LayersPanel({ editor }: Readonly<{ editor: EditorController }>) 
   const { document } = editor;
   const active = editor.layers.active;
   const layers = document.layerList();
-  const current = layers.find((layer) => layer.id === active) ?? layers[0]!;
+  const current = layers.find((layer) => layer.id === active) ?? layers[0];
   const [renaming, setRenaming] = useState("");
   const movable = editor.selected().filter((item) => !item.inside && !isMarkup(item));
   const moveSelection = () => {
@@ -131,6 +131,7 @@ function LayerToolbar({
     <div className="layer-toolbar" role="toolbar" aria-label={`Layer actions for ${current.name}`}>
       <LayerAction
         label="New layer"
+        disabled={false}
         detail="Add a layer above the chosen one, where new objects then go."
         onClick={() => editor.layers.setActive(layerCommands.create(document, "", active))}
       >
@@ -138,6 +139,7 @@ function LayerToolbar({
       </LayerAction>
       <LayerAction
         label={`Rename ${current.name}`}
+        disabled={false}
         detail="Give the chosen layer a new name for everyone in the room."
         onClick={onRename}
       >
@@ -253,13 +255,13 @@ function VisibilityButton({
 function LayerAction({
   label,
   detail,
-  disabled = false,
+  disabled,
   onClick,
   children,
 }: Readonly<{
   label: string;
-  detail?: string;
-  disabled?: boolean;
+  detail: string;
+  disabled: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }>) {

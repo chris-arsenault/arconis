@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
+import { socketText } from "./socketText";
 import type { UploadReply, UploadRequest } from "../collaboration/serviceProtocol";
 import { attachRelay } from "./attach";
 import {
@@ -169,7 +170,7 @@ describe("picture uploads", () => {
     const a = person("a");
     a.connection.receive(ask());
     await vi.waitFor(() => expect(a.socket.sent).toHaveLength(1));
-    expect(JSON.parse(a.socket.sent[0]).reply).toMatchObject({
+    expect((JSON.parse(a.socket.sent[0]) as { reply: unknown }).reply).toMatchObject({
       status: "refused",
       reason: "unavailable",
     });
@@ -389,7 +390,7 @@ describe("over real sockets", () => {
     const [a, b] = [connect(url), connect(url)];
     await Promise.all([outcome(a), outcome(b)]);
     const received = new Promise<string>((resolve) =>
-      b.once("message", (data) => resolve(String(data)))
+      b.once("message", (data) => resolve(socketText(data)))
     );
     a.send(frame("a"));
     expect(await received).toBe(frame("a"));

@@ -63,7 +63,9 @@ export class SavedRoom implements SaveableRoom {
     const decoded = await Promise.all(contents.pictures.map(decodePicture));
     if (this.signal.aborted) return;
     await Promise.all(
-      decoded.map((picture) => picture && this.pictures.keep(picture.hash, picture))
+      decoded
+        .filter((picture) => picture !== null)
+        .map((picture) => this.pictures.keep(picture.hash, picture))
     );
     if (!this.signal.aborted) {
       Y.applyUpdate(this.document.doc, contents.update, this.origin);

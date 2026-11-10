@@ -36,7 +36,7 @@ function HiddenObjects({ editor }: Readonly<{ editor: EditorController }>) {
         changeFields(
           editor.document,
           hidden.map((item) => item.id),
-          { hidden: undefined }
+          { hidden: false }
         )
       }
     >

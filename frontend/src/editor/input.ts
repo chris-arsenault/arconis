@@ -209,7 +209,7 @@ export function bindCanvasInput(editor: EditorController) {
       if (!mark) return;
       const cell = cellAt(editor, event);
       if (!cell?.id) return;
-      if (mark === "collapsed") changeFields(editor.document, [cell.id], { collapsed: undefined });
+      if (mark === "collapsed") changeFields(editor.document, [cell.id], { collapsed: false });
       if (mark === "comments") showComments(editor, cell.id);
     },
     { ...options, capture: true }

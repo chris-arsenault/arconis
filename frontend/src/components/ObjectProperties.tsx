@@ -4,23 +4,30 @@ import type { Appearance } from "../document/appearance";
 import { canColorIcon, canRotate, hasFill, hasLine, hasText } from "../document/capabilities";
 import { Section } from "./ConnectionControls";
 import { NumericInput } from "./NumericInput";
+import {
+  LINE_WIDTH_NUMBER,
+  GEOMETRY_NUMBER,
+  SIZE_NUMBER,
+  type NumericRules,
+  type NumericValue,
+} from "./numericRules";
 
 type StyleProps = Readonly<{
   drawn: Appearance;
-  appearances?: Appearance[];
+  appearances: Appearance[];
   change: (look: Look) => void;
 }>;
 
-function isMixed(appearances: Appearance[] | undefined, key: keyof Appearance) {
-  return appearances?.some((appearance) => appearance[key] !== appearances[0][key]) ?? false;
+function isMixed(appearances: Appearance[], key: keyof Appearance) {
+  return appearances.some((appearance) => appearance[key] !== appearances[0][key]);
 }
 
 function NamedStyle({
   item,
   names,
   onStyle,
-  mixed = false,
-}: Readonly<{ item: Item; names: string[]; onStyle: (style: string) => void; mixed?: boolean }>) {
+  mixed,
+}: Readonly<{ item: Item; names: string[]; onStyle: (style: string) => void; mixed: boolean }>) {
   if (!names.length && !item.style) return null;
   return (
     <Section title="Style">
@@ -55,7 +62,7 @@ export function StyleControls({
   onStyle,
   children,
   appearances,
-  mixedStyle = false,
+  mixedStyle,
   paint,
 }: StyleProps &
   Readonly<{
@@ -63,9 +70,9 @@ export function StyleControls({
     names: string[];
     onStyle: (style: string) => void;
     children: ReactNode;
-    mixedStyle?: boolean;
+    mixedStyle: boolean;
     /** Paint controls of the selection's own kind, shown in place of the general fill and line. */
-    paint?: ReactNode;
+    paint: ReactNode;
   }>) {
   const props = { drawn, appearances, change };
   return (
@@ -95,13 +102,13 @@ function ColorChip({
   detail,
   value,
   onChange,
-  mixed = false,
+  mixed,
 }: Readonly<{
   label: string;
   detail: string;
   value: unknown;
   onChange: (color: string) => void;
-  mixed?: boolean;
+  mixed: boolean;
 }>) {
   const color = /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : "#ffffff";
   return (
@@ -150,8 +157,8 @@ function FillControls({ drawn, appearances, change }: StyleProps) {
 }
 
 function LineControls({ drawn, appearances, change }: StyleProps) {
-  const widths = appearances?.map((appearance) => appearance.lineWidth * appearance.scale);
-  const mixedWidth = widths?.some((width) => width !== widths[0]) ?? false;
+  const widths = appearances.map((appearance) => appearance.lineWidth * appearance.scale);
+  const mixedWidth = widths.some((width) => width !== widths[0]);
   return (
     <Section title="Line">
       <div className="control-row">
@@ -165,8 +172,8 @@ function LineControls({ drawn, appearances, change }: StyleProps) {
         <NumberField
           prefix="W"
           label="Line width"
-          value={mixedWidth ? undefined : drawn.lineWidth * drawn.scale}
-          minimum={0}
+          value={mixedWidth ? "mixed" : drawn.lineWidth * drawn.scale}
+          rules={LINE_WIDTH_NUMBER}
           onChange={(value) => change({ lineWidth: value / drawn.scale })}
         />
       </div>
@@ -183,15 +190,13 @@ function NumberField({
   label,
   value,
   onChange,
-  minimum,
-  positive,
+  rules,
 }: Readonly<{
   prefix: string;
   label: string;
-  value: number | undefined;
+  value: NumericValue;
   onChange: (value: number) => void;
-  minimum?: number;
-  positive?: boolean;
+  rules: NumericRules;
 }>) {
   return (
     <label
@@ -203,9 +208,9 @@ function NumberField({
       <NumericInput
         label={label}
         value={value}
-        minimum={minimum}
-        positive={positive}
-        arithmetic
+        rules={rules}
+        id=""
+        detail="Type a value or sum like 200+40; a leading +10 or *2 changes the current value."
         onCommit={onChange}
       />
     </label>
@@ -239,12 +244,18 @@ export function GeometryControls({
             prefix={prefix}
             label={`Object ${key}`}
             value={item[key]}
-            positive={key === "width" || key === "height"}
+            rules={key === "width" || key === "height" ? SIZE_NUMBER : GEOMETRY_NUMBER}
             onChange={(value) => onGeometry(key, value)}
           />
         ))}
         {canRotate(item) && (
-          <NumberField prefix="°" label="Object rotation" value={rotation} onChange={onRotate} />
+          <NumberField
+            prefix="°"
+            label="Object rotation"
+            value={rotation}
+            rules={GEOMETRY_NUMBER}
+            onChange={onRotate}
+          />
         )}
       </div>
     </Section>

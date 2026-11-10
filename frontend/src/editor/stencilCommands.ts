@@ -1,4 +1,4 @@
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import {
   addTableColumn,
   addTableRow,
@@ -18,11 +18,11 @@ function at({ editor }: CommandContext) {
 
 const inTable = ({ selected, items }: CommandContext) =>
   selected.length === 1 &&
-  (tableOf(items, selected[0]) !== null || Boolean(selected[0].tags?.includes("table")));
+  (tableOf(items, selected[0]) !== null || selected[0].tags.includes("table"));
 
 function tableIdOf({ selected, items }: CommandContext) {
   const [item] = selected;
-  return item.tags?.includes("table") ? item.id : (tableOf(items, item)?.id ?? "");
+  return item.tags.includes("table") ? item.id : (tableOf(items, item)?.id ?? "");
 }
 
 export const STENCIL_COMMANDS: Command[] = [

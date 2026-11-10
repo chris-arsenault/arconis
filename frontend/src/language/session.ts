@@ -26,11 +26,13 @@ import { writeStatements } from "./writer";
 /** More than this in one read asks the reader to narrow it. */
 export const READ_LIMIT = 400;
 
-export interface ReadRequest {
-  items?: string[];
-  inside?: string;
-  area?: Box;
+interface ReadSelection {
+  items: string[];
+  inside: string;
+  area: Box | null;
 }
+/** MCP callers may combine or omit filters; selection operates on normalized filters. */
+export type ReadRequest = Partial<ReadSelection>;
 
 interface Snapshot {
   items: Map<string, string>;
@@ -95,9 +97,10 @@ export class LanguageSession {
   }
 
   /** Items in full, with what they hold and the lines among them. With no request, everything. */
-  read(request: ReadRequest = {}) {
+  read(input: ReadRequest = {}) {
+    const request: ReadSelection = { items: [], inside: "", area: null, ...input };
     return this.call(() => {
-      if (!request.items?.length && !request.inside && !request.area) return this.readAll();
+      if (!request.items.length && !request.inside && !request.area) return this.readAll();
       const chosen = this.select(request);
       if (chosen.length > READ_LIMIT)
         throw new LanguageError(
@@ -116,10 +119,11 @@ export class LanguageSession {
   }
 
   /** Overlaps, objects outside their holder and text that may not fit, for the named items or all. */
-  checkLayout(request: ReadRequest = {}) {
+  checkLayout(input: ReadRequest = {}) {
+    const request: ReadSelection = { items: [], inside: "", area: null, ...input };
     return this.call(() => {
       const all = this.document.list();
-      const whole = !request.items?.length && !request.inside && !request.area;
+      const whole = !request.items.length && !request.inside && !request.area;
       const chosen = whole ? all : this.select(request);
       const report = layoutReport(all, chosen, (item) =>
         effectiveAppearance(item, this.document.namedStyle(item.style))
@@ -269,7 +273,7 @@ export class LanguageSession {
     });
   }
 
-  private select(request: ReadRequest): Item[] {
+  private select(request: ReadSelection): Item[] {
     const all = this.document.list();
     if (request.items?.length) {
       const missing = request.items.filter((id) => !all.some((item) => item.id === id));
@@ -337,7 +341,7 @@ function layerSummary(document: CanvasDocument, items: Item[]) {
 
 /** A slide in a deck listing: its number, id and name. */
 function slideSummary(slide: Item) {
-  const parts = [String(slide.slide ?? 0), slide.id];
+  const parts = [String(slide.slide), slide.id];
   if (slide.name) parts.push(quote(slide.name));
   return parts.join(" ");
 }

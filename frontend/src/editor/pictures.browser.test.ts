@@ -118,7 +118,7 @@ it("carries a picture in an exported file to a browser without it", async () => 
   const pending = a.waitForEvent("download");
   await exportPng(a);
   const { readFile } = await import("node:fs/promises");
-  const png = await readFile((await (await pending).path())!);
+  const png = await readFile(await (await pending).path());
 
   const b = await open(await browser.newContext(VIEWPORT), createRoomId());
   await add(b, "Rectangle (R)", "Existing", 100, 100);

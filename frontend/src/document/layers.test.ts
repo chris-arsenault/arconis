@@ -55,7 +55,7 @@ describe("layers", () => {
     document.patch("inner", { inside: "" });
     expect(document.get("inner")!.layer).toBe("notes");
     document.patch("inner", { inside: "f" });
-    expect(document.get("inner")!.layer).toBeUndefined();
+    expect(document.get("inner")!.layer).toBe("");
     expect(() => write(document, "edit inner in-layer base")).toThrow(/inside "f"/);
   });
 
@@ -85,7 +85,7 @@ describe("layer commands", () => {
     const before = stack(document);
     expect(layerCommands.mergeDown(document, "mid")).toBe(true);
     expect(document.layerList().map((layer) => layer.id)).toEqual([BASE_LAYER]);
-    expect(document.get("upper")!.layer).toBeUndefined();
+    expect(document.get("upper")!.layer).toBe("");
     expect(stack(document)).toEqual(before);
     document.undo.undo();
     expect(document.layerList().map((layer) => layer.id)).toEqual([BASE_LAYER, "mid"]);
@@ -115,7 +115,7 @@ describe("layer commands", () => {
     expect(document.get("f")!.layer).toBe(id);
     // A layer someone deleted gives new objects to the base layer.
     layerCommands.delete(document, id);
-    expect(document.get(document.create("node", 0, 0))!.layer).toBeUndefined();
+    expect(document.get(document.create("node", 0, 0))!.layer).toBe("");
   });
 
   it("converges between peers", () => {
@@ -191,6 +191,6 @@ describe("layers in the canvas language", () => {
     const room = canvas('layer notes "Mine"');
     importDocument(room, copied);
     expect(room.layerList().find((layer) => layer.id === "notes")!.name).toBe("Mine");
-    expect(room.list()[0]!.layer).toBe("notes");
+    expect(room.list()[0].layer).toBe("notes");
   });
 });

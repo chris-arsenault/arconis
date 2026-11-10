@@ -21,7 +21,7 @@ function setup(download: ((hash: string) => Promise<Uint8Array | null>) | null =
   const createUrl = vi.fn((bytes: Uint8Array) => `blob:${bytes.length}`);
   const store = new PictureStore({
     shelf,
-    codec: { seal: async (bytes) => bytes, open: async (bytes) => bytes },
+    codec: { seal: (bytes) => Promise.resolve(bytes), open: (bytes) => Promise.resolve(bytes) },
     download,
     createUrl,
     revokeUrl: vi.fn(),

@@ -8,6 +8,8 @@ import { footprint, type Box } from "../document/layout";
 import type { Extent } from "./placement";
 import { authoredLook } from "../document/appearance";
 import type { LayerRecord } from "../document/layers";
+import { BLANK } from "../document/itemDefaults";
+import { requestedId, type ItemStatement } from "./syntax";
 
 const GEOMETRY = ["x", "y", "width", "height"] as const;
 
@@ -59,6 +61,23 @@ export class Draft {
 
   nextOrder() {
     return this.order++;
+  }
+
+  /** A declaration starts from complete domain state before its attributes are interpreted. */
+  declare(statement: ItemStatement, inside: string): Item {
+    const requested = requestedId(statement.identity);
+    const item: Item = {
+      ...BLANK,
+      id: this.idFor(requested || undefined, statement.line),
+      type: statement.type,
+      inside,
+      order: this.nextOrder(),
+      name: statement.name.kind === "set" ? statement.name.value : "",
+      subtitle: statement.subtitle.kind === "set" ? statement.subtitle.value : "",
+      markup: statement.type === "highlight",
+    };
+    this.add(item, requested);
+    return item;
   }
 
   freshId() {
@@ -232,5 +251,5 @@ function differences(before: Item, after: Item): Partial<Item> {
     if (left !== right) look[key] = right;
   }
   if (Object.keys(look).length) result.look = look;
-  return result as Partial<Item>;
+  return result;
 }

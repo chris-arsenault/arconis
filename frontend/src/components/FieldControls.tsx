@@ -12,7 +12,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { MARKERS, TASK_STATES, type Item, type Marker, type TaskState } from "../document/types";
+import { MARKERS, TASK_STATES, type Item, type TaskState } from "../document/types";
 import { branchChildren, holdsOthers } from "../document/relations";
 import { isWebLink } from "../language/fields";
 import { isCanvasObjectUrl } from "../document/ids";
@@ -115,7 +115,7 @@ export function StateToggles({
         detail="Locked objects can't be moved, resized, edited or deleted by anyone until unlocked."
         icon={Lock}
         offIcon={Unlock}
-        onClick={() => onChange({ locked: locked ? undefined : true })}
+        onClick={() => onChange({ locked: !locked })}
       />
       <ToggleButton
         on={hidden}
@@ -124,7 +124,7 @@ export function StateToggles({
         detail="Hidden objects, with their contents and lines, disappear for everyone until shown."
         icon={EyeOff}
         offIcon={Eye}
-        onClick={() => onChange({ hidden: hidden ? undefined : true })}
+        onClick={() => onChange({ hidden: !hidden })}
       />
       {collapsible && (
         <ToggleButton
@@ -134,7 +134,7 @@ export function StateToggles({
           detail="Collapsing folds away what an object holds and its branches, for everyone."
           icon={ChevronsDownUp}
           offIcon={ChevronsUpDown}
-          onClick={() => onChange({ collapsed: collapsed ? undefined : true })}
+          onClick={() => onChange({ collapsed: !collapsed })}
         />
       )}
     </div>
@@ -157,7 +157,7 @@ export function NumberBranchesToggle({
       detail="Numbered topics label their branches 1, 1.1, 1.2 in the order they sit."
       icon={ListOrdered}
       offIcon={ListOrdered}
-      onClick={() => onChange({ numbered: numbered ? undefined : true })}
+      onClick={() => onChange({ numbered: !numbered })}
     />
   );
 }
@@ -169,7 +169,7 @@ export function StatusFields({
   onFollow,
 }: Readonly<{ selected: Item[]; onChange: Change; onFollow: (link: string) => void }>) {
   const common = (key: "marker" | "task" | "link") =>
-    selected.every((item) => item[key] === selected[0][key]) ? (selected[0][key] ?? "") : null;
+    selected.every((item) => item[key] === selected[0][key]) ? selected[0][key] : null;
   const marker = common("marker");
   const task = common("task");
   const linkValue = common("link");
@@ -180,16 +180,14 @@ export function StatusFields({
         aria-label="Marker"
         data-hint-detail="Put a priority or progress sign beside the selected objects."
         value={marker ?? "mixed"}
-        onChange={(event) =>
-          onChange({ marker: (event.target.value || undefined) as Marker | undefined })
-        }
+        onChange={(event) => onChange({ marker: event.target.value as Item["marker"] })}
       >
         {marker === null && (
           <option value="mixed" disabled>
             Mixed
           </option>
         )}
-        <option value="">None</option>
+        <option value="none">None</option>
         {MARKERS.map((marker) => (
           <option key={marker} value={marker}>
             {MARKER_SIGNS[marker]} {MARKER_LABELS[marker]}
@@ -201,16 +199,14 @@ export function StatusFields({
         aria-label="Task"
         data-hint-detail="Make the selected objects to-dos; done tasks fade on the canvas."
         value={task ?? "mixed"}
-        onChange={(event) =>
-          onChange({ task: (event.target.value || undefined) as TaskState | undefined })
-        }
+        onChange={(event) => onChange({ task: event.target.value as Item["task"] })}
       >
         {task === null && (
           <option value="mixed" disabled>
             Mixed
           </option>
         )}
-        <option value="">Not a task</option>
+        <option value="none">Not a task</option>
         {TASK_STATES.map((state) => (
           <option key={state} value={state}>
             {TASK_LABELS[state]}
@@ -247,7 +243,7 @@ function LinkControl({
         detail="Point the selected objects at a web address, saved view or object id."
         placeholder={value === null ? "Mixed links" : "Web address or item id"}
         value={link}
-        onCommit={(text) => onChange({ link: text.trim() || undefined })}
+        onCommit={(text) => onChange({ link: text.trim() })}
       />
       {link && (
         <button
@@ -266,7 +262,7 @@ function LinkControl({
           aria-label="Clear links"
           data-hint="Clear links"
           data-hint-detail="Remove links from every selected object."
-          onClick={() => onChange({ link: undefined })}
+          onClick={() => onChange({ link: "" })}
         >
           <X size={14} />
         </button>

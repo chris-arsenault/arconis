@@ -1,7 +1,7 @@
 import { branchChildren, branchParent } from "../document/relations";
 import { isBox } from "../document/types";
 import type { EditorController } from "./controller";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 
 import { gridForScale } from "./zoom";
 import {

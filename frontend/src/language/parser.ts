@@ -13,6 +13,9 @@ import {
 import {
   SIDES,
   DRAWING_WORDS,
+  AUTOMATIC,
+  KEEP_TEXT,
+  NO_BLOCK,
   type ArrangeStatement,
   type Arrangement,
   type CommentText,
@@ -24,6 +27,9 @@ import {
   type LinkType,
   type Segment,
   type Statement,
+  type TextEdit,
+  type RequestedId,
+  type Block,
 } from "./syntax";
 
 const ITEM_TYPES = new Set<string>([
@@ -40,12 +46,12 @@ const ITEM_TYPES = new Set<string>([
   "sketch",
   "highlight",
 ]);
-const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both?: boolean }> = {
+const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both: boolean }> = {
   "<->": { type: "line", arrow: true, both: true },
-  "->": { type: "line", arrow: true },
-  "--": { type: "line", arrow: false },
-  "=>": { type: "branch", arrow: false },
-  "..>": { type: "reference", arrow: true },
+  "->": { type: "line", arrow: true, both: false },
+  "--": { type: "line", arrow: false, both: false },
+  "=>": { type: "branch", arrow: false, both: false },
+  "..>": { type: "reference", arrow: true, both: false },
 };
 
 /** Statements that start with a word of their own rather than an item. */
@@ -74,9 +80,11 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     const statement: Extract<Statement, { kind: "layer" }> = {
       kind: "layer",
       id: cursor.ref("a layer's id"),
+      name: KEEP_TEXT,
+      place: { relation: "keep" },
       line,
     };
-    if (cursor.kindIs("string")) statement.name = cursor.next().text;
+    if (cursor.kindIs("string")) statement.name = { kind: "set", value: cursor.next().text };
     for (const relation of ["above", "below"] as const)
       if (cursor.word(relation)) statement.place = { relation, ref: cursor.ref("a layer's id") };
     return statement;
@@ -87,12 +95,19 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     return { kind: "merge", from, into: cursor.ref("a layer's id"), line };
   },
   view: (cursor, line) => {
-    const id = cursor.isWord() ? cursor.next().text : undefined;
+    const identity = identityOf(cursor);
     const name = cursor.expectString("the view's name");
     cursor.keyword("center");
     const [x, y] = cursor.point("the view's center");
     cursor.keyword("zoom");
-    return { kind: "view", id, name, center: { x, y }, zoom: cursor.number("the zoom"), line };
+    return {
+      kind: "view",
+      identity,
+      name,
+      center: { x, y },
+      zoom: cursor.number("the zoom"),
+      line,
+    };
   },
   discussion: discussion,
   comment: (cursor, line) => {
@@ -121,6 +136,9 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     const statement: Extract<Statement, { kind: "tidy" }> = {
       kind: "tidy",
       ref: cursor.ref(),
+      direction: "sides",
+      compact: false,
+      sorted: false,
       line,
     };
     while (cursor.isWord()) {
@@ -150,11 +168,11 @@ function discussion(cursor: Cursor, line: number): Statement {
     while (cursor.kindIs("end")) cursor.next();
     if (cursor.isPunct("}")) break;
     cursor.keyword("comment");
-    const id = cursor.isWord() ? cursor.next().text : undefined;
+    const identity = identityOf(cursor);
     const author = cursor.expectString("the comment's author");
     cursor.keyword("at");
     const time = cursor.number("the comment's time in milliseconds");
-    comments.push({ id, author, time, text: cursor.expectString("the comment") });
+    comments.push({ identity, author, time, text: cursor.expectString("the comment") });
   }
   cursor.next();
   if (!comments.length) cursor.fail("A discussion needs at least one comment.");
@@ -185,10 +203,10 @@ function statements(cursor: Cursor, inBlock: boolean): Statement[] {
   }
 }
 
-function block(cursor: Cursor) {
-  if (!cursor.isPunct("{")) return undefined;
+function block(cursor: Cursor): Block {
+  if (!cursor.isPunct("{")) return NO_BLOCK;
   cursor.next();
-  return statements(cursor, true);
+  return { kind: "block", statements: statements(cursor, true) };
 }
 
 function statement(cursor: Cursor): Statement {
@@ -197,7 +215,7 @@ function statement(cursor: Cursor): Statement {
   const word = token.text;
   if (ITEM_TYPES.has(word)) {
     const item = itemStatement(cursor, false);
-    if (cursor.kindIs("arrow")) return link(cursor, { item }, token.line);
+    if (cursor.kindIs("arrow")) return link(cursor, { kind: "item", item, port: null }, token.line);
     item.body = block(cursor);
     return item;
   }
@@ -219,20 +237,32 @@ function statement(cursor: Cursor): Statement {
 function reference(cursor: Cursor, line: number): Statement {
   const ref = cursor.expectWord("an item's id");
   const from = port(cursor);
-  if (cursor.kindIs("arrow")) return link(cursor, { ref, port: from }, line);
+  if (cursor.kindIs("arrow")) return link(cursor, { kind: "reference", ref, port: from }, line);
   if (from) cursor.fail("A port belongs at the end of a line, as in a.right -> b.");
   return edit(cursor, ref, line);
 }
 
-function names(cursor: Cursor, target: { name?: string; subtitle?: string }) {
-  if (cursor.kindIs("string")) target.name = cursor.next().text;
+function identityOf(cursor: Cursor): RequestedId {
+  return cursor.isWord() ? { kind: "named", id: cursor.next().text } : AUTOMATIC;
+}
+
+function names(cursor: Cursor, target: { name: TextEdit; subtitle: TextEdit }) {
+  if (cursor.kindIs("string")) target.name = { kind: "set", value: cursor.next().text };
   if (!cursor.isPunct("/")) return;
   cursor.next();
-  target.subtitle = cursor.expectString("a subtitle");
+  target.subtitle = { kind: "set", value: cursor.expectString("a subtitle") };
 }
 
 function edit(cursor: Cursor, ref: string, line: number): EditStatement {
-  const statement: EditStatement = { kind: "edit", ref, line, attributes: [] };
+  const statement: EditStatement = {
+    kind: "edit",
+    ref,
+    line,
+    attributes: [],
+    name: KEEP_TEXT,
+    subtitle: KEEP_TEXT,
+    body: NO_BLOCK,
+  };
   names(cursor, statement);
   statement.attributes = attributes(cursor, false);
   statement.body = block(cursor);
@@ -253,14 +283,23 @@ function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
   const line = cursor.token.line;
   const sourceType = cursor.next().text;
   const type = (sourceType === "sketch" ? "frame" : sourceType) as ItemType;
-  const statement: ItemStatement = { kind: "item", type, line, attributes: [] };
+  const statement: ItemStatement = {
+    kind: "item",
+    type,
+    line,
+    attributes: [],
+    identity: AUTOMATIC,
+    name: KEEP_TEXT,
+    subtitle: KEEP_TEXT,
+    body: NO_BLOCK,
+  };
   // A stencil's name is the id of anything but a node, and of a node when a name follows it.
   const word = cursor.token.text;
   const stencilAsId =
     STENCIL_WORDS.has(word) && (type !== "node" || cursor.peek().kind === "string");
   const drawingId = DRAWING_WORDS.has(word) && cursor.peek().kind === "string";
   if (cursor.isWord() && (!isAttributeWord(word) || stencilAsId || drawingId))
-    statement.id = cursor.next().text;
+    statement.identity = { kind: "named", id: cursor.next().text };
   names(cursor, statement);
   statement.attributes = attributes(cursor, inLink || linkAhead(cursor));
   legacyPanel(statement, sourceType);
@@ -280,28 +319,27 @@ function arrangement(cursor: Cursor): ArrangeStatement {
   const how = cursor.next().text as Arrangement;
   const columns = how === "grid" ? cursor.number("the grid's column count") : undefined;
   const word = cursor.token.text;
-  const id =
+  const identity =
     cursor.isWord() && !isAttributeWord(word) && !EDGES.has(word as Edge)
-      ? cursor.next().text
-      : undefined;
+      ? identityOf(cursor)
+      : AUTOMATIC;
   const tail = arrangeTail(cursor, how, columns);
   const statement: ArrangeStatement = {
     kind: "arrange",
     how,
-    columns,
-    id,
+    identity,
     line,
     attributes: attributes(cursor, false, [tail]),
     body: [],
   };
   const body = block(cursor);
-  if (!body) cursor.fail(`A ${how} needs a { block } of the items it arranges.`);
-  statement.body = body;
+  if (body.kind !== "block") cursor.fail(`A ${how} needs a { block } of the items it arranges.`);
+  statement.body = body.statements;
   return statement;
 }
 
-function port(cursor: Cursor): Port | undefined {
-  if (!cursor.isPunct(".")) return undefined;
+function port(cursor: Cursor): Port | null {
+  if (!cursor.isPunct(".")) return null;
   cursor.next();
   if (cursor.isPunct("(")) {
     cursor.next();
@@ -319,10 +357,10 @@ function port(cursor: Cursor): Port | undefined {
 function endpoint(cursor: Cursor): Endpoint {
   if (cursor.isWord() && ITEM_TYPES.has(cursor.token.text)) {
     const item = itemStatement(cursor, true);
-    return { item, port: port(cursor) };
+    return { kind: "item", item, port: port(cursor) };
   }
   const ref = cursor.expectWord("an item's id");
-  return { ref, port: port(cursor) };
+  return { kind: "reference", ref, port: port(cursor) };
 }
 
 /** The ends after one arrow: one, or several separated by commas for a fan-out. */
@@ -332,8 +370,8 @@ function targets(cursor: Cursor, from: Endpoint, segments: Segment[]) {
   do {
     if (cursor.isPunct(",")) cursor.next();
     to = endpoint(cursor);
-    const segment: Segment = { from, to, type, arrow, both };
-    if (cursor.kindIs("string")) segment.label = cursor.next().text;
+    const segment: Segment = { from, to, type, arrow, both, label: KEEP_TEXT };
+    if (cursor.kindIs("string")) segment.label = { kind: "set", value: cursor.next().text };
     segments.push(segment);
   } while (cursor.isPunct(","));
   return to;
@@ -342,13 +380,19 @@ function targets(cursor: Cursor, from: Endpoint, segments: Segment[]) {
 function link(cursor: Cursor, first: Endpoint, line: number): LinkStatement {
   const segments: Segment[] = [];
   let from = first;
-  if (from.item && !from.port) from.port = port(cursor);
+  if (from.kind === "item" && !from.port) from.port = port(cursor);
   while (cursor.kindIs("arrow")) from = targets(cursor, from, segments);
-  const statement: LinkStatement = { kind: "link", segments, line, attributes: [] };
+  const statement: LinkStatement = {
+    kind: "link",
+    segments,
+    line,
+    attributes: [],
+    identity: AUTOMATIC,
+  };
   if (cursor.word("as")) {
-    statement.id = cursor.expectWord("the line's id");
+    statement.identity = { kind: "named", id: cursor.expectWord("the line's id") };
     if (segments.length > 1) cursor.fail("`as` names one line; write one line per statement.");
-    if (cursor.kindIs("string")) segments[0].label = cursor.next().text;
+    if (cursor.kindIs("string")) segments[0].label = { kind: "set", value: cursor.next().text };
   }
   statement.attributes = attributes(cursor, false);
   return statement;

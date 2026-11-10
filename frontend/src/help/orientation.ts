@@ -30,24 +30,29 @@ export function markOrientationSeen() {
 
 interface Stop {
   /** The `data-help-id` of the area to highlight; none centres the step on the screen. */
-  target?: string;
+  target: string;
   title: string;
   text: string;
   /** A tab or tool to choose before highlighting, so the area it opens is showing. */
-  panel?: string;
-  side?: "top" | "right" | "bottom" | "left";
+  panel: string;
+  side: "top" | "right" | "bottom" | "left";
   /** The highlighted area takes real input during this step, so what it describes can be tried. */
-  tryIt?: boolean;
+  tryIt: boolean;
 }
 
 export const STOPS: Stop[] = [
   {
     title: "Welcome to Arconis",
+    target: "",
+    panel: "",
+    side: "bottom",
+    tryIt: false,
     text: "This tour shows where everything is, and changes nothing in the room by itself. Use Next or the arrow keys, and Escape to stop.",
   },
   {
     target: "canvas",
     title: "The canvas",
+    panel: "",
     text: "Everything in the room lives here, shared live with everyone in it. Drag empty space to select, scroll to move and pinch or Ctrl/⌘ scroll to zoom. Try it now.",
     side: "left",
     tryIt: true,
@@ -55,6 +60,7 @@ export const STOPS: Stop[] = [
   {
     target: "canvas",
     title: "Right button: menu and ring",
+    panel: "",
     text: "Right-click an object or empty canvas for a menu of what applies there. Hold or drag the right button instead for a ring of the most-used commands. Try it now.",
     side: "left",
     tryIt: true,
@@ -62,6 +68,8 @@ export const STOPS: Stop[] = [
   {
     target: "rail-tools",
     title: "Select, Pan and Connect",
+    panel: "",
+    tryIt: false,
     text: "The tools you return to: V selects and moves, H pans the view, C connects two objects with a line. Markup sits beside them.",
     side: "right",
   },
@@ -69,6 +77,7 @@ export const STOPS: Stop[] = [
     target: "markup-tool",
     panel: "markup-tool",
     title: "Markup",
+    tryIt: false,
     text: "M opens Markup's bar over the canvas: a pen, marker, arrow, box, outline and eraser for temporary notes. Annotations stay out of the layers, and the bar hides or clears them.",
     side: "right",
   },
@@ -76,6 +85,7 @@ export const STOPS: Stop[] = [
     target: "rail-add",
     panel: "rail-add",
     title: "Shapes",
+    tryIt: false,
     text: "Notes, text, shapes, frames and architecture icons. Click one and then the canvas, or drag it into place. Search finds icons by name.",
     side: "right",
   },
@@ -83,12 +93,15 @@ export const STOPS: Stop[] = [
     target: "rail-draw",
     panel: "rail-draw",
     title: "Draw",
+    tryIt: false,
     text: "P draws editable ink that stays part of the canvas, in the active layer. Pick the pen, highlighters, shapes, erasers and fill, then set the brush.",
     side: "right",
   },
   {
     target: "dock",
     title: "Properties",
+    panel: "",
+    tryIt: false,
     text: "The right side holds the document. Select an object to edit it here: text, appearance, layout, relationships, tags, tasks and comments.",
     side: "left",
   },
@@ -96,6 +109,7 @@ export const STOPS: Stop[] = [
     target: "dock-layers",
     panel: "dock-layers",
     title: "Layers",
+    tryIt: false,
     text: "Content lives in layers you can add, rename, reorder, merge and delete. New objects and ink go into the active layer.",
     side: "left",
   },
@@ -103,6 +117,7 @@ export const STOPS: Stop[] = [
     target: "dock-slides",
     panel: "dock-slides",
     title: "Slides and presenting",
+    tryIt: false,
     text: "Frame parts of the canvas as slides, order them into decks, add speaker notes and present them full screen.",
     side: "left",
   },
@@ -110,84 +125,111 @@ export const STOPS: Stop[] = [
     target: "dock-navigate",
     panel: "dock-navigate",
     title: "Navigate",
+    tryIt: false,
     text: "Saved views are shared places on the canvas anyone can return to. The outline, tags and history help you find your way around a large room.",
     side: "left",
   },
   {
     target: "find",
     title: "Find and filter",
+    panel: "",
+    tryIt: false,
     text: "Find text on the canvas, or highlight objects by tag, marker, task status or who edited them. It changes only your view.",
     side: "bottom",
   },
   {
     target: "history",
     title: "Undo and redo",
+    panel: "",
+    tryIt: false,
     text: "Take back your own changes, or bring them back. Other people's changes stay as they are.",
     side: "top",
   },
   {
     target: "view-controls",
     title: "Zoom and view",
+    panel: "",
+    tryIt: false,
     text: "Zoom, fit the whole canvas into view, and show the grid or reference lines in your view.",
     side: "top",
   },
   {
     target: "canvas-title",
     title: "Canvas title",
+    panel: "",
+    tryIt: false,
     text: "Name the canvas for everyone in the room. Exported files take this name.",
     side: "bottom",
   },
   {
     target: "share",
     title: "Share the room",
+    panel: "",
+    tryIt: false,
     text: "Copy the room link to invite people, or start or join another room. Rooms can also have a password.",
     side: "bottom",
   },
   {
     target: "file",
     title: "File",
+    panel: "",
+    tryIt: false,
     text: "Export the canvas as an editable document or a PNG with its source inside, and import either one back.",
     side: "bottom",
   },
   {
     target: "account",
     title: "Your account",
+    panel: "",
+    tryIt: false,
     text: "Sign in to keep canvases across devices, save private layouts and connect an assistant such as Claude or ChatGPT.",
     side: "bottom",
   },
   {
     target: "settings",
     title: "Settings",
+    panel: "",
+    tryIt: false,
     text: "Choose which indicators, markup and grid appear in your view, and whether the help zone shows. Settings stay on this device.",
     side: "bottom",
   },
   {
     target: "feedback",
     title: "Feedback",
+    panel: "",
+    tryIt: false,
     text: "Tell the Arconis team what got in your way or what works well, with a screenshot of the canvas if you choose.",
     side: "bottom",
   },
   {
     target: "participants",
     title: "Who is here",
+    panel: "",
+    tryIt: false,
     text: "See everyone in the room, follow someone's view, or change the name others see.",
     side: "bottom",
   },
   {
     target: "palette",
     title: "Commands and shortcuts",
+    panel: "",
+    tryIt: false,
     text: "Ctrl/⌘ K finds any command by name and shows its keyboard shortcut.",
     side: "top",
   },
   {
     target: "help-zone",
     title: "The help zone",
+    panel: "",
+    tryIt: false,
     text: "Point at or focus any control and this corner names it and says what it does. On touch screens, hold a control to read its help.",
     side: "right",
   },
   {
     target: "help",
     title: "Help",
+    panel: "",
+    tryIt: false,
     text: "The full guides, every command and this tour are here whenever you need them. Press ? to open help.",
     side: "bottom",
   },
@@ -203,7 +245,7 @@ function showing(element: HTMLElement | null) {
 }
 
 /** Whether a stop is about the right dock, which a narrow screen keeps behind its toggle. */
-const inDock = (stop: Stop) => (stop.panel ?? stop.target ?? "").startsWith("dock");
+const inDock = (stop: Stop) => (stop.panel || stop.target).startsWith("dock");
 
 const pressedTab = (tabs: string) =>
   document.querySelector<HTMLElement>(`[aria-label="${tabs}"] [aria-pressed="true"]`);
@@ -251,11 +293,11 @@ export function startOrientation(editor: EditorController, onEnd?: () => void) {
   };
   const reachable = (stop: Stop) =>
     !stop.target ||
-    showing(area(stop.panel ?? stop.target)) ||
+    showing(area(stop.panel || stop.target)) ||
     (inDock(stop) && showing(area("dock-toggle")));
   const steps: DriveStep[] = STOPS.filter(reachable).map((stop) => ({
     // On a narrow screen a dock stop points at the button that opens the dock.
-    element: stop.target ? () => (area(stop.target!) ?? area("dock-toggle"))! : undefined,
+    element: stop.target ? () => (area(stop.target) ?? area("dock-toggle"))! : undefined,
     onHighlightStarted: () => choose(stop),
     popover: { title: stop.title, description: stop.text, side: stop.side, align: "start" },
     disableActiveInteraction: !stop.tryIt,

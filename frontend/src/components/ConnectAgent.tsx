@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { Copy } from "lucide-react";
 
-interface AgentConfig {
-  mcpUrl?: string;
-}
-
-/** The address a connector needs, or null where agents are not configured. */
-export function agentSettings(config: AgentConfig | undefined) {
-  return config?.mcpUrl ? { url: config.mcpUrl } : null;
-}
+import { agentSettings } from "./agentSettings";
 
 function CopyField({ label, value }: Readonly<{ label: string; value: string }>) {
   const [copied, setCopied] = useState(false);
@@ -31,7 +24,7 @@ function CopyField({ label, value }: Readonly<{ label: string; value: string }>)
 
 /** How a signed-in person adds Arconis to Claude or ChatGPT as a connector. */
 export function ConnectAgent() {
-  const settings = agentSettings(window.__APP_CONFIG__ as AgentConfig | undefined);
+  const settings = agentSettings(window.__APP_CONFIG__);
   if (!settings) return null;
   return (
     <section className="connect-agent" aria-label="Connect Claude or ChatGPT">

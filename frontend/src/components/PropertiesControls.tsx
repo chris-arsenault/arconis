@@ -12,15 +12,14 @@ import { PropertyValue } from "./PropertyValue";
 export function PropertiesControls({
   item,
   onChange,
-}: Readonly<{ item: Item; onChange: (properties: Record<string, string> | undefined) => void }>) {
+}: Readonly<{ item: Item; onChange: (properties: Record<string, string>) => void }>) {
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
   const feedback = useId();
   const invalidName = key.trim() !== "" && !isId(key.trim());
-  const properties = item.properties ?? {};
+  const properties = item.properties;
   const entries = Object.entries(properties).sort(([a], [b]) => a.localeCompare(b));
-  const set = (next: Record<string, string>) =>
-    onChange(Object.keys(next).length ? next : undefined);
+  const set = onChange;
   const add = () => {
     const name = key.trim();
     if (!isId(name)) return;

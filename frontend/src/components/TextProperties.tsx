@@ -11,6 +11,7 @@ import { textCanResize } from "../document/capabilities";
 import { Section } from "./ConnectionControls";
 import { useId, type ReactNode } from "react";
 import { NumericInput } from "./NumericInput";
+import { POSITIVE_NUMBER, TEXT_SPACING } from "./numericRules";
 
 function common<T>(values: T[]): T | undefined {
   return values.every((value) => value === values[0]) ? values[0] : undefined;
@@ -29,13 +30,13 @@ export function TextProperties({
   onFit: () => void;
 }>) {
   const fontId = useId();
-  const value = (key: keyof Appearance, fallback: unknown) =>
-    common(drawn.map((style) => style[key] ?? fallback));
+  const value = <Key extends keyof Appearance>(key: Key) =>
+    common(drawn.map((style) => style[key]));
   return (
     <Section title="Text">
       <div className="text-box-controls" data-text-tools="true">
         <div className="text-box-main">
-          <FontControl value={value("font", "sans")} change={change} />
+          <FontControl value={value("font")} change={change} />
           <label
             htmlFor={fontId}
             data-hint-detail="Set the text size for the selected objects; arrow keys step it by 1."
@@ -43,8 +44,9 @@ export function TextProperties({
             <NumericInput
               id={fontId}
               label="Font size"
-              positive
-              value={value("textSize", 14) as number | undefined}
+              rules={POSITIVE_NUMBER}
+              detail="Set the text size for the selected objects; arrow keys step it by 1."
+              value={common(drawn.map((style) => style.textSize)) ?? "mixed"}
               onCommit={(textSize) => change({ textSize })}
             />
           </label>
@@ -53,18 +55,14 @@ export function TextProperties({
               type="color"
               aria-label="Text color"
               data-hint-detail="Color all the text in the selected objects."
-              value={String(value("textColor", "#283249") ?? "#283249")}
+              value={value("textColor") ?? "#283249"}
               onChange={(event) => change({ textColor: event.target.value })}
             />
-            {value("textColor", "#283249") === undefined && "Mixed"}
+            {value("textColor") === undefined && "Mixed"}
           </label>
         </div>
         <TextToggles drawn={drawn} change={change} />
-        <TextPosition
-          align={value("align", "center")}
-          valign={value("valign", "middle")}
-          change={change}
-        />
+        <TextPosition align={value("align")} valign={value("valign")} change={change} />
         <SpacingControls value={value} change={change}>
           <TextSizing selected={selected} drawn={drawn} change={change} onFit={onFit} />
         </SpacingControls>
@@ -78,7 +76,7 @@ function SpacingControls({
   change,
   children,
 }: Readonly<{
-  value: (key: keyof Appearance, fallback: unknown) => unknown;
+  value: <Key extends keyof Appearance>(key: Key) => Appearance[Key] | undefined;
   change: (look: Look) => void;
   children: ReactNode;
 }>) {
@@ -91,25 +89,22 @@ function SpacingControls({
         <NumericLook
           label="Line height"
           detail="Set the distance between lines as a multiple of the text size."
-          value={value("lineHeight", 1.35)}
+          value={value("lineHeight")}
           property="lineHeight"
-          positive
           change={change}
         />
         <NumericLook
           label="Paragraph spacing"
           detail="Set the extra gap between paragraphs, in multiples of the text size."
-          value={value("paragraphGap", 0.5)}
+          value={value("paragraphGap")}
           property="paragraphGap"
-          positive={false}
           change={change}
         />
         <NumericLook
           label="Text padding"
           detail="Set the space between the text and the edges of its object."
-          value={value("padding", 8)}
+          value={value("padding")}
           property="padding"
-          positive={false}
           change={change}
         />
         <label>
@@ -118,7 +113,7 @@ function SpacingControls({
             type="color"
             aria-label="Text highlight"
             data-hint-detail="Paint a background color behind the text of the selected objects."
-            value={String(value("textHighlight", "#fff0ad") ?? "#fff0ad")}
+            value={value("textHighlight") ?? "#fff0ad"}
             onChange={(event) => change({ textHighlight: event.target.value })}
           />
         </label>
@@ -222,18 +217,15 @@ function NumericLook({
   detail,
   value,
   property,
-  positive,
   change,
 }: Readonly<{
   label: string;
   detail: string;
   value: unknown;
   property: "lineHeight" | "paragraphGap" | "padding";
-  positive: boolean;
   change: (look: Look) => void;
 }>) {
   const unit = { lineHeight: "×", paragraphGap: "em", padding: "units" }[property];
-  const increment = { lineHeight: 0.05, paragraphGap: 0.1, padding: 1 }[property];
   const inputId = useId();
   return (
     <label htmlFor={inputId} data-hint-detail={detail}>
@@ -241,10 +233,9 @@ function NumericLook({
       <NumericInput
         id={inputId}
         label={label}
-        positive={positive}
-        minimum={0}
-        increment={increment}
-        value={value as number | undefined}
+        detail={detail}
+        rules={TEXT_SPACING[property]}
+        value={typeof value === "number" ? value : "mixed"}
         onCommit={(number) => change({ [property]: number })}
       />
     </label>

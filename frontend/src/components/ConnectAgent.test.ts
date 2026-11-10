@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { agentSettings } from "./ConnectAgent";
+import { agentSettings } from "./agentSettings";
 
 it("offers the connector's address only where the deployment configures agents", () => {
   expect(agentSettings({ mcpUrl: "https://relay.example/mcp" })).toEqual({

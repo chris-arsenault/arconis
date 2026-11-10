@@ -6,7 +6,7 @@ import { parseTags } from "../language/fields";
 export function roomTags(items: Item[]) {
   const counts = new Map<string, number>();
   for (const item of items)
-    for (const tag of item.tags ?? []) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    for (const tag of item.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
   return [...counts]
     .map(([tag, count]) => ({ tag, count }))
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
@@ -15,7 +15,7 @@ export function roomTags(items: Item[]) {
 /** The tags every one of the items carries, in the first item's order. */
 export function sharedTags(items: Item[]) {
   const [first, ...rest] = items;
-  return (first?.tags ?? []).filter((tag) => rest.every((item) => item.tags?.includes(tag)));
+  return first ? first.tags.filter((tag) => rest.every((item) => item.tags.includes(tag))) : [];
 }
 
 /** Tags typed as text: words separated by spaces or commas, with or without a leading #. */
@@ -26,8 +26,8 @@ function changeTags(canvas: CanvasDocument, items: Item[], next: (tags: string[]
   canvas.undo.stopCapturing();
   canvas.doc.transact(() => {
     for (const item of items) {
-      const tags = next(item.tags ?? []);
-      canvas.patch(item.id, { tags: tags.length ? tags : undefined });
+      const tags = next(item.tags);
+      canvas.patch(item.id, { tags });
     }
   }, LOCAL);
   canvas.undo.stopCapturing();

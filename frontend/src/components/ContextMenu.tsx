@@ -155,8 +155,8 @@ function Wedge({
 }>) {
   const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
   const label = { x: RING_RADIUS * Math.cos(angle), y: RING_RADIUS * Math.sin(angle) };
-  const classes = ["ring-wedge", entry.more ? "more" : "", active ? "active" : ""];
-  const text = entry.short ?? entry.label;
+  const classes = ["ring-wedge", entry.kind === "more" ? "more" : "", active ? "active" : ""];
+  const text = entry.short;
   const colorIndex = entry.id.startsWith("colour.") ? Number(entry.id.slice(7)) : -1;
   const color = COLORS[colorIndex];
   const reset = entry.id === "colour.clear";
@@ -223,7 +223,7 @@ function Submenu({
   onOpen,
 }: Readonly<{
   editor: EditorController;
-  entry: MenuEntry;
+  entry: Extract<MenuEntry, { kind: "submenu" }>;
   open: boolean;
   onOpen: (id: string | null) => void;
 }>) {
@@ -247,7 +247,7 @@ function Submenu({
       </button>
       {open && (
         <ul className="context-submenu" role="menu" aria-label={entry.label}>
-          {entry.submenu!.map((inner) => (
+          {entry.submenu.map((inner) => (
             <MenuItem key={inner.id} editor={editor} entry={inner} />
           ))}
         </ul>
@@ -266,7 +266,7 @@ function MenuList({ editor }: Readonly<{ editor: EditorController }>) {
         <li key={group[0].id} className={index ? "menu-group" : ""}>
           <ul>
             {group.map((entry) =>
-              entry.submenu ? (
+              entry.kind === "submenu" ? (
                 <Submenu
                   key={entry.id}
                   editor={editor}

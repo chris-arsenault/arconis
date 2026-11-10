@@ -1,12 +1,14 @@
 import { it, expect, beforeAll } from "vitest";
 import { iconEntries, iconImage, loadAllVendors, loadIcons, searchIcons } from "./catalog";
 import { objectStyle } from "../../editor/styles";
-import type { Item, Look } from "../../document/types";
+import type { Item } from "../../document/types";
+import { BLANK } from "../../document/canvasDocument";
 
 beforeAll(loadIcons);
 
 function icon(key: string, look: Record<string, unknown> = {}): Item {
   return {
+    ...BLANK,
     id: "a",
     type: "node",
     stencil: "icon",
@@ -23,7 +25,7 @@ function icon(key: string, look: Record<string, unknown> = {}): Item {
     points: [],
     order: 0,
     style: "",
-    look: look as Look,
+    look,
     onLine: "",
   };
 }

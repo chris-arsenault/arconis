@@ -93,7 +93,7 @@ it("routes ordered description and layout passes while preserving intentionally 
       node b "B" right of a gap 20 width of a nudge 5,7
     `)
   ).toContain("Done");
-  expect(document.get("f")?.arrange).toBeUndefined();
+  expect(document.get("f")?.arrange).toEqual({ how: "free" });
   expect(document.get("a")).toMatchObject({ x: 600, y: 700, look: {} });
   expect(document.get("b")).toMatchObject({ x: 785, y: 707, width: 160 });
 });

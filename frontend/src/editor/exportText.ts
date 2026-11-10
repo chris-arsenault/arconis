@@ -31,7 +31,10 @@ function coversText(range: string, text: string) {
 function asDataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
+    reader.onload = () =>
+      typeof reader.result === "string"
+        ? resolve(reader.result)
+        : reject(new Error("An export font could not be read."));
     reader.onerror = () => reject(new Error("An export font could not be read."));
     reader.readAsDataURL(blob);
   });
@@ -61,11 +64,11 @@ async function inlineFont(rule: CSSFontFaceRule) {
 export async function exportTextCss(pane: Element) {
   const sheet = new CSSStyleSheet();
   sheet.replaceSync(fontCss + mathCss);
-  const css: (string | Promise<string>)[] = [];
+  const css: Promise<string>[] = [];
   const text = pane.textContent ?? "";
   for (const rule of sheet.cssRules) {
     if (!(rule instanceof CSSFontFaceRule)) {
-      css.push(rule.cssText);
+      css.push(Promise.resolve(rule.cssText));
       continue;
     }
     const font = rule;

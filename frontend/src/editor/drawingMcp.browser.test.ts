@@ -24,8 +24,10 @@ async function connectAgent() {
   const gateway = new AgentGateway(
     fixture.relay,
     { resource: "https://relay.example/mcp", issuer: "https://auth.example/" },
-    async (token) =>
-      token === "local-test" ? { user: "artist", clientId: "test", scopes: ["edit:rooms"] } : null
+    (token) =>
+      Promise.resolve(
+        token === "local-test" ? { user: "artist", clientId: "test", scopes: ["edit:rooms"] } : null
+      )
   );
   const server = createServer((request, response) => {
     void gateway.handle(request, response).then((handled) => {
@@ -129,7 +131,7 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
     );
     const pending = page.waitForEvent("download");
     await exportPng(page);
-    const png = await readFile((await (await pending).path())!);
+    const png = await readFile(await (await pending).path());
     expect(await readCopy(new Uint8Array(png))).toContain("gradient #0000ff");
     const colors = await gradientPixels(page, png);
     expect(colors.red).toBeGreaterThan(100);

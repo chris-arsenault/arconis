@@ -28,7 +28,16 @@ export default ts.config(
     ],
   },
   js.configs.recommended,
-  ...ts.configs.recommended,
+  ...ts.configs.recommendedTypeChecked.map((config) => ({
+    ...config,
+    files: ["**/*.{ts,tsx}"],
+  })),
+  {
+    files: ["src/**/*.{js,jsx}"],
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+    plugins: { ahara: { rules } },
+    rules: { "ahara/no-js-file-extension": "error" },
+  },
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
@@ -52,6 +61,13 @@ export default ts.config(
       // The spatial editor owns keyboard interaction within its application region.
       "jsx-a11y/no-noninteractive-tabindex": ["error", { roles: ["tabpanel", "application"] }],
       ...sonar.configs.recommended.rules,
+      // Yjs implements textual serialization, but its YText declarations omit that override.
+      "@typescript-eslint/no-base-to-string": [
+        "error",
+        {
+          ignoredTypeNames: ["Error", "RegExp", "URL", "URLSearchParams", "YText"],
+        },
+      ],
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       "react-refresh/only-export-components": "warn",
@@ -173,6 +189,11 @@ export default ts.config(
       ],
       "no-restricted-globals": ["error", "window", "document", "navigator", "BroadcastChannel"],
     },
+  },
+  {
+    files: ["src/accounts/auth0-actions/post-login.ts"],
+    // Auth0 validates the runtime AsyncFunction signature even when the action needs no await.
+    rules: { "@typescript-eslint/require-await": "off" },
   },
   prettier
 );

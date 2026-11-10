@@ -136,14 +136,18 @@ function WorkspaceBody({ children, ...props }: BodyProps) {
   );
   return (
     <div className="workspace-body">
-      {editor && !presenting && (
-        <LeftRail
-          editor={editor}
-          compact={narrow}
-          expanded={narrow ? panel === "tools" : undefined}
-          onExpand={narrow ? expandTools : undefined}
-        />
-      )}
+      {editor &&
+        !presenting &&
+        (narrow ? (
+          <LeftRail
+            editor={editor}
+            mode="compact"
+            expanded={panel === "tools"}
+            onExpand={expandTools}
+          />
+        ) : (
+          <LeftRail editor={editor} mode="wide" />
+        ))}
       <CanvasArea {...props}>{children}</CanvasArea>
       <PropertyPanel
         {...props}

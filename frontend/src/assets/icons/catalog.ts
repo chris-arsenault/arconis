@@ -44,7 +44,7 @@ export function loadIcons() {
   loading ??= import("./iconData").then(({ brandIcons, lucideIcons }) => {
     Object.entries(lucideIcons).forEach(([name, node]) => {
       const key = `lucide:${name}`;
-      renderers.set(key, lucideRenderer(node as unknown as IconNode));
+      renderers.set(key, lucideRenderer(node));
       catalog.push({ key, title: words(name), search: words(name).toLowerCase() });
     });
     brandIcons.forEach((icon) => {

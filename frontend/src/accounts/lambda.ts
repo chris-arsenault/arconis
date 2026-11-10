@@ -125,10 +125,12 @@ const api = new AccountsApi(table, {
 interface AlbEvent {
   path: string;
   httpMethod: string;
-  headers?: Record<string, string>;
-  body?: string;
-  isBase64Encoded?: boolean;
+  headers: Record<string, string>;
+  body: string;
+  isBase64Encoded: boolean;
 }
+type AlbInput = Pick<AlbEvent, "path" | "httpMethod"> &
+  Partial<Omit<AlbEvent, "path" | "httpMethod">>;
 
 function response(statusCode: number, body: object) {
   return {
@@ -143,10 +145,11 @@ function response(statusCode: number, body: object) {
   };
 }
 
-export async function handler(event: AlbEvent) {
-  const user = tokenSubject(event.headers?.authorization);
+export async function handler(input: AlbInput) {
+  const event: AlbEvent = { headers: {}, body: "", isBase64Encoded: false, ...input };
+  const user = tokenSubject(event.headers.authorization);
   if (!user) return response(401, { error: "Sign in again." });
-  const raw = event.body ?? "";
+  const raw = event.body;
   const body = event.isBase64Encoded ? Buffer.from(raw, "base64").toString() : raw;
   try {
     const { status, body: result } = await api.handle(user, event.httpMethod, event.path, body);

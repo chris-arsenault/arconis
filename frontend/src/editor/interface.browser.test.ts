@@ -360,7 +360,7 @@ it("tags from the ring, filters from the rail's tags, and grows compact branches
   await row(page, "Pricing").click();
   await page.getByRole("group", { name: "Tags in this room" }).getByText("#growth").click();
   await expect
-    .poll(async () => (await exported(page)).objects.filter((item) => item.tags).length)
+    .poll(async () => (await exported(page)).objects.filter((item) => item.tags.length > 0).length)
     .toBe(2);
 
   // Navigate lists the room's tags; choosing one filters the canvas to what carries it.

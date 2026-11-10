@@ -172,6 +172,6 @@ it("preserves authored appearance when upgrading legacy sketch declarations", ()
     type: "frame",
     look: { fill: "#247dab", title: "side" },
   });
-  expect(canvas.get("artwork")?.scaleContents).toBeUndefined();
+  expect(canvas.get("artwork")?.scaleContents).toBe(false);
   canvas.destroy();
 });

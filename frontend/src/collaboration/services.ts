@@ -7,10 +7,10 @@ export interface RelayActivation {
 }
 
 export interface UploadAuthorization {
-  requestUpload(request: UploadRequest): Promise<UploadReply>;
+  requestUpload(this: void, request: UploadRequest): Promise<UploadReply>;
 }
 
 /** Shared picture storage is absent in local rooms. */
 export interface SharedPictures extends UploadAuthorization {
-  download(hash: string): Promise<Uint8Array | null>;
+  download(this: void, hash: string): Promise<Uint8Array | null>;
 }

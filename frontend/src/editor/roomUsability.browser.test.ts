@@ -92,7 +92,7 @@ it("reopens a retained canvas by title from home", async () => {
     await page.evaluate(async (id) => {
       await new Promise<void>((resolve, reject) => {
         const opening = indexedDB.open(`arconis-room:${id}`);
-        opening.onerror = () => reject(opening.error);
+        opening.onerror = () => reject(opening.error ?? new Error("Opening room storage failed"));
         opening.onsuccess = () => {
           const db = opening.result;
           const transaction = db.transaction("updates", "readwrite");
@@ -101,7 +101,8 @@ it("reopens a retained canvas by title from home", async () => {
             db.close();
             resolve();
           };
-          transaction.onerror = () => reject(transaction.error);
+          transaction.onerror = () =>
+            reject(transaction.error ?? new Error("Reading room storage failed"));
         };
       });
     }, new URL(roomUrl).hash.slice("#room=".length));

@@ -46,12 +46,7 @@ export function encodeSavedCopy(copy: SavedCopy) {
 }
 
 export function decodeSavedCopy(bytes: Uint8Array): SavedCopy {
-  const parsed = JSON.parse(decoder.decode(bytes)) as {
-    format?: number;
-    roomId?: unknown;
-    envelope?: unknown;
-    sealed?: unknown;
-  };
+  const parsed = JSON.parse(decoder.decode(bytes)) as Record<string, unknown>;
   if (parsed.format !== FORMAT || typeof parsed.roomId !== "string")
     throw new Error("This saved workspace is not one Arconis can open.");
   const envelope = parseEnvelope(parsed.envelope);

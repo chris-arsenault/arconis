@@ -1,5 +1,6 @@
 import type { InkSettings } from "../editor/inkCommands";
 import { NumericInput } from "./NumericInput";
+import { PLAIN_NUMBER, POSITIVE_NUMBER } from "./numericRules";
 import { useId } from "react";
 interface BrushProps {
   settings: InkSettings;
@@ -110,7 +111,8 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
         <NumericInput
           label="Stroke width"
           detail="Type any width in pixels greater than 0."
-          positive
+          rules={POSITIVE_NUMBER}
+          id=""
           value={settings.width}
           onCommit={(width) => change({ width })}
         />
@@ -205,6 +207,8 @@ function PaintControls({ settings, change }: Readonly<BrushProps>) {
           Gradient angle <small>°</small>
           <NumericInput
             id={angleId}
+            detail="The direction the gradient runs, in degrees."
+            rules={PLAIN_NUMBER}
             label="Gradient angle"
             value={settings.gradientAngle}
             onCommit={(gradientAngle) => change({ gradientAngle })}

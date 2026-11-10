@@ -78,8 +78,8 @@ export interface MenuState {
   /** Whether the ring shows: a held or dragged right button brings it; a click leaves the menu. */
   ring: boolean;
   /** Whether the Mode wedge's arc of editing modes shows, and which of its modes a held pointer is on. */
-  modes?: boolean;
-  mode?: number | null;
+  modes: boolean;
+  mode: number | null;
 }
 
 /** Opens or closes the palette, returning focus to the canvas when it closes. */
@@ -113,8 +113,8 @@ export function showFilter(editor: EditorController, open: boolean) {
   if (!open) editor.element.focus({ preventScroll: true });
 }
 
-export function openMenu(editor: EditorController, menu: MenuState) {
-  editor.ui.menu = menu;
+export function openMenu(editor: EditorController, menu: Omit<MenuState, "modes" | "mode">) {
+  editor.ui.menu = { ...menu, modes: false, mode: null };
   editor.emit();
 }
 

@@ -78,8 +78,7 @@ function Row({
 }>) {
   const { item, depth, heads } = row;
   const name = item.name.split("\n")[0] || typeLabel(item);
-  const fold = () =>
-    changeFields(editor.document, [item.id], { collapsed: item.collapsed ? undefined : true });
+  const fold = () => changeFields(editor.document, [item.id], { collapsed: !item.collapsed });
   return (
     <li className="outline-row" data-depth={Math.min(depth, 8)} data-testid="outline-row">
       {heads ? (
@@ -138,6 +137,7 @@ export function OutlinePanel({
   return (
     <RailSection
       id="outline"
+      count={0}
       title="Outline"
       detail="The selected tree, or every tree, as an indented list you can edit."
       open={open}

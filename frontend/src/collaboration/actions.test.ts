@@ -70,7 +70,9 @@ it("compares timed update delivery with completion for the same typing workload"
       vi.advanceTimersByTime(100);
     }
     finish();
-    const sent = a.link.sent.filter((message) => JSON.parse(message).kind === "update");
+    const sent = a.link.sent.filter(
+      (message) => (JSON.parse(message) as { kind: string }).kind === "update"
+    );
     results.push({
       completed,
       frames: sent.length,
@@ -99,9 +101,13 @@ it("publishes a completed action once instead of each timed character and keeps 
   vi.advanceTimersByTime(100);
   expect(a.document.get(id)?.name).toBe("Peer Base" + "x".repeat(20));
   expect(b.document.get(id)?.name).toBe("Peer Base");
-  expect(a.link.sent.filter((message) => JSON.parse(message).kind === "update")).toHaveLength(0);
+  expect(
+    a.link.sent.filter((message) => (JSON.parse(message) as { kind: string }).kind === "update")
+  ).toHaveLength(0);
   finish();
-  expect(a.link.sent.filter((message) => JSON.parse(message).kind === "update")).toHaveLength(1);
+  expect(
+    a.link.sent.filter((message) => (JSON.parse(message) as { kind: string }).kind === "update")
+  ).toHaveLength(1);
   expect(a.document.list()).toEqual(b.document.list());
 });
 

@@ -45,7 +45,7 @@ export function SlidesPanel({ editor }: Readonly<{ editor: EditorController }>) 
 /** A slide's line in the panel: its number, or Template, then its name. */
 function slideEntry(slide: Item) {
   if (isTemplate(slide)) return slide.name ? `Template · ${slide.name}` : "Template";
-  return `${slide.slide ?? 0} · ${slide.name || "Slide"}`;
+  return `${slide.slide} · ${slide.name || "Slide"}`;
 }
 
 /** Every deck in the room with its slides in order; clicking a slide flies to it. */

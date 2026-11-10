@@ -36,7 +36,8 @@ ImageShape.prototype.updateBoundingBox = geometricBoundingBox;
 RectangleShape.prototype.updateBoundingBox = geometricBoundingBox;
 EllipseShape.prototype.updateBoundingBox = geometricBoundingBox;
 
-const escapeLabel = (value: unknown) => escapeText(String(value ?? ""));
+const escapeLabel = (value: unknown) =>
+  escapeText(typeof value === "string" || typeof value === "number" ? String(value) : "");
 
 /** Keys `objectStyle` sets for the label alone: a subtitle, a badge's image and the properties. */
 export const LABEL_SUBTITLE = "labelSubtitle";
@@ -91,7 +92,7 @@ function composeLabel(cell: Cell, marks: Marks, content: string) {
 function labelVariables(style: Record<string, unknown>) {
   const lineHeight = Number(style.labelLineHeight ?? 1.35);
   const paragraphGap = Number(style.labelParagraphGap ?? 0.5);
-  const highlight = String(style.labelHighlight ?? "none");
+  const highlight = typeof style.labelHighlight === "string" ? style.labelHighlight : "none";
   const parts = [];
   if (style.whiteSpace === "nowrap") parts.push("white-space:nowrap;overflow-wrap:normal");
   if (Number.isFinite(lineHeight) && lineHeight > 0) parts.push(`--text-line-height:${lineHeight}`);

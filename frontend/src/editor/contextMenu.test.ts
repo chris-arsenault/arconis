@@ -59,7 +59,7 @@ describe("the command ring", () => {
     const ring = ringEntries(context(items, document), null);
     expect(ring[0]).toBeNull();
     expect(ring[4]?.id).toBe("edit.delete");
-    expect(ring[5]).toMatchObject({ id: "ring.more", more: true });
+    expect(ring[5]).toMatchObject({ id: "ring.more", kind: "more" });
   });
 
   it("offers creation and navigation on empty canvas, not view settings", () => {
@@ -79,7 +79,7 @@ describe("the context menu", () => {
     expect(ids[0]).toEqual(["edit.text", "edit.fitText", "comments.open"]);
     expect(ids[1]).toContain("structure.relate");
     const marker = groups.flat().find((entry) => entry.label === "Marker");
-    expect(marker?.submenu).toHaveLength(10);
+    expect(marker?.kind === "submenu" && marker.submenu).toHaveLength(10);
     expect(groups.flat().map((entry) => entry.id)).toContain("fields.tag");
   });
 
@@ -87,7 +87,9 @@ describe("the context menu", () => {
     const { document, items } = notes(3);
     const entries = menuGroups(context(items, document)).flat();
     const align = entries.find((entry) => entry.label === "Align");
-    expect(align?.submenu?.map((entry) => entry.id)).toContain("arrange.align.left");
+    expect(align?.kind === "submenu" && align.submenu.map((entry) => entry.id)).toContain(
+      "arrange.align.left"
+    );
     expect(entries.some((entry) => entry.id === "arrange.align.left")).toBe(false);
   });
 

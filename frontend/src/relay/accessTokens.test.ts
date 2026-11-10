@@ -24,7 +24,7 @@ beforeAll(async () => {
 });
 afterAll(() => new Promise((resolve) => server.close(resolve)));
 
-const token = (claims: { iss?: string; aud?: string | string[]; sub?: string }) =>
+const token = (claims: Partial<{ iss: string; aud: string | string[]; sub: string }>) =>
   new SignJWT({ scope: "edit:rooms offline_access", azp: "tpc_claude" })
     .setProtectedHeader({ alg: "RS256", kid: "k1" })
     .setIssuer(claims.iss ?? issuer)

@@ -138,7 +138,7 @@ it("edits a 500-item canvas through real input and converges with an independent
   await search.fill("Export canvas as SVG");
   const pending = page.waitForEvent("download");
   await search.press("Enter");
-  const svg = await readFile((await (await pending).path())!, "utf8");
+  const svg = await readFile(await (await pending).path(), "utf8");
   const painted = await page.evaluate((source) => {
     const parsed = new DOMParser().parseFromString(source, "image/svg+xml");
     return [...parsed.querySelectorAll(".canvas-markdown")].map((label) => label.textContent);

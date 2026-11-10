@@ -23,7 +23,7 @@ const EMAIL = "ada@example.com";
 function backend() {
   const table = memoryAccountTable();
   const objects = new Map<string, Uint8Array>();
-  const services: AccountServices = {
+  const services = {
     objectInfo: async (user, id) => {
       const bytes = objects.get(`https://s3/${user}/${id}`);
       return bytes ? { size: bytes.length, checksum: (await sha256(bytes)).base64 } : null;
@@ -37,7 +37,7 @@ function backend() {
     deleteLogin: vi.fn(() => Promise.resolve()),
     now: () => 1000,
     newRevision: () => crypto.randomUUID(),
-  };
+  } satisfies AccountServices;
   const api = new AccountsApi(table, services);
   const request: Fetcher = async (url, init) => {
     if (url.startsWith("https://s3/")) {
@@ -48,7 +48,12 @@ function backend() {
       return new Response(new Uint8Array(objects.get(url)!));
     }
     const path = url.replace("https://api", "");
-    const reply = await api.handle("ada", init?.method ?? "GET", path, String(init?.body ?? ""));
+    const reply = await api.handle(
+      "ada",
+      init?.method ?? "GET",
+      path,
+      typeof init?.body === "string" ? init.body : ""
+    );
     return new Response(JSON.stringify(reply.body), { status: reply.status });
   };
   return { request, objects, table, services };
@@ -57,7 +62,7 @@ function backend() {
 /** Sign-in as the browser sees it: a session that exists or does not. */
 function fakeAuth(signedIn = true) {
   const session = { signedIn, failure: "" };
-  const auth: Auth = {
+  const auth = {
     completeSignIn: () =>
       session.failure ? Promise.reject(new Error(session.failure)) : Promise.resolve(),
     signIn: vi.fn(() => Promise.resolve()),
@@ -68,7 +73,7 @@ function fakeAuth(signedIn = true) {
       return Promise.resolve();
     }),
   };
-  return { auth, session };
+  return { auth: auth satisfies Auth, session };
 }
 
 function setup(signedIn = true) {
@@ -194,15 +199,19 @@ describe("saved workspaces", () => {
       ([url, init]) => url === `https://api/api/workspaces/${ID}` && init?.method === "PUT"
     );
     expect(
-      Object.keys(JSON.parse(String(apiSave?.[1]?.body))).sort((a, b) => a.localeCompare(b))
+      Object.keys(JSON.parse(apiSave?.[1]?.body as string) as Record<string, unknown>).sort(
+        (a, b) => a.localeCompare(b)
+      )
     ).toEqual(["checksum", "expectedRevision", "name", "roomId", "size"]);
   });
 });
 
 it("rejects malformed successful metadata rather than asserting an arbitrary reply type", async () => {
   const { auth } = fakeAuth();
-  const store = new AccountStore(auth, "https://api", async () =>
-    Response.json({ workspaces: [{ id: ID, revision: "missing the other fields" }] })
+  const store = new AccountStore(auth, "https://api", () =>
+    Promise.resolve(
+      Response.json({ workspaces: [{ id: ID, revision: "missing the other fields" }] })
+    )
   );
   await expect(store.workspaces()).rejects.toThrow(
     "The account service returned an invalid reply."

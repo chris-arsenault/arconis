@@ -1,5 +1,6 @@
 import type {
   Flag,
+  FlowArrangement,
   InkKind,
   ItemType,
   Look,
@@ -38,27 +39,42 @@ export const DRAWING_WORDS = new Set([
 export type Direction = "below" | "above" | "left of" | "right of";
 export type Edge = "top" | "middle" | "bottom" | "left" | "center" | "right";
 export type Arrangement = "row" | "column" | "grid";
+/** An omitted edit preserves the existing value; an explicit empty string clears it. */
+export type TextEdit = { kind: "keep" } | { kind: "set"; value: string };
+export type RequestedId = { kind: "automatic" } | { kind: "named"; id: string };
+export const AUTOMATIC: RequestedId = { kind: "automatic" };
+export const KEEP_TEXT: TextEdit = { kind: "keep" };
+export type Block = { kind: "none" } | { kind: "block"; statements: Statement[] };
+export const NO_BLOCK: Block = { kind: "none" };
+export function requestedId(identity: RequestedId) {
+  return identity.kind === "named" ? identity.id : "";
+}
 
 export type Attribute =
   | { kind: "word"; word: string }
   | { kind: "look"; look: Look; cleared: (keyof Look)[] }
   | { kind: "icon"; icon: string }
   | { kind: "at"; x: number; y: number }
-  | { kind: "size"; width?: number; height?: number }
+  | {
+      kind: "size";
+      dimensions:
+        | { kind: "both"; width: number; height: number }
+        | { kind: "width" | "height"; value: number };
+    }
   | { kind: "by"; dx: number; dy: number }
-  | { kind: "beside"; direction: Direction; ref: string; gap?: number }
+  | { kind: "beside"; direction: Direction; ref: string; gap: number }
   | { kind: "align"; edge: Edge; ref: string }
   | { kind: "match"; dimension: "width" | "height"; ref: string }
   | { kind: "nudge"; dx: number; dy: number }
   | { kind: "in"; ref: string }
   | { kind: "over"; refs: string[] }
   | { kind: "on"; ref: string }
-  | { kind: "arrange"; how: Arrangement; columns?: number; gap?: number; align?: Edge }
+  | ({ kind: "arrange" } & FlowArrangement)
   | { kind: "picture"; hash: string; format: string; stored: boolean }
   | { kind: "points"; points: PathPoint[] }
   | { kind: "via"; points: PathPoint[] }
   | { kind: "label"; x: number; y: number }
-  | { kind: "deck"; deck: string; slide?: number }
+  | { kind: "deck"; deck: string; numbering: { kind: "next" } | { kind: "number"; value: number } }
   | { kind: "free" }
   | { kind: "markup"; value: boolean }
   | { kind: "scaleContents"; value: boolean }
@@ -67,14 +83,14 @@ export type Attribute =
   | { kind: "flag"; flag: Flag; value: boolean }
   /** An empty list clears the tags. */
   | { kind: "tags"; tags: string[] }
-  | { kind: "marker"; marker?: Marker }
-  | { kind: "task"; task?: TaskState }
-  | { kind: "link"; link?: string }
+  | { kind: "marker"; marker: Marker | "none" }
+  | { kind: "task"; task: TaskState | "none" }
+  | { kind: "link"; link: string }
   | { kind: "edited"; by: string; at: number }
   /** The content layer a top-level item or line is in. */
   | { kind: "layer"; ref: string }
   /** A property's value, or none to remove it. */
-  | { kind: "property"; key: string; value?: string };
+  | { kind: "property"; key: string; edit: { kind: "remove" } | { kind: "set"; value: string } };
 
 export interface Located {
   line: number;
@@ -83,54 +99,51 @@ export interface Located {
 export interface ItemStatement extends Located {
   kind: "item";
   type: ItemType;
-  id?: string;
-  name?: string;
-  subtitle?: string;
+  identity: RequestedId;
+  name: TextEdit;
+  subtitle: TextEdit;
   attributes: Attribute[];
-  body?: Statement[];
+  body: Block;
 }
 /** An existing item named on its own: `edit a ...`, or a bare id inside a block. */
 export interface EditStatement extends Located {
   kind: "edit";
   ref: string;
-  name?: string;
-  subtitle?: string;
+  name: TextEdit;
+  subtitle: TextEdit;
   attributes: Attribute[];
-  body?: Statement[];
+  body: Block;
 }
 export interface ArrangeStatement extends Located {
   kind: "arrange";
-  id?: string;
+  identity: RequestedId;
   how: Arrangement;
-  columns?: number;
   attributes: Attribute[];
   body: Statement[];
 }
 
 export type LinkType = "line" | "branch" | "reference";
-export interface Endpoint {
-  ref?: string;
-  item?: ItemStatement;
-  port?: Port;
-}
+export type Endpoint = (
+  { kind: "reference"; ref: string } | { kind: "item"; item: ItemStatement }
+) & { port: Port | null };
 export interface Segment {
   from: Endpoint;
   to: Endpoint;
   type: LinkType;
   arrow: boolean;
   /** An arrow at the start too, from `<->`. */
-  both?: boolean;
-  label?: string;
+  both: boolean;
+  label: TextEdit;
 }
 export interface LinkStatement extends Located {
   kind: "link";
   segments: Segment[];
-  id?: string;
+  identity: RequestedId;
   attributes: Attribute[];
 }
 
 export interface CommentText {
-  id?: string;
+  identity: RequestedId;
   author: string;
   time: number;
   text: string;
@@ -147,7 +160,7 @@ export type Statement =
   | ({ kind: "delete"; refs: string[] } & Located)
   | ({
       kind: "view";
-      id?: string;
+      identity: RequestedId;
       name: string;
       center: { x: number; y: number };
       zoom: number;
@@ -164,16 +177,16 @@ export type Statement =
   | ({
       kind: "tidy";
       ref: string;
-      direction?: TreeDirection;
-      compact?: boolean;
-      sorted?: boolean;
+      direction: TreeDirection;
+      compact: boolean;
+      sorted: boolean;
     } & Located)
   | ({ kind: "data"; hash: string; format: string; data: string } & Located)
   | ({
       kind: "layer";
       id: string;
-      name?: string;
-      place?: { relation: "above" | "below"; ref: string };
+      name: TextEdit;
+      place: { relation: "above" | "below"; ref: string } | { relation: "keep" };
     } & Located)
   | ({ kind: "merge"; from: string; into: string } & Located)
   | ({ kind: "dropLayer"; id: string } & Located);

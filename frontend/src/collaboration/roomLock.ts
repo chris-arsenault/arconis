@@ -222,7 +222,10 @@ export function indexedDbLockedStorage(roomId: string): LockedStorage {
   const store = async (name: string, mode: IDBTransactionMode) =>
     (await opened).transaction(name, mode).objectStore(name);
   return {
-    envelope: async () => request((await store("meta", "readonly")).get("envelope")),
+    envelope: async () => {
+      const value: unknown = await request((await store("meta", "readonly")).get("envelope"));
+      return parseEnvelope(value) ?? undefined;
+    },
     saveEnvelope: async (envelope) => {
       await request((await store("meta", "readwrite")).put(envelope, "envelope"));
     },

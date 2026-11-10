@@ -23,7 +23,7 @@ import { isBox, isLink, type Item } from "../document/types";
 import { itemName } from "../editor/relate";
 import type { Axis } from "../document/relations";
 import { Section } from "./ConnectionControls";
-import { effectiveAppearance, type Appearance } from "../document/appearance";
+import type { Appearance } from "../document/appearance";
 
 const ALIGN_ACTIONS: { mode: AlignMode; label: string; icon: LucideIcon }[] = [
   { mode: "left", label: "Align left edges", icon: AlignStartVertical },
@@ -43,12 +43,14 @@ function SmallAction({
   detail,
   icon: Icon,
   onClick,
-  disabled = false,
-}: Readonly<
-  { label: string; detail: string; icon: LucideIcon; onClick: () => void } & Partial<{
-    disabled: boolean;
-  }>
->) {
+  disabled,
+}: Readonly<{
+  label: string;
+  detail: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  disabled: boolean;
+}>) {
   return (
     <button
       className="icon-action"
@@ -83,6 +85,7 @@ export function AlignControls({
             label={label}
             detail={ALIGN_DETAIL}
             icon={icon}
+            disabled={false}
             onClick={() => onAlign(mode)}
           />
         ))}
@@ -145,7 +148,7 @@ function RelationRow({
   relation: string;
   target: Item;
   onJump: (id: string) => void;
-  onRemove?: () => void;
+  onRemove: (() => void) | null;
 }>) {
   const name = itemName(target);
   return (
@@ -178,7 +181,7 @@ interface Relation {
   key: string;
   relation: string;
   target: Item;
-  remove?: string;
+  remove: string;
 }
 
 /** Everything one item is related to: its parent topic, its holder, its references and lines. */
@@ -191,7 +194,7 @@ function relationsOf(
   const found: Relation[] = [];
   const add = (key: string, relation: string, id: string | undefined, remove?: string) => {
     const target = id ? byId.get(id) : undefined;
-    if (target) found.push({ key, relation, target, remove });
+    if (target) found.push({ key, relation, target, remove: remove ?? "" });
   };
   add("parent", "Branch of", branchParent(items, item.id));
   if (!item.onLine) add("inside", "Inside", item.inside);
@@ -257,7 +260,7 @@ export function Relationships({
   onJump,
   onRemove,
   children,
-  appearance = effectiveAppearance,
+  appearance,
 }: Readonly<{
   selected: Item[];
   items: Item[];
@@ -266,8 +269,8 @@ export function Relationships({
   onJump: (id: string) => void;
   onRemove: (id: string) => void;
   /** Branch numbering, shown beside the branch count. */
-  children?: ReactNode;
-  appearance?: (item: Item) => Appearance;
+  children: ReactNode;
+  appearance: (item: Item) => Appearance;
 }>) {
   if (selected.length === 2)
     return (
@@ -293,7 +296,7 @@ export function Relationships({
               relation={relation}
               target={target}
               onJump={onJump}
-              onRemove={remove ? () => onRemove(remove) : undefined}
+              onRemove={remove ? () => onRemove(remove) : null}
             />
           ))}
         </ul>

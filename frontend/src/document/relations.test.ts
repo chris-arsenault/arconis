@@ -17,9 +17,11 @@ import {
   worldBounds,
 } from "./relations";
 import { layoutTree } from "./treeLayout";
+import { BLANK } from "./canvasDocument";
 
 function box(id: string, x = 0, y = 0, extras: Partial<Item> = {}): Item {
   return {
+    ...BLANK,
     id,
     type: "node",
     stencil: "rectangle",

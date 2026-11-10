@@ -143,7 +143,7 @@ it("shows the first search match first and reveals only the requested hidden obj
     .pressSequentially("Agenda");
   await page.getByRole("button", { name: "Reveal Agenda first", exact: true }).click();
   const objects = (await exported(page)).objects;
-  expect(objects.find((item) => item.name === "Agenda first")!.hidden).toBeUndefined();
+  expect(objects.find((item) => item.name === "Agenda first")!.hidden).toBe(false);
   expect(objects.find((item) => item.name === "Agenda second")!.hidden).toBe(true);
   expect(errors).toEqual([]);
   await context.close();

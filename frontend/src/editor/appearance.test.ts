@@ -117,13 +117,16 @@ it("uses the same defaults and zoom policy for rail and context creation while p
     select: vi.fn(),
     setTool: vi.fn(),
     edit: vi.fn(),
-    add: EditorController.prototype.add,
+    add: (...args: Parameters<EditorController["add"]>) =>
+      EditorController.prototype.add.apply(editor, args),
   } as unknown as EditorController;
   const rail = canvas.get(editor.add("note", { x: 500, y: 500, anchor: "corner" }, null, null))!;
   editor.ui.menu = {
     at: { x: 0, y: 0 },
     world: { x: 120, y: 300 },
     ring: false,
+    modes: false,
+    mode: null,
     wedge: null,
     subRing: null,
   };

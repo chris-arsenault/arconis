@@ -6,7 +6,7 @@ import type { LibraryEntry } from "../protocol/library";
 
 function setup() {
   const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-1" }));
-  const send = vi.spyOn(client, "send").mockImplementation(async () => ({}));
+  const send = vi.spyOn(client, "send").mockImplementation(() => ({}));
   const table = dynamoLibrary(client, "accounts");
   const entry: LibraryEntry = {
     id: crypto.randomUUID(),
@@ -39,14 +39,14 @@ it("publishes and removes metadata with both quota changes in conditional transa
       {
         Update: {
           Key: { pk: "USER#a", sk: "PROFILE" },
-          ConditionExpression: expect.any(String),
+          ConditionExpression: expect.any(String) as unknown,
           ExpressionAttributeValues: { ":delta": 100 },
         },
       },
       {
         Update: {
           Key: { pk: "SERVICE", sk: "STORAGE" },
-          ConditionExpression: expect.any(String),
+          ConditionExpression: expect.any(String) as unknown,
           ExpressionAttributeValues: { ":delta": 100 },
         },
       },
@@ -106,14 +106,16 @@ it("updates only the name and refuses a rename after deletion", async () => {
 it("reports account deletion distinctly from full storage and blocks rename", async () => {
   const { send, table, entry } = setup();
   send.mockRejectedValueOnce(canceled(["None", "ConditionalCheckFailed"]));
-  send.mockImplementationOnce(async () => ({ Item: { deleting: true } }));
+  send.mockImplementationOnce(() => ({ Item: { deleting: true } }));
   expect(await table.createLibrary("a", entry)).toBe("deleting");
   expect(send.mock.calls[0][0].input).toMatchObject({
     TransactItems: [
       {},
       {
         Update: {
-          ConditionExpression: expect.stringContaining("attribute_not_exists(#deleting)"),
+          ConditionExpression: expect.stringContaining(
+            "attribute_not_exists(#deleting)"
+          ) as unknown,
         },
       },
       {},

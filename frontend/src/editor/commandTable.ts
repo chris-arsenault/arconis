@@ -2,7 +2,8 @@ import { isBox } from "../document/types";
 import type { AlignMode, Axis } from "../document/relations";
 import { hasText } from "../document/capabilities";
 import { deckOf, isSlide } from "../document/slides";
-import type { Command, CommandContext } from "./registry";
+import { type CommandDefinition as Command, type CommandContext } from "./registry";
+import { completeCommand } from "./commandDefinition";
 import type { Tool } from "./shapes";
 import { routeAround } from "./commands";
 import {
@@ -366,7 +367,7 @@ const SELECT: Command[] = [
   },
 ];
 
-export const COMMANDS: Command[] = [
+export const COMMANDS = [
   ...TOOLS,
   ...CREATE,
   ...EDIT,
@@ -383,4 +384,4 @@ export const COMMANDS: Command[] = [
   ...POINTER_COMMANDS,
   ...STENCIL_COMMANDS,
   ...EXPORT_COMMANDS,
-];
+].map(completeCommand);

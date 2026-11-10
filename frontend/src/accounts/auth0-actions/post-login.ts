@@ -8,6 +8,7 @@ import type { Event, PostLoginAPI } from "@auth0/actions/post-login/v3";
  * @param {Event} event - Details about the user and the context in which they are logging in.
  * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
  */
+declare const exports: { onExecutePostLogin: (event: Event, api: PostLoginAPI) => Promise<void> };
 exports.onExecutePostLogin = async (event: Event, api: PostLoginAPI) => {
   if (event.connection.name !== "arconis") return;
   if (!event.user.email_verified) {

@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { CircleHelp } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -27,6 +27,16 @@ export function HelpSurfaces({
   session,
 }: Readonly<{ editor: EditorController; session: RoomSession }>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
+  const tutorials = useMemo(
+    () => ({
+      tour: () => tour(editor),
+      practice: () => {
+        showHelp(editor, null);
+        requestPractice();
+      },
+    }),
+    [editor]
+  );
   useEffect(() => {
     let tutorial: Awaited<ReturnType<typeof startPractice>> = null;
     let active = true;
@@ -41,18 +51,7 @@ export function HelpSurfaces({
   }, [session, editor]);
   return (
     <>
-      {editor.ui.help !== null && (
-        <HelpReference
-          editor={editor}
-          tutorials={{
-            tour: () => tour(editor),
-            practice: () => {
-              showHelp(editor, null);
-              requestPractice();
-            },
-          }}
-        />
-      )}
+      {editor.ui.help !== null && <HelpReference editor={editor} tutorials={tutorials} />}
       <OrientationOffer onTour={() => tour(editor)} />
     </>
   );

@@ -14,9 +14,9 @@ function load() {
 }
 
 /** Whether this viewer shows the help zone. A per-device preference, never shared. */
-export const helpZonePreference = {
+const helpZonePreference = {
   snapshot: () => (shown ??= load()),
-  subscribe(listener: () => void) {
+  subscribe(this: void, listener: () => void) {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },

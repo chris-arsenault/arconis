@@ -43,7 +43,7 @@ function fieldMarks(item: Item, items: Item[]) {
 /** A slide's deck and number, or "template", before its name; nothing for other items. */
 function slidePlace(item: Item) {
   if (!isSlide(item)) return "";
-  const place = isTemplate(item) ? "template" : String(item.slide ?? 0);
+  const place = isTemplate(item) ? "template" : String(item.slide);
   return `${deckOf(item)} · ${place}`;
 }
 

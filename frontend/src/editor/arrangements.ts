@@ -1,6 +1,6 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { hiddenIds, movedWithContents } from "../document/relations";
-import { LOCAL, isBox, type Item } from "../document/types";
+import { LOCAL, isArranged, isBox, type Item } from "../document/types";
 import { arrangedLayout } from "../document/arrangement";
 import { authoredLook } from "../document/appearance";
 
@@ -30,19 +30,20 @@ export function keepArranged(document: CanvasDocument) {
  */
 export function reflowArrangements(document: CanvasDocument) {
   const items = document.list();
-  if (!items.some((item) => item.arrange)) return;
+  if (!items.some(isArranged)) return;
   const depth = (item: Item) => {
     let levels = 0;
     for (let id = item.inside; id && levels < items.length; id = document.get(id)?.inside ?? "")
       levels++;
     return levels;
   };
-  const frames = items.filter((item) => item.arrange).sort((a, b) => depth(b) - depth(a));
+  const frames = items.filter(isArranged).sort((a, b) => depth(b) - depth(a));
   const lookOf = (item: Item) => authoredLook(item, document.namedStyle(item.style));
   document.doc.transact(() => {
     for (const { id } of frames) {
       const current = document.list();
       const frame = document.get(id)!;
+      if (!isArranged(frame)) continue;
       const hidden = hiddenIds(current);
       const members = current.filter(
         (item) => item.inside === id && isBox(item) && item.type !== "band" && !hidden.has(item.id)

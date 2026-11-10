@@ -46,7 +46,7 @@ describe("the outline of a tree", () => {
     expect(indentUnderPrevious(document, "b")).toBe(true);
     const items = document.list();
     expect(branchParent(items, "b")).toBe("a");
-    expect(document.get("a")!.collapsed).toBeUndefined();
+    expect(document.get("a")!.collapsed).toBe(false);
     expect(indentUnderPrevious(document, "a")).toBe(false);
   });
 });

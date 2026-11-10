@@ -9,6 +9,25 @@ import { fittedTextHeight } from "./textLayout";
 import type { SourceEdit } from "../text/commands";
 
 /** A control changes the selection as one undoable operation, regardless of item count. */
+export function changeSelectionLook(canvas: CanvasDocument, items: Item[], look: Look): void;
+export function changeSelectionLook(
+  canvas: CanvasDocument,
+  items: Item[],
+  look: Look,
+  resizeText: true
+): Promise<void>;
+export function changeSelectionLook(
+  canvas: CanvasDocument,
+  items: Item[],
+  look: Look,
+  resizeText: false
+): void;
+export function changeSelectionLook(
+  canvas: CanvasDocument,
+  items: Item[],
+  look: Look,
+  resizeText: boolean
+): void | Promise<void>;
 export function changeSelectionLook(
   canvas: CanvasDocument,
   items: Item[],

@@ -1,16 +1,46 @@
-import type { Arrangement, Item, Look } from "./types";
+import type { Arrangement, ArrangedItem, FlowArrangement, Item, Look } from "./types";
 import { DEFAULT_GAP, footprint, paddingOf, union, type Box } from "./layout";
 
+/** Decode the peer/file boundary once; layout always receives a complete flow arrangement. */
+export function readArrangement(value: unknown): Arrangement {
+  if (!value || typeof value !== "object" || !("how" in value)) return { how: "free" };
+  const raw = value as Record<string, unknown>;
+  const gap = typeof raw.gap === "number" ? raw.gap : DEFAULT_GAP;
+  if (raw.how === "grid")
+    return {
+      how: "grid",
+      columns: typeof raw.columns === "number" ? raw.columns : 1,
+      gap,
+      align: "center",
+    };
+  if (raw.how !== "row" && raw.how !== "column") return { how: "free" };
+  const align = readAlignment(raw.align);
+  return {
+    how: raw.how,
+    gap,
+    align,
+  };
+}
+function readAlignment(value: unknown): FlowArrangement["align"] {
+  return value === "top" ||
+    value === "bottom" ||
+    value === "middle" ||
+    value === "left" ||
+    value === "right"
+    ? value
+    : "center";
+}
+
 /** Offset across a row or column, independent of how the arrangement was authored. */
-function crossOffset(align: Arrangement["align"], extent: number, size: number) {
+function crossOffset(align: FlowArrangement["align"], extent: number, size: number) {
   if (align === "top" || align === "left") return 0;
   if (align === "bottom" || align === "right") return extent - size;
   return (extent - size) / 2;
 }
 
 /** Top-left positions of spaces within a row, column or grid. */
-export function slots(spaces: Box[], arrangement: Arrangement) {
-  const gap = arrangement.gap ?? DEFAULT_GAP;
+export function slots(spaces: Box[], arrangement: FlowArrangement) {
+  const gap = arrangement.gap;
   const across = arrangement.how === "row" ? "height" : "width";
   const along = arrangement.how === "row" ? "width" : "height";
   const extent = Math.max(0, ...spaces.map((space) => space[across]));
@@ -18,7 +48,7 @@ export function slots(spaces: Box[], arrangement: Arrangement) {
     width: Math.max(0, ...spaces.map((space) => space.width)),
     height: Math.max(0, ...spaces.map((space) => space.height)),
   };
-  const count = Math.max(1, arrangement.columns ?? 1);
+  const count = arrangement.how === "grid" ? Math.max(1, arrangement.columns) : 1;
   let cursor = 0;
   return spaces.map((space, index) => {
     if (arrangement.how === "grid")
@@ -34,7 +64,7 @@ export function slots(spaces: Box[], arrangement: Arrangement) {
 }
 
 /** Members in spatial order, with explicitly appended members after the rest. */
-export function arrangedOrder(members: Item[], arrangement: Arrangement, last: string[] = []) {
+export function arrangedOrder(members: Item[], arrangement: FlowArrangement, last: string[] = []) {
   const key = (item: Item) => {
     const x = item.x + item.width / 2;
     const y = item.y + item.height / 2;
@@ -56,12 +86,12 @@ export function arrangedOrder(members: Item[], arrangement: Arrangement, last: s
 
 /** Shared editor/language layout: member offsets and the frame's resulting size. */
 export function arrangedLayout(
-  frame: Item,
+  frame: ArrangedItem,
   members: Item[],
   lookOf: (item: Item) => Look,
   last: string[] = []
 ) {
-  const arrangement = frame.arrange!;
+  const arrangement = frame.arrange;
   const ordered = arrangedOrder(members, arrangement, last);
   const spaces = ordered.map((item) => footprint(item, lookOf(item)));
   const padding = paddingOf(frame, lookOf(frame));

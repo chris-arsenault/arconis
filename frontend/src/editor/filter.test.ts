@@ -21,10 +21,13 @@ describe("shorthand typed into labels", () => {
       name: "Ship it",
       fields: { tags: ["old", "api", "v2"], marker: "p1", task: "open" },
     });
-    expect(absorbShorthand("[x] Done", {})).toEqual({ name: "Done", fields: { task: "done" } });
-    expect(absorbShorthand("Plain text with a # sign and an email@x", {})).toBeNull();
+    expect(absorbShorthand("[x] Done", { tags: [] })).toEqual({
+      name: "Done",
+      fields: { task: "done" },
+    });
+    expect(absorbShorthand("Plain text with a # sign and an email@x", { tags: [] })).toBeNull();
     expect(absorbShorthand("#api", { tags: ["api"] })).toBeNull();
-    expect(absorbShorthand("Price :p9 is not a marker", {})).toBeNull();
+    expect(absorbShorthand("Price :p9 is not a marker", { tags: [] })).toBeNull();
   });
 
   it("applies to an item when its edit finishes", () => {

@@ -124,7 +124,10 @@ export function tokenSubject(authorization: string | undefined) {
   const payload = authorization?.replace(/^Bearer /i, "").split(".")[1];
   if (!payload) return null;
   try {
-    const claims = JSON.parse(Buffer.from(payload, "base64url").toString()) as { sub?: unknown };
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString()) as Record<
+      string,
+      unknown
+    >;
     return typeof claims.sub === "string" && claims.sub ? claims.sub : null;
   } catch {
     return null;

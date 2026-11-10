@@ -1,5 +1,5 @@
 import { roomHash } from "../collaboration/room";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { callEveryone, itemLink, openChat, peerStates, stopFollowing } from "./presence";
 import { LASER_KEY } from "./laserInput";
 

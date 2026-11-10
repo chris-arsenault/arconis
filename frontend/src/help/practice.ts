@@ -59,7 +59,7 @@ interface Task {
   /** What to highlight, by `data-help-id`; the rest of the screen waits under the overlay. */
   target: string;
   /** Areas besides the target the person needs to reach. */
-  reach?: string[];
+  reach: string[];
   /** Whether the person has done it. */
   done: (editor: EditorController, start: Item[]) => boolean;
 }
@@ -75,6 +75,7 @@ const joined = (items: Item[], a: string, b: string) =>
 export const TASKS: Task[] = [
   {
     title: "Edit an object",
+    reach: [],
     text: "Double-click the note that says “Edit me”, type something of your own, then press Ctrl/⌘ Enter or click away.",
     target: "canvas",
     // Done once the edit is finished, not at the first keystroke.
@@ -84,6 +85,7 @@ export const TASKS: Task[] = [
   },
   {
     title: "Connect two objects",
+    reach: [],
     text: "Press C for the connector, then click Orders API and then Orders. The line stays attached when either one moves.",
     target: "canvas",
     done: (editor) => joined(editor.document.list(), "api", "db"),
@@ -119,8 +121,7 @@ export async function startPractice(session: RoomSession, editor: EditorControll
   const steps: DriveStep[] = TASKS.map((task) => ({
     element: () => area(task.target)!,
     popover: { title: task.title, description: task.text, showButtons: ["close"] },
-    allowedElements: () =>
-      [task.target, ...(task.reach ?? [])].map(area).filter((node) => node !== null),
+    allowedElements: () => [task.target, ...task.reach].map(area).filter((node) => node !== null),
   }));
   const tour = driver({
     steps,

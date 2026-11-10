@@ -6,15 +6,15 @@ import { generateRoomKey, seal } from "./roomKey";
 
 afterEach(() => vi.restoreAllMocks());
 
-function carrier(): FrameChannel {
+function carrier() {
   return {
-    onMessage: () => {},
+    onMessage: vi.fn<FrameChannel["onMessage"]>(),
     onReady: () => {},
     onStatus: () => {},
     connect: vi.fn(),
     send: vi.fn(),
     close: vi.fn(),
-  };
+  } satisfies FrameChannel;
 }
 function frame(data: Uint8Array) {
   return JSON.stringify({

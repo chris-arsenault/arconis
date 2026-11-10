@@ -61,9 +61,11 @@ export class ServerPeer {
   present() {
     const names: string[] = [];
     this.provider.awareness.getStates().forEach((state, client) => {
-      const user = (state as { user?: { name?: unknown; agent?: unknown } }).user;
-      if (client === this.document.doc.clientID || !user || user.agent) return;
-      if (typeof user.name === "string") names.push(user.name);
+      const user = (state as Record<string, unknown>).user;
+      if (client === this.document.doc.clientID || !user || typeof user !== "object") return;
+      const data = user as Record<string, unknown>;
+      if (data.agent) return;
+      if (typeof data.name === "string") names.push(data.name);
     });
     return names;
   }

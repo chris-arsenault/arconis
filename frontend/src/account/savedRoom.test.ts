@@ -20,15 +20,18 @@ async function workspace(passwordRequired = false) {
   let envelope: Envelope | undefined;
   const storage: LockedStorage = {
     envelope: () => Promise.resolve(envelope),
-    saveEnvelope: async (value) => {
+    saveEnvelope: (value) => {
       envelope = value;
+      return Promise.resolve();
     },
     updates: () => Promise.resolve(updates),
-    addUpdate: async (value) => {
+    addUpdate: (value) => {
       updates.push(value);
+      return Promise.resolve();
     },
-    replaceUpdates: async (value) => {
+    replaceUpdates: (value) => {
       updates.splice(0, updates.length, value);
+      return Promise.resolve();
     },
     close: () => {},
   };
@@ -54,8 +57,9 @@ async function workspace(passwordRequired = false) {
   const pictures = new PictureStore({
     shelf: {
       get: (hash) => Promise.resolve(shelf.get(hash)),
-      put: async (hash, picture) => {
+      put: (hash, picture) => {
         shelf.set(hash, picture);
+        return Promise.resolve();
       },
     },
     codec: key.codec,
@@ -118,28 +122,28 @@ it("carries unshared picture bytes and excludes pictures already in shared stora
 
 it("reads the current envelope, hides the title and adopts saved keys before waiting for unlock", async () => {
   const first = await workspace(true);
-  await first.key!.choose("initial password");
+  await first.key.choose("initial password");
   first.document.rename("Secret project title");
   first.document.create("note", 0, 0, { name: "Secret text" });
   const hash = await first.pictures.add(BYTES, "image/png");
   first.document.create("picture", 0, 0, { picture: { hash, format: "image/png", stored: false } });
-  await first.key!.changePassword("new password");
+  await first.key.changePassword("new password");
   const copy = await first.room.contents();
   expect(first.room.title()).toBe("Password room");
   expect(copy.envelope.revision).toBe(2);
   expect(new TextDecoder().decode(copy.sealed)).not.toContain("Secret");
   const target = await workspace(true);
   const applying = target.room.apply(copy);
-  expect(target.key!.state).toBe("enter");
+  expect(target.key.state).toBe("enter");
   expect(target.document.list()).toEqual([]);
-  await target.key!.enter("new password");
+  await target.key.enter("new password");
   await applying;
   expect(target.document.title()).toBe("Secret project title");
   expect(target.document.list().find((item) => item.type === "note")?.name).toBe("Secret text");
   expect(await target.pictures.readOpen(hash)).toEqual({ bytes: BYTES, type: "image/png" });
   const departed = await workspace(true);
   const waiting = departed.room.apply(copy);
-  expect(departed.key!.state).toBe("enter");
+  expect(departed.key.state).toBe("enter");
   departed.lifetime.abort();
   await waiting;
   expect(departed.document.list()).toEqual([]);
@@ -194,6 +198,6 @@ it("refuses a plain saved copy while a password room is waiting for its envelope
   const target = await workspace(true);
   target.document.rename("Private pending room");
   target.document.create("note", 0, 0, { name: "Never publish this unsealed" });
-  expect(target.key!.state).toBe("waiting");
+  expect(target.key.state).toBe("waiting");
   await expect(target.room.contents()).rejects.toThrow("Open this password room before saving.");
 });

@@ -32,7 +32,7 @@ function load(): DisplayPreferences {
 /** Local viewing preferences never change the shared canvas or its undo history. */
 export const displayPreferences = {
   snapshot: () => (current ??= load()),
-  subscribe(listener: () => void) {
+  subscribe(this: void, listener: () => void) {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },

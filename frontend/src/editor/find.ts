@@ -22,8 +22,8 @@ function texts(item: Item, comments: CanvasComment[]): [Match["where"], string][
   return [
     ["name", item.name],
     ["subtitle", item.subtitle],
-    ...(item.tags ?? []).map((tag): [Match["where"], string] => ["tag", `#${tag}`]),
-    ...(item.marker
+    ...item.tags.map((tag): [Match["where"], string] => ["tag", `#${tag}`]),
+    ...(item.marker !== "none"
       ? [["marker", `${item.marker} ${MARKER_LABELS[item.marker]}`] as [Match["where"], string]]
       : []),
     ...comments.map((comment): [Match["where"], string] => ["comment", comment.text]),
@@ -108,7 +108,7 @@ export function revealMatch(editor: EditorController, match: Match) {
   changeFields(
     editor.document,
     hidden.map((item) => item.id),
-    { hidden: undefined }
+    { hidden: false }
   );
   const current = editor.document.get(match.item.id);
   if (current) showMatch(editor, { ...match, item: current, hidden: false });

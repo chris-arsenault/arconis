@@ -5,7 +5,7 @@ import { BLANK } from "../document/canvasDocument";
 import { LanguageError } from "./lexer";
 import { DEFAULT_GAP, union } from "../document/layout";
 import type { PendingLink } from "./connections";
-import type { LinkStatement } from "./syntax";
+import { KEEP_TEXT, type LinkStatement, type Segment } from "./syntax";
 
 /**
  * Lines that share a trunk: `a -> b, c shared` runs one line from `a` to a junction, a small point
@@ -52,18 +52,24 @@ export function shareTrunks(draft: Draft, links: PendingLink[], junctions: Pendi
     draft.add(junction);
     junctions.push({ id: junction.id, from, to: fan.map((link) => link.to) });
     const [first] = fan;
-    const trunk = {
+    const trunk: Segment = {
       from: first.segment.from,
-      to: { ref: junction.id },
+      to: { kind: "reference", ref: junction.id, port: null },
       type: "line" as const,
       arrow: false,
+      both: false,
+      label: KEEP_TEXT,
     };
     result.push({ from, to: junction.id, segment: trunk, statement: rest });
     for (const link of fan)
       result.push({
         ...link,
         from: junction.id,
-        segment: { ...link.segment, from: { ref: junction.id }, both: false },
+        segment: {
+          ...link.segment,
+          from: { kind: "reference", ref: junction.id, port: null },
+          both: false,
+        },
         statement: rest,
       });
   }

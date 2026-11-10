@@ -216,10 +216,10 @@ export function CommentControls({
   onAdd,
   onDelete,
   onResolve,
-  speakerNotes = false,
+  speakerNotes,
 }: Readonly<{
   threads: Thread[];
-  speakerNotes?: boolean;
+  speakerNotes: boolean;
   onAdd: (text: string, thread?: string) => void;
   onDelete: (id: string) => void;
   onResolve: (id: string, resolved: boolean) => void;

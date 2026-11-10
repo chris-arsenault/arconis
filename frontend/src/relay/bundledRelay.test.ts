@@ -7,6 +7,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import WebSocket from "ws";
+import { socketText } from "./socketText";
 import { CollaborationProvider } from "../collaboration/provider";
 import type { FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
@@ -87,7 +88,7 @@ function personChannel(room: string): FrameChannel {
       });
       socket.onopen = () => channel.onReady();
       socket.on("message", (data) => {
-        const message = data.toString();
+        const message = socketText(data);
         if (!message.startsWith('{"relay"')) channel.onMessage(message);
       });
     },

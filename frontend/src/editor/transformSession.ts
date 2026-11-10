@@ -50,9 +50,9 @@ export class TransformSession {
       : [];
     document.doc.transact(() => {
       items.forEach((item) => {
-        const { rotation, gradientAngle, ...geometry } = values.get(item.id)!;
+        const { rotation, paint, ...geometry } = values.get(item.id)!;
         document.patch(item.id, geometry);
-        if (gradientAngle !== undefined) document.patchLook(item.id, { gradientAngle });
+        document.patchLook(item.id, paint);
         if (isBox(item) && !isFrame(item) && transform.angle)
           document.patchLook(item.id, { rotation });
       });

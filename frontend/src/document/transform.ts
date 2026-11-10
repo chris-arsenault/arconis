@@ -2,20 +2,23 @@ import { isBox, isFrame, isLink, type Item, type Look, type PathPoint } from "./
 import { isLockedIcon } from "./geometry";
 import { keepsAspectOnTransform } from "./capabilities";
 
-export interface SelectionTransform {
+interface TransformValues {
   anchor: { x: number; y: number };
   scaleX: number;
   scaleY: number;
   /** Clockwise degrees around the anchor. */
   angle: number;
   /** Translation after scaling and rotation, used when a holder's center changes. */
-  offset?: { x: number; y: number };
+  offset: { x: number; y: number };
   /** Uniform size factor for aspect-preserving content in a general panel resize. */
-  aspectScale?: number;
+  aspectScale: number;
 }
+/** Gesture requests default to no translation and aspect preservation by the smaller axis. */
+export type SelectionTransform = Omit<TransformValues, "offset" | "aspectScale"> &
+  Partial<Pick<TransformValues, "offset" | "aspectScale">>;
 export type TransformedObject = Pick<Item, "x" | "y" | "width" | "height" | "points"> & {
   rotation: number;
-  gradientAngle?: number;
+  paint: Look;
 };
 interface Box {
   left: number;
@@ -31,9 +34,14 @@ const MINIMUM_SIZE = 0.001;
 /** Applies one transform to world-space objects. Input is the gesture's starting snapshot. */
 export function transformObjects(
   items: Item[],
-  transform: SelectionTransform,
+  request: SelectionTransform,
   lookOf: (item: Item) => Look = (item) => item.look
 ) {
+  const transform: TransformValues = {
+    offset: { x: 0, y: 0 },
+    aspectScale: Math.min(request.scaleX, request.scaleY),
+    ...request,
+  };
   const apply = pointTransform(transform);
   const result = new Map<string, TransformedObject>();
   for (const item of items) {
@@ -49,13 +57,7 @@ export function transformObjects(
   return result;
 }
 
-function pointTransform({
-  anchor,
-  scaleX,
-  scaleY,
-  angle,
-  offset = { x: 0, y: 0 },
-}: SelectionTransform) {
+function pointTransform({ anchor, scaleX, scaleY, angle, offset }: TransformValues) {
   const radians = (angle * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
@@ -68,7 +70,7 @@ function pointTransform({
 
 function transformObject(
   item: Item,
-  { scaleX, scaleY, angle, aspectScale }: SelectionTransform,
+  { scaleX, scaleY, angle, aspectScale }: TransformValues,
   apply: (point: PathPoint) => PathPoint,
   look: Look
 ): TransformedObject {
@@ -76,7 +78,7 @@ function transformObject(
   const points = item.points.map((point) => apply(point).map(round) as PathPoint);
   if (!isBox(item)) return transformPath(item, points, rotation, angle, look);
   const locked = isLockedIcon(item);
-  const evenScale = aspectScale ?? Math.min(scaleX, scaleY);
+  const evenScale = aspectScale;
   const even = keepsAspectOnTransform(item);
   const width = Math.max(MINIMUM_SIZE, round(item.width * (even ? evenScale : scaleX)));
   const height = Math.max(MINIMUM_SIZE, round(item.height * (even ? evenScale : scaleY)));
@@ -88,6 +90,7 @@ function transformObject(
     height,
     points,
     rotation: locked ? 0 : (((rotation + angle) % 360) + 360) % 360,
+    paint: {},
   };
 }
 
@@ -103,17 +106,17 @@ function transformPath(
     angle && item.type === "drawing" && look.gradient && look.gradient !== "none"
       ? { gradientAngle: ((((look.gradientAngle ?? 0) + angle) % 360) + 360) % 360 }
       : {};
-  return { x, y, width, height, points, rotation, ...paint };
+  return { x, y, width, height, points, rotation, paint };
 }
 
 function transformGroup(
   group: Item,
   items: Item[],
   result: Map<string, TransformedObject>,
-  transform: SelectionTransform,
+  transform: TransformValues,
   apply: (point: PathPoint) => PathPoint
 ): TransformedObject {
-  const unchanged = { points: group.points, rotation: 0 };
+  const unchanged = { points: group.points, rotation: 0, paint: {} };
   // Rotating a frame's corners would inflate it on every gesture, so it refits its children.
   const children = items.filter((item) => item.inside === group.id && !isLink(item));
   if (transform.angle && children.length) {

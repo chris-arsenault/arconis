@@ -20,7 +20,7 @@ async function exportPng(page: Page, reviewName: string) {
   await menuExportPng(page);
   const download = await pending;
   expect(download.suggestedFilename()).toMatch(/\.png$/);
-  const path = (await download.path())!;
+  const path = await download.path();
   await mkdir("test-results/review", { recursive: true });
   await copyFile(path, `test-results/review/${reviewName}.png`);
   return readFile(path);
@@ -99,7 +99,7 @@ it("exports the whole canvas as a picture that loads back in another room", asyn
   expect(copied.inked).toBeGreaterThan(100);
   const pending = page.waitForEvent("download");
   await palette("Export canvas as SVG");
-  const svg = await readFile((await (await pending).path())!, "utf8");
+  const svg = await readFile(await (await pending).path(), "utf8");
   expect(svg.startsWith("<svg")).toBe(true);
   expect(svg).toContain("<desc>arconis 1");
 

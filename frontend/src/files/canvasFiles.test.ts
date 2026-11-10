@@ -9,7 +9,10 @@ import { addComment, listComments } from "../document/comments";
 import { sha256 } from "../document/pictures";
 
 const BYTES = new Uint8Array([1, 2, 3]);
-const TEST_CODEC: PictureCodec = { seal: async (bytes) => bytes, open: async (bytes) => bytes };
+const TEST_CODEC: PictureCodec = {
+  seal: (bytes) => Promise.resolve(bytes),
+  open: (bytes) => Promise.resolve(bytes),
+};
 const MARKDOWN = "# 日本語\n\n```python\nprint(1)\n```\n\n$x^2$";
 const PIXEL = Uint8Array.from(
   atob(

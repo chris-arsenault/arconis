@@ -39,7 +39,7 @@ it("moves markup into a layer and back without changing points, paint or ids, wi
     points: original.points,
     look: original.look,
   });
-  expect(canvas.get("land")?.layer).toBeUndefined();
+  expect(canvas.get("land")?.layer).toBe("");
   canvas.destroy();
 });
 
@@ -55,11 +55,11 @@ it("preserves connector eligibility and locked ink when transferring to markup",
   canvas.create("node", 100, 100, { id: "node" });
   canvas.create("line", 0, 0, { id: "wire", from: "ink", to: "node" });
   expect(transferInk(canvas, [canvas.get("ink")!], true, "base")).toBe(false);
-  expect(canvas.get("ink")?.markup).toBeUndefined();
+  expect(canvas.get("ink")?.markup).toBe(false);
   canvas.remove(["wire"]);
   canvas.patch("ink", { locked: true });
   transferInk(canvas, [canvas.get("ink")!], true, "base");
-  expect(canvas.get("ink")?.markup).toBeUndefined();
+  expect(canvas.get("ink")?.markup).toBe(false);
   canvas.destroy();
 });
 

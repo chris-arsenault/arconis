@@ -83,7 +83,7 @@ export function indentUnderPrevious(document: CanvasDocument, id: string) {
   document.undo.stopCapturing();
   document.doc.transact(() => {
     document.patch(branch.id, { from: previous.id });
-    document.patch(previous.id, { collapsed: undefined });
+    document.patch(previous.id, { collapsed: false });
   }, LOCAL);
   document.undo.stopCapturing();
   return true;

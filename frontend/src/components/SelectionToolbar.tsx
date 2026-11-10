@@ -44,7 +44,7 @@ function TextSizeButtons({
     const index = TEXT_SIZES.findIndex((size) => size >= look.textSize);
     const at = (index < 0 ? 2 : index) + by;
     const next = TEXT_SIZES[Math.max(0, Math.min(TEXT_SIZES.length - 1, at))];
-    changeSelectionLook(editor.document, items, { textSize: next }, true);
+    void changeSelectionLook(editor.document, items, { textSize: next }, true);
   };
   return (
     <span className="toolbar-group" aria-label="Text size">

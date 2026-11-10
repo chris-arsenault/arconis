@@ -67,7 +67,7 @@ export function insertTable(
 /** The table a frame belongs to, if it is a table cell. */
 export function tableOf(items: Item[], item: Item) {
   const holder = items.find((candidate) => candidate.id === item.inside);
-  return holder?.tags?.includes(TABLE_TAG) ? holder : null;
+  return holder?.tags.includes(TABLE_TAG) ? holder : null;
 }
 
 function tableCells(items: Item[], table: Item) {
@@ -157,7 +157,7 @@ export function insertTaskList(document: CanvasDocument, at: { x: number; y: num
 /** The task list an item sits in, if it does. */
 export function taskListOf(items: Item[], item: Item) {
   const holder = items.find((candidate) => candidate.id === item.inside);
-  return holder?.tags?.includes(TASKS_TAG) ? holder : null;
+  return holder?.tags.includes(TASKS_TAG) ? holder : null;
 }
 
 /** Adds the next task under one, in its list, and returns the new task's id. */

@@ -90,7 +90,7 @@ export function hiddenByLayers(items: Item[], hidden: ReadonlySet<string>, layer
   const byId = byIds(items);
   const rank = rankOf(layers);
   const known = new Set(layers.map((layer) => layer.id));
-  const resolved = (id: string) => (known.has(id) ? id : layers[rank(id)]!.id);
+  const resolved = (id: string) => (known.has(id) ? id : layers[rank(id)].id);
   const roots = items.filter((item) => inLayers(item) && hidden.has(resolved(layerOf(item, byId))));
   return roots.length
     ? removalClosure(

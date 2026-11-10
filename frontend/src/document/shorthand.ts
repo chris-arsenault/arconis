@@ -21,12 +21,12 @@ export interface Absorbed {
 export function absorbShorthand(name: string, current: Pick<Item, "tags">): Absorbed | null {
   const fields: Partial<Item> = {};
   let text = name;
-  const tags = [...(current.tags ?? [])];
+  const tags = [...current.tags];
   text = text.replaceAll(TAG, (_match, space: string, tag: string) => {
     if (isId(tag) && !tags.includes(tag)) tags.push(tag);
     return space ? " " : "";
   });
-  if (tags.length !== (current.tags ?? []).length) fields.tags = tags;
+  if (tags.length !== current.tags.length) fields.tags = tags;
   text = text.replaceAll(MARKER, (_match, space: string, marker: string) => {
     if ((MARKERS as readonly string[]).includes(marker)) fields.marker = marker as Marker;
     return space ? " " : "";

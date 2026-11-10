@@ -56,68 +56,80 @@ export type Align = "left" | "center" | "right";
 export type TextFont = "sans" | "serif" | "mono";
 export type VerticalAlign = "top" | "middle" | "bottom";
 
-/** How an item looks, in the words a person would use. Unset properties take the type's default. */
-export interface Look {
-  fill?: string;
-  line?: string;
-  lineWidth?: number;
-  textColor?: string;
-  textSize?: number;
-  font?: TextFont;
-  valign?: VerticalAlign;
-  textHighlight?: string;
+/** Complete semantic appearance after resolving authored overrides and named styles. */
+export interface AppearanceValues {
+  fill: string;
+  line: string;
+  lineWidth: number;
+  textColor: string;
+  textSize: number;
+  font: TextFont;
+  valign: VerticalAlign;
+  textHighlight: string;
   /** Line height as a multiplier of font size; paragraph gap in em. */
-  lineHeight?: number;
-  paragraphGap?: number;
+  lineHeight: number;
+  paragraphGap: number;
   /** Padding in canvas units, following the item's scale. */
-  padding?: number;
+  padding: number;
   /** Grow a free-text box vertically while authoring, or keep its chosen size. */
-  textFit?: "fixed" | "height";
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  strike?: boolean;
-  align?: Align;
-  rotation?: number;
-  dashed?: boolean;
+  textFit: "fixed" | "height";
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strike: boolean;
+  align: Align;
+  rotation: number;
+  dashed: boolean;
   /** Fill opacity, 0 to 100. */
-  opacity?: number;
+  opacity: number;
   /** Stroke transparency, independently of fill opacity. */
-  strokeOpacity?: number;
-  closed?: boolean;
+  strokeOpacity: number;
+  closed: boolean;
   /** Second color and clockwise direction of a linear fill gradient. */
-  gradient?: string;
-  gradientAngle?: number;
-  iconColor?: string;
+  gradient: string;
+  gradientAngle: number;
+  iconColor: string;
   /** An icon key shown in a frame's corner. */
-  badge?: string;
-  title?: TitlePlace;
+  badge: string;
+  title: TitlePlace;
   /** Text, or a line's label, reads from bottom to top. */
-  vertical?: boolean;
-  path?: LinePath;
+  vertical: boolean;
+  path: LinePath;
   /** The arrow where a line ends, and where it starts; a line starts with none by default. */
-  arrow?: Arrow;
-  startArrow?: Arrow;
+  arrow: Arrow;
+  startArrow: Arrow;
   /**
    * How large text, lines and padding are relative to their defaults. Items made at deep zoom carry
    * a factor so they look familiar on screen at that zoom.
    */
-  scale?: number;
+  scale: number;
 }
+
+/** Authored style overrides: omission inherits the named style or type default. */
+export type Look = Partial<AppearanceValues>;
 
 /** A point on an item's box as fractions of its width and height, where a line attaches. */
 export type Port = [number, number];
+/** Null requests automatic routing instead of fixing the endpoint to one port. */
+export type ConnectionPort = Port | null;
 export type PathPoint = [number, number];
 
 /**
  * How a frame keeps what it holds: in a row, a column or a grid of `columns`, `gap` apart, lined up
  * by `align`. Members keep their order by where they sit, so dragging one reorders it.
  */
-export interface Arrangement {
-  how: "row" | "column" | "grid";
-  columns?: number;
-  gap?: number;
-  align?: "top" | "middle" | "bottom" | "left" | "center" | "right";
+export type Arrangement =
+  | { how: "free" }
+  | {
+      how: "row" | "column";
+      gap: number;
+      align: "top" | "middle" | "bottom" | "left" | "center" | "right";
+    }
+  | { how: "grid"; columns: number; gap: number; align: "center" };
+export type FlowArrangement = Exclude<Arrangement, { how: "free" }>;
+export type ArrangedItem = Item & { arrange: FlowArrangement };
+export function isArranged(item: Item): item is ArrangedItem {
+  return item.arrange.how !== "free";
 }
 
 export interface PictureRef {
@@ -127,13 +139,15 @@ export interface PictureRef {
   /** Whether the bytes have reached the room's storage. */
   stored: boolean;
 }
+/** Null is the empty picture placeholder before a person chooses an image. */
+export type PictureContent = PictureRef | null;
 
 /** A small badge on any item: priority 1 (highest) to 5, or progress in quarters 0 to 4. */
 export const MARKERS = ["p1", "p2", "p3", "p4", "p5", "q0", "q1", "q2", "q3", "q4"] as const;
 export type Marker = (typeof MARKERS)[number];
 export const TASK_STATES = ["open", "done"] as const;
 export type TaskState = (typeof TASK_STATES)[number];
-/** Flags any item carries; each is absent when off. */
+/** Flags every item carries. */
 export const FLAGS = ["locked", "hidden", "collapsed", "numbered"] as const;
 export type Flag = (typeof FLAGS)[number];
 
@@ -162,55 +176,55 @@ export interface Item {
   /** For links: the items at each end. */
   from: string;
   to: string;
-  fromPort?: Port;
-  toPort?: Port;
+  fromPort: ConnectionPort;
+  toPort: ConnectionPort;
   /** A line's bend points, or a drawing's path, in world coordinates. */
   points: PathPoint[];
   /** The line a node sits on, which lets a line act as a topic. */
   onLine: string;
-  picture?: PictureRef;
+  picture: PictureContent;
   /** For frames and groups that keep their contents arranged. */
-  arrange?: Arrangement;
+  arrange: Arrangement;
   /** Scale held content, including its paint and text, when this panel is resized. */
-  scaleContents?: boolean;
+  scaleContents: boolean;
   /** For slides: the deck this slide belongs to, and its number in that deck. */
-  deck?: string;
-  slide?: number;
+  deck: string;
+  slide: number;
   /** Shared annotation above the workspace, rather than workspace content. */
-  markup?: boolean;
+  markup: boolean;
   /**
-   * The content layer a top-level item is in, or absent for the base layer. What a holder holds
+   * The content layer a top-level item is in, or an empty id for the base layer. What a holder holds
    * is in the holder's layer; markup and slides belong to none (`document/layers.ts`).
    */
-  layer?: string;
+  layer: string;
   /** Geometry convention for an editable drawing path. */
-  ink?: InkKind;
+  ink: InkKind;
   /** A highlight follows this item's geometry without changing its style. */
-  target?: string;
+  target: string;
   /**
    * Fields every item type carries, whatever it is: a frame collapses as a topic does, a line
-   * carries tags and a marker, a picture can be a task. Each is absent when it does not apply.
+   * carries tags and a marker, a picture can be a task.
    */
   /** Pointer edits leave it alone until someone unlocks it; agents may still change it. */
-  locked?: boolean;
+  locked: boolean;
   /** Not drawn, routed around, exported as a picture or counted by layout; its holder and lines stay. */
-  hidden?: boolean;
+  hidden: boolean;
   /** What it holds or heads is not drawn; a frame shrinks to its title bar. Shared with everyone. */
-  collapsed?: boolean;
+  collapsed: boolean;
   /** Its branches show tiered numbers, 1, 1.1, 1.2, so people and agents can name them. */
-  numbered?: boolean;
+  numbered: boolean;
   /** Free categorical words, each an id-like word. */
-  tags?: string[];
-  marker?: Marker;
+  tags: string[];
+  marker: Marker | "none";
   /** A checkbox in the label; holders and topics over tasks show how many are done. */
-  task?: TaskState;
+  task: TaskState | "none";
   /** A web address, or the id of an item, slide or saved view to fly to. */
-  link?: string;
+  link: string;
   /** Who last changed the item, in their own words, and when in milliseconds. */
-  editedBy?: string;
-  editedAt?: number;
+  editedBy: string;
+  editedAt: number;
   /** Named values an item carries, such as owner or ticket, shown on hover and in labels as {key}. */
-  properties?: Record<string, string>;
+  properties: Record<string, string>;
 }
 
 export interface View {

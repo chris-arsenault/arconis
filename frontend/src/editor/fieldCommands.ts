@@ -1,6 +1,6 @@
 import { MARKERS, type Item } from "../document/types";
 import { holdsOthers } from "../document/relations";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { showFilter, showTagger } from "./ui";
 import { changeFields } from "./commands";
 import { filterMatches, isEmptyFilter } from "./filter";
@@ -18,12 +18,12 @@ const ids = ({ selected }: CommandContext) => selected.map((item) => item.id);
 const NEXT_TASK: Record<"none" | "open" | "done", Item["task"]> = {
   none: "open",
   open: "done",
-  done: undefined,
+  done: "none",
 };
 
 function taskLabel({ selected }: CommandContext) {
   const [item] = selected;
-  if (!item?.task) return "Make a task";
+  if (!item || item.task === "none") return "Make a task";
   return item.task === "open" ? "Mark done" : "Clear task";
 }
 
@@ -68,7 +68,7 @@ export const FIELD_COMMANDS: Command[] = [
     when: some,
     run: (context) => {
       const locked = context.selected.every((item) => item.locked);
-      changeFields(context.editor.document, ids(context), { locked: locked ? undefined : true });
+      changeFields(context.editor.document, ids(context), { locked: !locked });
     },
   },
   {
@@ -81,7 +81,7 @@ export const FIELD_COMMANDS: Command[] = [
       changeFields(
         editor.document,
         items.filter((item) => item.locked).map((item) => item.id),
-        { locked: undefined }
+        { locked: false }
       ),
   },
   {
@@ -104,7 +104,7 @@ export const FIELD_COMMANDS: Command[] = [
       changeFields(
         editor.document,
         items.filter((item) => item.hidden).map((item) => item.id),
-        { hidden: undefined }
+        { hidden: false }
       ),
   },
   {
@@ -119,7 +119,7 @@ export const FIELD_COMMANDS: Command[] = [
     run: (context) => {
       const collapsed = context.selected.every((item) => item.collapsed);
       changeFields(context.editor.document, ids(context), {
-        collapsed: collapsed ? undefined : true,
+        collapsed: !collapsed,
       });
     },
   },
@@ -149,8 +149,8 @@ export const FIELD_COMMANDS: Command[] = [
     help: "Remove the priority or progress badge from the selection.",
     group: "fields",
     keywords: ["clear marker"],
-    when: ({ selected }) => selected.some((item) => item.marker),
-    run: (context) => changeFields(context.editor.document, ids(context), { marker: undefined }),
+    when: ({ selected }) => selected.some((item) => item.marker !== "none"),
+    run: (context) => changeFields(context.editor.document, ids(context), { marker: "none" }),
   },
   {
     id: "fields.task",
@@ -162,7 +162,7 @@ export const FIELD_COMMANDS: Command[] = [
     when: some,
     run: (context) => {
       const [item] = context.selected;
-      changeFields(context.editor.document, ids(context), { task: NEXT_TASK[item.task ?? "none"] });
+      changeFields(context.editor.document, ids(context), { task: NEXT_TASK[item.task] });
     },
   },
 ];

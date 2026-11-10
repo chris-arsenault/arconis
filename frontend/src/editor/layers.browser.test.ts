@@ -32,9 +32,9 @@ it("organises a shared canvas in layers, with hiding local to each person", asyn
   await a.getByLabel("New name for Layer 2", { exact: true }).press("Enter");
   await expect.poll(() => names(a)).toEqual(["Notes", "Workspace"]);
   await add(a, "Rectangle (R)", "Note box", 700, 300);
-  const notes = (await object(a, "Note box"))!.layer!;
+  const notes = (await object(a, "Note box"))!.layer;
   expect(notes).toBeTruthy();
-  expect((await object(a, "Base box"))!.layer).toBeUndefined();
+  expect((await object(a, "Base box"))!.layer).toBe("");
 
   // The other person sees the layers, and hiding one changes only their view.
   await layersTab(b);
@@ -64,7 +64,7 @@ it("organises a shared canvas in layers, with hiding local to each person", asyn
   await a.getByRole("button", { name: "Merge Notes down", exact: true }).click();
   await expect.poll(() => names(b)).toEqual(["Workspace"]);
   await expect.poll(() => row(b, "Note box").count()).toBe(1);
-  expect((await object(b, "Note box"))!.layer).toBeUndefined();
+  expect((await object(b, "Note box"))!.layer).toBe("");
 
   // Deleting a layer removes its objects for everyone; Undo brings them back.
   await a.getByRole("button", { name: "New layer", exact: true }).click();
@@ -85,7 +85,7 @@ it("organises a shared canvas in layers, with hiding local to each person", asyn
     .poll(async () => (await exported(b)).objects.filter((item) => item.markup).length)
     .toBe(1);
   const ink = (await exported(a)).objects.find((item) => item.markup)!;
-  expect(ink.layer).toBeUndefined();
+  expect(ink.layer).toBe("");
   expect(errors).toEqual([]);
 });
 

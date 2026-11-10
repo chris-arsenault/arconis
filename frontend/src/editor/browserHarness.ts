@@ -295,7 +295,7 @@ export async function exported(page: Page): Promise<{
   await fileMenu(page);
   await page.getByRole("menuitem", { name: "Export document", exact: true }).click();
   const download = await pending;
-  const text = await readFile((await download.path())!, "utf8");
+  const text = await readFile(await download.path(), "utf8");
   // An empty canvas keeps the file's ids, so journeys see the items as the room has them.
   const copy = new CanvasDocument();
   importDocument(copy, text);

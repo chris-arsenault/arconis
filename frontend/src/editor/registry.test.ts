@@ -8,7 +8,7 @@ import type { Item } from "../document/types";
 import type { EditorController } from "./controller";
 import { EMPTY_FILTER } from "./filter";
 
-function key(init: Partial<KeyboardEvent> & { key: string; code?: string }) {
+function key(init: Partial<KeyboardEvent> & { key: string }) {
   return {
     ctrlKey: false,
     metaKey: false,

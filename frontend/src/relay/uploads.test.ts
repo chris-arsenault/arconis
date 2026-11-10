@@ -55,10 +55,10 @@ describe("retrying picture uploads", () => {
 });
 
 function setup(stored: [string, number][] = []) {
-  const storage: StoredPictures = {
+  const storage = {
     list: vi.fn(() => Promise.resolve(new Map(stored))),
     sign: vi.fn((upload: UploadRequest) => Promise.resolve(`https://s3/${upload.hash}`)),
-  };
+  } satisfies StoredPictures;
   return { storage, uploads: new Uploads(storage) };
 }
 

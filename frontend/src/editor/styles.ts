@@ -198,7 +198,7 @@ const DIRECT: [keyof Look, string][] = [
 
 function lookStyle(item: Item, look: Appearance): Style {
   const result: Style = {};
-  for (const [key, styleKey] of DIRECT) if (look[key] !== undefined) result[styleKey] = look[key];
+  for (const [key, styleKey] of DIRECT) result[styleKey] = look[key];
   if (isLink(item) || item.type === "drawing") {
     Object.assign(result, PATHS[look.path]);
     result.endArrow = ARROWS[look.arrow];
@@ -240,7 +240,7 @@ function applyLabel(item: Item, style: Style, look: Look) {
 function baseStyle(item: Item, look: Look): Style {
   const base = { ...BASE_STYLE, ...typeStyle(item) };
   if (item.type === "card" && item.icon) base.spacingLeft = 76;
-  if (item.type === "group" && item.tags?.includes("table"))
+  if (item.type === "group" && item.tags.includes("table"))
     Object.assign(base, {
       keepTitle: true,
       verticalLabelPosition: "top",

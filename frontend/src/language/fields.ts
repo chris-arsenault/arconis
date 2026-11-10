@@ -14,35 +14,29 @@ export const FIELD_DESCRIBERS: {
   [K in FieldKind]: (item: Item, attribute: FieldAttribute<K>) => void;
 } = {
   flag: (item, { flag, value }) => {
-    if (value) item[flag] = true;
-    else delete item[flag];
+    item[flag] = value;
   },
   tags: (item, { tags }) => {
-    if (tags.length) item.tags = tags;
-    else delete item.tags;
+    item.tags = tags;
   },
   marker: (item, { marker }) => {
-    if (marker) item.marker = marker;
-    else delete item.marker;
+    item.marker = marker;
   },
   task: (item, { task }) => {
-    if (task) item.task = task;
-    else delete item.task;
+    item.task = task;
   },
   link: (item, { link }) => {
-    if (link) item.link = link;
-    else delete item.link;
+    item.link = link;
   },
   edited: (item, { by, at }) => {
     item.editedBy = by;
     item.editedAt = at;
   },
-  property: (item, { key, value }) => {
+  property: (item, { key, edit }) => {
     const properties = { ...item.properties };
-    if (value === undefined) delete properties[key];
-    else properties[key] = value;
-    if (Object.keys(properties).length) item.properties = properties;
-    else delete item.properties;
+    if (edit.kind === "remove") delete properties[key];
+    else properties[key] = edit.value;
+    item.properties = properties;
   },
 };
 

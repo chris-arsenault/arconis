@@ -104,10 +104,13 @@ export function labelHistory(document: CanvasDocument) {
 /** The undo steps, newest first, and the redo steps, next first, as labels. */
 export function historyEntries(document: CanvasDocument) {
   const read = (items: StackItem[]) =>
-    items.map((item) => String(item.meta.get(LABEL) ?? "Change"));
+    items.map((item) => {
+      const label: unknown = item.meta.get(LABEL);
+      return typeof label === "string" ? label : "Change";
+    });
   return {
-    undo: read(document.undo.undoStack as unknown as StackItem[]).reverse(),
-    redo: read(document.undo.redoStack as unknown as StackItem[]).reverse(),
+    undo: read(document.undo.undoStack).reverse(),
+    redo: read(document.undo.redoStack).reverse(),
   };
 }
 

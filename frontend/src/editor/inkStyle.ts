@@ -27,7 +27,7 @@ export function selectedInkSettings(document: CanvasDocument, item: Item): InkSe
   const look = effectiveAppearance(item, document.namedStyle(item.style));
   return {
     mode: item.type === "highlight" ? "highlight" : "lasso",
-    shape: item.ink ?? "freehand",
+    shape: item.ink,
     color: look.line,
     width: look.lineWidth,
     fill: look.fill,

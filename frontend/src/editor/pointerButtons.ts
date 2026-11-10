@@ -194,7 +194,7 @@ function trackRing(editor: EditorController, event: PointerEvent) {
   const py = event.clientY - area.top - centre.y;
   const wedge = wedgeAt(px, py, RING_COUNT);
   const entry = wedge === null ? null : ringEntries(commandContext(editor), menu.subRing)[wedge];
-  const modes = Boolean(menu.modes || entry?.modes);
+  const modes = menu.modes || entry?.kind === "modes";
   const mode = modes ? modeAt(px, py) : null;
   if (wedge === menu.wedge && modes === Boolean(menu.modes) && mode === (menu.mode ?? null)) return;
   Object.assign(menu, { wedge, modes, mode });

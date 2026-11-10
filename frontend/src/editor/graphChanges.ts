@@ -150,9 +150,10 @@ function followEdges(existing: Item, values: Partial<Item>, document: CanvasDocu
 
 /** An object dragged into a task list becomes a task, as its neighbours are. */
 function joinTaskList(existing: Item, values: Partial<Item>, document: CanvasDocument) {
-  if (values.inside === undefined || values.inside === existing.inside || existing.task) return;
+  if (values.inside === undefined || values.inside === existing.inside || existing.task !== "none")
+    return;
   const holder = document.get(values.inside);
-  if (holder?.tags?.includes(TASKS_TAG)) values.task = "open";
+  if (holder?.tags.includes(TASKS_TAG)) values.task = "open";
 }
 
 function heightWasResized(existing: Item, values: Partial<Item>) {
@@ -163,10 +164,10 @@ function heightWasResized(existing: Item, values: Partial<Item>) {
   );
 }
 
-function portOf(style: Record<string, unknown>, prefix: "exit" | "entry"): Port | undefined {
+function portOf(style: Record<string, unknown>, prefix: "exit" | "entry"): Port | null {
   const x = style[`${prefix}X`];
   const y = style[`${prefix}Y`];
-  return typeof x === "number" && typeof y === "number" ? [x, y] : undefined;
+  return typeof x === "number" && typeof y === "number" ? [x, y] : null;
 }
 
 /** Dragging a line's end changes where it attaches through the cell style. */
@@ -174,7 +175,8 @@ function commitPorts(cell: Cell, existing: Item, document: CanvasDocument) {
   const style = cell.getStyle() as Record<string, unknown>;
   const fromPort = portOf(style, "exit");
   const toPort = portOf(style, "entry");
-  const changed = (left?: Port, right?: Port) => JSON.stringify(left) !== JSON.stringify(right);
+  const changed = (left: Port | null, right: Port | null) =>
+    JSON.stringify(left) !== JSON.stringify(right);
   if (changed(fromPort, existing.fromPort) || changed(toPort, existing.toPort))
     document.patch(cell.id!, { fromPort, toPort });
 }

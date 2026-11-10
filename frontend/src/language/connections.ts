@@ -10,6 +10,7 @@ import type { Conversation } from "./effects";
 import { attributesFor, checkAttributes, type RoutedAttribute } from "./attributeRouting";
 import { describeField, isFieldAttribute } from "./fields";
 import { assignLayer } from "./layerWriting";
+import { requestedId } from "./syntax";
 
 export interface PendingLink {
   from: string;
@@ -82,7 +83,7 @@ function describeLinkField(
   else if (isFieldAttribute(attribute)) describeField(item, attribute);
   else {
     const unhandled: never = attribute;
-    throw new Error(`Unhandled line attribute: ${unhandled}`);
+    throw new Error("Unhandled line attribute", { cause: unhandled });
   }
 }
 
@@ -97,10 +98,11 @@ function branchPorts(draft: Draft, item: Item) {
 
 /** The line a statement names with `as`, when it exists and the write may change it. */
 function namedLine(draft: Draft, statement: LinkStatement, importing: boolean) {
-  if (!statement.id || importing) return null;
-  const existing = draft.items.get(draft.aliases.get(statement.id) ?? statement.id);
+  const id = requestedId(statement.identity);
+  if (!id || importing) return null;
+  const existing = draft.items.get(draft.aliases.get(id) ?? id);
   if (existing && !isLink(existing))
-    throw new LanguageError(`"${statement.id}" is not a line.`, statement.line);
+    throw new LanguageError(`"${id}" is not a line.`, statement.line);
   return existing ?? null;
 }
 
@@ -118,9 +120,10 @@ function newLineId(draft: Draft, requested: string | undefined, line: number) {
 function lineFor(draft: Draft, { segment, statement }: PendingLink, importing: boolean) {
   const existing = namedLine(draft, statement, importing);
   if (existing) return existing;
-  const id = newLineId(draft, statement.id, statement.line);
+  const requested = requestedId(statement.identity);
+  const id = newLineId(draft, requested || undefined, statement.line);
   const item: Item = { ...BLANK, id, type: segment.type, order: draft.nextOrder() };
-  draft.add(item, statement.id);
+  draft.add(item, requested);
   return item;
 }
 
@@ -173,9 +176,9 @@ function sharedHolder(draft: Draft, item: Item) {
 function joinEnds(draft: Draft, item: Item, { from, to, segment }: PendingLink) {
   const isNew = draft.createdHere.has(item.id);
   Object.assign(item, { type: segment.type, from, to });
-  if (segment.label !== undefined) item.name = segment.label;
-  if (segment.from.port || isNew) item.fromPort = segment.from.port;
-  if (segment.to.port || isNew) item.toPort = segment.to.port;
+  if (segment.label.kind === "set") item.name = segment.label.value;
+  if (segment.from.port !== null || isNew) item.fromPort = segment.from.port;
+  if (segment.to.port !== null || isNew) item.toPort = segment.to.port;
   if (segment.type === "branch" && !item.fromPort && !item.toPort) branchPorts(draft, item);
 }
 
@@ -229,7 +232,8 @@ export type Speaker = { author: string; time: number; importing: boolean };
 function discussion(draft: Draft, statement: Extract<Statement, { kind: "discussion" }>) {
   const on = draft.resolve(statement.on, statement.line);
   let root = "";
-  for (const { id: wanted, ...text } of statement.comments) {
+  for (const { identity, ...text } of statement.comments) {
+    const wanted = requestedId(identity);
     const resolved = !root && statement.resolved;
     const comment = newComment(draft, { ...text, on, thread: root, resolved });
     const taken =
@@ -249,10 +253,11 @@ const CONVERSE: {
 } = {
   // Restating a view's id changes it, except from a file, which adds its views beside these.
   view: (draft, statement, { importing }) => {
-    const taken = importing && draft.document.views.has(statement.id ?? "");
-    const free = statement.id && isId(statement.id) && !taken;
+    const requested = requestedId(statement.identity);
+    const taken = importing && draft.document.views.has(requested);
+    const free = requested && isId(requested) && !taken;
     draft.views.push({
-      id: free ? statement.id! : newId((id) => draft.document.views.has(id)),
+      id: free ? requested : newId((id) => draft.document.views.has(id)),
       name: statement.name,
       center: statement.center,
       zoom: statement.zoom,
@@ -283,7 +288,7 @@ const CONVERSE: {
 };
 
 export function converse(draft: Draft, statement: Conversation, speaker: Speaker) {
-  const handler = CONVERSE[statement.kind as Conversation["kind"]] as (
+  const handler = CONVERSE[statement.kind] as (
     draft: Draft,
     statement: Conversation,
     speaker: Speaker

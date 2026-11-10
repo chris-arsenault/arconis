@@ -34,7 +34,7 @@ export function searchCommands(
       const label = commandLabel(command, context).toLowerCase();
       const best = Math.max(
         score(label, typed),
-        ...(command.keywords ?? []).map((keyword) => score(keyword.toLowerCase(), typed) * 0.9)
+        ...command.keywords.map((keyword) => score(keyword.toLowerCase(), typed) * 0.9)
       );
       return { command, best };
     })

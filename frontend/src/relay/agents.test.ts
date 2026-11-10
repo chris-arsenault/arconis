@@ -3,6 +3,7 @@ import { AgentGateway } from "./mcpHttp";
 import { AgentSession } from "./agentSession";
 import { LANGUAGE_REFERENCE } from "../language/reference";
 import { ROOM, config, base, relay, agent, person, replaceGateway } from "./agentTestHarness";
+import { readPeerState } from "../editor/presence";
 
 function loggedEvents() {
   return [...vi.mocked(console.info).mock.calls, ...vi.mocked(console.warn).mock.calls].map(
@@ -218,10 +219,8 @@ describe("working in a room", () => {
           .sort((a, b) => a.localeCompare(b))
       )
       .toEqual(["Auth", "reads", "Users DB"]);
-    const awareness = [...alice.provider.awareness.getStates().values()] as {
-      user?: { name: string };
-    }[];
-    expect(awareness.map((state) => state.user?.name)).toContain("Test Agent (agent)");
+    const awareness = [...alice.provider.awareness.getStates().values()].map(readPeerState);
+    expect(awareness.map((state) => state.user.name)).toContain("Test Agent (agent)");
   });
 
   it("tells the agent what the person changed, and refuses to act on its stale picture", async () => {

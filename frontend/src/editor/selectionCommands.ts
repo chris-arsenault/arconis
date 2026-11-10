@@ -1,5 +1,5 @@
 import type { Item } from "../document/types";
-import type { Command, CommandContext } from "./registry";
+import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { SELECT_BY, inverted, selectIds, type SelectBy } from "./selectBy";
 import { copyLook, hasCopiedLook, pasteLook, setDefaultLook } from "./styleClipboard";
 

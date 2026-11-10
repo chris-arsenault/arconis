@@ -1,34 +1,11 @@
-import type { Item, Look } from "./types";
+import type { AppearanceValues, Item, Look } from "./types";
 
 /** Authored overrides, kept sparse so clearing a property restores its type's default. */
 export function authoredLook(item: Item, named: Look = {}): Look {
   return { ...named, ...item.look };
 }
 
-type Defaulted =
-  | "fill"
-  | "line"
-  | "lineWidth"
-  | "textColor"
-  | "textSize"
-  | "font"
-  | "align"
-  | "valign"
-  | "padding"
-  | "lineHeight"
-  | "paragraphGap"
-  | "bold"
-  | "italic"
-  | "underline"
-  | "strike"
-  | "rotation"
-  | "dashed"
-  | "opacity"
-  | "scale"
-  | "path"
-  | "arrow"
-  | "startArrow";
-export type Appearance = Look & Required<Pick<Look, Defaulted>>;
+export type Appearance = AppearanceValues;
 
 const BASE: Appearance = {
   fill: "#ffffff",
@@ -53,6 +30,16 @@ const BASE: Appearance = {
   path: "cornered",
   arrow: "arrow",
   startArrow: "none",
+  textHighlight: "none",
+  textFit: "fixed",
+  strokeOpacity: 100,
+  closed: false,
+  gradient: "none",
+  gradientAngle: 0,
+  iconColor: "#283249",
+  badge: "",
+  title: "header",
+  vertical: false,
 };
 
 const TYPES: Partial<Record<Item["type"], Look>> = {

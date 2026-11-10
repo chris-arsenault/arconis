@@ -16,6 +16,9 @@ interface Describing {
   line: number;
 }
 type Described = RoutedAttribute<"item", "describe" | "arrange">;
+export function givenSize(item: Item, sized: Set<string>) {
+  return { width: sized.has(`${item.id} width`), height: sized.has(`${item.id} height`) };
+}
 type Describer<K extends Described["kind"]> = (
   item: Item,
   attribute: Extract<Attribute, { kind: K }>,
@@ -52,14 +55,13 @@ const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
   scaleContents: (item, attribute, { line }) => {
     if (!isFrame(item))
       throw new LanguageError("Only a frame or group scales its contents on resize.", line);
-    if (attribute.value) item.scaleContents = true;
-    else delete item.scaleContents;
+    item.scaleContents = attribute.value;
   },
   markup: (item, attribute, { line }) => {
     if (item.type !== "drawing" && item.type !== "highlight")
       throw new LanguageError("Only drawings and highlights belong to markup.", line);
     item.markup = attribute.value;
-    if (attribute.value) delete item.layer;
+    if (attribute.value) item.layer = "";
   },
   ink: (item, attribute, { line }) => {
     if (item.type !== "drawing") throw new LanguageError("Only a drawing has ink geometry.", line);
@@ -79,14 +81,16 @@ const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
     item.icon = attribute.icon;
     if (item.type === "node") item.stencil = attribute.icon ? "icon" : "rectangle";
   },
-  size: (item, attribute, { sized }) => {
-    if (attribute.width !== undefined) {
-      item.width = attribute.width;
-      sized.add(`${item.id} width`);
-    }
-    if (attribute.height !== undefined) {
-      item.height = attribute.height;
-      sized.add(`${item.id} height`);
+  size: (item, { dimensions }, { sized }) => {
+    const values =
+      dimensions.kind === "both"
+        ? { width: dimensions.width, height: dimensions.height }
+        : { [dimensions.kind]: dimensions.value };
+    for (const dimension of ["width", "height"] as const) {
+      const value = values[dimension];
+      if (value === undefined) continue;
+      item[dimension] = value;
+      sized.add(`${item.id} ${dimension}`);
     }
   },
   picture: (item, attribute, { line }) => {
@@ -101,15 +105,15 @@ const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
     draft.anchors.push({ id: item.id, ref: attribute.ref, line });
   },
   // A frame or group keeps its arrangement; anything else is arranged once.
-  arrange: (item, { how, columns, gap, align }) => {
+  arrange: (item, attribute) => {
     if (item.type !== "frame" && item.type !== "group") return;
-    item.arrange = { how };
-    if (columns !== undefined) item.arrange.columns = columns;
-    if (gap !== undefined) item.arrange.gap = gap;
-    if (align !== undefined) item.arrange.align = align;
+    item.arrange =
+      attribute.how === "grid"
+        ? { how: "grid", columns: attribute.columns, gap: attribute.gap, align: "center" }
+        : { how: attribute.how, gap: attribute.gap, align: attribute.align };
   },
   free: (item) => {
-    delete item.arrange;
+    item.arrange = { how: "free" };
   },
   deck: (item, attribute, { line }) => {
     if (item.type !== "slide")
@@ -118,7 +122,7 @@ const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
         line
       );
     item.deck = attribute.deck;
-    if (attribute.slide !== undefined) item.slide = attribute.slide;
+    if (attribute.numbering.kind === "number") item.slide = attribute.numbering.value;
   },
 };
 

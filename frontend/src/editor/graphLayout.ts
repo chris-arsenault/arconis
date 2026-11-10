@@ -35,7 +35,7 @@ export function layeredLayout(items: Item[], ids: string[]) {
   };
   const moves = new Map<string, { x: number; y: number }>();
   for (const node of nodes) {
-    const laid = graph.node(node.id);
+    const laid = graph.node(node.id) as { x: number; y: number };
     const space = footprint(node);
     moves.set(node.id, {
       x: bounds.x + laid.x - space.width / 2 + (node.x - space.x),

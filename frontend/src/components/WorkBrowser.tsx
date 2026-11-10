@@ -131,7 +131,7 @@ function WorkRow({
   onOpen,
   onJoin,
   run,
-}: Readonly<Props & { here: LocalCopy | undefined; there: SavedWorkspace[]; run: Run }>) {
+}: Readonly<Props & { here: LocalCopy | null; there: SavedWorkspace[]; run: Run }>) {
   const title = there[0]?.name ?? here?.title ?? "Untitled canvas";
   return (
     <li>
@@ -173,7 +173,7 @@ export function WorkBrowser(props: Readonly<Props>) {
   ];
   const rows = roomIds.map((id) => ({
     id,
-    here: local.find((room) => room.id === id),
+    here: local.find((room) => room.id === id) ?? null,
     there: saved.filter((room) => room.roomId === id),
   }));
   return (

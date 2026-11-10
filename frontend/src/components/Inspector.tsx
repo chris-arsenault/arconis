@@ -7,7 +7,7 @@ import { openMenuOverSelection } from "../editor/contextMenu";
 import { isFrame, isLink, typeLabel, type Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";
 import { hasSubtitle, hasText } from "../document/capabilities";
-import { ConnectionControls } from "./ConnectionControls";
+import { SelectionConnection } from "./SelectionConnection";
 import { LayerField } from "./LayersPanel";
 import { InkMoves, InkPaint } from "./InkProperties";
 import { isInk } from "../document/ink";
@@ -30,7 +30,6 @@ import {
   changeSelectionLook,
   changeSelectionStyle,
   changeTemplate,
-  routeAround,
 } from "../editor/commands";
 import { addTags, removeTag, roomTags, sharedTags } from "../editor/tags";
 import { RailSection } from "./RailSection";
@@ -88,7 +87,7 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
           sections={sections}
         />
       )}
-      {single && item.editedBy !== undefined && item.editedAt !== undefined && (
+      {single && item.editedBy && (
         <p className="edited-by" data-testid="edited-by">
           Last edited by {item.editedBy}, {new Date(item.editedAt).toLocaleString()}
         </p>
@@ -110,7 +109,7 @@ function PrimaryControls(props: PanelProps) {
           <CommentsSection editor={editor} item={item} sections={sections} />
         </>
       )}
-      {isLink(item) && <ConnectionSection {...props} />}
+      {isLink(item) && <SelectionConnection editor={editor} selected={props.selected} />}
     </>
   );
 }
@@ -170,11 +169,11 @@ function Content({
       {hasText(item) && (
         <RailSection
           id="source"
+          count={0}
           title="Edit source"
           detail="Show or hide the object's text as editable source, Markdown included."
           open={sections.open.source}
           onToggle={sections.toggle}
-          className="source-section"
         >
           <ObjectText editor={editor} item={item} />
         </RailSection>
@@ -190,6 +189,7 @@ function RelationsSection({ editor, selected, sections }: PanelProps) {
   return (
     <RailSection
       id="relations"
+      count={0}
       title="Relationships"
       detail="Show or hide what this object connects to, references and branches from."
       open={sections.open.relations}
@@ -260,6 +260,7 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
   return (
     <RailSection
       id="appearance"
+      count={0}
       title="Appearance"
       detail="Show or hide style, colours, lines and text formatting."
       open={sections.open.appearance}
@@ -278,26 +279,11 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
         <TextProperties
           selected={textItems}
           drawn={textItems.map(drawn)}
-          change={(look) => changeSelectionLook(canvas, textItems, look, true)}
+          change={(look) => void changeSelectionLook(canvas, textItems, look, true)}
           onFit={() => textItems.forEach((target) => void fitText(canvas, target.id))}
         />
       </StyleControls>
     </RailSection>
-  );
-}
-
-function ConnectionSection({ editor, selected }: PanelProps) {
-  const [item] = selected;
-  const canvas = editor.document;
-  return (
-    <section className="inspector-primary" aria-label="Connection">
-      <ConnectionControls
-        item={item}
-        look={effectiveAppearance(item, canvas.namedStyle(item.style))}
-        onLook={(look) => changeSelectionLook(canvas, [item], look)}
-        onRoute={() => routeAround(canvas, item)}
-      />
-    </section>
   );
 }
 
@@ -309,6 +295,7 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
   return (
     <RailSection
       id="layout"
+      count={0}
       title="Layout"
       detail="Show or hide position, size, alignment, lock and visibility."
       open={sections.open.layout}
@@ -347,7 +334,7 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
             type="checkbox"
             checked={item.scaleContents === true}
             onChange={(event) =>
-              changeFields(canvas, [item.id], { scaleContents: event.target.checked || undefined })
+              changeFields(canvas, [item.id], { scaleContents: event.target.checked })
             }
           />
           Scale content on resize
@@ -366,17 +353,17 @@ function SlideSection({
   return (
     <RailSection
       id="slide"
+      count={0}
       title="Slide"
       detail="Show or hide this slide's deck, order, template and size."
       open={sections.open.slide}
       onToggle={sections.toggle}
-      className="slide-section"
     >
       <SlideControls
         item={item}
         actions={canvas.actions}
         names={decks(canvas.list()).map(({ deck }) => deck)}
-        onDeck={(deck) => canvas.patch(item.id, { deck: deck || undefined })}
+        onDeck={(deck) => canvas.patch(item.id, { deck })}
         onNumber={(slide) => canvas.patch(item.id, { slide })}
         onTemplate={(template) => changeTemplate(canvas, item, template)}
         onSize={(width, height) => editor.updateGeometry(item.id, { width, height })}

@@ -84,7 +84,7 @@ it("keeps Draw's brush and Markup's choices apart while each creates, erases and
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(2);
   const annotation = (await exported(page)).objects.find((i) => i.markup)!;
   expect(annotation.look).toMatchObject({ line: "#1971c2", fill: "none" });
-  expect(annotation.layer).toBeUndefined();
+  expect(annotation.layer).toBe("");
   await bar.getByRole("button", { name: "Erase", exact: true }).click();
   await drag(page, [300, 160], [300, 430]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);
