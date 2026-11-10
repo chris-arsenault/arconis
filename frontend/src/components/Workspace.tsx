@@ -246,7 +246,7 @@ function EditingOverlays({
       {editor.ui.comments && <CommentModal editor={editor} author={author} />}
       {editor.ui.tagging && <TagPopover editor={editor} />}
       {editor.ui.relating && <RelatePicker editor={editor} />}
-      <HelpSurfaces editor={editor} session={session} />
+      <HelpSurfaces editor={editor} />
     </>
   );
 }

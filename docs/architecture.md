@@ -292,9 +292,8 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   `data-help-topic` names its guide section, and `data-help-id` marks it for the orientation.
   `help/guides.ts` bundles the user guides from `docs/` at build time and splits them at their
   section headings for the reference; `help/orientation.ts` drives the tour with Driver.js and
-  records in browser storage that it was offered. `help/practice.ts` asks the app for a new
-  device-only room, imports a bundled sample canvas there, and advances each Driver.js step when
-  the editor's state shows the task done.
+  records in browser storage that it was offered. The tour runs in the current room without
+  creating another room or changing document content.
 
 ## Collaboration
 

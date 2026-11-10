@@ -84,8 +84,8 @@ editable canvas objects, and you can keep working alongside it.
    **Save to my account** for access on another device.
 
 For a walkthrough, see [your first shared canvas](docs/getting-started.md). In the app, open
-**Help** for the guides, **Take the tour**, or **Practice in a sample room**. Practice uses a
-separate canvas on your device. **Ctrl/Command K** opens the command palette and shortcuts.
+**Help** for the guides or **Take the tour** for an introduction to the workspace.
+**Ctrl/Command K** opens the command palette and shortcuts.
 
 ## Sharing and keeping your work
 

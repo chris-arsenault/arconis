@@ -333,9 +333,9 @@
 }
 
 /*
- * A highlighted canvas stays usable during the hands-on tutorial. Driver.js turns pointer events
+ * A highlighted canvas stays usable during the orientation tour. Driver.js turns pointer events
  * on for everything inside a highlight, which would let label layers swallow clicks; canvas labels
- * keep their own setting, as outside a tutorial.
+ * keep their own setting, as outside the tour.
  */
 .driver-active [data-help-id="canvas"] foreignObject {
   pointer-events: none;

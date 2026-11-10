@@ -4,8 +4,7 @@ Arconis combines diagrams, sticky notes, Markdown, drawings and slides in one ro
 work as a guest; an account adds saved workspaces and assistant connections.
 
 This walkthrough makes a small diagram, adds review annotations and keeps an editable copy.
-You can also open **Help → Practice in a sample room** for a guided exercise in a separate
-device-only canvas, or **Take the tour** for an introduction to the controls.
+You can also open **Help → Take the tour** for an introduction to the controls in your current room.
 
 ![An example room with a service diagram, shared notes and markup](images/workspace.png)
 

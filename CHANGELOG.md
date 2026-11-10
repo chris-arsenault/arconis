@@ -67,8 +67,8 @@ All notable user-visible changes are recorded here.
   menu and ring can be tried while the tour describes them.
 - Changed a right-button drag released anywhere but a wedge to cancel instead of leaving the menu
   open, and kept the browser's own menu away when such a drag ends outside the canvas.
-- Added **Practice in a sample room**: a device-only room with a sample diagram where each step
-  waits for the person to edit, connect, mark up and present.
+- Removed the sample-room tutorial and its Help entry, which switched away from the current
+  canvas. The orientation tour continues to run in the current room.
 - Fixed a guide link to the Lasso section of the drawing guide.
 
 ### Canvas interactions

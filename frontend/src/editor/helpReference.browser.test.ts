@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { browser, errors, open } from "./browserHarness";
+import { add, browser, errors, exported, open } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const helpDialog = (page: Page) => page.getByRole("dialog", { name: "Help", exact: true });
@@ -9,11 +9,17 @@ it("opens a centred dialog with topics beside the content, searches, follows lin
   const context = await browser.newContext(VIEWPORT);
   try {
     const page = await open(context);
+    await add(page, "Sticky note (N)", "Current work", 360, 300);
+    const room = page.url();
+    const before = (await exported(page)).objects;
     const help = page.getByRole("button", { name: "Help", exact: true });
     await help.click();
     const reference = helpDialog(page);
     const topics = reference.getByRole("navigation", { name: "Help topics" });
     await topics.waitFor();
+    expect(
+      (await topics.locator(".help-start button").allTextContents()).map((text) => text.trim())
+    ).toEqual(["Take the tour", "Commands and shortcuts"]);
     await expect.poll(() => reference.locator(".help-crumb").textContent()).toBe("Getting started");
 
     // Centred, with the topics on the left and the reading on the right, aligned to the left.
@@ -63,6 +69,8 @@ it("opens a centred dialog with topics beside the content, searches, follows lin
     await page.keyboard.press("Escape");
     await expect.poll(() => reference.count()).toBe(0);
     expect(await help.evaluate((button) => document.activeElement === button)).toBe(true);
+    expect(page.url()).toBe(room);
+    expect((await exported(page)).objects).toEqual(before);
     expect(errors).toEqual([]);
   } finally {
     await context.close();

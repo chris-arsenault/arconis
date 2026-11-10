@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { add, browser, errors, firstVisit, objectCount, open } from "./browserHarness";
+import { add, browser, errors, exported, firstVisit, open } from "./browserHarness";
 
 const tourPopup = (page: Page) => page.locator(".driver-popover.arconis-tour");
 const nextFocused = (page: Page) =>
@@ -40,7 +40,8 @@ it("offers the orientation once, walks every area without changing the room, and
   try {
     const page = await open(context);
     await add(page, "Sticky note (N)", "Existing work", 360, 300);
-    const before = await objectCount(page);
+    const room = page.url();
+    const before = (await exported(page)).objects;
     const offer = page.getByRole("region", { name: "Tour offer" });
     await offer.getByRole("button", { name: "Take the tour", exact: true }).click();
     const popup = tourPopup(page);
@@ -69,7 +70,8 @@ it("offers the orientation once, walks every area without changing the room, and
       "Help",
     ])
       expect(titles).toContain(title);
-    expect(await objectCount(page)).toBe(before);
+    expect(page.url()).toBe(room);
+    expect((await exported(page)).objects).toEqual(before);
     const tabs = page.getByRole("navigation", { name: "Workspace panels" });
     expect(
       await tabs.getByRole("button", { name: "Shapes", exact: true }).getAttribute("aria-pressed")
@@ -93,6 +95,8 @@ it("offers the orientation once, walks every area without changing the room, and
     await tourPopup(page).waitFor();
     await page.keyboard.press("Escape");
     await expect.poll(() => tourPopup(page).count()).toBe(0);
+    expect(page.url()).toBe(room);
+    expect((await exported(page)).objects).toEqual(before);
     expect(errors).toEqual([]);
   } finally {
     await context.close();

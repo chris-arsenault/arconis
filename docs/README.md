@@ -3,7 +3,7 @@
 [Open Arconis](https://arconis.ahara.io) · [Product introduction](../README.md)
 
 New here? Start with [your first shared canvas](getting-started.md). The application also offers
-**Help → Take the tour** and **Practice in a sample room**. These user guides are bundled in
+**Help → Take the tour** for an introduction to the workspace. These user guides are bundled in
 the app's Help, where you can search them without leaving your canvas.
 
 ## Create and explore

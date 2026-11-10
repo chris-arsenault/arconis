@@ -1,13 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Compass,
-  GraduationCap,
-  Keyboard,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Compass, Keyboard, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { showHelp } from "../editor/ui";
 import { COMMANDS } from "../editor/commandTable";
@@ -28,12 +20,6 @@ import "./help.css";
 const CONTENTS = "contents";
 const COMMANDS_TOPIC = "commands";
 
-/** The tutorials the reference can start: the orientation and the hands-on practice room. */
-export interface Tutorials {
-  tour: () => void;
-  practice: () => void;
-}
-
 /** What the content pane shows when Help opens without a topic. */
 const FIRST_GUIDE = "getting-started";
 
@@ -43,8 +29,8 @@ const FIRST_GUIDE = "getting-started";
  */
 export function HelpReference({
   editor,
-  tutorials,
-}: Readonly<{ editor: EditorController; tutorials: Tutorials }>) {
+  onTour,
+}: Readonly<{ editor: EditorController; onTour: () => void }>) {
   const topic = editor.ui.help ?? CONTENTS;
   const [sections, setSections] = useState<Section[] | null>(null);
   const [query, setQuery] = useState("");
@@ -86,12 +72,7 @@ export function HelpReference({
     >
       <HelpHeader query={query} onQuery={setQuery} onClose={() => dialog.current?.close()} />
       <div className="help-layout">
-        <Topics
-          sections={sections}
-          current={query.trim() ? "" : shown}
-          onGo={go}
-          tutorials={tutorials}
-        />
+        <Topics sections={sections} current={query.trim() ? "" : shown} onGo={go} onTour={onTour} />
         <div className="help-body" ref={body} tabIndex={-1}>
           <button
             className="help-back"
@@ -169,17 +150,17 @@ function ReferenceBody({
   return <Article sections={sections} topic={topic} onGo={onGo} />;
 }
 
-/** The left side: tutorials, the command list, and every guide, the open one's sections listed. */
+/** The left side: the tour, commands and guides, with the open guide's sections listed. */
 function Topics({
   sections,
   current,
   onGo,
-  tutorials,
+  onTour,
 }: Readonly<{
   sections: Section[] | null;
   current: string;
   onGo: (topic: string) => void;
-  tutorials: Tutorials;
+  onTour: () => void;
 }>) {
   const guide = current.split("#")[0];
   const open = sections && findSection(sections, current);
@@ -188,15 +169,9 @@ function Topics({
       <div className="help-start">
         <button
           data-hint-detail="Walk through the workspace's main areas, one highlighted step at a time."
-          onClick={tutorials.tour}
+          onClick={onTour}
         >
           <Compass size={16} /> Take the tour
-        </button>
-        <button
-          data-hint-detail="Open a sample room on this device and try editing, connecting, markup and presenting."
-          onClick={tutorials.practice}
-        >
-          <GraduationCap size={16} /> Practice in a sample room
         </button>
         <button
           aria-current={current === COMMANDS_TOPIC ? "page" : undefined}

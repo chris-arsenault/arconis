@@ -25,7 +25,7 @@ a stencil closes it for placement. **Properties**, or **Panels** when nothing is
 the dock over the canvas. The left panel and the dock share that space so the canvas stays
 available.
 
-## Help and practice
+## Help and tour
 
 The **help zone** at the foot of the left panel names the control under the pointer or keyboard
 focus and says in one sentence what it does. When the panel is hidden, the help appears below the
@@ -43,10 +43,6 @@ area of the workspace, from the canvas and tools to slides, settings, feedback a
 steps accept real input, so you can drag, zoom and right-click while they explain it; the tour
 itself changes nothing in the room. **Take the tour** in Help runs it again. Arrow keys or
 **Next** and **Back** move through it; Escape ends it.
-
-**Practice in a sample room**, also in the help reference, opens a new room on this device with a
-small diagram and a slide. Each step waits for you to do what it describes: edit a note, connect two
-objects, mark up the diagram and present the slide. Nothing in the practice room leaves your browser.
 
 Information about content and people, such as who is in the room, an object's tags or the full
 text of a clipped label, appears in a small tooltip beside it. Escape closes the tooltip before
