@@ -6,10 +6,52 @@ import { STORAGE_LIMIT_BYTES, Uploads, type StoredPictures } from "./uploads";
 const HASH = "a".repeat(64);
 const request = (values: Partial<UploadRequest> = {}): UploadRequest => ({
   hash: HASH,
-  type: "image/webp",
+  type: "application/octet-stream",
   size: 1000,
   checksum: "abc=",
   ...values,
+});
+
+describe("retrying picture uploads", () => {
+  it("issues another link for an incomplete upload without charging its reservation twice", async () => {
+    const { uploads, storage } = setup([["b".repeat(64), STORAGE_LIMIT_BYTES - 1000]]);
+    expect((await uploads.prepare(request())).status).toBe("upload");
+    expect((await uploads.prepare(request())).status).toBe("upload");
+    expect(storage.sign).toHaveBeenCalledTimes(2);
+    expect((await uploads.prepare(request({ hash: "c".repeat(64) }))).status).toBe("refused");
+    expect((await uploads.prepare(request({ size: 2000 }))).status).toBe("refused");
+  });
+
+  it("shares concurrent signing and releases the reservation if signing fails", async () => {
+    const { uploads, storage } = setup([["b".repeat(64), STORAGE_LIMIT_BYTES - 1000]]);
+    let fail!: (reason: Error) => void;
+    vi.mocked(storage.sign).mockImplementationOnce(
+      () =>
+        new Promise<string>((_, reject) => {
+          fail = reject;
+        })
+    );
+    const first = uploads.prepare(request());
+    const second = uploads.prepare(request());
+    await Promise.resolve();
+    await Promise.resolve();
+    fail(new Error("Signing unavailable"));
+    expect((await Promise.allSettled([first, second])).map(({ status }) => status)).toEqual([
+      "rejected",
+      "rejected",
+    ]);
+    expect(storage.sign).toHaveBeenCalledOnce();
+    expect((await uploads.prepare(request({ hash: "c".repeat(64) }))).status).toBe("upload");
+  });
+
+  it("retains an already issued link's capacity when a later signing attempt fails", async () => {
+    const { uploads, storage } = setup([["b".repeat(64), STORAGE_LIMIT_BYTES - 1000]]);
+    await uploads.prepare(request());
+    vi.mocked(storage.sign).mockRejectedValueOnce(new Error("Signing unavailable"));
+    await expect(uploads.prepare(request())).rejects.toThrow("Signing unavailable");
+    expect((await uploads.prepare(request({ hash: "c".repeat(64) }))).status).toBe("refused");
+    expect((await uploads.prepare(request())).status).toBe("upload");
+  });
 });
 
 function setup(stored: [string, number][] = []) {
@@ -57,6 +99,7 @@ describe("deciding uploads", () => {
     ["a path instead of a hash", { hash: "../../etc/passwd" }],
     ["active content", { type: "image/svg+xml" }],
     ["html", { type: "text/html" }],
+    ["an unencrypted image", { type: "image/webp" }],
     ["too many bytes", { size: MAX_PICTURE_BYTES * 2 }],
     ["no bytes", { size: 0 }],
     ["a fractional size", { size: 1.5 }],

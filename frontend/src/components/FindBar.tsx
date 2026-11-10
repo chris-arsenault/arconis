@@ -5,7 +5,7 @@ import type { EditorController } from "../editor/controller";
 import { describeMatch, findMatches, revealMatch, showMatch, type Match } from "../editor/find";
 import { listComments } from "../document/comments";
 import { worldBounds } from "../document/relations";
-import { showFilter, showFind } from "../editor/registry";
+import { showFilter, showFind } from "../editor/ui";
 import { isEmptyFilter } from "../editor/filter";
 import { FilterBar } from "./FilterBar";
 import "./discovery.css";

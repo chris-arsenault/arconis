@@ -8,7 +8,7 @@ import { type Item, typeLabel } from "../document/types";
 import { MARKER_SIGNS } from "../editor/marks";
 import { MARKER_LABELS } from "../editor/fieldCommands";
 import { filterMatches, isEmptyFilter, toggled } from "../editor/filter";
-import { showComments, showFilter } from "../editor/registry";
+import { showComments, showFilter } from "../editor/ui";
 import {
   displayPreferences,
   indicatorVisible,

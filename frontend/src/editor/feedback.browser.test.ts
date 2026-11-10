@@ -4,7 +4,10 @@ import { isPng, readCopy } from "../document/pngCopy";
 import { add, browser, errors, exported, fixture, open, row } from "./browserHarness";
 
 it("sends guest feedback with diagnostics and no canvas content by default", async () => {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    permissions: ["clipboard-read", "clipboard-write"],
+  });
   const peerContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const room = createRoomId();
   const page = await open(context, room);
@@ -16,6 +19,12 @@ it("sends guest feedback with diagnostics and no canvas content by default", asy
     await dialog.getByLabel("Include a screenshot of the canvas", { exact: true }).isChecked()
   ).toBe(false);
   expect(await peer.getByRole("dialog", { name: "Send feedback", exact: true }).count()).toBe(0);
+  // Native dialog controls own clipboard keys, even when they are not text fields.
+  await page.evaluate(() => navigator.clipboard.writeText("Outside the canvas"));
+  const close = dialog.getByRole("button", { name: "Close feedback", exact: true });
+  await close.press("ControlOrMeta+c");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Outside the canvas");
+  await close.press("ControlOrMeta+v");
   await dialog
     .getByLabel("What could be easier?", { exact: true })
     .fill("Finding the drawing tools was difficult.");

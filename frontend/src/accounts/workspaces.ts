@@ -6,7 +6,7 @@ import type {
   WorkspaceRecord,
 } from "../protocol/account";
 import type { AccountServices } from "./api";
-import { MAX_WORKSPACES, MAX_WORKSPACE_BYTES, USER_STORAGE_BYTES } from "./api";
+import { MAX_WORKSPACES, MAX_WORKSPACE_BYTES, USER_STORAGE_BYTES } from "./storage";
 
 export interface WorkspaceTable {
   workspaces(user: string): Promise<WorkspaceRecord[]>;

@@ -1,3 +1,15 @@
+import type { EditorController } from "./controller";
+import { EMPTY_FILTER } from "./filter";
+
+/** Form controls and modal/menu surfaces own input instead of the canvas underneath them. */
+export function isInputTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    ((target instanceof HTMLElement && target.isContentEditable) ||
+      Boolean(target.closest("input, textarea, select, dialog, [role=dialog], [role=menu]")))
+  );
+}
+
 /** What this person has open over the canvas; commands toggle it and the editor's `emit` shows it. */
 export interface EditorUi {
   palette: boolean;
@@ -65,4 +77,82 @@ export interface MenuState {
   /** Whether the Mode wedge's arc of editing modes shows, and which of its modes a held pointer is on. */
   modes?: boolean;
   mode?: number | null;
+}
+
+/** Opens or closes the palette, returning focus to the canvas when it closes. */
+export function showPalette(editor: EditorController, open: boolean) {
+  editor.ui.palette = open;
+  editor.emit();
+  if (!open) editor.element.focus({ preventScroll: true });
+}
+
+/** Opens or closes find on canvas, returning focus to the canvas when it closes. */
+export function showFind(editor: EditorController, open: boolean) {
+  editor.ui.find = open;
+  editor.emit();
+  if (!open) editor.element.focus({ preventScroll: true });
+}
+
+/** Closing the filter bar clears its filter so nothing stays dimmed. */
+export function showFilter(editor: EditorController, open: boolean) {
+  editor.ui.filter = open;
+  if (!open) editor.setFilter(EMPTY_FILTER);
+  editor.emit();
+  if (!open) editor.element.focus({ preventScroll: true });
+}
+
+export function openMenu(editor: EditorController, menu: MenuState) {
+  editor.ui.menu = menu;
+  editor.emit();
+}
+
+export function closeMenu(editor: EditorController) {
+  if (!editor.ui.menu) return;
+  editor.ui.menu = null;
+  editor.emit();
+}
+
+export function openSubRing(editor: EditorController, id: string) {
+  if (!editor.ui.menu) return;
+  editor.ui.menu.subRing = id;
+  editor.ui.menu.wedge = null;
+  editor.ui.menu.modes = false;
+  editor.emit();
+}
+
+export function showComments(editor: EditorController, id: string | null) {
+  editor.ui.comments = id;
+  editor.emit();
+  if (!id) editor.element.focus({ preventScroll: true });
+}
+
+export function showTagger(editor: EditorController, open: boolean) {
+  editor.ui.tagging = open;
+  if (open) editor.ui.relating = null;
+  editor.emit();
+  if (!open) editor.element.focus({ preventScroll: true });
+}
+
+/** Starts canvas target picking while preserving the original source object. */
+export function showRelate(editor: EditorController, open: boolean) {
+  if (open) {
+    const from = editor.selected()[0];
+    if (!from) return;
+    editor.setTool("select");
+    editor.ui.relating = from.id;
+    editor.ui.tagging = false;
+  } else editor.ui.relating = null;
+  editor.emit();
+  editor.element.focus({ preventScroll: true });
+}
+
+export function startCapture(editor: EditorController, at: { x: number; y: number }) {
+  editor.ui.capture = { at, ids: [] };
+  editor.emit();
+}
+
+export function endCapture(editor: EditorController) {
+  editor.ui.capture = null;
+  editor.emit();
+  editor.element.focus({ preventScroll: true });
 }

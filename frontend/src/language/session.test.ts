@@ -86,6 +86,32 @@ describe("an agent's session", () => {
   });
 });
 
+it("uses named appearance consistently for read, write and explicit overlap diagnostics", () => {
+  const document = new CanvasDocument();
+  const session = new LanguageSession(document, "Agent");
+  try {
+    document.styles.set("large", { textSize: 100 });
+    document.create("node", 0, 0, {
+      id: "icon",
+      name: "Storage",
+      stencil: "icon",
+      style: "large",
+      width: 64,
+      height: 64,
+    });
+    document.create("node", 200, 0, { id: "other", name: "Other" });
+    expect(session.read({ items: ["icon"] })).toContain("// icon overlaps other");
+    expect(session.read()).toContain("// other overlaps icon");
+    expect(session.checkLayout({ items: ["icon"] })).toContain("Overlaps (1)");
+    expect(session.write("edit icon at 1,0")).toContain("// icon overlaps other");
+    document.patch("other", { hidden: true });
+    expect(session.read({ items: ["icon"] })).not.toContain("// icon overlaps");
+    expect(session.checkLayout({ items: ["icon"] })).toContain("no overlaps");
+  } finally {
+    document.destroy();
+  }
+});
+
 describe("the reference architecture", () => {
   const document = new CanvasDocument();
   const session = new LanguageSession(document, "Agent");

@@ -1,7 +1,8 @@
 import type { View, Item } from "../document/types";
 import { worldBounds } from "../document/relations";
 import type { EditorController } from "./controller";
-import { showFind, showPalette, type Command, type CommandContext } from "./registry";
+import type { Command, CommandContext } from "./registry";
+import { showFind, showPalette } from "./ui";
 import { zoomIntoSelection, zoomOutOfSelection } from "./topics";
 import { fittingView, flyToView, saveCurrentView } from "./views";
 

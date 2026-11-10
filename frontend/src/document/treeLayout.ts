@@ -1,4 +1,4 @@
-import { branchChildren, tidyBranch } from "./relations";
+import { branchChildren } from "./relations";
 import type { Item } from "./types";
 
 /**
@@ -125,37 +125,28 @@ function layoutDown(
   return result;
 }
 
-/**
- * What `tidy` moves: the whole tree laid out as asked, or with no options each branch tidied on
- * the side it already lies.
- */
-export function tidyMoves(items: Item[], rootId: string, options: Partial<TreeLayoutOptions>) {
-  const { direction, compact, sorted } = options;
-  if (!direction && !compact && !sorted) return tidyBranch(items, rootId);
-  return layoutTree(items, rootId, {
-    direction: direction ?? "sides",
-    compact: Boolean(compact),
-    sorted: Boolean(sorted),
-  });
-}
-
-/** New positions for every topic under a root, as the options ask; the root stays. */
-export function layoutTree(items: Item[], rootId: string, options: TreeLayoutOptions) {
+/** New topic positions; by default each branch keeps its side, and the root always stays. */
+export function layoutTree(
+  items: Item[],
+  rootId: string,
+  options: Partial<TreeLayoutOptions> = {}
+) {
+  const { direction = "sides", compact = false, sorted = false } = options;
   const root = items.find((item) => item.id === rootId);
   if (!root) return new Map<string, Place>();
-  const tree = treeOf(items, rootId, options.sorted);
+  const tree = treeOf(items, rootId, sorted);
   const factors = {
-    level: options.compact ? LEVEL_GAP.compact : LEVEL_GAP.normal,
-    sibling: options.compact ? SIBLING_GAP.compact : SIBLING_GAP.normal,
+    level: compact ? LEVEL_GAP.compact : LEVEL_GAP.normal,
+    sibling: compact ? SIBLING_GAP.compact : SIBLING_GAP.normal,
   };
-  if (options.direction === "down") return layoutDown(root, tree, factors);
+  if (direction === "down") return layoutDown(root, tree, factors);
   const centre = root.x + root.width / 2;
   const sides: Record<Exclude<TreeDirection, "down">, (child: Item) => boolean> = {
     sides: (child) => child.x + child.width / 2 < centre,
     left: () => true,
     right: () => false,
   };
-  return layoutBeside(root, tree, sides[options.direction], factors);
+  return layoutBeside(root, tree, sides[direction], factors);
 }
 
 /** Sides for a root's branches that alternate, so a lopsided map becomes balanced. */

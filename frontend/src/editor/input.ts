@@ -1,10 +1,10 @@
 import type { EditorController, Shape } from "./controller";
-import { PanningHandler, type CellState } from "@maxgraph/core";
-import { isUnderlay } from "./templates";
+import { PanningHandler } from "@maxgraph/core";
 import { clampScale, creationValues } from "./zoom";
 import { bindDrawingInput } from "./drawingInput";
-import { commandContext, commandForKey, runCommand, showComments, showRelate } from "./registry";
-import { bindPointerButtons, configureButtons } from "./pointerButtons";
+import { commandContext, commandForKey, runCommand } from "./registry";
+import { isInputTarget, showComments, showRelate } from "./ui";
+import { bindPointerButtons, cellAt, configureButtons } from "./pointerButtons";
 import { configureCentredResize, configureCreateTarget } from "./createTarget";
 import { nextInStack } from "./selectBy";
 import { changeFields } from "./commands";
@@ -13,14 +13,6 @@ import { relateTo } from "./topics";
 import { bindMarkdownLinks } from "./links";
 import { bindInteractionCursors } from "./interactionCursors";
 import { TemporaryPan } from "./temporaryPan";
-
-function isTyping(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      Boolean(target.closest("input, textarea, select, dialog, [role=dialog], [role=menu]")))
-  );
-}
 
 /** Enter and Space belong to a keyboard-focused control; other shortcuts still apply. */
 function activatesControl(target: EventTarget | null, key: string) {
@@ -42,7 +34,7 @@ function takesKey(editor: EditorController, event: KeyboardEvent) {
   // A presentation has its own keys, and nothing is being edited.
   if (editor.presenter.active) return false;
   if (editor.ui.menu || editor.ui.relating || event.defaultPrevented) return false;
-  if (isTyping(event.target) || activatesControl(event.target, key)) return false;
+  if (isInputTarget(event.target) || activatesControl(event.target, key)) return false;
   const paletteKey = key === "k" && (event.ctrlKey || event.metaKey);
   return !editor.ui.palette || paletteKey;
 }
@@ -62,35 +54,6 @@ function keyboard(editor: EditorController, event: KeyboardEvent, pan: Temporary
   if (!command || (event.key === "Tab" && !onCanvas(editor, event))) return;
   event.preventDefault();
   runCommand(editor, command.id);
-}
-
-/** The object under the pointer, looking through templates' underlays to what lies beneath. */
-export function cellAt(editor: EditorController, event: MouseEvent) {
-  const owner = metadataOwner(editor, event.target);
-  if (owner) return owner;
-  if (event.target instanceof Node) {
-    for (const [cell, state] of editor.graph.view.states)
-      if (!isUnderlay(cell) && state.text?.node?.contains(event.target)) return cell;
-  }
-  const bounds = editor.element.getBoundingClientRect();
-  const x = event.clientX - bounds.left + editor.element.scrollLeft;
-  const y = event.clientY - bounds.top + editor.element.scrollTop;
-  return editor.graph.getCellAt(
-    x,
-    y,
-    null,
-    true,
-    true,
-    (state: CellState) =>
-      isUnderlay(state.cell) || editor.document.get(state.cell.id ?? "")?.type === "highlight"
-  );
-}
-
-function metadataOwner(editor: EditorController, target: EventTarget | null) {
-  if (!(target instanceof Element)) return null;
-  const id = target.closest<HTMLElement>(".object-metadata")?.dataset.objectId;
-  const cell = id ? editor.graph.getDataModel().getCell(id) : null;
-  return cell && !isUnderlay(cell) ? cell : null;
 }
 
 /** How far a pointer may move before an Alt click becomes an Alt drag. */
@@ -141,7 +104,7 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
       } else {
         const shape = editor.tool as Shape;
         const point = editor.graph.getPointForEvent(event);
-        const id = editor.add(shape, point.x, point.y);
+        const id = editor.add(shape, { x: point.x, y: point.y, anchor: "corner" });
         if (shape === "note" || shape === "text") pendingEdit = id;
       }
     },

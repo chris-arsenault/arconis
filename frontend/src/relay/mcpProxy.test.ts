@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { McpProxy, type AlbRequest } from "./mcpProxy";
 import { base, config, person, ROOM } from "./agentTestHarness";
-import { MCP_RELAY_PATH, type TokenVerifier } from "./mcpHttp";
+import { MCP_RELAY_PATH, type TokenVerifier } from "../protocol/mcp";
 import type { RelayStatus } from "../collaboration/serviceProtocol";
 
 const verify: TokenVerifier = async (token) =>

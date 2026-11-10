@@ -3,6 +3,7 @@ import { listComments, type CanvasComment } from "../document/comments";
 import { deckOf } from "../document/slides";
 import { BASE_LAYER, BASE_LAYER_NAME, type Layer } from "../document/layers";
 import {
+  FLAGS,
   isLink,
   type Arrangement,
   type Item,
@@ -14,7 +15,8 @@ import { SIDES, DRAWING_WORDS } from "./syntax";
 import { lookEntries } from "./look";
 import { exportItems } from "../document/exportItems";
 import { selectedItems } from "../document/relations";
-import { editedWords, fieldWords } from "./fields";
+import { renamePictures } from "../document/pictures";
+import { isWebLink } from "./fields";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -40,6 +42,30 @@ function rawQuote(text: string) {
 /** A word as written: bare when the language reads it as one word, quoted otherwise. */
 function word(text: string) {
   return BARE.test(text) && !text.includes("--") && !text.includes("->") ? text : quote(text);
+}
+
+/** Shared item fields in their canonical printed order. */
+function fieldWords(item: Item) {
+  const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
+  if (item.scaleContents) parts.push("scale-contents");
+  if (item.tags?.length) parts.push("tags", item.tags.join(", "));
+  if (item.marker) parts.push("marker", item.marker);
+  if (item.task) parts.push("task", item.task);
+  if (item.link) parts.push("link", isWebLink(item.link) ? quote(item.link) : item.link);
+  for (const [key, value] of Object.entries(item.properties ?? {}).sort(([a], [b]) =>
+    a.localeCompare(b)
+  ))
+    parts.push("property", key, quote(value));
+  return parts;
+}
+
+function layerWords(item: Item) {
+  return !item.inside && item.layer && item.layer !== BASE_LAYER ? ["in-layer", item.layer] : [];
+}
+
+function editedWords(item: Item) {
+  if (item.editedBy === undefined || item.editedAt === undefined) return [];
+  return ["edited", quote(item.editedBy), "at", String(Math.round(item.editedAt))];
 }
 
 export function number(value: number) {
@@ -248,11 +274,15 @@ export interface PrintOptions {
   ids?: string[];
   /** Picture bytes to carry, for a file that must open anywhere. */
   data?: { hash: string; type: string; data: string }[];
+  /** Picture storage identities in this output; authored text is unchanged. */
+  pictureRenames?: Map<string, string>;
 }
 
 /** The canvas, or part of it, as a complete text: the saved file and what agents read. */
 export function printCanvas(document: CanvasDocument, options: PrintOptions = {}) {
-  const all = document.list();
+  const all = options.pictureRenames
+    ? renamePictures(document.list(), options.pictureRenames)
+    : document.list();
   const layers = document.layerList();
   const known = new Set(layers.map((layer) => layer.id));
   // A layer a peer deleted while another moved items into it reads, and prints, as the base layer.

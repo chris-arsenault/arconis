@@ -6,7 +6,7 @@ import {
   resourceMetadata,
   type McpConfig,
   type TokenVerifier,
-} from "./mcpHttp";
+} from "../protocol/mcp";
 import { reportFailure } from "./errors";
 
 export interface AlbRequest {

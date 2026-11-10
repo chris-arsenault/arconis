@@ -1,4 +1,5 @@
-import { isLockedRoom, parseRoom, roomHash } from "./room";
+import { isLockedRoom, roomHash } from "./room";
+import { parseRoom } from "../protocol/room";
 
 const KEY = "arconis:recent-rooms";
 type RoomIndexStorage = Pick<Storage, "getItem" | "setItem">;

@@ -12,7 +12,7 @@ import { configureLocking } from "./locking";
 import type { RoomSession } from "../collaboration/room";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { Item, ItemType } from "../document/types";
-import { defaultName, newItemSize, shapeItem, type Shape, type Tool } from "./shapes";
+import { newItemFields, shapeItem, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
@@ -20,7 +20,7 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
-import { clampScale, creationOffset, creationValues, syncZoom, observeViewport } from "./zoom";
+import { clampScale, creationOffset, syncZoom, observeViewport } from "./zoom";
 import { worldPointOf } from "./zoom";
 import { configureCulling } from "./culling";
 import { SelectionReferences } from "./relate";
@@ -38,7 +38,6 @@ import { newId } from "../document/ids";
 import { stackSelection } from "./stacking";
 import { trackViewHistory, type ViewHistory } from "./viewHistory";
 import { initialUi, type EditorUi } from "./ui";
-import { defaultFields } from "./styleClipboard";
 import { updateCellGeometry } from "./geometryEdits";
 import { EMPTY_FILTER, type Filter } from "./filter";
 import { brightSet } from "./highlighting";
@@ -287,26 +286,29 @@ export class EditorController {
     this.emit();
   }
 
-  add(shape: Shape, x?: number, y?: number, icon = this.armedIcon, screen = this.armedScreen) {
+  add(
+    shape: Shape,
+    at: { x: number; y: number; anchor: "corner" | "center" } | null = null,
+    icon = this.armedIcon,
+    screen = this.armedScreen
+  ) {
     const view = this.graph.view;
     const centerX = this.element.clientWidth / 2 / view.scale - view.translate.x;
     const centerY = this.element.clientHeight / 2 / view.scale - view.translate.y;
     const size = creationOffset(view.scale);
     const offset = (this.document.items.size % 6) * 16 * size;
-    const left = x ?? centerX + (offset - 80) * size;
-    const top = y ?? centerY + (offset - 45) * size;
-    const { type, stencil } = shapeItem(shape);
-    const slide = this.slideValues(type);
-    const dimensions = newItemSize(shape, view.scale, screen, slide);
+    const { type } = shapeItem(shape);
+    const fields = newItemFields(shape, view.scale, icon, screen, this.slideValues(type));
+    const position = at ?? {
+      x: centerX + (offset - 80) * size,
+      y: centerY + (offset - 45) * size,
+      anchor: "corner",
+    };
+    const left = position.x - (position.anchor === "center" ? fields.width / 2 : 0);
+    const top = position.y - (position.anchor === "center" ? fields.height / 2 : 0);
     const id = this.document.create(type, left, top, {
-      name: screen?.name ?? icon?.title ?? defaultName(shape),
-      inside: containerAt(this.document, left, top, dimensions),
-      stencil,
-      ...defaultFields(type, stencil),
-      ...creationValues(type, view.scale, stencil),
-      ...slide,
-      ...dimensions,
-      ...(icon ? { icon: icon.key } : {}),
+      ...fields,
+      inside: containerAt(this.document, position.x, position.y, fields),
     });
     this.select(id);
     this.setTool("select");

@@ -17,26 +17,8 @@ export function createRoomId() {
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
 }
-export function parseRoom(value: string) {
-  let candidate = value.trim();
-  try {
-    candidate = new URL(candidate).hash.slice(1);
-  } catch {
-    /* Raw room codes need no URL parsing. */
-  }
-  const prefix = candidate.startsWith("local=") ? LOCAL_PREFIX : lockedPrefix(candidate);
-  // A link may name an item to open at, after the room: #room=…&item=<id>.
-  candidate = candidate.replace(/^(room|local|locked)=/, "");
-  const extra = candidate.search(/[&?]/);
-  if (extra >= 0) candidate = candidate.slice(0, extra);
-  if (!/^[a-f0-9]{48}$/.test(candidate)) return null;
-  return `${prefix}${candidate}`;
-}
 const LOCAL_PREFIX = "local-";
 const LOCKED_PREFIX = "locked-";
-function lockedPrefix(hash: string) {
-  return hash.startsWith("locked=") ? LOCKED_PREFIX : "";
-}
 /** A room whose contents are encrypted in the browser under a password. */
 export function createLockedRoomId() {
   return `${LOCKED_PREFIX}${createRoomId()}`;
@@ -193,8 +175,6 @@ export class RoomSession {
           store: this.pictures,
           request,
           put: putToStorage,
-          // Encrypted bytes must not claim to be an image.
-          contentType: () => "application/octet-stream",
         })
       );
     } catch {

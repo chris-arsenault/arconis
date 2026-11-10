@@ -6,9 +6,9 @@ import {
   createLocalRoomId,
   createLockedRoomId,
   createRoomId,
-  parseRoom,
   roomHash,
 } from "./collaboration/room";
+import { parseRoom } from "./protocol/room";
 import { Welcome } from "./components/Welcome";
 import { Workspace } from "./components/Workspace";
 import { rememberRoom } from "./collaboration/recentRooms";

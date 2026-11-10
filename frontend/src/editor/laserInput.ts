@@ -1,16 +1,10 @@
 import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "./controller";
 import { extendLaser, sendLaser, type PeerState } from "./presence";
+import { isInputTarget } from "./ui";
 
 /** The key held to point with the laser. */
 export const LASER_KEY = "k";
-
-function isTyping(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || Boolean(target.closest("input, textarea, [role=dialog]")))
-  );
-}
 
 /**
  * Holding K turns the pointer into a laser: a trail that peers see fade behind it, written to
@@ -35,7 +29,8 @@ export function bindLaser(editor: EditorController, session: RoomSession) {
   window.addEventListener(
     "keydown",
     (event) => {
-      if (event.key.toLowerCase() !== LASER_KEY || event.repeat || isTyping(event.target)) return;
+      if (event.key.toLowerCase() !== LASER_KEY || event.repeat || isInputTarget(event.target))
+        return;
       if (event.ctrlKey || event.metaKey || event.altKey || editor.presenter.active) return;
       event.preventDefault();
       editor.ui.lasering = true;

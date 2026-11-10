@@ -1,6 +1,6 @@
 import { ArrowRight, Shapes, StickyNote, GitBranch, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { parseRoom } from "../collaboration/room";
+import { parseRoom } from "../protocol/room";
 import { recentRooms } from "../collaboration/recentRooms";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";

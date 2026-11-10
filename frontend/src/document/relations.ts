@@ -1,5 +1,6 @@
 import { compareStacking, offsetPoints } from "./geometry";
 import { isBox, isLink, type Item, type ItemType, type PathPoint } from "./types";
+import { canvasObjectId, canvasObjectUrl } from "./ids";
 
 /**
  * Topics are not a type of item. Any item can extend outward through branches and point at others
@@ -211,15 +212,22 @@ export function branchCopiesParent(parent: Item) {
 /** An item under new ids, with its references to other renamed items following them. */
 export function renameItem(item: Item, ids: Map<string, string>): Item {
   const rename = (id: string) => ids.get(id) ?? id;
+  const renameUrl = (url: string) => {
+    const id = canvasObjectId(url);
+    const copied = id && ids.get(id);
+    return copied ? canvasObjectUrl(copied) : url;
+  };
   return {
     ...item,
     id: rename(item.id),
+    // Match whole URI tokens so a canvas URL inside an external URL remains external text.
+    name: item.name.replace(/\b[a-z][a-z0-9+.-]*:[^\s<>()"'`[\]\\]+/gi, renameUrl),
     inside: rename(item.inside),
     from: rename(item.from),
     to: rename(item.to),
     onLine: rename(item.onLine),
     ...(item.target ? { target: rename(item.target) } : {}),
-    ...(item.link && ids.has(item.link) ? { link: rename(item.link) } : {}),
+    ...(item.link ? { link: renameUrl(rename(item.link)) } : {}),
   };
 }
 
@@ -294,59 +302,6 @@ export function branchPlacement(
     x: towardLeft ? parent.x - gapX - size.width : parent.x + parent.width + gapX,
     y: last ? last.y + last.height + gapY : parent.y + parent.height / 2 - size.height / 2,
   };
-}
-
-/** Lays out a topic's tree around it, keeping each child on the side it is already on. */
-export function tidyBranch(items: Item[], rootId: string) {
-  const result = new Map<string, { x: number; y: number }>();
-  const root = items.find((item) => item.id === rootId);
-  if (!root) return result;
-  const seen = new Set([rootId]);
-  const childrenOf = (id: string) =>
-    branchChildren(items, id).filter((child) => {
-      if (seen.has(child.id)) return false;
-      seen.add(child.id);
-      return true;
-    });
-  const tree = new Map<string, Item[]>();
-  const build = (id: string) => {
-    const children = childrenOf(id);
-    tree.set(id, children);
-    children.forEach((child) => build(child.id));
-  };
-  build(rootId);
-  const gapOf = (item: Item) => item.height * 0.25;
-  const heightOf = (item: Item): number => {
-    const children = tree.get(item.id) ?? [];
-    const stack =
-      children.reduce((total, child) => total + heightOf(child), 0) +
-      (children.length - 1) * gapOf(item);
-    return Math.max(item.height, stack);
-  };
-  const place = (parent: Item, children: Item[], left: boolean) => {
-    const total =
-      children.reduce((sum, child) => sum + heightOf(child), 0) +
-      (children.length - 1) * gapOf(parent);
-    const position = result.get(parent.id) ?? parent;
-    let top = position.y + parent.height / 2 - total / 2;
-    for (const child of children) {
-      const height = heightOf(child);
-      const gap = parent.width * 0.4;
-      result.set(child.id, {
-        x: left ? position.x - gap - child.width : position.x + parent.width + gap,
-        y: top + height / 2 - child.height / 2,
-      });
-      place(child, tree.get(child.id) ?? [], left);
-      top += height + gapOf(parent);
-    }
-  };
-  const center = root.x + root.width / 2;
-  const [leftSide, rightSide] = [true, false].map((left) =>
-    (tree.get(rootId) ?? []).filter((child) => child.x + child.width / 2 < center === left)
-  );
-  place(root, leftSide, true);
-  place(root, rightSide, false);
-  return result;
 }
 
 export function alignOffsets(boxes: Box[], mode: AlignMode) {

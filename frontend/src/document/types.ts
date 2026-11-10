@@ -49,11 +49,9 @@ export type Stencil = (typeof STENCILS)[number];
  */
 export type LinePath = "cornered" | "diagonal" | "curved";
 export type Arrow = "arrow" | "open" | "none";
-export const LINE_PATHS: LinePath[] = ["cornered", "diagonal", "curved"];
 export const ARROWS: Arrow[] = ["arrow", "open", "none"];
 /** Where a frame shows its title: a header bar, plain text at the top left, or a vertical side. */
 export type TitlePlace = "header" | "top" | "side";
-export const TITLE_PLACES: TitlePlace[] = ["header", "top", "side"];
 export type Align = "left" | "center" | "right";
 export type TextFont = "sans" | "serif" | "mono";
 export type VerticalAlign = "top" | "middle" | "bottom";
@@ -106,7 +104,6 @@ export interface Look {
    */
   scale?: number;
 }
-export type LookKey = keyof Look;
 
 /** A point on an item's box as fractions of its width and height, where a line attaches. */
 export type Port = [number, number];

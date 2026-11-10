@@ -1,8 +1,7 @@
 import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "./controller";
-import { cellAt } from "./input";
-import { openMenu } from "./registry";
-import { panWithPointer } from "./pointerButtons";
+import { openMenu } from "./ui";
+import { cellAt, panWithPointer } from "./pointerButtons";
 import { historyEntries } from "./history";
 
 /** How long a finger rests before the ring and menu open, and how far it may drift meanwhile. */

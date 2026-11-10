@@ -3,6 +3,7 @@ import { CanvasDocument } from "../document/canvasDocument";
 import { PictureStore, type StoredPicture } from "./pictureStore";
 import { uploadWaitingPictures, type PutBytes } from "./pictureUploads";
 import type { UploadReply, UploadRequest } from "./serviceProtocol";
+import { Uploads } from "../relay/uploads";
 
 const BYTES = new Uint8Array([9, 8, 7]);
 let document: CanvasDocument;
@@ -38,7 +39,6 @@ async function setup(reply: UploadReply | ((hash: string) => UploadReply)) {
       store,
       request,
       put,
-      contentType: (type) => type,
     });
   const stored = () => document.get(id)!.picture?.stored;
   return { hash, id, request, put, run, stored };
@@ -52,7 +52,11 @@ describe("uploading", () => {
     const [url, bytes, request] = context.put.mock.calls[0];
     expect(url).toBe("https://s3/x");
     expect([...bytes]).toEqual([...BYTES]);
-    expect(request).toMatchObject({ hash: context.hash, type: "image/webp", size: 3 });
+    expect(request).toMatchObject({
+      hash: context.hash,
+      type: "application/octet-stream",
+      size: 3,
+    });
     expect(context.stored()).toBe(true);
   });
 
@@ -86,6 +90,18 @@ describe("uploading", () => {
     context.put.mockResolvedValueOnce(false);
     await context.run();
     expect(context.stored()).toBe(false);
+  });
+
+  it("uploads again after a failed PUT before advertising shared storage", async () => {
+    const context = await setup((hash) => ({ status: "upload", hash, url: "u" }));
+    const uploads = new Uploads({ list: async () => new Map(), sign: async () => "u" });
+    context.request.mockImplementation((request) => uploads.prepare(request));
+    context.put.mockResolvedValueOnce(false);
+    await context.run();
+    expect(context.stored()).toBe(false);
+    await context.run();
+    expect(context.put).toHaveBeenCalledTimes(2);
+    expect(context.stored()).toBe(true);
   });
 
   it("leaves pictures it does not hold to the browser that does", async () => {

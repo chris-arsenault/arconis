@@ -5,42 +5,15 @@ import { AgentSessions } from "./agentSessions";
 import { createMcpServer } from "./mcp";
 import type { Relay } from "./relay";
 import { reportEvent, reportFailure, requestLogContext } from "./errors";
-
-/**
- * How the MCP endpoint finds its sign-in service: the Ahara Auth0 tenant, where connectors register
- * themselves and people sign in with their Arconis account.
- */
-export interface McpConfig {
-  /** The endpoint's canonical URL, which is the Auth0 API's identifier and tokens' audience. */
-  resource: string;
-  /** The tenant's issuer, `https://auth.ahara.io/`. */
-  issuer: string;
-}
-
-export interface Caller {
-  user: string;
-  clientId: string;
-  scopes: string[];
-}
-/** Returns the caller a bearer token proves, or null for any token that is not valid here. */
-export type TokenVerifier = (token: string) => Promise<Caller | null>;
-
-export const MCP_PATH = "/mcp";
-/** The control Lambda forwards here through the ALB's ordinary relay rule. */
-export const MCP_RELAY_PATH = "/mcp/relay";
-/** The API's scope, and `offline_access` so connectors can refresh instead of signing in again. */
-export const SCOPES = ["edit:rooms", "offline_access"];
-
-/** Discovery remains available from the control Lambda while the relay is stopped. */
-export function resourceMetadata(config: McpConfig) {
-  return {
-    resource: config.resource,
-    authorization_servers: [config.issuer],
-    scopes_supported: SCOPES,
-    bearer_methods_supported: ["header"],
-    resource_name: "Arconis",
-  };
-}
+import {
+  MCP_PATH,
+  MCP_RELAY_PATH,
+  SCOPES,
+  resourceMetadata,
+  type Caller,
+  type McpConfig,
+  type TokenVerifier,
+} from "../protocol/mcp";
 const MAX_BODY_BYTES = 1024 * 1024;
 const CALLS_PER_MINUTE = 120;
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseRoom, roomHash } from "../collaboration/room";
+import { roomHash } from "../collaboration/room";
+import { parseRoom } from "../protocol/room";
 import {
   LASER_FADE_MS,
   SPOTLIGHT_WINDOW_MS,

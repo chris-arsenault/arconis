@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
-import { canvasObjectId, objectLinkEdit } from "./objectLinks";
+import { canvasObjectId } from "../document/ids";
+import { objectLinkEdit } from "./objectLinks";
 import { renderMarkdown } from "./markdown";
 
 it.each(["canvas://Storage_A", "local://Storage_A", "CANVAS://Storage_A/"])(

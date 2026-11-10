@@ -15,7 +15,7 @@ import {
 import { MARKERS, TASK_STATES, type Item, type Marker, type TaskState } from "../document/types";
 import { branchChildren, holdsOthers } from "../document/relations";
 import { isWebLink } from "../language/fields";
-import { isCanvasObjectUrl } from "../text/objectLinks";
+import { isCanvasObjectUrl } from "../document/ids";
 import { MARKER_SIGNS } from "../editor/marks";
 import { MARKER_LABELS } from "../editor/fieldCommands";
 

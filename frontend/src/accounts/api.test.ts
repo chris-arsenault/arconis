@@ -1,12 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  AccountsApi,
-  MAX_NAME_LENGTH,
-  MAX_WORKSPACES,
-  MAX_WORKSPACE_BYTES,
-  tokenSubject,
-  type AccountServices,
-} from "./api";
+import { AccountsApi, MAX_NAME_LENGTH, tokenSubject, type AccountServices } from "./api";
+import { MAX_WORKSPACES, MAX_WORKSPACE_BYTES } from "./storage";
 import { memoryAccountTable } from "./memoryTable";
 
 const ID = "11111111-1111-4111-8111-111111111111";

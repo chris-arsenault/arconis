@@ -7,10 +7,10 @@ import {
   commandLabel,
   recentCommands,
   runCommand,
-  showPalette,
   type Command,
   type CommandContext,
 } from "../editor/registry";
+import { showPalette } from "../editor/ui";
 import { searchCommands } from "../editor/paletteSearch";
 import { shortcutLabel } from "../editor/shortcuts";
 

@@ -5,6 +5,8 @@ import { PictureStore, type PictureCodec, type StoredPicture } from "../collabor
 import { generateRoomKey, seal, unseal } from "../collaboration/roomKey";
 import { CanvasFiles } from "./canvasFiles";
 import { importDocument } from "./canvasFile";
+import { addComment, listComments } from "../document/comments";
+import { sha256 } from "../document/pictures";
 
 const BYTES = new Uint8Array([1, 2, 3]);
 const TEST_CODEC: PictureCodec = { seal: async (bytes) => bytes, open: async (bytes) => bytes };
@@ -127,6 +129,46 @@ it.each([false, true])(
     if (sameRoom) expect(source.document.get("Storage_A")?.name).toBe("Storage");
   }
 );
+
+it("translates picture storage hashes without rewriting authored text on export or import", async () => {
+  const key = await generateRoomKey();
+  const codec = {
+    seal: (bytes: Uint8Array) => seal(key, bytes),
+    open: (bytes: Uint8Array) => unseal(key, bytes),
+  };
+  const source = workspace(codec);
+  const storedHash = await source.pictures.add(BYTES, "image/png");
+  const { hex: portableHash } = await sha256(BYTES);
+  const text = `Stored checksum: ${storedHash}\nPortable checksum: ${portableHash}`;
+  const url = `https://example.test/${storedHash}/${portableHash}`;
+  source.document.rename(text);
+  source.document.create("picture", 0, 0, {
+    id: "photo",
+    name: text,
+    link: url,
+    properties: { checksum: storedHash },
+    picture: { hash: storedHash, format: "image/png", stored: true },
+  });
+  addComment(source.document, { on: "photo", author: "Author", text });
+
+  const exported = await source.files.canvas();
+  const portable = workspace();
+  importDocument(portable.document, exported);
+  expect(portable.document.get("photo")?.picture?.hash).toBe(portableHash);
+  const restored = workspace(codec);
+  await restored.files.import(new File([exported], "checksums.arconis"));
+  expect(restored.document.get("photo")?.picture?.hash).not.toBe(portableHash);
+  for (const copy of [portable, restored]) {
+    expect(copy.document.title()).toBe(text);
+    expect(copy.document.get("photo")).toMatchObject({
+      name: text,
+      link: url,
+      properties: { checksum: storedHash },
+    });
+    expect(listComments(copy.document)[0]?.text).toBe(text);
+  }
+  expect(source.document.get("photo")?.picture?.hash).toBe(storedHash);
+});
 
 it.each([false, true])(
   "imports portable pictures through the destination codec, encrypted=%s, and exports plain hashes",

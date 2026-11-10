@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, errors, jwtVerify } from "jose";
-import type { McpConfig, TokenVerifier } from "./mcpHttp";
+import type { McpConfig, TokenVerifier } from "../protocol/mcp";
 
 /**
  * Accepts only access tokens the Ahara Auth0 tenant issued for this MCP endpoint. Auth0 puts the

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link2, Plus, LogIn, X, Copy, Check } from "lucide-react";
-import { parseRoom } from "../collaboration/room";
+import { parseRoom } from "../protocol/room";
 
 interface Props {
   onCreate: () => void;

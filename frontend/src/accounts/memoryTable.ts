@@ -1,4 +1,5 @@
-import { TOTAL_STORAGE_BYTES, USER_STORAGE_BYTES, type AccountTable } from "./api";
+import type { AccountTable } from "./api";
+import { TOTAL_STORAGE_BYTES, USER_STORAGE_BYTES } from "./storage";
 import type { AccountProfile } from "../protocol/account";
 import type { LibraryEntry } from "../protocol/library";
 import type { LibraryTable } from "./library";

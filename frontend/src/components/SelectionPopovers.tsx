@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { EditorController } from "../editor/controller";
-import { showRelate, showTagger } from "../editor/registry";
+import { showRelate, showTagger } from "../editor/ui";
 import { typeLabel, type Item } from "../document/types";
 import { addTags, removeTag, roomTags, sharedTags } from "../editor/tags";
 import { relateTo } from "../editor/topics";

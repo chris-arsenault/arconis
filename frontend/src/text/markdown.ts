@@ -1,7 +1,7 @@
 import MarkdownIt, { type Token } from "markdown-it";
 import { katex } from "@mdit/plugin-katex";
 import hljs from "highlight.js/lib/common";
-import { canvasObjectId, isCanvasObjectUrl } from "./objectLinks";
+import { canvasObjectId, isCanvasObjectUrl } from "../document/ids";
 
 /** Text stays Markdown in Y.Text. This module only derives safe presentation from it. */
 const markdown = new MarkdownIt({

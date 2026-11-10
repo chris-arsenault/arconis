@@ -6,9 +6,8 @@ import { layerRoots } from "../document/layerCommands";
 import { isBox, isLink, type Item } from "../document/types";
 import { LanguageError } from "./lexer";
 import { footprint, intersects, union, type Box } from "../document/layout";
-import { describeLayout, layoutReport } from "../document/layoutReport";
+import { describeLayout, layoutReport, overlappingPairs } from "../document/layoutReport";
 import { effectiveAppearance } from "../document/appearance";
-import { visibleItems } from "../document/relations";
 import { parse } from "./parser";
 import {
   chosenItems,
@@ -108,7 +107,7 @@ export class LanguageSession {
       const ids = new Set(chosen.map((item) => item.id));
       const comments = listComments(this.document).filter((comment) => ids.has(comment.on));
       const lines = [printItems(chosen), ...discussionStatements(comments)];
-      const notes = overlapNotes(
+      const notes = this.overlapNotes(
         this.document.list(),
         chosen.map((item) => item.id)
       );
@@ -137,7 +136,7 @@ export class LanguageSession {
         `The canvas has ${items.length} items; read at most ${READ_LIMIT} at once by naming items, a holder or an area. describe_canvas gives an outline.`
       );
     items.forEach((item) => this.seen.set(item.id, itemStatement(item, true)));
-    const notes = overlapNotes(
+    const notes = this.overlapNotes(
       items,
       items.map((item) => item.id)
     );
@@ -169,7 +168,7 @@ export class LanguageSession {
       return [
         summary,
         ...items.map((item) => itemStatement(item, true)),
-        ...overlapNotes(all, touched),
+        ...this.overlapNotes(all, touched),
       ].join("\n");
     });
   }
@@ -252,6 +251,22 @@ export class LanguageSession {
         stale.push(itemStatement(item, true));
     }
     if (stale.length) throw new StaleError(stale);
+  }
+
+  /** Format the shared document overlap policy without repeating its geometry rules. */
+  private overlapNotes(all: Item[], ids: string[]) {
+    const selected = new Set(ids);
+    const pairs = overlappingPairs(
+      all,
+      all.filter((item) => selected.has(item.id)),
+      (item) => effectiveAppearance(item, this.document.namedStyle(item.style))
+    );
+    return ids.flatMap((id) => {
+      const others = pairs
+        .filter((pair) => pair.some((item) => item.id === id))
+        .map(([a, b]) => (a.id === id ? b.id : a.id));
+      return others.length ? [`// ${id} overlaps ${others.join(", ")}`] : [];
+    });
   }
 
   private select(request: ReadRequest): Item[] {
@@ -350,35 +365,6 @@ function outline(items: Item[]) {
     );
   }
   return lines;
-}
-
-/** Notes on boxes that overlap others they neither hold nor sit in, for the named items. */
-function overlapNotes(all: Item[], ids: string[]) {
-  const byId = new Map(all.map((item) => [item.id, item]));
-  const holds = (outer: Item, inner: Item) => {
-    for (let id = inner.inside; id; id = byId.get(id)?.inside ?? "")
-      if (id === outer.id) return true;
-    return false;
-  };
-  const boxes = visibleItems(all).filter(
-    (item) => isBox(item) && item.type !== "band" && item.type !== "slide" && !item.onLine
-  );
-  const notes: string[] = [];
-  for (const id of ids) {
-    const item = byId.get(id);
-    if (!item || !boxes.includes(item)) continue;
-    const space = footprint(item);
-    const overlapping = boxes.filter(
-      (other) =>
-        other !== item &&
-        !holds(other, item) &&
-        !holds(item, other) &&
-        intersects(space, footprint(other))
-    );
-    if (overlapping.length)
-      notes.push(`// ${id} overlaps ${overlapping.map((other) => other.id).join(", ")}`);
-  }
-  return notes;
 }
 
 function round(value: number) {

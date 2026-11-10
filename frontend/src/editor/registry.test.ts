@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { matchesShortcut, shortcutLabel } from "./shortcuts";
-import { COMMANDS, commandForKey, isAvailable, type CommandContext } from "./registry";
+import { COMMANDS } from "./commandTable";
+import { commandForKey, isAvailable, type CommandContext } from "./registry";
 import { searchCommands } from "./paletteSearch";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { Item } from "../document/types";

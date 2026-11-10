@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
 import { attachRelay } from "./attach";
 import { accessTokenVerifier } from "./accessTokens";
-import { AgentGateway, type McpConfig } from "./mcpHttp";
+import { AgentGateway } from "./mcpHttp";
+import type { McpConfig } from "../protocol/mcp";
 import { Relay, TICK_MS } from "./relay";
 import { s3Pictures } from "./s3Pictures";
 import { Uploads } from "./uploads";

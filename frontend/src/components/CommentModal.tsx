@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { MessageSquare, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import { showComments } from "../editor/registry";
+import { showComments } from "../editor/ui";
 import {
   addComment,
   deleteComment,

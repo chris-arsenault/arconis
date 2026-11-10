@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
 import { authoredLook, effectiveAppearance } from "../document/appearance";
 import { transformObjects } from "../document/transform";
@@ -7,6 +7,10 @@ import { parse } from "../language/parser";
 import { writeStatements } from "../language/writer";
 import { objectStyle } from "./styles";
 import { changeSelectionLook, changeSelectionStyle } from "./commands";
+import { EditorController } from "./controller";
+import { POINTER_COMMANDS } from "./pointerCommands";
+import { setDefaultLook } from "./styleClipboard";
+import { initialUi } from "./ui";
 
 it("translates semantic typography once without turning defaults into authored rotations", () => {
   const canvas = new CanvasDocument();
@@ -94,5 +98,48 @@ it("changes a mixed selection atomically with one local undo step", () => {
   changeSelectionStyle(canvas, canvas.list(), "shared");
   canvas.undo.undo();
   expect(canvas.list().map((item) => item.style)).toEqual(["", ""]);
+  canvas.destroy();
+});
+
+it("uses the same defaults and zoom policy for rail and context creation while preserving placement", () => {
+  const canvas = new CanvasDocument();
+  const source = canvas.create("note", 4000, 0, { look: { fill: "#123456", bold: true } });
+  setDefaultLook(canvas, canvas.get(source)!);
+  const holder = canvas.create("frame", 100, 100, { width: 3000, height: 3000 });
+  const editor = {
+    document: canvas,
+    element: { clientWidth: 1200, clientHeight: 800 },
+    graph: { view: { scale: 0.25, translate: { x: 0, y: 0 } } },
+    armedIcon: { key: "lucide:Server", title: "Armed icon" },
+    armedScreen: { name: "Armed screen", width: 500, height: 300 },
+    ui: initialUi(),
+    slideValues: () => ({}),
+    select: vi.fn(),
+    setTool: vi.fn(),
+    edit: vi.fn(),
+    add: EditorController.prototype.add,
+  } as unknown as EditorController;
+  const rail = canvas.get(editor.add("note", { x: 500, y: 500, anchor: "corner" }, null, null))!;
+  editor.ui.menu = {
+    at: { x: 0, y: 0 },
+    world: { x: 120, y: 300 },
+    ring: false,
+    wedge: null,
+    subRing: null,
+  };
+  POINTER_COMMANDS.find((command) => command.id === "create.noteHere")!.run({
+    editor,
+    selected: [],
+    items: canvas.list(),
+  });
+  const created = canvas.list().at(-1)!;
+  expect(rail.look).toMatchObject({ fill: "#123456", bold: true, scale: 4 });
+  expect(created.look).toEqual(rail.look);
+  expect(created).toMatchObject({ inside: holder, name: "Your idea here", icon: "" });
+  expect(created.width).toBe(rail.width);
+  expect(created.height).toBe(rail.height);
+  expect(created.x + created.width / 2).toBe(120);
+  expect(created.y + created.height / 2).toBe(300);
+  expect(rail).toMatchObject({ x: 500, y: 500 });
   canvas.destroy();
 });

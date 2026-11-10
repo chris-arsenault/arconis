@@ -3,7 +3,7 @@ import { FolderOpen, Trash2 } from "lucide-react";
 import type { AccountStore, SavedWorkspace } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 import { localRoomCopies, removeLocalRoom } from "../collaboration/recentRooms";
-import { parseRoom } from "../collaboration/room";
+import { parseRoom } from "../protocol/room";
 import { WorkspaceHistory } from "./WorkspaceHistory";
 
 interface Props {

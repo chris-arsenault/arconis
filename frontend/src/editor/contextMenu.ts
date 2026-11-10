@@ -3,7 +3,8 @@ import { isSlide } from "../document/slides";
 import { MARKERS } from "../document/types";
 import { worldBounds } from "../document/relations";
 import type { CommandContext } from "./registry";
-import { closeMenu, findCommand, isAvailable, openMenu, openSubRing, runCommand } from "./registry";
+import { findCommand, isAvailable, runCommand } from "./registry";
+import { closeMenu, openMenu, openSubRing } from "./ui";
 import type { EditorController } from "./controller";
 import { DRAWING_SHAPES } from "./drawingTools";
 

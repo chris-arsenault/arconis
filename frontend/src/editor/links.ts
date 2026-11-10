@@ -2,7 +2,7 @@ import { isWebLink } from "../language/fields";
 import type { EditorController } from "./controller";
 import { goToSlide, jumpTo } from "./topics";
 import { flyToView } from "./views";
-import { canvasObjectId, isCanvasObjectUrl } from "../text/objectLinks";
+import { canvasObjectId, isCanvasObjectUrl } from "../document/ids";
 
 /**
  * Follows an item's link: a web address opens in a new tab, and the id of an item, slide or saved

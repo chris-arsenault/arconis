@@ -1,6 +1,6 @@
 import { BLANK, defaultSize, type CanvasDocument } from "../document/canvasDocument";
 import { branchPlacement } from "../document/relations";
-import { tidyMoves } from "../document/treeLayout";
+import { layoutTree } from "../document/treeLayout";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
 import { placeInDeck, resolveHolder, slideArea } from "./slideWriting";
 import { checkLayers, writeLayer } from "./layerWriting";
@@ -399,7 +399,7 @@ class Writer {
   tidy(statement: Extract<Statement, { kind: "tidy" }>) {
     const { draft } = this;
     const root = draft.item(statement.ref, statement.line);
-    const moves = tidyMoves(this.itemsWithPendingLinks(), root.id, statement);
+    const moves = layoutTree(this.itemsWithPendingLinks(), root.id, statement);
     moves.forEach(({ x, y }, id) => draft.moveTo(draft.items.get(id)!, x, y));
   }
 

@@ -1,8 +1,8 @@
-import { InternalEvent, type RubberBandHandler } from "@maxgraph/core";
+import { InternalEvent, type CellState, type RubberBandHandler } from "@maxgraph/core";
 import type { EditorController } from "./controller";
-import { cellAt } from "./input";
-import { closeMenu, openMenu } from "./registry";
+import { closeMenu, openMenu } from "./ui";
 import { commandContext } from "./registry";
+import { isUnderlay } from "./templates";
 import {
   chooseRingEntry,
   chooseRingMode,
@@ -11,6 +11,35 @@ import {
   RING_MODES,
 } from "./contextMenu";
 import { syncZoom } from "./zoom";
+
+/** The object under a pointer, including its label and indicators, excluding template underlays. */
+export function cellAt(editor: EditorController, event: MouseEvent) {
+  const owner = metadataOwner(editor, event.target);
+  if (owner) return owner;
+  if (event.target instanceof Node) {
+    for (const [cell, state] of editor.graph.view.states)
+      if (!isUnderlay(cell) && state.text?.node?.contains(event.target)) return cell;
+  }
+  const bounds = editor.element.getBoundingClientRect();
+  const x = event.clientX - bounds.left + editor.element.scrollLeft;
+  const y = event.clientY - bounds.top + editor.element.scrollTop;
+  return editor.graph.getCellAt(
+    x,
+    y,
+    null,
+    true,
+    true,
+    (state: CellState) =>
+      isUnderlay(state.cell) || editor.document.get(state.cell.id ?? "")?.type === "highlight"
+  );
+}
+
+function metadataOwner(editor: EditorController, target: EventTarget | null) {
+  if (!(target instanceof Element)) return null;
+  const id = target.closest<HTMLElement>(".object-metadata")?.dataset.objectId;
+  const cell = id ? editor.graph.getDataModel().getCell(id) : null;
+  return cell && !isUnderlay(cell) ? cell : null;
+}
 
 /**
  * The standard mapping: the left button selects, moves and marquees; the middle button drags the

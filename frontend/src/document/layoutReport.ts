@@ -72,12 +72,14 @@ function hasInnerText(item: Item) {
   );
 }
 
-function overlapsAmong(all: Item[], chosen: Item[], lookOf: (item: Item) => Appearance) {
+/** Visible overlapping pairs, excluding containment, resolved with the document's appearance. */
+export function overlappingPairs(all: Item[], chosen: Item[], lookOf: (item: Item) => Appearance) {
   const byId = new Map(all.map((item) => [item.id, item]));
-  const boxes = all.filter(solid);
+  const boxes = visibleItems(all).filter(solid);
+  const visibleIds = new Set(boxes.map((item) => item.id));
   const seen = new Set<string>();
   const overlaps: [Item, Item][] = [];
-  for (const item of chosen.filter(solid)) {
+  for (const item of chosen.filter((item) => visibleIds.has(item.id))) {
     const space = footprint(item, lookOf(item));
     for (const other of boxes) {
       if (other === item || holds(byId, other, item) || holds(byId, item, other)) continue;
@@ -107,7 +109,7 @@ export function layoutReport(
     const overflow = estimatedOverflow(item, lookOf(item));
     return overflow ? [overflow] : [];
   });
-  return { overlaps: overlapsAmong(visible, inspected, lookOf), escapes, overflows };
+  return { overlaps: overlappingPairs(all, inspected, lookOf), escapes, overflows };
 }
 
 function label(item: Item) {

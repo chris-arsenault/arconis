@@ -8,10 +8,6 @@ import type { LibraryReply } from "../protocol/library";
 import { WorkspacesApi, type WorkspaceTable } from "./workspaces";
 
 export const MAX_NAME_LENGTH = 40;
-export const MAX_WORKSPACES = 100;
-export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
-export const USER_STORAGE_BYTES = 1024 * 1024 * 1024;
-export const TOTAL_STORAGE_BYTES = 20 * 1024 * 1024 * 1024;
 
 /** What the API needs from DynamoDB. */
 export interface AccountTable extends LibraryTable, WorkspaceTable {

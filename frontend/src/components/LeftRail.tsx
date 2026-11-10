@@ -29,7 +29,7 @@ import { useRailSections } from "./useRailSections";
 import { historyEntries } from "../editor/history";
 import { roomTags } from "../editor/tags";
 import { toggled } from "../editor/filter";
-import { showFilter } from "../editor/registry";
+import { showFilter } from "../editor/ui";
 import { isInkTool } from "../editor/drawingTools";
 
 const TOOL_NAMES: Record<string, string> = { select: "Select", pan: "Pan", connect: "Connect" };

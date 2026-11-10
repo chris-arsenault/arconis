@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { MessageSquare, MoreHorizontal } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import { runCommand, showComments } from "../editor/registry";
+import { runCommand } from "../editor/registry";
+import { showComments } from "../editor/ui";
 import { openMenuOverSelection } from "../editor/contextMenu";
 import { isFrame, isLink, typeLabel, type Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";

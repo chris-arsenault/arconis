@@ -15,7 +15,7 @@ import {
 import { neighbour, type Direction } from "./walking";
 import { addBranch } from "./topics";
 import { slidesFromBranches } from "./slidesFromTree";
-import { startCapture } from "./registry";
+import { startCapture } from "./ui";
 import { pastePoint } from "./clipboard";
 
 /** Keyboard editing and walking of trees and diagrams, as commands with one meaning each. */

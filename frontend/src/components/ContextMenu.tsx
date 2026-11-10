@@ -12,7 +12,8 @@ import {
   type RingMode,
   type MenuEntry,
 } from "../editor/contextMenu";
-import { closeMenu, commandContext, findCommand, runCommand } from "../editor/registry";
+import { commandContext, findCommand, runCommand } from "../editor/registry";
+import { closeMenu } from "../editor/ui";
 import { shortcutLabel } from "../editor/shortcuts";
 import {
   RING_RADIUS,

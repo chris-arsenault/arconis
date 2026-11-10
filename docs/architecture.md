@@ -146,10 +146,12 @@ index derives from that same source, including its basic syntax and coordinate c
   retain explicit geometry without reapplying authoring transforms.
 - **Printing.** `printer.ts` writes items canonically, so an unchanged item always prints the same and
   comparing printed items finds changes. `look.ts` supplies one typed, key-complete descriptor for
-  look keywords, value choices, ranges, flags and canonical print order.
+  look keywords, value choices, ranges, flags and canonical print order. Field serialization lives
+  in the printer; field interpretation does not depend on printing.
 - **Sessions.** `session.ts` is one agent's work: it records each item as it last showed it, refuses
   writes that name items someone else changed since with their current state, reports others' changes
-  on every call, and undoes only its own writes.
+  on every call, and undoes only its own writes. Read/write overlap notes and explicit layout checks
+  use the same `document/layoutReport.ts` geometry policy with resolved named appearance.
 
 ## Editor
 
@@ -168,6 +170,9 @@ unclipped labels remain rendered, and exports draw the complete requested scene.
 keeps viewport dimensions available without forcing layout after a graph redraw.
 
 - EditorController composes graph-facing behavior and exposes selection/navigation operations.
+  Its creation operation owns new-item defaults, zoom appearance and placement for both the rail
+  and pointer commands. `editor/ui.ts` owns UI transitions and the input-target policy shared by
+  keyboard, clipboard and laser handlers; `editor/pointerButtons.ts` owns pointer hit testing.
   Leaf property, Markdown, connection, slide and comment controls receive semantic data and focused
   callbacks. `editor/commands.ts` owns selection formatting, Undo/transaction boundaries and source
   editing follow-up. Topology commands plan endpoints before inserting anchors and relationships
@@ -205,7 +210,10 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
 - `editor/clipboard.ts` copies the selection as the canvas language with its pictures through
   the browser's copy, cut and paste events (`editor/clipboardInput.ts`), pastes language through
   the file importer with the new items centred where asked, and turns plain text into notes, a
-  tree or a text block by writing language (`editor/pasteAs.ts`).
+  tree or a text block by writing language (`editor/pasteAs.ts`). `document/ids.ts` owns object URL
+  grammar, and `document/relations.ts` rewrites copied references for both duplication and layouts.
+  Picture identity changes during file import/export update typed picture fields, preserving
+  authored titles, labels, comments, properties and URLs.
 - `editor/commandTable.ts` is the one table of commands, each with a label, a group, its
   shortcuts and the rule for when it applies to the selection. `editor/registry.ts` reads it for
   key dispatch (`editor/input.ts`), the property panel's relationship actions, the ring and
@@ -213,7 +221,8 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   submenus), the stencil rail's labels and the command palette (`components/CommandPalette.tsx`, ranked by
   `editor/paletteSearch.ts`). A shortcut keeps one meaning: the dispatcher runs the first
   available command whose shortcut matches exactly, and the registry's test refuses two
-  commands with the same key.
+  commands with the same key. Command tables use UI transitions directly rather than importing
+  them from the registry that consumes those tables.
 - `editor/projection.ts` applies the document to the graph behind a guard, so remote changes do not
   feed back into Yjs. It projects `visibleItems`: hidden items, what collapsed items fold away and
   lines into either stay in the document and out of the graph, and a collapsed frame is drawn at
@@ -273,6 +282,8 @@ reaching retired consumers.
 
 - **Rooms.** Each room is a set of sockets on the relay ([ADR-0009](adr/0009-relay-on-ec2.md)). A
   device-only room uses `LocalTransport` whatever the configuration, so it never reaches the relay.
+  `protocol/room.ts` parses addresses for both browser navigation and agent tools; agent access
+  restrictions apply after parsing.
 - **Joining.** A join request reaches one person, who answers with the difference and their own
   holdings. The joiner then broadcasts its holdings, and anyone with more sends only that.
   Unanswered requests move to the next person for a short period, after which the room reports that
@@ -343,6 +354,8 @@ and names it by its hash, the relay checks the storage limit and signs a link fi
 and checksum, and the browser uploads straight to the website's bucket under `pictures/`. Objects hold
 only the validated ciphertext hash, marked once the bytes have reached storage, so a peer's data never becomes a
 URL. Peers fetch through the website's CloudFront, verify the hash and keep the bytes in IndexedDB.
+The relay distinguishes confirmed inventory from capacity reserved for signed upload links;
+a reservation cannot answer that bytes are stored, and a retry receives another upload link.
 
 **Limit.** `relay/control.ts` computes the month's spend from the group's CloudWatch metrics, which
 outlive any instance, so no client or relay report can change it and no replacement resets it.
@@ -357,6 +370,8 @@ sign-in challenges and availability explanations work while the relay is stopped
 `relay/mcpProxy.ts` validates the existing bearer and forwards each request through the ALB to
 `/mcp/relay`, where `relay/mcpHttp.ts` validates the bearer again and executes MCP. The forwarding
 path has the same authentication and room-session ownership checks as direct relay requests.
+`protocol/mcp.ts` owns shared discovery metadata and authentication contracts without importing
+the relay's MCP server or document tools into the control Lambda.
 The proxy keeps no canvas or session state and never retries writes. Bare load-balancer failures
 become MCP explanations for stopped, starting, stopping or budget-limited relays; a lost response
 leaves an edit's outcome unverified. Healthy requests do not query control status or usage.

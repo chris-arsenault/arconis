@@ -14,9 +14,9 @@ import {
   orphanedAnchors,
   referencesOf,
   renameItem,
-  tidyBranch,
   worldBounds,
 } from "./relations";
+import { layoutTree } from "./treeLayout";
 
 function box(id: string, x = 0, y = 0, extras: Partial<Item> = {}): Item {
   return {
@@ -68,7 +68,7 @@ describe("trees", () => {
   it("survives a cycle that concurrent edits created", () => {
     const items = [box("a"), box("b"), link("a", "b"), link("b", "a")];
     expect(branchDescendants(items, "a")).toEqual(["b"]);
-    expect(tidyBranch(items, "a").has("a")).toBe(false);
+    expect(layoutTree(items, "a").has("a")).toBe(false);
   });
 
   it("ignores plain connectors and references when walking a tree", () => {
@@ -113,7 +113,7 @@ describe("tidying", () => {
   ];
 
   it("keeps the root still, each child on its side, and siblings apart", () => {
-    const placed = tidyBranch(items, "root");
+    const placed = layoutTree(items, "root");
     expect(placed.has("root")).toBe(false);
     expect(placed.get("right1")!.x).toBeGreaterThan(600);
     expect(placed.get("left")!.x).toBeLessThan(500);
@@ -123,8 +123,8 @@ describe("tidying", () => {
 
   it("gives every peer the same layout, whatever order they hold objects in", () => {
     const reversed = [...items].reverse();
-    expect([...tidyBranch(reversed, "root")].sort(([a], [b]) => a.localeCompare(b))).toEqual(
-      [...tidyBranch(items, "root")].sort(([a], [b]) => a.localeCompare(b))
+    expect([...layoutTree(reversed, "root")].sort(([a], [b]) => a.localeCompare(b))).toEqual(
+      [...layoutTree(items, "root")].sort(([a], [b]) => a.localeCompare(b))
     );
   });
 });
@@ -175,6 +175,22 @@ describe("references and lines", () => {
       from: "x",
     });
   });
+
+  it.each(["old", "canvas://old", "local://old/", "CANVAS://old/"])(
+    "follows copied object links in labels and the %s link field",
+    (link) => {
+      const item = box("reader", 0, 0, {
+        name: "[Target](canvas://old) [Local](local://old/) [ref][target]\n\n[target]: CANVAS://old/\n\n[Outside](canvas://outside) [Web](https://example.test/?uri=canvas://old)",
+        link,
+      });
+      const copied = renameItem(item, new Map([["old", "new"]]));
+      expect(copied.name).toBe(
+        "[Target](canvas://new) [Local](canvas://new) [ref][target]\n\n[target]: canvas://new\n\n[Outside](canvas://outside) [Web](https://example.test/?uri=canvas://old)"
+      );
+      expect(copied.link).toBe(link === "old" ? "new" : "canvas://new");
+      expect(item.name).toContain("canvas://old");
+    }
+  );
 });
 
 describe("containment and bounds", () => {

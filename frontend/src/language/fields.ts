@@ -1,8 +1,6 @@
-import { FLAGS, type Item } from "../document/types";
+import type { Item } from "../document/types";
 import { isId } from "../document/ids";
-import { BASE_LAYER } from "../document/layers";
 import type { Attribute } from "./syntax";
-import { quote } from "./printer";
 
 /**
  * The fields every item carries whatever its type: flags, tags, a marker, a task state, a link and
@@ -69,30 +67,4 @@ export function parseTags(text: string) {
 /** Whether a link is a web address rather than the id of something on the canvas. */
 export function isWebLink(link: string) {
   return link.includes(":");
-}
-
-/** The field words of an item's statement, in canonical order, after what it is and before its look. */
-export function fieldWords(item: Item) {
-  const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
-  if (item.scaleContents) parts.push("scale-contents");
-  if (item.tags?.length) parts.push("tags", item.tags.join(", "));
-  if (item.marker) parts.push("marker", item.marker);
-  if (item.task) parts.push("task", item.task);
-  if (item.link) parts.push("link", isWebLink(item.link) ? quote(item.link) : item.link);
-  for (const [key, value] of Object.entries(item.properties ?? {}).sort(([a], [b]) =>
-    a.localeCompare(b)
-  ))
-    parts.push("property", key, quote(value));
-  return parts;
-}
-
-/** Contents are in their holder's layer, so only top-level items outside the base name one. */
-function layerWords(item: Item) {
-  return !item.inside && item.layer && item.layer !== BASE_LAYER ? ["in-layer", item.layer] : [];
-}
-
-/** Who last edited the item, at the end of its statement. */
-export function editedWords(item: Item) {
-  if (item.editedBy === undefined || item.editedAt === undefined) return [];
-  return ["edited", quote(item.editedBy), "at", String(Math.round(item.editedAt))];
 }

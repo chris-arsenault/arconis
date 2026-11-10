@@ -1,4 +1,7 @@
-import { MAX_WORKSPACES, TOTAL_STORAGE_BYTES, USER_STORAGE_BYTES } from "./api";
+export const MAX_WORKSPACES = 100;
+export const MAX_WORKSPACE_BYTES = 50 * 1024 * 1024;
+export const USER_STORAGE_BYTES = 1024 * 1024 * 1024;
+export const TOTAL_STORAGE_BYTES = 20 * 1024 * 1024 * 1024;
 
 /** Storage accounting joins the metadata mutation in the same DynamoDB transaction. */
 export function storageUpdate(

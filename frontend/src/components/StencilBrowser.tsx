@@ -124,7 +124,7 @@ function ShapeStencil({
       onDrop={(event) => {
         const point = pointInCanvas(editor, event);
         if (!point) return;
-        const id = editor.add(stencil.shape, point.x, point.y);
+        const id = editor.add(stencil.shape, { x: point.x, y: point.y, anchor: "corner" });
         if (stencil.shape === "note" || stencil.shape === "text") editor.edit(id, true);
       }}
     >
@@ -145,7 +145,7 @@ function ScreenStencil({
       onArm={() => editor.armScreen(screen)}
       onDrop={(event) => {
         const point = pointInCanvas(editor, event);
-        if (point) editor.add("frame", point.x, point.y, null, screen);
+        if (point) editor.add("frame", { x: point.x, y: point.y, anchor: "corner" }, null, screen);
       }}
     >
       <PanelTop size={20} strokeWidth={1.5} />
@@ -163,7 +163,7 @@ function IconStencil({ editor, entry }: Readonly<{ editor: EditorController; ent
       onArm={() => editor.armIcon(choice)}
       onDrop={(event) => {
         const point = pointInCanvas(editor, event);
-        if (point) editor.add("icon", point.x, point.y, choice);
+        if (point) editor.add("icon", { x: point.x, y: point.y, anchor: "corner" }, choice);
       }}
     >
       <img

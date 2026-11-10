@@ -7,8 +7,7 @@ import { effectiveAppearance } from "../document/appearance";
 import { itemName } from "../editor/relate";
 import { findMatches } from "../editor/find";
 import { editSource } from "../editor/commands";
-import { cellAt } from "../editor/input";
-import { panWithPointer } from "../editor/pointerButtons";
+import { cellAt, panWithPointer } from "../editor/pointerButtons";
 import { objectLinkEdit } from "../text/objectLinks";
 import "./canvasObjectLink.css";
 

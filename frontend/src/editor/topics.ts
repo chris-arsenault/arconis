@@ -11,12 +11,12 @@ import {
   branchPlacement,
   distributeOffsets,
   movedWithContents,
-  tidyBranch,
   type AlignMode,
   type Axis,
   type Offset,
 } from "../document/relations";
 import { LOCAL, isBox, type Item } from "../document/types";
+import { layoutTree } from "../document/treeLayout";
 import type { EditorController } from "./controller";
 import { fittingView, flyToView } from "./views";
 import { creationSize, creationValues } from "./zoom";
@@ -201,7 +201,7 @@ export function tidySelection(editor: EditorController) {
   if (!selected) return;
   const { document } = editor;
   const items = document.list();
-  const placed = tidyBranch(items, selected.id);
+  const placed = layoutTree(items, selected.id);
   document.undo.stopCapturing();
   document.doc.transact(() => {
     placed.forEach(({ x, y }, id) => {

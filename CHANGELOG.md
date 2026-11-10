@@ -21,6 +21,10 @@ All notable user-visible changes are recorded here.
 - Fixed copied layouts so internal Markdown and object links follow the copied objects.
 - Prevented account deletion from racing new saves and kept interrupted deletion retryable.
   Reusing an existing revision cannot prune its data.
+- Fixed picture retries so an issued upload link cannot mark missing bytes as shared, and preserved
+  authored text when converting picture hashes during file import/export.
+- Made copied links, creation defaults, room links and layout diagnostics consistent across their
+  existing entry points by sharing their policy implementations.
 
 ### Layers and slides
 

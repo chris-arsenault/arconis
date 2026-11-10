@@ -12,18 +12,12 @@ import {
 } from "./clipboard";
 import { placePictureFile } from "./pictureInput";
 import { LanguageError } from "../language/lexer";
+import { isInputTarget } from "./ui";
 
 /** A paste in place is asked for by its key just before the browser's paste event arrives. */
 const IN_PLACE_WINDOW_MS = 1000;
 /** How long after a middle press a paste event is the platform's selection paste, not a person's. */
 const MIDDLE_CLICK_WINDOW_MS = 500;
-
-function isTyping(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || Boolean(target.closest("input, textarea, [role=dialog]")))
-  );
-}
 
 /** Nothing can be pasted until the room key has opened its storage. */
 function isLocked(session: RoomSession) {
@@ -103,7 +97,7 @@ export function bindClipboardInput(editor: EditorController, session: RoomSessio
   window.addEventListener(
     "copy",
     (event) => {
-      if (isTyping(event.target) || editor.presenter.active) return;
+      if (isInputTarget(event.target) || editor.presenter.active) return;
       void copySelection(editor, session, event);
     },
     options
@@ -111,7 +105,7 @@ export function bindClipboardInput(editor: EditorController, session: RoomSessio
   window.addEventListener(
     "cut",
     (event) => {
-      if (isTyping(event.target) || editor.presenter.active) return;
+      if (isInputTarget(event.target) || editor.presenter.active) return;
       void cutSelection(editor, session, event);
     },
     options
@@ -119,7 +113,7 @@ export function bindClipboardInput(editor: EditorController, session: RoomSessio
   window.addEventListener(
     "paste",
     (event) => {
-      if (isTyping(event.target) || editor.presenter.active || isLocked(session)) return;
+      if (isInputTarget(event.target) || editor.presenter.active || isLocked(session)) return;
       if (performance.now() < middleUntil) return;
       const inPlace = performance.now() < inPlaceUntil;
       inPlaceUntil = 0;

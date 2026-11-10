@@ -5,13 +5,13 @@ import type { ConnectionState, FrameChannel } from "./channel";
 import { CHUNK_BYTES, FrameAssembler, frames } from "./frames";
 import { MAX_MESSAGE_BYTES } from "../relay/relay";
 import {
-  parseRoom,
   createRoomId,
   createLocalRoomId,
   createRecoveryRoomId,
   isLocalRoom,
   roomHash,
 } from "./room";
+import { parseRoom } from "../protocol/room";
 
 class Bus implements FrameChannel {
   onMessage: (message: string) => void = () => {};
@@ -261,6 +261,7 @@ it("uses high entropy room IDs and accepts shared URLs", () => {
   expect(id).toMatch(/^[a-f0-9]{48}$/);
   expect(createRoomId()).not.toBe(id);
   expect(parseRoom(`https://arconis.ahara.io/#room=${id}`)).toBe(id);
+  expect(parseRoom(`https://arconis.ahara.io/#room=${id}&item=selected`)).toBe(id);
   expect(parseRoom("123456")).toBeNull();
 });
 

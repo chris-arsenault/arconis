@@ -11,9 +11,7 @@ import {
   type Kind,
 } from "./swap";
 import { pasteFromClipboard } from "./clipboardInput";
-import { creationSize, creationValues } from "./zoom";
-import { containerAt } from "./panels";
-import { showComments } from "./registry";
+import { showComments } from "./ui";
 import { DRAWING_TOOLS, DRAWING_SHAPES, type DrawingTool } from "./drawingTools";
 
 /** Commands the pointer reaches for: the ring's colours and shapes, verbs for lines and frames. */
@@ -38,25 +36,10 @@ function here({ editor }: CommandContext) {
   return editor.ui.menu?.world ?? (editor.pointer ? editor.worldPoint(editor.pointer) : null);
 }
 
-const HERE_NAMES = { note: "Your idea here", text: "Text", frame: "Frame" } as const;
-
-function addHere(context: CommandContext, type: keyof typeof HERE_NAMES) {
+function addHere(context: CommandContext, type: "note" | "text" | "frame") {
   const { editor } = context;
   const point = here(context);
-  const scale = editor.graph.view.scale;
-  const size = creationSize(type, scale);
-  const x = point ? point.x - size.width / 2 : undefined;
-  const y = point ? point.y - size.height / 2 : undefined;
-  const id =
-    x !== undefined && y !== undefined
-      ? editor.document.create(type, x, y, {
-          name: HERE_NAMES[type],
-          inside: containerAt(editor.document, point!.x, point!.y, size),
-          ...creationValues(type, scale),
-          ...size,
-        })
-      : editor.add(type);
-  editor.select(id);
+  const id = editor.add(type, point ? { ...point, anchor: "center" } : null, null, null);
   editor.edit(id, true);
 }
 

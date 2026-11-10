@@ -1,6 +1,6 @@
 import type { WorkspaceRecord } from "../protocol/account";
 import type { WorkspaceTable } from "./workspaces";
-import { MAX_WORKSPACES } from "./api";
+import { MAX_WORKSPACES } from "./storage";
 
 export function memoryWorkspaces(
   adjustBytes: (user: string, delta: number) => boolean,

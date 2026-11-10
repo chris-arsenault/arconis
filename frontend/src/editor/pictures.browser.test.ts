@@ -41,10 +41,9 @@ it("uploads a pasted picture once, and peers and late joiners load it", async ()
   const uploads = uploadedPictures(a);
   await pastePicture(a, "#d04040");
   await expect.poll(() => objectCount(b)).toBe(1);
-  await expect.poll(async () => (await pictureOf(a))?.picture?.stored).toBe(true);
-  expect(uploads).toHaveLength(1);
+  await expect.poll(() => uploads.length).toBe(1);
   const hash = uploads[0];
-  expect(fixture.uploadsOf(hash)).toBe(1);
+  await expect.poll(() => fixture.uploadsOf(hash)).toBe(1);
   await expect.poll(() => drawnImages(b).count()).toBe(1);
 
   // Moving and resizing sync as metadata, with no more bytes.
@@ -85,7 +84,7 @@ it("explains a full store, and the picture still works here", async () => {
   await pastePicture(a, "#4040d0");
   await a.getByTestId("sync-status").filter({ hasText: "Picture storage is full" }).waitFor();
   await expect.poll(() => drawnImages(a).count()).toBe(1);
-  expect((await pictureOf(a))!.picture?.stored).toBe(false);
+  expect(fixture.storedPictures()).toEqual([]);
   expect(errors).toEqual([]);
 });
 

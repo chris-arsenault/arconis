@@ -40,8 +40,6 @@ export interface UploadContext {
   store: PictureStore;
   request: (request: UploadRequest) => Promise<UploadReply>;
   put: PutBytes;
-  /** The content type storage records. Differs from the picture's for encrypted bytes. */
-  contentType: (pictureType: string) => string;
 }
 
 /**
@@ -57,7 +55,7 @@ export async function uploadWaitingPictures(context: UploadContext) {
     const { base64: checksum } = await sha256(picture.bytes);
     const request: UploadRequest = {
       hash,
-      type: context.contentType(picture.type),
+      type: "application/octet-stream",
       size: picture.bytes.length,
       checksum,
     };

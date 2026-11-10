@@ -1,6 +1,7 @@
 import { MARKERS, type Item } from "../document/types";
 import { holdsOthers } from "../document/relations";
-import { showFilter, showTagger, type Command, type CommandContext } from "./registry";
+import type { Command, CommandContext } from "./registry";
+import { showFilter, showTagger } from "./ui";
 import { changeFields } from "./commands";
 import { filterMatches, isEmptyFilter } from "./filter";
 import { gatherIntoFrame } from "./gather";

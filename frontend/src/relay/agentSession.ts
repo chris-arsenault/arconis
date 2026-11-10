@@ -6,27 +6,19 @@ import { STENCILS } from "../document/types";
 import { loadAllVendors, loadIcons, searchIcons } from "../assets/icons/catalog";
 import type { Relay } from "./relay";
 import { ServerPeer, type PeerReadiness } from "./serverPeer";
-
-const ROOM_CODE = /^[a-f0-9]{48}$/;
+import { parseRoom } from "../protocol/room";
 
 /** A room an agent may open: an ordinary room's link or code. */
-export function parseRoomLink(value: string): string {
-  let candidate = value.trim();
-  try {
-    candidate = new URL(candidate).hash.slice(1);
-  } catch {
-    /* Raw room codes need no URL parsing. */
-  }
-  if (candidate.startsWith("locked="))
+function parseRoomLink(value: string): string {
+  const room = parseRoom(value);
+  if (!room) throw new LanguageError("That is not an Arconis room link or code.");
+  if (room.startsWith("locked-"))
     throw new LanguageError(
       "This is a password room. Its contents are encrypted, so agents cannot open it."
     );
-  if (candidate.startsWith("local="))
+  if (room.startsWith("local-"))
     throw new LanguageError("This room exists only in one browser, so agents cannot reach it.");
-  candidate = candidate.replace(/^room=/, "");
-  if (!ROOM_CODE.test(candidate))
-    throw new LanguageError("That is not an Arconis room link or code.");
-  return candidate;
+  return room;
 }
 
 const REFUSALS: Record<Exclude<PeerReadiness, "ready">, string> = {

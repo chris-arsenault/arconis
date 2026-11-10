@@ -202,7 +202,9 @@ describe("working in a room", () => {
   it("changes a room someone has open, and the person sees it merge", async () => {
     const alice = await person();
     const { call } = await agent();
-    const opened = await call("open_room", { room: `https://arconis.ahara.io/#room=${ROOM}` });
+    const opened = await call("open_room", {
+      room: `https://arconis.ahara.io/#room=${ROOM}&item=selected`,
+    });
     expect(opened).toMatch(/People here: Alice/);
     const added = await call("write", {
       statements: 'node auth "Auth" service at 0,0\nauth -> node db "Users DB" database "reads"',
@@ -247,12 +249,12 @@ describe("rooms an agent cannot use", () => {
   it("refuses rooms it cannot work in", async () => {
     const { call } = await agent();
     expect(await call("open_room", { room: ROOM })).toMatch(/Nobody has this room open/);
-    expect(await call("open_room", { room: `https://arconis.ahara.io/#locked=${ROOM}` })).toMatch(
-      /password room/
-    );
-    expect(await call("open_room", { room: `https://arconis.ahara.io/#local=${ROOM}` })).toMatch(
-      /only in one browser/
-    );
+    expect(
+      await call("open_room", { room: `https://arconis.ahara.io/#locked=${ROOM}&item=selected` })
+    ).toMatch(/password room/);
+    expect(
+      await call("open_room", { room: `https://arconis.ahara.io/#local=${ROOM}&item=selected` })
+    ).toMatch(/only in one browser/);
     expect(await call("read")).toMatch(/Call open_room/);
   });
 

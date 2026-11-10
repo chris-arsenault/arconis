@@ -1,6 +1,6 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { LOCAL } from "../document/types";
-import { NO_PICTURES, type FilePictures } from "../document/pictures";
+import { NO_PICTURES, renamePictures, type FilePictures } from "../document/pictures";
 import { isPng, readCopy } from "../document/pngCopy";
 import { parse } from "../language/parser";
 import { printCanvas } from "../language/printer";
@@ -16,14 +16,12 @@ export function serializeDocument(
   pictures: FilePictures = NO_PICTURES,
   includeMarkup = true
 ) {
-  let text = printCanvas(document, {
+  return printCanvas(document, {
     ids,
     includeMarkup,
     data: pictures.pictures.map(({ hash, type, data }) => ({ hash, type, data })),
+    pictureRenames: pictures.renames,
   });
-  // A password room names pictures by their sealed bytes; a file names them by their plain bytes.
-  pictures.renames.forEach((plain, sealed) => (text = text.replaceAll(sealed, plain)));
-  return text;
 }
 
 /** Reads a chosen file as canvas text, whether it is a canvas file or a picture carrying one. */
@@ -47,9 +45,7 @@ export function importDocument(
   place: (created: string[]) => void = () => {},
   stamp = false
 ) {
-  let text = content;
-  renames.forEach((kept, original) => (text = text.replaceAll(original, kept)));
-  const statements = parse(text);
+  const statements = parse(content);
   if (!statements.some((statement) => statement.kind === "header"))
     throw new Error("Choose an Arconis canvas file (.arconis).");
   document.undo.stopCapturing();
@@ -58,7 +54,12 @@ export function importDocument(
     document.doc.transact(() => {
       const result = writeStatements(document, statements, { author: "", importing: true });
       created = result.created;
-      if (renames.size) unstorePictures(document, created, new Set(renames.values()));
+      if (renames.size) {
+        const originals = created.map((id) => document.get(id)!);
+        renamePictures(originals, renames).forEach((item, index) => {
+          if (item !== originals[index]) document.patch(item.id, { picture: item.picture });
+        });
+      }
       place(created);
     }, LOCAL);
   // A file's items keep the editors the file names, rather than whoever opened it; a paste is
@@ -67,13 +68,4 @@ export function importDocument(
   else document.withoutStamps(write);
   document.undo.stopCapturing();
   return created;
-}
-
-/** Pictures kept under a new name have not reached shared storage under it yet. */
-function unstorePictures(document: CanvasDocument, ids: string[], renamed: Set<string>) {
-  for (const id of ids) {
-    const picture = document.get(id)?.picture;
-    if (picture && renamed.has(picture.hash))
-      document.patch(id, { picture: { ...picture, stored: false } });
-  }
 }

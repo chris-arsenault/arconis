@@ -14,7 +14,8 @@ import {
 import type { EditorController } from "../editor/controller";
 import { clampScale, zoomLabel } from "../editor/zoom";
 import { changeFields } from "../editor/commands";
-import { runCommand, showFind } from "../editor/registry";
+import { runCommand } from "../editor/registry";
+import { showFind } from "../editor/ui";
 import { shortcutLabel } from "../editor/shortcuts";
 import { anythingInView } from "../editor/views";
 import { FindBar } from "./FindBar";

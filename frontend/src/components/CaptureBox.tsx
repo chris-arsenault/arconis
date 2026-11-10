@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Network, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { captureNote, captureToTree } from "../editor/capture";
-import { endCapture } from "../editor/registry";
+import { endCapture } from "../editor/ui";
 
 /**
  * Capture: type an idea, press Enter, and it lands as a note under the last one; the stack can
