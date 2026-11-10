@@ -10,7 +10,6 @@ import {
   ringEntries,
   RING_MODES,
 } from "./contextMenu";
-import { syncZoom } from "./zoom";
 
 /** The object under a pointer, including its label and indicators, excluding template underlays. */
 export function cellAt(editor: EditorController, event: MouseEvent) {
@@ -261,12 +260,12 @@ export function bindPointerButtons(editor: EditorController, signal: AbortSignal
     const dx = editor.graph.getPanDx();
     const dy = editor.graph.getPanDy();
     const overlays = editor.element.parentElement?.querySelectorAll<HTMLElement>(
-      ".selection-frame, .contextual-tools, .selection-popover, .text-overflow-indicator, .gradient-direction, .cursors, .find-pulse, .comment-modal, .quick-create, .measure, :scope > .laser"
+      ".selection-frame, .contextual-tools, .selection-popover, .text-overflow-indicator, .gradient-direction, .cursors, .find-pulse, .comment-modal, .quick-create, .measure, .distance-overlay svg, :scope > .laser"
     );
     overlays?.forEach((node) => {
       node.style.translate = dx || dy ? `${dx}px ${dy}px` : "";
     });
-    syncZoom(editor.graph, editor.element);
+    editor.grid.sync();
   };
   editor.graph.addListener(InternalEvent.PAN, preview);
   signal.addEventListener("abort", () => editor.graph.removeListener(preview), { once: true });

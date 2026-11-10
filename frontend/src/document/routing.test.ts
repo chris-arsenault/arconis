@@ -36,6 +36,28 @@ it("has no corners when nothing is in the way", () => {
   expect(routeAround(start, end, [], 10)).toEqual([]);
 });
 
+it("preserves routes around obstacles at millionfold zoom", () => {
+  const factor = 2 ** -20;
+  const scaled = (box: Box): Box => ({
+    x: box.x * factor,
+    y: box.y * factor,
+    width: box.width * factor,
+    height: box.height * factor,
+  });
+  const a = facing(scaled(source), scaled(sink));
+  const b = facing(scaled(sink), scaled(source));
+  const obstacle = scaled(wall);
+  const corners = routeAround(a, b, [obstacle], 10 * factor)!;
+  expect(corners).not.toBeNull();
+  expect(corners.length).toBeGreaterThan(0);
+  const path = whole(corners, a, b);
+  for (let index = 1; index < path.length; index++) {
+    const [left, right] = [path[index - 1], path[index]];
+    expect(left[0] === right[0] || left[1] === right[1]).toBe(true);
+    expect(crosses(left, right, obstacle)).toBe(false);
+  }
+});
+
 it("gives every peer the same route", () => {
   const obstacles = [wall, { x: 400, y: 50, width: 50, height: 200 }];
   const first = routeAround(start, end, obstacles, 10);

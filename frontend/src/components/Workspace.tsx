@@ -9,7 +9,8 @@ import { PresenceOverlays } from "./Presence";
 import { ContextMenu } from "./ContextMenu";
 import { QuickCreate } from "./QuickCreate";
 import { RelatePicker, TagPopover } from "./SelectionPopovers";
-import { Measure } from "./Measure";
+import { Measure, ResizeFeedback } from "./Measure";
+import { DistanceMeasure } from "./DistanceMeasure";
 import { Announcer } from "./Announcer";
 import { CommentModal } from "./CommentModal";
 import { CanvasHUD } from "./CanvasHUD";
@@ -234,6 +235,8 @@ function EditingOverlays({
       <MarkupBar editor={editor} />
       <TextOverflow editor={editor} />
       <Measure editor={editor} />
+      <ResizeFeedback editor={editor} />
+      <DistanceMeasure editor={editor} />
       <Announcer editor={editor} />
       {editor.ui.palette && <CommandPalette editor={editor} />}
       {editor.ui.pasteAs && <PasteAs editor={editor} />}

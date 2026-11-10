@@ -121,7 +121,7 @@ it("keeps right-click and radial menus exclusive, pans with middle drag, and ope
   await page.mouse.up({ button: "middle" });
   const after = (await row(page, "Target").boundingBox())!;
   expect(Math.round(after.x - before.x)).toBe(100);
-  expect(await page.getByTestId("zoom-level").textContent()).toBe("100%");
+  expect(await page.getByTestId("zoom-level").textContent()).toBe("1×");
 
   // A right click on an object selects it and opens the ring and menu; the menu's items run, and
   // the browser's own menu stays away, whether it fires on press or on release over the ring.

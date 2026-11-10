@@ -43,6 +43,7 @@ export const CURSORS: Record<CursorName, CursorSpec> = {
 /** Exhaustive placement/navigation coverage: adding a Tool requires choosing its cursor here. */
 export const TOOL_CURSORS: Record<Exclude<Tool, "draw" | "markup">, CursorName> = {
   select: "default",
+  measure: "crosshair",
   pan: "grab",
   connect: "link",
   text: "text",

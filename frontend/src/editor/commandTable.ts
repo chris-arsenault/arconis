@@ -63,6 +63,13 @@ function place(id: Tool, label: string, what: string, key?: string, keywords: st
 
 const TOOLS: Command[] = [
   tool("select", "Select", "Click or drag on the canvas to select and move objects.", "v"),
+  tool(
+    "measure",
+    "Measure distance",
+    "Measure two points in the canvas units; calibrate a known distance.",
+    undefined,
+    ["ruler", "units", "scale", "distance"]
+  ),
   tool("pan", "Pan", "Drag the canvas to move your view instead of objects.", "h", [
     "hand",
     "move view",

@@ -35,7 +35,7 @@ function inside([x, y]: Point, boxes: Box[]) {
 
 /** Sorted distinct values. */
 function axis(values: number[]) {
-  return [...new Set(values.map((value) => Math.round(value * 1000) / 1000))].sort((a, b) => a - b);
+  return [...new Set(values)].sort((a, b) => a - b);
 }
 
 interface Grid {
@@ -178,12 +178,8 @@ function corners(path: Point[]) {
  * cannot be avoided and is not.
  */
 export function routeAround(start: RouteEnd, end: RouteEnd, obstacles: Box[], margin: number) {
-  const round = (point: Point): Point => [
-    Math.round(point[0] * 1000) / 1000,
-    Math.round(point[1] * 1000) / 1000,
-  ];
-  const from = round(stub(start, margin));
-  const to = round(stub(end, margin));
+  const from = stub(start, margin);
+  const to = stub(end, margin);
   const grown = obstacles
     .map((box) => ({
       x: box.x - margin,

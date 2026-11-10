@@ -4,6 +4,20 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Zoom, units and measurement
+
+- Unified zoom controls across a reciprocal `2⁻²⁰` to `2²⁰` range around `1×`, with multiplier
+  readouts, precise numeric entry and four steps per doubling. Removed fixed coordinate rounding
+  that made deep editing and file round trips coarse.
+- Added shared calibration, working-scale presets, custom units, a zoom-aware scale bar and
+  calibration from a measured distance. Geometry fields convert compatible units, while grid
+  snapping supports automatic intervals and fixed distances such as 2.54 mm.
+- Added temporary distance measurement with pointer and keyboard input, object/grid snapping,
+  horizontal and vertical components, and calibrated gap and resize feedback.
+- Kept visible children and long connections when their holders or endpoints become tiny;
+  selected objects remain drawn. Window resizing preserves the view center and panel changes
+  preserve content position.
+
 ### Accounts and saved work
 
 - Combined local and private account copies in **Your canvases**, with search, availability and

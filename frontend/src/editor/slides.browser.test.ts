@@ -44,7 +44,7 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   const decks = page.getByTestId("deck");
   await expect.poll(() => decks.count()).toBe(2);
   await decks.filter({ hasText: "pitch" }).getByRole("button", { name: "5 · Solution" }).click();
-  await expect.poll(() => page.getByTestId("zoom-level").textContent()).not.toBe("100%");
+  await expect.poll(() => page.getByTestId("zoom-level").textContent()).not.toBe("1×");
   expect(await page.getByTestId("selection-count").textContent()).toBe("Slide");
 
   // Speaker notes: a comment of several lines, broken with Shift Enter, in the comments modal.

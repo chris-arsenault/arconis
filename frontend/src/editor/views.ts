@@ -5,6 +5,7 @@ import { worldBounds } from "../document/relations";
 import { LOCAL, type Item, type View } from "../document/types";
 import { clampScale, viewportSize } from "./zoom";
 import { viewHistoryOf } from "./viewHistory";
+import { CULL_PIXELS } from "./culling";
 
 const FLY_MS = 350;
 
@@ -33,15 +34,24 @@ export function anythingInView(graph: Graph, element: HTMLElement, items: Item[]
     height: height / scale,
   };
   return items.some((item) => {
+    if (!hasPaintedState(graph, item.id)) return false;
     const box = worldBounds([item]);
     return (
       box !== null &&
+      !item.hidden &&
+      Math.max(box.width, box.height) * scale >= CULL_PIXELS &&
       box.x < window.x + window.width &&
       box.x + box.width > window.x &&
       box.y < window.y + window.height &&
       box.y + box.height > window.y
     );
   });
+}
+
+function hasPaintedState(graph: Graph, id: string) {
+  const cell = graph.getDataModel().getCell(id);
+  const state = cell && graph.view.getState(cell);
+  return Boolean(state && state.shape?.node?.style.display !== "none");
 }
 
 function viewportCenter(graph: Graph, element: HTMLElement) {
@@ -112,7 +122,11 @@ export function flyToView(graph: Graph, element: HTMLElement, view: View, animat
   const startScale = graph.view.scale;
   const place = (scale: number, x: number, y: number, size = viewportSize(element)) => {
     const { width, height } = size;
-    graph.view.scaleAndTranslate(scale, width / 2 / scale - x, height / 2 / scale - y);
+    graph.view.scaleAndTranslate(
+      clampScale(scale),
+      width / 2 / clampScale(scale) - x,
+      height / 2 / clampScale(scale) - y
+    );
   };
   if (!animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     // Layout effects can fit a slide before ResizeObserver reports the chrome disappearing.

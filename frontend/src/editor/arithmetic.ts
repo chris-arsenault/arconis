@@ -5,7 +5,7 @@
 
 type Operator = "+" | "-" | "*" | "/";
 type Token = number | Operator;
-const TOKEN = /^(?:(\d*\.?\d+)|([+\-*/]))/;
+const TOKEN = /^(?:(\d*\.?\d+(?:e[+-]?\d+)?)|([+\-*/]))/i;
 
 /** Numbers and operators in order, or null when anything else appears. */
 function tokenize(text: string): Token[] | null {

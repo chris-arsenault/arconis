@@ -1,5 +1,6 @@
 import {
   Rectangle,
+  InternalEvent,
   mathUtils,
   type Cell,
   type CellState,
@@ -41,17 +42,14 @@ function tooSmall(cell: Cell, scale: number): boolean {
   if (!geometry) return false;
   if (cell.isVertex()) return Math.max(geometry.width, geometry.height) * scale < CULL_PIXELS;
   if (!cell.isEdge()) return false;
-  // A connector goes with either end. A drawing has no ends, only its own extent.
-  if (cell.source || cell.target)
-    return [cell.source, cell.target].some((end) => end !== null && isCulled(end, scale));
+  // Routed connector extents are known at paint time; endpoint size does not decide visibility.
+  if (cell.source || cell.target) return false;
   return pathSize(geometry) * scale < CULL_PIXELS;
 }
 
-/** True for a cell drawn too small to see, or held inside one that is. */
+/** Size culling is independent of containment: children may extend beyond a tiny holder. */
 export function isCulled(cell: Cell, scale: number) {
-  for (let current: Cell | null = cell; current; current = current.parent)
-    if (tooSmall(current, scale)) return true;
-  return false;
+  return tooSmall(cell, scale);
 }
 
 /** True when zooming in on this object would reveal something it holds. */
@@ -80,11 +78,11 @@ export function configureCulling(
     const reference = style.reference === true;
     const shown =
       !(reference && !showReference(cell)) &&
-      !(style.markup && !(exporting.get(graph) ?? showMarkup())) &&
-      !tooSmall(cell, view.scale);
+      !(style.markup && !(exporting.get(graph) ?? showMarkup()));
     return validateCell(cell, visible && shown);
   };
   configureViewportRendering(graph);
+  graph.getSelectionModel().addListener(InternalEvent.CHANGE, () => view.revalidate());
 }
 
 /** Keep all states for routing and hit testing. Only painting uses the viewport; exports draw
@@ -94,13 +92,19 @@ function configureViewportRendering(graph: Graph) {
   const redraw = renderer.redraw.bind(renderer);
   const hidden = new WeakSet<CellState>();
   renderer.redraw = (state, force = false, rendering = true) => {
-    const shown = exporting.has(graph) || inViewport(graph, state);
+    const shown = shouldPaint(graph, state);
     const wasHidden = hidden.has(state);
     redraw(state, force || (wasHidden && shown), rendering && shown);
     showState(state, shown);
     if (shown) hidden.delete(state);
     else hidden.add(state);
   };
+}
+
+function shouldPaint(graph: Graph, state: CellState) {
+  const size = Math.max(state.width, state.height);
+  if (exporting.has(graph)) return size >= 1;
+  return graph.isCellSelected(state.cell) || (size >= CULL_PIXELS && inViewport(graph, state));
 }
 
 function showState(state: CellState, shown: boolean) {

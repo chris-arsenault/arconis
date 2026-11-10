@@ -1,6 +1,6 @@
 import type { EditorController, Shape } from "./controller";
 import { PanningHandler } from "@maxgraph/core";
-import { clampScale, creationValues } from "./zoom";
+import { clampScale, creationValues, viewportSize } from "./zoom";
 import { bindDrawingInput } from "./drawingInput";
 import { commandContext, commandForKey, runCommand } from "./registry";
 import { isInputTarget, showComments, showRelate } from "./ui";
@@ -96,7 +96,7 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
       if (event.button !== 0 || ["select", "pan"].includes(editor.tool)) return;
       event.preventDefault();
       event.stopPropagation();
-      if (editor.drawing.active) return;
+      if (editor.drawing.active || editor.tool === "measure") return;
       if (editor.tool === "connect") {
         const cell = cellAt(editor, event);
         if (cell?.isVertex())
@@ -179,6 +179,8 @@ export function bindCanvasInput(editor: EditorController) {
   bindMarkdownLinks(editor, abort.signal);
   bindRelateInput(editor, options);
   bindDrawingInput(editor, abort.signal);
+  editor.measurement.bind(abort.signal);
+  bindGridGesture(editor, abort.signal);
   bindPointerTools(editor, options);
   window.addEventListener(
     "click",
@@ -227,12 +229,7 @@ export function bindCanvasInput(editor: EditorController) {
     ...options,
     passive: false,
   });
-  editor.element.addEventListener(
-    "pointermove",
-    ({ clientX, clientY }) => (editor.pointer = { clientX, clientY }),
-    options
-  );
-  editor.element.addEventListener("pointerleave", () => (editor.pointer = null), options);
+  bindPointerPosition(editor, abort.signal);
   window.addEventListener("keydown", (event) => keyboard(editor, event, panHold), options);
   window.addEventListener(
     "keyup",
@@ -250,6 +247,24 @@ export function bindCanvasInput(editor: EditorController) {
   configureCreateTarget(editor.graph, editor.document);
   configureCentredResize();
   return () => abort.abort();
+}
+
+function bindGridGesture(editor: EditorController, signal: AbortSignal) {
+  editor.element.addEventListener("pointerdown", () => editor.grid.freeze(), {
+    signal,
+    capture: true,
+  });
+  window.addEventListener("pointerup", editor.grid.release, { signal });
+  window.addEventListener("pointercancel", editor.grid.release, { signal });
+}
+
+function bindPointerPosition(editor: EditorController, signal: AbortSignal) {
+  editor.element.addEventListener(
+    "pointermove",
+    ({ clientX, clientY }) => (editor.pointer = { clientX, clientY }),
+    { signal }
+  );
+  editor.element.addEventListener("pointerleave", () => (editor.pointer = null), { signal });
 }
 
 function connectClick(editor: EditorController, source: string, target: string) {
@@ -293,15 +308,17 @@ function wheelHandler(editor: EditorController, signal: AbortSignal) {
   };
   return (event: WheelEvent) => {
     event.preventDefault();
+    const units = [1, 16, viewportSize(editor.element).height];
+    const unit = units[event.deltaMode] ?? 1;
     if (
       !event.ctrlKey &&
       !event.metaKey &&
       (Math.abs(event.deltaX) > 0 || !Number.isInteger(event.deltaY))
     ) {
-      panX += event.deltaX;
-      panY += event.deltaY;
+      panX += event.deltaX * unit;
+      panY += event.deltaY * unit;
     } else {
-      zoomDelta += event.deltaY;
+      zoomDelta += event.deltaY * unit;
       pointer = event;
     }
     if (!scheduled) {

@@ -25,11 +25,7 @@ const branches = (items: Awaited<ReturnType<typeof objects>>) =>
 const action = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 
 /** Whether a label is drawn on the canvas right now. */
-const drawn = (page: Page, text: string) =>
-  canvas(page)
-    .getByText(text)
-    .count()
-    .then((count) => count > 0);
+const drawn = (page: Page, text: string) => canvas(page).getByText(text).isVisible();
 
 async function zoomOut(page: Page, steps: number) {
   const bounds = (await canvas(page).boundingBox())!;
@@ -55,7 +51,7 @@ it("culls small objects by zoom, reveals held detail on zooming in, and still fi
   await page.getByRole("button", { name: "Zoom into", exact: true }).click();
   await page.waitForTimeout(600);
   const zoomed = Number.parseFloat((await page.getByTestId("zoom-level").textContent())!);
-  expect(zoomed).toBeGreaterThan(300);
+  expect(zoomed).toBeGreaterThan(3);
 
   // A sticky placed while zoomed in lands inside the object, at this zoom's size.
   await page.getByRole("button", { name: "Sticky note (N)", exact: true }).click();

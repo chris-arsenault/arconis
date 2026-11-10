@@ -12,13 +12,14 @@ import {
   Waypoints,
 } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import { clampScale, zoomLabel } from "../editor/zoom";
+import { zoomAt, zoomLabel, ZOOM_STEP } from "../editor/zoom";
 import { changeFields } from "../editor/commands";
 import { runCommand } from "../editor/registry";
 import { showFind } from "../editor/ui";
 import { shortcutLabel } from "../editor/shortcuts";
 import { anythingInView } from "../editor/views";
 import { FindBar } from "./FindBar";
+import { ScaleControls } from "./ScaleControls";
 import "./discovery.css";
 
 /** Hidden items have nothing to click, so the one way back to them stays in view. */
@@ -45,7 +46,7 @@ function HiddenObjects({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-/** A zoom typed as a percentage, applied on Enter or when the field is left. */
+/** A precise magnification, applied on Enter or when the field is left. */
 function ZoomInput({
   editor,
   initial,
@@ -53,11 +54,14 @@ function ZoomInput({
 }: Readonly<{ editor: EditorController; initial: string; onDone: () => void }>) {
   const [typing, setTyping] = useState(initial);
   const input = useRef<HTMLInputElement>(null);
+  const finished = useRef(false);
   useEffect(() => input.current?.focus(), []);
   const apply = () => {
-    const percent = Number(typing);
-    if (Number.isFinite(percent) && percent > 0) {
-      editor.graph.zoomTo(clampScale(percent / 100), true);
+    if (finished.current) return;
+    finished.current = true;
+    const scale = Number(typing.replace(/[×x]$/, "").trim());
+    if (Number.isFinite(scale) && scale > 0) {
+      zoomAt(editor.graph, scale);
       editor.emit();
     }
     onDone();
@@ -66,14 +70,17 @@ function ZoomInput({
     <input
       ref={input}
       className="zoom-readout"
-      aria-label="Zoom percent"
-      data-hint-detail="Type a percentage and press Enter to zoom your view; Escape cancels."
+      aria-label="Zoom multiplier"
+      data-hint-detail="Type a magnification such as 0.5 or 2 and press Enter; Escape cancels."
       value={typing}
       onChange={(event) => setTyping(event.target.value)}
       onBlur={apply}
       onKeyDown={(event) => {
         if (event.key === "Enter") apply();
-        if (event.key === "Escape") onDone();
+        if (event.key === "Escape") {
+          finished.current = true;
+          onDone();
+        }
       }}
     />
   );
@@ -85,14 +92,18 @@ function ZoomReadout({ editor }: Readonly<{ editor: EditorController }>) {
   const label = zoomLabel(editor.graph.view.scale);
   if (typing)
     return (
-      <ZoomInput editor={editor} initial={label.replace("%", "")} onDone={() => setTyping(false)} />
+      <ZoomInput
+        editor={editor}
+        initial={String(editor.graph.view.scale)}
+        onDone={() => setTyping(false)}
+      />
     );
   return (
     <button
       className="zoom-readout"
       data-testid="zoom-level"
       data-hint="Type a zoom"
-      data-hint-detail="Type an exact zoom percentage for your view only."
+      data-hint-detail="Type an exact magnification for your view only."
       onClick={() => setTyping(true)}
     >
       {label}
@@ -125,7 +136,7 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         aria-label="Zoom out"
         data-hint-detail="Show more of the canvas; pinching or Ctrl/⌘ scrolling also zooms."
-        onClick={() => editor.zoom(1 / 1.2)}
+        onClick={() => editor.zoom(1 / ZOOM_STEP)}
       >
         <Minus size={17} />
       </button>
@@ -133,7 +144,7 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
       <button
         aria-label="Zoom in"
         data-hint-detail="Look closer at the canvas; pinching or Ctrl/⌘ scrolling also zooms."
-        onClick={() => editor.zoom(1.2)}
+        onClick={() => editor.zoom(ZOOM_STEP)}
       >
         <Plus size={17} />
       </button>
@@ -216,6 +227,7 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
         </button>
       </div>
       <ViewControls editor={editor} />
+      <ScaleControls editor={editor} />
       <button
         className="help-button"
         data-help-id="palette"

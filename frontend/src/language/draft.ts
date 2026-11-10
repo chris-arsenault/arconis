@@ -10,8 +10,7 @@ import { authoredLook } from "../document/appearance";
 import type { LayerRecord } from "../document/layers";
 import { BLANK } from "../document/itemDefaults";
 import { requestedId, type ItemStatement } from "./syntax";
-
-const GEOMETRY = ["x", "y", "width", "height"] as const;
+import type { Calibration } from "../document/units";
 
 export interface DraftResult {
   created: string[];
@@ -46,6 +45,9 @@ export class Draft {
   readonly layers = new Map<string, LayerRecord>();
   readonly layered: { id: string; line: number }[] = [];
   title: string | null = null;
+  calibrationChange: { kind: "keep" } | { kind: "set"; value: Calibration | null } = {
+    kind: "keep",
+  };
   private readonly original = new Map<string, string>();
   private order: number;
 
@@ -194,12 +196,9 @@ export class Draft {
   commit(): DraftResult {
     const { document } = this;
     const changed: string[] = [];
-    // Layout arithmetic leaves float noise; positions keep the precision the language prints.
-    for (const id of [...this.created, ...this.moved]) {
-      const item = this.items.get(id);
-      if (item) for (const key of GEOMETRY) item[key] = Math.round(item[key] * 1e6) / 1e6;
-    }
     if (this.title !== null) document.rename(this.title);
+    if (this.calibrationChange.kind === "set")
+      document.setCalibration(this.calibrationChange.value);
     this.changedStyles.forEach((look, name) => document.setStyle(name, look));
     commitLayerRecords(this);
     this.removed.forEach((id) => {

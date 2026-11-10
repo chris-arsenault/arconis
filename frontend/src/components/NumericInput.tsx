@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { evaluateNumber } from "../editor/arithmetic";
+import { unitExpression } from "../document/units";
 
 import type { NumericRules, NumericValue } from "./numericRules";
 
@@ -11,14 +12,16 @@ interface NumericProps {
   rules: NumericRules;
   /** The field's help sentence, for a field without a `<label>` to carry it. */
   detail: string;
+  unit?: string;
 }
 
 function parseNumber(source: string, options: NumericProps) {
   if (!source.trim()) return null;
-  const plain = /^-?\d+(?:\.\d*)?$|^-?\.\d+$/.test(source.trim());
+  const normalized = options.unit ? unitExpression(source, options.unit) : source;
+  const plain = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(normalized.trim());
   const current = options.value === "mixed" ? 0 : options.value;
   const number =
-    options.rules.arithmetic && !plain ? evaluateNumber(source, current) : Number(source);
+    options.rules.arithmetic && !plain ? evaluateNumber(normalized, current) : Number(normalized);
   return number !== null && withinRange(number, options.rules) ? number : null;
 }
 

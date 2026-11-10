@@ -166,19 +166,19 @@ async function zoomTo(page: Page, deltaY: number, label: string) {
     .toBe(label);
 }
 
-it("zooms across the 1000x range and keeps editing usable at both ends", async () => {
+it("zooms across the symmetric millionfold range and keeps editing usable at both ends", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await add(page, "Rectangle (R)", "At normal zoom", 400, 300);
   const dots = () => canvas(page).evaluate((node) => (node as HTMLElement).style.backgroundSize);
   for (const [deltaY, label, name] of [
-    [-3000, "100000%", "in"],
-    [3000, "0.1%", "out"],
+    [-3000, "1049000×", "in"],
+    [3000, "9.537e-7×", "out"],
   ] as const) {
     await zoomTo(page, deltaY, label);
     await canvas(page).click({ position: emptySpot });
-    expect(parseFloat(await dots())).toBeGreaterThanOrEqual(19);
-    expect(parseFloat(await dots())).toBeLessThanOrEqual(201);
+    expect(parseFloat(await dots())).toBeGreaterThanOrEqual(100);
+    expect(parseFloat(await dots())).toBeLessThanOrEqual(250);
     await railPanel(page, "Shapes");
     await page.getByRole("button", { name: "Sticky note (N)", exact: true }).click();
     await canvas(page).click({ position: { x: 300, y: 200 } });
@@ -187,7 +187,7 @@ it("zooms across the 1000x range and keeps editing usable at both ends", async (
     await page.screenshot({ path: `test-results/zoom-${name}.png` });
     const saved = await exported(page);
     const note = saved.objects.find((item) => item.name === `Zoomed ${name}`)!;
-    const scale = name === "in" ? 1000 : 0.001;
+    const scale = name === "in" ? 2 ** 20 : 2 ** -20;
     // Created at a familiar on-screen size, with text to match: a note's text is 16 at scale 1.
     const textSize = (note.look.textSize ?? 16) * (note.look.scale ?? 1);
     expect(note.width * scale).toBeGreaterThan(100);

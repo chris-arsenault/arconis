@@ -64,8 +64,8 @@ it("uses compact object interiors without clipping a short label", async () => {
     await expect.poll(() => objectCount(page)).toBe(8);
     await page.getByRole("button", { name: "Dismiss", exact: true }).click();
     await page.getByTestId("zoom-level").click();
-    await page.getByLabel("Zoom percent", { exact: true }).fill("100");
-    await page.getByLabel("Zoom percent", { exact: true }).press("Enter");
+    await page.getByLabel("Zoom multiplier", { exact: true }).fill("1");
+    await page.getByLabel("Zoom multiplier", { exact: true }).press("Enter");
     const measured = await measureLabels(page);
     expect(measured).toHaveLength(8);
     expect(
@@ -96,8 +96,8 @@ it("uses compact object interiors without clipping a short label", async () => {
         expect(label.glyphs.bottom).toBeLessThanOrEqual(clip.bottom + 1);
     }
     await page.getByTestId("zoom-level").click();
-    await page.getByLabel("Zoom percent", { exact: true }).fill("25");
-    await page.getByLabel("Zoom percent", { exact: true }).press("Enter");
+    await page.getByLabel("Zoom multiplier", { exact: true }).fill("0.25");
+    await page.getByLabel("Zoom multiplier", { exact: true }).press("Enter");
     const title = (await measureLabels(page)).find((label) => label.text === "Frame title")!;
     expect(title).toBeDefined();
     expect(title.glyphs.height).toBeGreaterThan(10);

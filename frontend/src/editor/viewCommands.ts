@@ -6,6 +6,7 @@ import { showFind, showHelp, showPalette } from "./ui";
 import { helpZone } from "../help/zone";
 import { zoomIntoSelection, zoomOutOfSelection } from "./topics";
 import { fittingView, flyToView, saveCurrentView } from "./views";
+import { ZOOM_STEP } from "./zoom";
 
 /** Commands over this person's view: the palette, zoom, the grid, references and saved views. */
 
@@ -55,7 +56,7 @@ export const VIEW_COMMANDS: Command[] = [
       { key: "=", ctrl: true },
       { key: "+", ctrl: true },
     ],
-    run: ({ editor }) => editor.zoom(1.2),
+    run: ({ editor }) => editor.zoom(ZOOM_STEP),
   },
   {
     id: "view.zoomOut",
@@ -63,7 +64,7 @@ export const VIEW_COMMANDS: Command[] = [
     help: "Shrink the canvas one step in your view to see more of it.",
     group: "view",
     shortcuts: [{ key: "-", ctrl: true }],
-    run: ({ editor }) => editor.zoom(1 / 1.2),
+    run: ({ editor }) => editor.zoom(1 / ZOOM_STEP),
   },
   {
     id: "view.zoomInto",
@@ -104,8 +105,8 @@ export const VIEW_COMMANDS: Command[] = [
   },
   {
     id: "view.actualSize",
-    label: "Zoom to 100%",
-    help: "Show the canvas at actual size without changing which part you are looking at.",
+    label: "Normal zoom (1×)",
+    help: "Show the canvas at normal magnification without changing its center.",
     group: "view",
     shortcuts: [{ key: "0", shift: true }],
     keywords: ["actual size", "reset zoom"],

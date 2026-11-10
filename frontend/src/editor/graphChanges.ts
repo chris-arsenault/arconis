@@ -136,7 +136,7 @@ function commitExisting(
 function followEdges(existing: Item, values: Partial<Item>, document: CanvasDocument) {
   if (!isFrame(existing)) return;
   const after = { ...existing, ...values };
-  const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  const same = (a: number, b: number) => a === b;
   if (
     same(existing.x, after.x) &&
     same(existing.y, after.y) &&

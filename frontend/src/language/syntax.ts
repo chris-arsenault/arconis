@@ -10,6 +10,7 @@ import type {
   TaskState,
 } from "../document/types";
 import type { TreeDirection } from "../document/treeLayout";
+import type { Calibration } from "../document/units";
 
 /**
  * Attribute words that may also be ids in documents written before the words existed. A quoted name
@@ -156,6 +157,7 @@ export type Statement =
   | LinkStatement
   | ({ kind: "header"; version: number } & Located)
   | ({ kind: "title"; title: string } & Located)
+  | ({ kind: "scale"; calibration: Calibration | null } & Located)
   | ({ kind: "style"; name: string; attributes: Attribute[] } & Located)
   | ({ kind: "delete"; refs: string[] } & Located)
   | ({

@@ -3,6 +3,8 @@ import type { EditorController } from "../editor/controller";
 import { isBox } from "../document/types";
 import { stackAt } from "../editor/selectBy";
 import { gapsBetween } from "../editor/measure";
+import { formatDistance } from "../document/units";
+import { previewBoxes, type PreviewBox } from "../editor/preview";
 
 const noPresence = { subscribe: () => () => {}, snapshot: () => 0 };
 
@@ -43,7 +45,9 @@ export function Measure({ editor }: Readonly<{ editor: EditorController }>) {
   const { scale, translate } = editor.graph.view;
   return (
     <div className="measure" aria-hidden="true" data-testid="measure">
-      {gapsBetween(selected, hovered).map((gap) => (
+      {gapsBetween(selected, hovered, (distance) =>
+        formatDistance(distance * editor.grid.factor, editor.grid.unit, true)
+      ).map((gap) => (
         <span
           key={`${gap.x},${gap.y}`}
           className="measure-label"
@@ -57,5 +61,27 @@ export function Measure({ editor }: Readonly<{ editor: EditorController }>) {
         </span>
       ))}
     </div>
+  );
+}
+
+/** Native handle previews are graph-local until release; report their live dimensions in units. */
+export function ResizeFeedback({ editor }: Readonly<{ editor: EditorController }>) {
+  const [box, setBox] = useState<PreviewBox | null>(null);
+  useEffect(() => {
+    const listener = {
+      mouseDown: () => {},
+      mouseMove: () => setBox(previewBoxes(editor.graph)[0] ?? null),
+      mouseUp: () => setBox(null),
+    };
+    editor.graph.addMouseListener(listener);
+    return () => editor.graph.removeMouseListener(listener);
+  }, [editor]);
+  if (!box) return null;
+  const label = (value: number) =>
+    formatDistance(value * editor.grid.factor, editor.grid.unit, true);
+  return (
+    <output className="resize-readout" aria-label="Live object size">
+      {label(box.width)} × {label(box.height)}
+    </output>
   );
 }

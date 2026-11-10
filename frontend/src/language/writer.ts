@@ -10,7 +10,6 @@ import { routeLineAround } from "../document/routeLine";
 import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
 import { Draft } from "./draft";
 import { LanguageError } from "./lexer";
-import { LANGUAGE_VERSION } from "./printer";
 import { DEFAULT_GAP, paddingOf } from "../document/layout";
 import { combineRules, type Rules } from "./placement";
 import type {
@@ -52,6 +51,7 @@ import { requestedId } from "./syntax";
 import { isConversation, type Conversation } from "./effects";
 import { attributesFor } from "./attributeRouting";
 import { checkedDrawingEndpoint, checkDrawings, reshapePanel } from "./drawing";
+import { calibrateDraft, checkVersion } from "./metadata";
 
 export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
@@ -62,14 +62,9 @@ type Handler<K extends Statement["kind"]> = (
 ) => void;
 
 const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } = {
-  header: (_writer, statement) => {
-    if (statement.version > LANGUAGE_VERSION)
-      throw new LanguageError(
-        `This uses language version ${statement.version}; this canvas reads up to ${LANGUAGE_VERSION}.`,
-        statement.line
-      );
-  },
+  header: (_writer, statement) => checkVersion(statement.version, statement.line),
   title: (writer, statement) => (writer.draft.title = statement.title),
+  scale: (writer, statement) => calibrateDraft(writer.draft, statement),
   style: (writer, statement) => writer.style(statement.name, statement.attributes, statement.line),
   item: (writer, statement, scope) => writer.newItem(statement, scope),
   edit: (writer, statement, scope) => writer.edit(statement, scope),

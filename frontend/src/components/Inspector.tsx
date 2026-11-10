@@ -304,6 +304,8 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
       {single && !isLink(item) && item.type !== "drawing" && (
         <GeometryControls
           item={item}
+          factor={editor.grid.factor}
+          unit={editor.grid.unit}
           rotation={look.rotation}
           onGeometry={(key, value) => changeGeometry(editor, item, key, value)}
           onRotate={(rotation) => changeSelectionLook(canvas, [item], { rotation })}

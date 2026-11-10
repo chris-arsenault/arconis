@@ -29,7 +29,7 @@ interface Box {
 
 const GROUP_PADDING = 28;
 // Small enough for objects created at the deepest zoom.
-const MINIMUM_SIZE = 0.001;
+const MINIMUM_SIZE = 1e-12;
 
 /** Applies one transform to world-space objects. Input is the gesture's starting snapshot. */
 export function transformObjects(
@@ -59,8 +59,8 @@ export function transformObjects(
 
 function pointTransform({ anchor, scaleX, scaleY, angle, offset }: TransformValues) {
   const radians = (angle * Math.PI) / 180;
-  const cos = Math.cos(radians);
-  const sin = Math.sin(radians);
+  const cos = Math.abs(Math.cos(radians)) < Number.EPSILON ? 0 : Math.cos(radians);
+  const sin = Math.abs(Math.sin(radians)) < Number.EPSILON ? 0 : Math.sin(radians);
   return ([x, y]: PathPoint): PathPoint => {
     const dx = (x - anchor.x) * scaleX;
     const dy = (y - anchor.y) * scaleY;
@@ -184,5 +184,5 @@ function depth(item: Item, byId: Map<string, Item>) {
 }
 
 function round(value: number) {
-  return Math.round(value * 100000) / 100000;
+  return Number(value.toPrecision(15));
 }

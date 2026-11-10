@@ -9,6 +9,7 @@ import { BASE_LAYER, inLayers, layerOf, orderedLayers, type LayerRecord } from "
 import { upgradeDrawingHolders } from "./legacyDrawing";
 import { BLANK } from "./itemDefaults";
 import { readArrangement } from "./arrangement";
+import { isCalibration, readCalibration, type Calibration } from "./units";
 export { BLANK } from "./itemDefaults";
 
 /** The size a new item of a type takes when none is given. */
@@ -319,6 +320,19 @@ export class CanvasDocument {
   }
   title() {
     return this.meta.get("title") || "Untitled canvas";
+  }
+
+  calibration() {
+    return readCalibration(this.meta.get("scale"));
+  }
+
+  setCalibration(value: Calibration | null) {
+    if (value !== null && !isCalibration(value))
+      throw new Error("Scale needs a positive world distance, distance and unit.");
+    this.doc.transact(() => {
+      if (value) this.meta.set("scale", JSON.stringify(value));
+      else this.meta.delete("scale");
+    }, LOCAL);
   }
   destroy() {
     this.undo.destroy();

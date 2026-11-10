@@ -27,16 +27,16 @@ describe("culling", () => {
     expect(isCulled(box, 0.03)).toBe(true);
   });
 
-  it("hides everything held by a hidden object, however large it is itself", () => {
+  it("keeps visible children even when their holder is too small", () => {
     const parent = vertex(100, 100);
     const child = vertex(200, 200, parent);
-    expect(isCulled(child, 0.03)).toBe(true);
+    expect(isCulled(child, 0.03)).toBe(false);
     expect(isCulled(child, 1)).toBe(false);
   });
 
-  it("hides a connector with either end, and keeps it otherwise", () => {
+  it("does not hide a connector merely because an endpoint is tiny", () => {
     const [large, small] = [vertex(100, 100), vertex(10, 10)];
-    expect(isCulled(edge(large, small), 0.1)).toBe(true);
+    expect(isCulled(edge(large, small), 0.1)).toBe(false);
     expect(isCulled(edge(large, vertex(100, 100)), 0.1)).toBe(false);
   });
 

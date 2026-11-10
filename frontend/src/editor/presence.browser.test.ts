@@ -19,7 +19,7 @@ it("follows a participant, answers a call to look, shows chat and lasers, and op
   await b.getByTestId("following").waitFor();
   await a.getByTestId("canvas").click({ position: { x: 40, y: 40 } });
   await a.getByTestId("canvas").press("Shift+Digit1");
-  await expect.poll(() => zoomA.textContent()).not.toBe("100%");
+  await expect.poll(() => zoomA.textContent()).not.toBe("1×");
   await expect.poll(() => zoomB.textContent()).toBe(await zoomA.textContent());
   await b.getByTestId("canvas").click({ position: { x: 40, y: 40 } });
   await expect.poll(() => b.getByTestId("following").count()).toBe(0);

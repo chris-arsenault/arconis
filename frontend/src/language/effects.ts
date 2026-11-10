@@ -49,6 +49,10 @@ const EFFECTS: Effects = {
   tidy: (statement) => ({ kind: "items", targets: [statement.ref], children: [] }),
   header: () => ({ kind: "validation", reason: "Checks the file version without naming an item." }),
   title: () => ({ kind: "metadata", reason: "Canvas titles retain last-write-wins semantics." }),
+  scale: () => ({
+    kind: "metadata",
+    reason: "Calibration is shared metadata and never transforms items.",
+  }),
   style: () => ({ kind: "metadata", reason: "Named looks retain last-write-wins semantics." }),
   data: () => ({
     kind: "pictures",

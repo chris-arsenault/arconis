@@ -52,8 +52,8 @@ it("reuses HTML label contents while panning and zooming a 500-item canvas", asy
   await page.getByRole("button", { name: "Dismiss", exact: true }).click();
   // Import fits the document. Return to readable labels before tracking the existing DOM.
   await page.getByTestId("zoom-level").click();
-  const zoom = page.getByLabel("Zoom percent", { exact: true });
-  await zoom.fill("100");
+  const zoom = page.getByLabel("Zoom multiplier", { exact: true });
+  await zoom.fill("1");
   await zoom.press("Enter");
   await page.getByRole("button", { name: "Fit canvas", exact: true }).focus();
   await page.evaluate(() => {
@@ -73,14 +73,39 @@ it("reuses HTML label contents while panning and zooming a 500-item canvas", asy
   });
   const canvas = page.getByTestId("canvas");
   const bounds = (await canvas.boundingBox())!;
+  await page.evaluate(() => {
+    window.addEventListener(
+      "wheel",
+      () => {
+        const began = performance.now();
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            performance.measure("canvas-navigation", { start: began, end: performance.now() })
+          )
+        );
+      },
+      { capture: true }
+    );
+  });
   await page.mouse.move(bounds.x + 400, bounds.y + 650);
   await page.mouse.down({ button: "middle" });
   await page.mouse.move(bounds.x + 600, bounds.y + 700, { steps: 12 });
   await page.mouse.up({ button: "middle" });
   await page.mouse.wheel(12.5, 4.5);
   await page.mouse.wheel(0, -60);
+  for (const delta of [60, -60, 120, -120, 60, -60]) {
+    await page.mouse.wheel(0, delta);
+    await page.waitForTimeout(75);
+  }
   await expect.poll(() => canvas.locator("[data-retained-label]").count()).toBe(1);
   expect(await objectCount(page)).toBe(500);
+  const navigation = await page.evaluate(() =>
+    performance.getEntriesByName("canvas-navigation").map((entry) => entry.duration)
+  );
+  await writeFile(
+    "test-results/navigation-performance.json",
+    JSON.stringify({ objects: 500, wheelToTwoAnimationFramesMs: navigation })
+  );
   await context.close();
 });
 
@@ -99,8 +124,8 @@ it("edits a 500-item canvas through real input and converges with an independent
   const peer = await open(second, room);
   await expect.poll(() => objectCount(peer)).toBe(500);
   await page.getByTestId("zoom-level").click();
-  const zoom = page.getByLabel("Zoom percent", { exact: true });
-  await zoom.fill("100");
+  const zoom = page.getByLabel("Zoom multiplier", { exact: true });
+  await zoom.fill("1");
   await zoom.press("Enter");
   // Fit kept the world center; navigate to the first object through the standard Find UI.
   await page.keyboard.press("Control+f");

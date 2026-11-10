@@ -143,6 +143,7 @@ Any item or line takes these among its attributes, whatever its type; canonical 
 - delete a, b removes items with everything they hold and their lines.
 - tidy <id> lays out a mind map's topics under the given topic, each branch on the side it already lies. tidy <id> right, left or down puts every branch on that side or beneath; compact tightens the gaps; sorted orders branches by name: tidy root down sorted.
 - title "Canvas name" renames the canvas.
+- scale 100 represents 1 "m" calibrates distances without changing object coordinates. scale none clears calibration. Distances must be positive and finite; the unit is a quoted label of at most 32 characters. Files preserve the shared scale; coordinates remain canvas units.
 
 ## Drawings and markup
 
@@ -185,7 +186,7 @@ A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that
   comment on <id> "text"          start a discussion on an item
   reply <discussion id> "text"    reply to one
   resolve <discussion id>         resolve one; reopen <discussion id> reopens it
-  view <id> "name" center x,y zoom N     save a view (zoom 1 is 100%)
+  view <id> "name" center x,y zoom N     save a view (zoom 1 is normal magnification, 1×)
 
 ## Reading
 

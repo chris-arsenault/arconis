@@ -17,6 +17,7 @@ import { exportItems } from "../document/exportItems";
 import { selectedItems } from "../document/relations";
 import { renamePictures } from "../document/pictures";
 import { isWebLink } from "./fields";
+import type { Calibration } from "../document/units";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -67,7 +68,12 @@ function editedWords(item: Item) {
 }
 
 export function number(value: number) {
-  return String(Math.round(value * 1e6) / 1e6);
+  return String(value).replace("e+", "e");
+}
+export function scaleStatement(calibration: Calibration | null) {
+  return calibration
+    ? `scale ${number(calibration.world)} represents ${number(calibration.distance)} ${quote(calibration.unit)}`
+    : "scale none";
 }
 function pair(x: number, y: number) {
   return `${number(x)},${number(y)}`;
@@ -298,6 +304,8 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   const used = new Set(chosen.map((item) => item.style).filter(Boolean));
   const whole = !options.ids.length;
   const lines = [`arconis ${LANGUAGE_VERSION}`, `title ${quote(document.title())}`];
+  const calibration = document.calibration();
+  if (whole && calibration) lines.push(scaleStatement(calibration));
   lines.push(...styleStatements(document, whole ? undefined : used));
   const layersUsed = new Set(chosen.filter((item) => !item.inside).map((item) => item.layer));
   lines.push(...layerStatements(layers, whole ? undefined : layersUsed));

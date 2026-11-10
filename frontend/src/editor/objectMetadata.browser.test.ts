@@ -67,8 +67,8 @@ clients -> cloud as incoming
     await peer.getByRole("button", { name: /^1 open comment on TLS/ }).waitFor();
     for (const zoom of [100, 75, 125]) {
       await page.getByTestId("zoom-level").click();
-      await page.getByLabel("Zoom percent", { exact: true }).fill(String(zoom));
-      await page.getByLabel("Zoom percent", { exact: true }).press("Enter");
+      await page.getByLabel("Zoom multiplier", { exact: true }).fill(String(zoom / 100));
+      await page.getByLabel("Zoom multiplier", { exact: true }).press("Enter");
       if (zoom === 100) await page.screenshot({ path: "test-results/attached-cloud-details.png" });
       await checkCloudAttachment(page);
     }
@@ -92,8 +92,8 @@ clients -> cloud as incoming
       .getByRole("button", { name: "Remove reference to Application", exact: true })
       .click();
     await page.getByTestId("zoom-level").click();
-    await page.getByLabel("Zoom percent", { exact: true }).fill("100");
-    await page.getByLabel("Zoom percent", { exact: true }).press("Enter");
+    await page.getByLabel("Zoom multiplier", { exact: true }).fill("1");
+    await page.getByLabel("Zoom multiplier", { exact: true }).press("Enter");
     await page.getByTestId("canvas").click({ position: { x: 800, y: 700 } });
     await expect.poll(() => strip.getByRole("button").count()).toBe(1);
     await checkCloudAttachment(page);

@@ -252,7 +252,7 @@ it("renders a representative diagram and synchronizes its chunked state to a new
   aDocument.objects.sort((left, right) => left.id.localeCompare(right.id));
   bDocument.objects.sort((left, right) => left.id.localeCompare(right.id));
   expect(aDocument.objects).toEqual(bDocument.objects);
-  expect(await b.getByTestId("zoom-level").textContent()).toBe("100%");
+  expect(await b.getByTestId("zoom-level").textContent()).toBe("1×");
   await writeFile(
     "test-results/performance.json",
     JSON.stringify({

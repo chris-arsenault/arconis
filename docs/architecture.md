@@ -252,10 +252,19 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   `document/routing.ts` finds right-angled corners around the boxes and labels between a line's ends,
   preferring fewer bends, and `document/routeLine.ts` computes the line's points and ports,
   from an `around` statement or the property panel's Route around items.
-- `editor/culling.ts` leaves objects too small to see out of the view, and with them anything they hold
-  and connectors reaching them.
-- `editor/zoom.ts` holds the zoom range and everything that follows it: the snapping grid, background
-  dots, stroke precision and the size of new objects.
+- `editor/culling.ts` retains graph states for routing while suppressing painting below a projected
+  size threshold or outside the viewport. Selected cells remain drawn. Children and connections
+  use their own extents, so a tiny holder or endpoint does not discard visible geometry.
+- `editor/zoom.ts` holds the reciprocal zoom range, anchor-preserving view transforms, stroke
+  precision and creation sizing. Navigation uses the view API rather than maxGraph's rounded zoom
+  helper. Window resizing preserves the center; changing panels preserves content position.
+- `document/units.ts` converts world distances through an optional shared calibration. The `scale`
+  metadata value stores the world reference, represented distance and unit together. The canvas
+  language and complete files preserve it; calibration changes never transform item geometry.
+  `editor/grid.ts` applies local display units and automatic or fixed physical grid intervals.
+  `editor/measurement.ts` holds temporary world-space endpoints, with screen-space snapping
+  tolerances. The scale bar, geometry controls, distance tool and resize feedback share conversion.
+  Geometry serialization preserves numeric precision independently of the current camera.
 - `document/transform.ts` computes collective scale and rotation over a gesture's starting snapshot,
   and `components/SelectionFrame.tsx` drives it.
 - `components/useCollaborativeText.ts` binds textareas to Y.Text, preserving relative selections,

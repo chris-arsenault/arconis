@@ -2,11 +2,10 @@ import type { Graph } from "@maxgraph/core";
 import { isBox, type Item, type ItemType, type Stencil } from "../document/types";
 import { defaultSize } from "../document/canvasDocument";
 
-export const MIN_SCALE = 0.001;
-export const MAX_SCALE = 1000;
+export const MIN_SCALE = 2 ** -20;
+export const MAX_SCALE = 2 ** 20;
+export const ZOOM_STEP = 2 ** 0.25;
 const GRID_PIXELS = 10;
-/** Close enough to show snap points at 100%, and not so close that lines become a solid tint. */
-const LINE_PIXELS = 8;
 const MAJOR_LINE_EVERY = 10;
 type ViewportElement = Pick<HTMLElement, "clientWidth" | "clientHeight">;
 const viewportSizes = new WeakMap<ViewportElement, { width: number; height: number }>();
@@ -30,7 +29,7 @@ export function worldPointOf(
   };
 }
 
-export function observeViewport(element: HTMLElement, changed: () => void) {
+export function observeViewport(element: HTMLElement, changed: (dx: number, dy: number) => void) {
   viewportSizes.set(element, { width: element.clientWidth, height: element.clientHeight });
   const observer = new ResizeObserver(([entry]) => {
     const width = entry.contentRect.width;
@@ -38,7 +37,10 @@ export function observeViewport(element: HTMLElement, changed: () => void) {
     const previous = viewportSizes.get(element);
     if (previous?.width === width && previous.height === height) return;
     viewportSizes.set(element, { width, height });
-    changed();
+    changed(
+      previous ? (width - previous.width) / 2 : 0,
+      previous ? (height - previous.height) / 2 : 0
+    );
   });
   observer.observe(element);
   return () => {
@@ -48,12 +50,46 @@ export function observeViewport(element: HTMLElement, changed: () => void) {
 }
 
 export function clampScale(scale: number) {
+  if (Number.isNaN(scale)) return 1;
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
 }
 
+/** A layout resize preserves the world point at the center, without changing magnification. */
+export function observeGraphViewport(graph: Graph, element: HTMLElement, changed: () => void) {
+  let windowWidth = window.innerWidth,
+    windowHeight = window.innerHeight;
+  return observeViewport(element, (dx, dy) => {
+    const view = graph.view;
+    const resizedWindow = windowWidth !== window.innerWidth || windowHeight !== window.innerHeight;
+    windowWidth = window.innerWidth;
+    windowHeight = window.innerHeight;
+    if (resizedWindow)
+      view.setTranslate(view.translate.x + dx / view.scale, view.translate.y + dy / view.scale);
+    view.revalidate();
+    changed();
+  });
+}
+
 export function zoomLabel(scale: number) {
-  const percent = scale * 100;
-  return `${percent < 10 ? Number(percent.toFixed(1)) : Math.round(percent)}%`;
+  return `${Number(scale.toPrecision(4))}×`;
+}
+
+/** maxGraph's zoom helper rounds to hundredths. Its view API preserves the requested scale. */
+export function zoomAt(
+  graph: Graph,
+  scale: number,
+  anchor = {
+    x: viewportSize(graph.container).width / 2,
+    y: viewportSize(graph.container).height / 2,
+  }
+) {
+  const view = graph.view;
+  const world = {
+    x: anchor.x / view.scale - view.translate.x,
+    y: anchor.y / view.scale - view.translate.y,
+  };
+  const next = clampScale(scale);
+  view.scaleAndTranslate(next, anchor.x / next - world.x, anchor.y / next - world.y);
 }
 
 /** Keeps the snapping grid about the same size on screen at every zoom. */
@@ -93,12 +129,17 @@ export function creationValues(type: ItemType, scale: number, stencil?: Stencil)
 }
 
 /** Applies the parts of the view that follow zoom: the snapping grid and its visible lines. */
-export function syncZoom(graph: Graph, element: HTMLElement) {
+export function syncZoom(
+  graph: Graph,
+  element: HTMLElement,
+  snap = gridForScale(graph.view.scale),
+  visible = snap
+) {
   const { scale, translate } = graph.view;
-  graph.setGridSize(gridForScale(scale));
-  // Line spacing steps through powers of ten in world units, staying readable on screen. The first
+  graph.setGridSize(snap);
+  // Grid intervals come from calibrated display units. The first
   // two background layers are major lines and the last two minor, as `.canvas-surface` declares.
-  const minor = 10 ** Math.ceil(Math.log10(LINE_PIXELS / scale)) * scale;
+  const minor = Math.max(visible, snap) * scale;
   const major = minor * MAJOR_LINE_EVERY;
   const size = (spacing: number) => `${spacing}px ${spacing}px`;
   const position = (spacing: number) =>

@@ -20,7 +20,7 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
-import { clampScale, creationOffset, syncZoom, observeViewport } from "./zoom";
+import { creationOffset, observeGraphViewport, zoomAt } from "./zoom";
 import { worldPointOf } from "./zoom";
 import { configureCulling } from "./culling";
 import { SelectionReferences } from "./relate";
@@ -47,6 +47,7 @@ import { editorStage, Presenter } from "./presenter";
 import { TransformSession } from "./transformSession";
 import { DrawingEditor } from "./drawingEditor";
 import { selectedItems } from "../document/relations";
+import { CanvasMeasurement } from "./measurement";
 
 export type { Shape, Tool } from "./shapes";
 export type { EditorUi } from "./ui";
@@ -54,6 +55,7 @@ export type { EditorUi } from "./ui";
 export class EditorController {
   readonly graph: Graph;
   readonly drawing: DrawingEditor;
+  readonly measurement = new CanvasMeasurement(this);
   tool: Tool = "select";
   editId: string | null = null;
   selectOnEdit = false;
@@ -106,7 +108,7 @@ export class EditorController {
     VertexHandlerConfig.rotationEnabled = true;
     this.layers = new LayerView(document, this.redraw);
     this.graph = new Graph(element);
-    this.grid = new CanvasGrid(this.graph, element);
+    this.grid = new CanvasGrid(this.graph, element, document, this.emit);
     this.presenter = new Presenter(
       editorStage(this.graph, element, document, {
         clear: () => this.clearEditing(),
@@ -156,10 +158,7 @@ export class EditorController {
       subscribeIcons(() => this.project()),
       subscribePictures(() => this.project()),
       keepArranged(this.document),
-      observeViewport(element, () => {
-        this.graph.view.revalidate();
-        this.onView();
-      }),
+      observeGraphViewport(this.graph, element, this.onView),
     ];
     this.cleanupIcons = () => stops.forEach((stop) => stop());
     this.project();
@@ -181,7 +180,7 @@ export class EditorController {
     this.listeners.forEach((listener) => listener());
   };
   private onView = () => {
-    syncZoom(this.graph, this.element);
+    this.grid.sync();
     this.drawing.refresh();
     this.viewVersion++;
     this.viewListeners.forEach((listener) => listener());
@@ -258,6 +257,7 @@ export class EditorController {
     }
     this.marks.refresh();
     this.drawing.refresh();
+    this.grid.sync();
   }
 
   armIcon(icon: { key: string; title: string }) {
@@ -405,7 +405,7 @@ export class EditorController {
     return ids.length ? selectedItems(this.document.list(), ids).map((item) => item.id) : [];
   }
   zoom(factor: number) {
-    this.graph.zoomTo(clampScale(this.graph.view.scale * factor), true);
+    zoomAt(this.graph, this.graph.view.scale * factor);
   }
   fit() {
     fitContents(this.graph, this.element, this.document.list());

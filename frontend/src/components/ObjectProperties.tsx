@@ -191,12 +191,14 @@ function NumberField({
   value,
   onChange,
   rules,
+  unit = "",
 }: Readonly<{
   prefix: string;
   label: string;
   value: NumericValue;
   onChange: (value: number) => void;
   rules: NumericRules;
+  unit?: string;
 }>) {
   return (
     <label
@@ -212,7 +214,9 @@ function NumberField({
         id=""
         detail="Type a value or sum like 200+40; a leading +10 or *2 changes the current value."
         onCommit={onChange}
+        unit={unit}
       />
+      {unit && <small>{unit}</small>}
     </label>
   );
 }
@@ -229,11 +233,15 @@ export function GeometryControls({
   rotation,
   onGeometry,
   onRotate,
+  factor,
+  unit,
 }: Readonly<{
   item: Item;
   rotation: number;
   onGeometry: (key: "x" | "y" | "width" | "height", value: number) => void;
   onRotate: (value: number) => void;
+  factor: number;
+  unit: string;
 }>) {
   return (
     <Section title="Position and size">
@@ -243,9 +251,10 @@ export function GeometryControls({
             key={key}
             prefix={prefix}
             label={`Object ${key}`}
-            value={item[key]}
+            value={item[key] * factor}
+            unit={unit === "u" ? "" : unit}
             rules={key === "width" || key === "height" ? SIZE_NUMBER : GEOMETRY_NUMBER}
-            onChange={(value) => onGeometry(key, value)}
+            onChange={(value) => onGeometry(key, value / factor)}
           />
         ))}
         {canRotate(item) && (

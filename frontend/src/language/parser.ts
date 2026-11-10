@@ -66,6 +66,14 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     title: cursor.expectString("the canvas title"),
     line,
   }),
+  scale: (cursor, line) => {
+    if (cursor.word("none")) return { kind: "scale", calibration: null, line };
+    const world = cursor.number("the reference distance in canvas units");
+    cursor.keyword("represents");
+    const distance = cursor.number("the measured distance");
+    const unit = cursor.expectString("the unit");
+    return { kind: "scale", calibration: { world, distance, unit }, line };
+  },
   style: (cursor, line) => ({
     kind: "style",
     name: cursor.expectWord("the style's name"),

@@ -183,13 +183,47 @@ Everyone sees shared comments signed with the display name used when they were w
 object's comment badge counts open threads without changing the label layout. Comments stay outside document Undo; undoing an
 object's deletion brings its retained comments back with it.
 
-Use the bottom view controls to zoom or fit the canvas; click the percentage to type a zoom.
+Use the bottom view controls to zoom or fit the canvas; click the multiplier to type a zoom,
+such as `0.5` or `2`. The normal view is `1×`, centered in a reciprocal range from `2⁻²⁰` to
+`2²⁰`. Four button or shortcut steps double or halve magnification. Wheel zoom keeps the
+point beneath the pointer; buttons and typed values keep the viewport center.
 **Z** zooms into the selection; **Shift Z** returns toward the previous scale. **Shift 0**,
-**Shift 1** and **Shift 2** go to 100%, fit the canvas and fit the selection. Every jump, from
+**Shift 1** and **Shift 2** go to normal zoom, fit the canvas and fit the selection. Every jump, from
 fitting to following a link or a found match, is remembered: **Ctrl/Command [** returns to the
 view before it and **Ctrl/Command ]** goes forward again. When the view holds none of the
 canvas, a **Back to content** button appears. New objects created at deep zoom have an
 appropriate scale for that view.
+
+## Scale, units and measurement
+
+The scale bar above the bottom controls shows a distance at the current zoom. Click it to open
+**Scale and units**. Paper, Electronics, Product, House, Site and Geography presets assign a
+distance to the reference line of 100 canvas units, shown at `1×` in the settings. For example,
+House makes that line represent 1 m. Custom accepts any positive distance and a unit label.
+The bar chooses readable intervals and changes units as you zoom; calibration itself stays fixed.
+
+Calibration is shared with collaborators, supports Undo and travels with a complete canvas file.
+Changing it reinterprets distances without moving or resizing objects. Display units are a local
+preference: switching metres to feet converts the values without changing the calibration.
+Uncalibrated documents use canvas units (`u`). Paper units describe the drawing, not the physical
+size of pixels on your monitor; geographical distances describe a flat drawing.
+
+Choose **Measure distance** beside the bar, or in the command palette. Drag between two points,
+or click a start and end point. The readout shows total distance and horizontal and vertical
+components. It stays constant as you pan or zoom. Enter places an endpoint, arrows move it,
+and Shift with an arrow takes a larger step. Shift while pointing constrains an axis; Alt bypasses
+snapping. Escape clears a measurement, then exits. Measurements are temporary and do not create
+objects or document Undo steps.
+
+For a known distance in a drawing, measure it, enter its real distance and unit, then choose
+**Calibrate this distance**. Geometry fields and live resize feedback use the same conversion.
+Geometry fields accept compatible unit suffixes, such as `240 cm` while displaying metres.
+Text and other style values keep their existing meaning.
+
+The grid chooses `1`, `2` or `5` intervals in the working unit, with snapping to the visible minor
+interval. **Set fixed grid** keeps an explicit distance, such as 2.54 mm for electronics. When
+zoomed out, the display skips lines while retaining that snapping interval. The settings show the
+actual interval. Grid spacing stays fixed during an active drag; changing zoom never moves objects.
 
 ## Find on canvas
 

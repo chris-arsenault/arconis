@@ -6,6 +6,9 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 ## Canvas and diagrams
 
 - Pan and zoom around the pointer, fit the canvas, and navigate through shared saved views.
+- Zoom equally far in and out from `1×`, with consistent wheel, button, keyboard and numeric controls.
+- Calibrate distances with presets, a custom reference or a measured known distance; read an adaptive
+  scale bar, measure between points, and use physical units in geometry fields and grid snapping.
 - Place, select, multi-select, drag, resize, rotate, duplicate, group and delete workspace objects.
 - Create basic shapes, architectural components and icons; label and style them in the property panel.
 - Attach cornered, diagonal or curved connectors to workspace objects, set per-end arrowheads,

@@ -5,7 +5,7 @@ import { defaultFields } from "./styleClipboard";
 
 /** What a click on the canvas makes: a node of a stencil, or an item of another type. */
 export type Shape = Stencil | "note" | "text" | "frame" | "slide";
-export type Tool = Shape | "select" | "pan" | "draw" | "markup" | "connect";
+export type Tool = Shape | "select" | "pan" | "draw" | "markup" | "connect" | "measure";
 
 /** The type and stencil a shape makes. */
 export function shapeItem(shape: Shape): { type: ItemType; stencil: Stencil } {

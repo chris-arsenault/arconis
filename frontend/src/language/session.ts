@@ -18,6 +18,7 @@ import {
   quote,
   styleStatements,
   viewStatement,
+  scaleStatement,
 } from "./printer";
 import type { Statement } from "./syntax";
 import { directTargets } from "./effects";
@@ -72,6 +73,7 @@ export class LanguageSession {
       const kinds = [...counts].map(([type, count]) => `${count} ${type}`).join(", ");
       const lines = [
         `title ${quote(this.document.title())}`,
+        scaleStatement(this.document.calibration()),
         `// People here: ${present.length ? present.join(", ") : "nobody"}`,
         kinds ? `// ${items.length} items: ${kinds}` : "// No items yet",
       ];
@@ -109,7 +111,11 @@ export class LanguageSession {
       chosen.forEach((item) => this.seen.set(item.id, itemStatement(item, true)));
       const ids = new Set(chosen.map((item) => item.id));
       const comments = listComments(this.document).filter((comment) => ids.has(comment.on));
-      const lines = [printItems(chosen), ...discussionStatements(comments)];
+      const lines = [
+        scaleStatement(this.document.calibration()),
+        printItems(chosen),
+        ...discussionStatements(comments),
+      ];
       const notes = this.overlapNotes(
         this.document.list(),
         chosen.map((item) => item.id)
