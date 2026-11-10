@@ -6,6 +6,7 @@ import { serializeDocument } from "../files/canvasFile";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
+  drawInto,
   errors,
   open,
   add,
@@ -187,7 +188,7 @@ it("uses shapes, notes, connectors and drawing tools together on one canvas", as
   ];
   for (let i = 0; i < tools.length; i++)
     await add(page, tools[i], `Component ${i}`, 190 + (i % 3) * 220, 150 + Math.floor(i / 3) * 200);
-  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  await drawInto(page, "content");
   await drag(page, 200, 750, 200, -70);
   await expect.poll(() => objectCount(page)).toBe(8);
   const beforeMove = await exported(page);

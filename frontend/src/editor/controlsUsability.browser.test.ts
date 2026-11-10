@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Locator } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, open, row } from "./browserHarness";
+import { add, browser, drawInto, errors, exported, open, row } from "./browserHarness";
 
 async function clearAndType(field: Locator, replacement: string) {
   await field.click();
@@ -125,7 +125,7 @@ it("keeps brush and gradient-angle drafts editable with valid native constraints
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   try {
     const page = await open(context, createRoomId());
-    await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+    await drawInto(page, "content");
     await page.getByRole("button", { name: "Vector", exact: true }).click();
     const brush = page.getByLabel("Stroke width", { exact: true });
     expect(await brush.evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(true);
@@ -133,7 +133,7 @@ it("keeps brush and gradient-angle drafts editable with valid native constraints
     await page.getByText("Fill gradient", { exact: true }).click();
     await clearAndType(page.getByLabel("Gradient angle", { exact: true }), "-45");
     await page.getByRole("button", { name: "Add", exact: true }).click();
-    await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+    await drawInto(page, "content");
     expect(await brush.inputValue()).toBe("0.5");
     expect(errors).toEqual([]);
   } finally {

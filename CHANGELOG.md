@@ -45,6 +45,10 @@ All notable user-visible changes are recorded here.
   annotations. Both share brush controls and support moving selected ink between destinations.
   Replaced special Drawing holders with ordinary panels and added Scale content on resize for
   general panel content, including ink, text and shapes, across browser and MCP edits.
+- Rebuilt the rail's Draw panel around the order of drawing decisions: one **Draw** tab holds a
+  Layer/Markup destination switch with a layer picker, one exclusive tool palette, tool options
+  beneath it, and a brush grouped into Stroke, Fill and Opacity. Annotation visibility and
+  deletion sit under Markup. The rail's tabs fit one row. Renamed Erase whole stroke to Erase stroke.
 - Reorganized drawing around Freehand, Highlight and Vector with independent remembered brushes,
   contextual Stroke, Fill and opacity controls, immediate undoable selected-ink styling and a stroke
   preview. Radial menus and shortcuts use the same tools. Added a shared cursor registry for drawing,

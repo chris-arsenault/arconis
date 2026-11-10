@@ -1,40 +1,96 @@
-.drawing-tools .drawing-families {
+/* Each decision in the Draw panel is one block, separated by a rule. */
+.drawing-tools .drawing-block {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-bottom: 1px solid var(--line);
+  gap: 8px;
+  min-width: 0;
 }
-.drawing-tools .drawing-families button {
-  border: 0;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
-  padding: 9px 3px;
-  background: transparent;
-  font-size: 13px;
+.drawing-tools .drawing-block + .drawing-block {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
-.drawing-tools .drawing-families button[aria-pressed="true"] {
-  border-bottom-color: var(--purple);
-  color: var(--pressed-text);
-  font-weight: 650;
-}
-.drawing-geometries,
-.drawing-utilities {
+.drawing-destination {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+}
+.drawing-tools .drawing-destination button {
+  gap: 6px;
+  min-height: 34px;
+  font-size: 12px;
+}
+.drawing-tools .drawing-destination button:first-child {
+  border-radius: 5px 0 0 5px;
+}
+.drawing-tools .drawing-destination button:last-child {
+  border-radius: 0 5px 5px 0;
+  margin-left: -1px;
+}
+.drawing-tools .drawing-destination button[aria-pressed="true"] {
+  position: relative;
+  font-weight: 600;
+}
+.markup-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.markup-controls .annotation-visibility {
+  display: flex;
+  gap: 5px;
+}
+/* One exclusive tool choice: every tile shares a single style. */
+.drawing-palette {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
 }
-.drawing-tools .drawing-geometries button,
-.drawing-tools .drawing-utilities button {
+.drawing-tools .drawing-palette button {
   flex-direction: column;
   gap: 3px;
-  padding: 6px 3px;
-  min-height: 48px;
-  line-height: 1.2;
+  padding: 6px 2px;
+  min-height: 50px;
+  line-height: 1.15;
+  font-size: 10.5px;
 }
-.drawing-target {
+.tool-options {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  background: var(--field);
+  border-radius: 5px;
+}
+.tool-options.drawing-options > span {
+  margin-right: auto;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.drawing-geometries {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.drawing-tools .drawing-geometries button {
+  padding: 4px 0;
+  min-height: 32px;
+}
+.drawing-tools .paint-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
   margin: 0;
-  padding-bottom: 7px;
-  border-bottom: 1px solid var(--line);
-  overflow-wrap: anywhere;
+  padding: 0;
+  border: 0;
+}
+.drawing-tools .paint-group > legend {
+  padding: 0 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+.drawing-tools .paint-group + .paint-group {
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
 }
 .stroke-sample {
   width: 100%;
@@ -42,10 +98,6 @@
   background: var(--field);
   border: 1px solid var(--line);
   border-radius: 5px;
-}
-.drawing-tools .instrument-hint {
-  min-height: 0;
-  margin: 0;
 }
 .drawing-opacity {
   display: flex;

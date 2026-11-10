@@ -209,6 +209,19 @@ export function groupLabel(page: Page) {
 export function selectConnector(page: Page, modifiers: "Shift"[] = []) {
   return clickPath(page, "#7f8aa3", modifiers);
 }
+/** Opens the Draw panel and chooses where ink goes, as a person does from the rail. */
+export async function drawInto(page: Page, target: "content" | "markup") {
+  await page
+    .getByRole("navigation", { name: "Workspace panels" })
+    .getByRole("button", { name: "Draw", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: target === "content" ? "Content layer (P)" : "Markup (M)",
+      exact: true,
+    })
+    .click();
+}
 export async function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
   const box = await page
     .getByTestId("canvas")
@@ -216,12 +229,9 @@ export async function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
     .first()
     .boundingBox();
   if (!box) throw new Error("No visible ink path to lasso.");
-  const content =
-    (await page
-      .getByRole("button", { name: "Draw (P)", exact: true })
-      .getAttribute("aria-pressed")) === "true";
   await page
-    .getByRole("button", { name: content ? "Draw (P)" : "Markup (M)", exact: true })
+    .getByRole("navigation", { name: "Workspace panels" })
+    .getByRole("button", { name: "Draw", exact: true })
     .click();
   await page.getByRole("button", { name: "Select ink", exact: true }).click();
   if (modifiers.length) await page.keyboard.down("Shift");

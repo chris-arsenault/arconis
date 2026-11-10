@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { browser, open, exported, errors, row } from "./browserHarness";
+import { browser, open, exported, errors, row, drawInto } from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
@@ -54,7 +54,7 @@ it("keeps the same brushes while Draw and Markup create, erase and transfer in t
   await page.locator('[data-testid="layer"] .layer-name', { hasText: "Layer 2" }).dblclick();
   await page.getByLabel("New name for Layer 2", { exact: true }).fill("Earth detail");
   await page.getByLabel("New name for Layer 2", { exact: true }).press("Enter");
-  await button(page, "Draw (P)").click();
+  await drawInto(page, "content");
   await button(page, "Vector").click();
   await button(page, "Rectangle").click();
   await page.getByLabel("Fill color", { exact: true }).fill("#247dab");
@@ -62,20 +62,20 @@ it("keeps the same brushes while Draw and Markup create, erase and transfer in t
   const content = (await exported(page)).objects[0];
   expect(content).toMatchObject({ type: "drawing", markup: false });
   expect(content.layer).toBeTruthy();
-  await button(page, "Markup (M)").click();
+  await drawInto(page, "markup");
   expect(await button(page, "Vector").getAttribute("aria-pressed")).toBe("true");
   expect(await page.getByLabel("Fill color", { exact: true }).inputValue()).toBe("#247dab");
   await page.getByLabel("Fill color", { exact: true }).fill("#e64980");
   await drag(page, [230, 230], [360, 360]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(2);
-  await button(page, "Erase whole stroke").click();
+  await button(page, "Erase stroke").click();
   await drag(page, [300, 160], [300, 430]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);
   expect((await exported(page)).objects[0]).toEqual(content);
   await button(page, "Undo").click();
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(2);
-  await button(page, "Draw (P)").click();
-  expect(await button(page, "Erase whole stroke").getAttribute("aria-pressed")).toBe("true");
+  await drawInto(page, "content");
+  expect(await button(page, "Erase stroke").getAttribute("aria-pressed")).toBe("true");
   await drag(page, [300, 160], [300, 430]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);
   expect((await exported(page)).objects[0].markup).toBe(true);
@@ -86,7 +86,7 @@ it("keeps the same brushes while Draw and Markup create, erase and transfer in t
   await expect
     .poll(async () => (await exported(peer)).objects.filter((i) => i.markup).length)
     .toBe(2);
-  await button(page, "Markup (M)").click();
+  await drawInto(page, "markup");
   await lasso(page);
   await button(page, "Move to content layer").click();
   await expect

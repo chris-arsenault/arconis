@@ -3,6 +3,7 @@ import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
+  drawInto,
   errors,
   open,
   add,
@@ -211,7 +212,7 @@ it("zooms across the 1000x range and keeps editing usable at both ends", async (
         return (moved.x - beforeX) * scale;
       })
       .toBeGreaterThan(80);
-    await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+    await drawInto(page, "content");
     await page.mouse.move(origin.x + 500, origin.y + 500);
     await page.mouse.down();
     await page.mouse.move(origin.x + 560, origin.y + 540, { steps: 5 });

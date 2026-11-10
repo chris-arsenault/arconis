@@ -1,10 +1,15 @@
 # Drawing and markup
 
-Choose **Draw (P)** to paint editable ink into the selected content layer. Choose **Markup (M)**
-to annotate above every content layer. Both tools have the same brushes and controls; switching
-between them changes the destination and keeps the current brush. The panel names that destination.
+Open **Draw** in the left rail. The panel follows the order of drawing decisions:
 
-Use **Layers** to choose the content layer for Draw. Markup belongs to its own annotation plane.
+1. **Draw into** chooses the destination. **Layer (P)** paints editable ink into the content layer
+   chosen beside it. **Markup (M)** annotates above every content layer. Switching destination keeps
+   the current tool and brush.
+2. **Tool** is one palette: the creation tools and the ink-editing tools are a single choice.
+   Options that belong to one tool, such as Highlight's kind or Vector's geometry, appear beneath it.
+3. **Brush** sets the next mark's Stroke, Fill and Opacity. With ink selected, the same section
+   edits that ink instead.
+
 The drag radial's **Mode** arc also offers Draw and Markup, followed by the shared drawing tools.
 Workspace connection points, connected-copy controls and resize handles stay hidden while painting.
 
@@ -12,24 +17,24 @@ Workspace connection points, connected-copy controls and resize handles stay hid
 
 ## Choose a brush
 
-| Tool               | Use                                                                  |
-| ------------------ | -------------------------------------------------------------------- |
-| Freehand           | Drag a pen stroke.                                                   |
-| Highlight          | Choose Marker, Shaped highlight or an attached Object outline.       |
-| Vector             | Choose a geometric path, then drag its bounds or endpoints.          |
-| Select ink         | Drag around whole paths; Shift adds to the selection.                |
-| Erase whole stroke | Remove every whole stroke touched by a click or sweep.               |
-| Erase segment      | Cut away parts of paths while keeping the surviving pieces editable. |
-| Fill path          | Click a closed path to apply Fill and gradient settings.             |
-| Pick color         | Sample Stroke or Fill and return to the previous creation brush.     |
+| Tool          | Use                                                                  |
+| ------------- | -------------------------------------------------------------------- |
+| Freehand      | Drag a pen stroke.                                                   |
+| Highlight     | Choose Marker, Shaped highlight or an attached Object outline.       |
+| Vector        | Choose a geometric path, then drag its bounds or endpoints.          |
+| Select ink    | Drag around whole paths; Shift adds to the selection.                |
+| Erase stroke  | Remove every whole stroke touched by a click or sweep.               |
+| Erase segment | Cut away parts of paths while keeping the surviving pieces editable. |
+| Fill path     | Click a closed path to apply Fill and gradient settings.             |
+| Pick color    | Sample Stroke or Fill and return to the previous creation brush.     |
 
 Freehand, Highlight and Vector remember independent colors, widths, opacity and geometry.
 Highlight remembers its last subtool. Switching brushes, presets or zoom never changes the
 Draw/Markup destination.
 
-**Stroke** paints the outline and **Fill** paints closed interiors. Each offers no paint,
-swatches, recent colors and a color picker. Choose a width preset or enter **Stroke width**.
-**Opacity** applies to the next mark. The preview shows the brush's paint and geometry.
+**Stroke** groups the outline's color and width; **Fill** groups a closed interior's color and
+gradient. Each color offers no paint, swatches, recent colors and a color picker. **Opacity**
+applies to the whole mark. The preview shows the brush's paint and geometry.
 
 Open **Saved brushes** to recall a brush or replace a slot with the current settings. Brushes
 and presets are local browser preferences; the paths themselves are shared document content.
@@ -59,7 +64,7 @@ under Markup, or ink in the selected content layer under Draw. Hidden and locked
 of these editing gestures. Ordinary selection can also reach content-layer ink.
 
 After selecting paths, drag to move them or use the selection handles to scale and rotate them.
-Under **Selected ink**, paint edits apply immediately, are shared and undoable, and leave the
+Under **Selected ink**, which replaces Brush while no creation tool is armed, paint edits apply immediately, are shared and undoable, and leave the
 next brush's defaults intact. For several paths the controls show the first path and apply edits
 to every selected path.
 
@@ -86,7 +91,7 @@ Panels do not crop ink to their bounds. Container contents inherit the container
 ## Fill and gradients
 
 Set **Fill** for a closed shape's interior, or **No fill** for an outline. Open **Fill gradient**
-to choose a second color and angle; **Solid fill** returns to one color.
+inside the Fill group to choose a second color and angle; **Solid fill** returns to one color.
 
 For an existing shape, use **Fill path** or select ink and edit Fill directly. Select a freehand
 loop and choose **Close selected paths** to make it fillable. Select a gradient-filled path
@@ -99,10 +104,12 @@ bucket and Pick color a pipette. Geometry and object targeting use a crosshair. 
 native manipulation cursors. Pan uses an open hand and a closed hand while dragging. Space
 temporarily borrows Pan, then restores the tool; the middle mouse button also pans temporarily.
 
-- **Show annotations** changes only your view. Presentations' **Show markup** and Layers'
-  **Markup** eye control the same visibility. Other people retain their own settings.
-- **Delete all annotations** removes Markup for everyone in one undoable action. Content-layer
-  artwork remains. The button is disabled when there are no annotations.
+With **Markup** chosen under Draw into, the panel shows the annotation count and two controls:
+
+- **Show** changes only your view. Presentations' **Show markup** and Layers' **Markup** eye
+  control the same visibility. Other people retain their own settings.
+- **Delete all** removes Markup for everyone in one undoable action. Content-layer artwork
+  remains. The button is disabled when there are no annotations.
 - **Include markup** independently controls document and PNG exports. Content-layer ink remains
   included when annotations are omitted.
 - Saved copies retain the complete document. Layers' eyes control each person's visible content;

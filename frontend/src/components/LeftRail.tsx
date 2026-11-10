@@ -1,14 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import {
-  Compass,
-  Layers,
-  Pencil,
-  Highlighter,
-  Play,
-  Plus,
-  Shapes,
-  Presentation,
-} from "lucide-react";
+import { Compass, Layers, Pencil, Play, Plus, Shapes, Presentation } from "lucide-react";
 import { LayersPanel } from "./LayersPanel";
 import type { EditorController } from "../editor/controller";
 import type { Item } from "../document/types";
@@ -41,11 +32,10 @@ const SECTION_DEFAULTS = {
 };
 
 type Sections = ReturnType<typeof useRailSections>;
-type Panel = "add" | "draw" | "markup" | "layers" | "explore" | "slides";
+type Panel = "add" | "draw" | "layers" | "explore" | "slides";
 const PANELS = [
   { id: "add", label: "Add", icon: Shapes },
   { id: "draw", label: "Draw", icon: Pencil },
-  { id: "markup", label: "Markup", icon: Highlighter },
   { id: "layers", label: "Layers", icon: Layers },
   { id: "explore", label: "Explore", icon: Compass },
   { id: "slides", label: "Slides", icon: Presentation },
@@ -70,13 +60,13 @@ function usePanel(
   if (state.tool !== editor.tool) {
     let panel = state.panel;
     const creating = !["select", "pan", "connect"].includes(editor.tool);
-    if (isInkTool(editor.tool)) panel = editor.tool;
+    if (isInkTool(editor.tool)) panel = "draw";
     else if (editor.tool === "slide") panel = "slides";
     else if (creating) panel = "add";
     setState({ panel, tool: editor.tool, expanded: state.expanded || creating });
   }
   const choose = (panel: Panel) => {
-    if (isInkTool(panel)) editor.setTool(panel);
+    if (panel === "draw") editor.setTool(editor.drawing.destination);
     else editor.setTool("select");
     setState({ panel, tool: editor.tool, expanded: true });
     onExpand?.(true);
@@ -125,10 +115,10 @@ export function LeftRail({
         {PANELS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            aria-label={panelLabel(id, label)}
+            aria-label={label}
             aria-pressed={panel === id}
             aria-controls="rail-content"
-            data-hint={panelLabel(id, label)}
+            data-hint={id === "draw" ? "Draw (P) or Markup (M)" : label}
             onClick={() => choose(id)}
           >
             <Icon size={18} />
@@ -141,18 +131,13 @@ export function LeftRail({
       </button>
       <div className="rail-content" id="rail-content">
         {panel === "add" && <StencilBrowser editor={editor} />}
-        {isInkTool(panel) && <DrawingSection editor={editor} />}
+        {panel === "draw" && <DrawingSection editor={editor} />}
         {panel === "layers" && <LayersPanel editor={editor} />}
         {panel === "explore" && <ExploreSection editor={editor} sections={sections} />}
         {panel === "slides" && <SlidesSection editor={editor} />}
       </div>
     </aside>
   );
-}
-
-function panelLabel(id: string, label: string) {
-  if (id === "draw") return "Draw (P)";
-  return id === "markup" ? "Markup (M)" : label;
 }
 
 function DrawingSection({ editor }: Readonly<{ editor: EditorController }>) {
@@ -167,28 +152,29 @@ function DrawingSection({ editor }: Readonly<{ editor: EditorController }>) {
       (item) => effectiveAppearance(item, editor.document.namedStyle(item.style)).closed
     ),
   };
+  const destination = {
+    markup: editor.drawing.markup,
+    layer: editor.layers.active,
+    layers: editor.document.layerList().map(({ id, name }) => ({ id, name })),
+    visible: editor.drawing.visible,
+    markupCount: editor.document.list().filter(isMarkup).length,
+  };
   return (
     <section aria-label="Drawing" className="drawing-section">
-      <PanelHeading title={editor.drawing.markup ? "Markup" : "Draw"}>
+      <PanelHeading title="Draw">
         {editor.drawing.markup
-          ? "Annotate above the content layers."
-          : "Draw editable ink into the selected layer."}
+          ? "Annotate above every content layer."
+          : "Draw editable ink as part of a content layer."}
       </PanelHeading>
       <DrawingTools
         tool={editor.drawing.tool}
         colorTarget={editor.drawing.colorTarget}
         armed={editor.drawing.active}
-        target={
-          editor.drawing.markup
-            ? "Markup"
-            : editor.document.layerList().find((layer) => layer.id === editor.layers.active)!.name
-        }
+        destination={destination}
         settings={editor.drawing.settings}
-        visible={editor.drawing.visible}
         favorites={editor.drawing.favorites}
         recent={editor.drawing.recent}
         selection={selection}
-        markupCount={editor.document.list().filter(isMarkup).length}
         actions={drawingActions(editor)}
       />
     </section>
@@ -324,6 +310,11 @@ function TagsSection({
 function drawingActions(editor: EditorController): DrawingActions {
   const drawing = editor.drawing;
   return {
+    destination: (target) => editor.setTool(target),
+    layer: (id) => {
+      editor.layers.setActive(id);
+      editor.setTool("draw");
+    },
     tool: (tool) => drawing.activate(tool),
     family: (family) => drawing.family(family),
     style: (settings) => drawing.style(settings),

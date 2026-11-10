@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, open, selectDrawing } from "./browserHarness";
+import { add, browser, drawInto, errors, exported, open, selectDrawing } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const panel = (page: Page, name: string) =>
@@ -10,7 +10,7 @@ const panel = (page: Page, name: string) =>
     .getByRole("button", { name, exact: true });
 
 async function drawStroke(page: Page) {
-  await panel(page, "Markup (M)").click();
+  await drawInto(page, "markup");
   const canvas = (await page.getByTestId("canvas").boundingBox())!;
   await page.mouse.move(canvas.x + 170, canvas.y + 350);
   await page.mouse.down();
@@ -64,7 +64,7 @@ it("gives libraries a consistent disclosure and keeps document navigation in its
 it("saves and recalls a visible brush preset without a hidden modifier gesture", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
-  await panel(page, "Draw (P)").click();
+  await panel(page, "Draw").click();
   await page.getByRole("button", { name: "Vector", exact: true }).click();
   await page.getByRole("button", { name: "Arrow", exact: true }).click();
   await page.getByLabel("Stroke color", { exact: true }).fill("#1971c2");
@@ -83,7 +83,7 @@ it("saves and recalls a visible brush preset without a hidden modifier gesture",
     await page.getByRole("button", { name: "Arrow", exact: true }).getAttribute("aria-pressed")
   ).toBe("true");
   await page.reload();
-  await panel(page, "Draw (P)").click();
+  await panel(page, "Draw").click();
   await page.getByText("Saved brushes", { exact: true }).click();
   await page.getByRole("button", { name: "Use saved brush 1", exact: true }).click();
   expect(await page.getByLabel("Stroke width", { exact: true }).inputValue()).toBe("10");
@@ -137,7 +137,7 @@ it("keeps task controls within the panel in light, dark and narrow layouts", asy
     await page.setViewportSize({ width, height: 900 });
     for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
-      for (const task of ["Add", "Draw (P)", "Explore", "Slides"]) {
+      for (const task of ["Add", "Draw", "Layers", "Explore", "Slides"]) {
         await panel(page, task).click();
         const fits = await page.locator(".left-rail").evaluate((node) => {
           const bounds = node.getBoundingClientRect();

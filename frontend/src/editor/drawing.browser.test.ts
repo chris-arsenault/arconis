@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { browser, open, exported, errors, row, add, fileMenu } from "./browserHarness";
+import { browser, open, exported, errors, row, add, fileMenu, drawInto } from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 import type { Page } from "playwright";
 
@@ -80,13 +80,16 @@ it("moves lassoed annotations to the content layer and back with shared Undo", a
   let saved = await exported(page);
   expect(saved.objects).toHaveLength(2);
   expect(saved.objects.every((item) => item.type === "drawing" && !item.markup)).toBe(true);
-  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
-  await page.getByRole("button", { name: "Freehand", exact: true }).click();
-  await stroke(page, [210, 170], [250, 200]);
-  await expect.poll(async () => (await exported(peer)).objects.length).toBe(3);
   expect(
     await page.getByRole("button", { name: "Delete all annotations", exact: true }).isDisabled()
   ).toBe(true);
+  await drawInto(page, "content");
+  expect(
+    await page.getByRole("button", { name: "Delete all annotations", exact: true }).count()
+  ).toBe(0);
+  await page.getByRole("button", { name: "Freehand", exact: true }).click();
+  await stroke(page, [210, 170], [250, 200]);
+  await expect.poll(async () => (await exported(peer)).objects.length).toBe(3);
   await page.getByRole("button", { name: "Move to Markup", exact: true }).click();
   saved = await exported(page);
   expect(saved.objects.filter((item) => item.markup)).toHaveLength(2);

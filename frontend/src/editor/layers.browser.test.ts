@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, open, row } from "./browserHarness";
+import { add, browser, drawInto, errors, exported, open, row } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 /** The layer browser's rows, top first. */
@@ -79,7 +79,7 @@ it("organises a shared canvas in layers, with hiding local to each person", asyn
 
   // Markup tools draw into markup whatever layer is chosen.
   await a.locator('[data-testid="layer"] .layer-name', { hasText: "Layer 2" }).click();
-  await a.getByRole("button", { name: "Markup (M)", exact: true }).click();
+  await drawInto(a, "markup");
   await stroke(a, [200, 600], [420, 640]);
   await expect
     .poll(async () => (await exported(b)).objects.filter((item) => item.markup).length)

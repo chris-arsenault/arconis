@@ -38,7 +38,8 @@ Press **M**, choose **Highlight → Marker**, and drag over the diagram. The mar
 markup above the workspace. Choose **Object outline** and click an object to attach an outline.
 
 Use **Select ink** to select marks and **Move to content layer** to keep them as workspace artwork.
-**Draw (P)** paints directly into the selected layer using the same controls. The
+Press **P**, or choose **Layer** under **Draw into**, to paint directly into a content layer with
+the same controls. The
 [drawing guide](drawing.md) covers shapes, erasing, fills, gradients and transfers.
 
 ## Keep a copy

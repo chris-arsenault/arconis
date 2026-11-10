@@ -34,26 +34,35 @@ export function BrushControls({
   }
 >) {
   const controls = capabilities(settings, selected, closed);
+  const eraser = !controls.paint && controls.width;
   return (
     <>
       {controls.paint && (
-        <ColorControls
-          label="Stroke"
-          value={settings.color}
-          recent={recent}
-          onFocus={() => onTarget("color")}
-          change={(color) => change({ color })}
-        />
+        <fieldset className="paint-group" aria-label="Stroke">
+          <legend>Stroke</legend>
+          <ColorControls
+            label="Stroke"
+            value={settings.color}
+            recent={recent}
+            onFocus={() => onTarget("color")}
+            change={(color) => change({ color })}
+          />
+          <BrushWidths settings={settings} change={change} />
+        </fieldset>
       )}
-      {controls.width && <BrushWidths settings={settings} change={change} />}
+      {eraser && <BrushWidths settings={settings} change={change} />}
       {controls.fill && (
-        <ColorControls
-          label="Fill"
-          value={settings.fill}
-          recent={recent}
-          onFocus={() => onTarget("fill")}
-          change={(fill) => change({ fill })}
-        />
+        <fieldset className="paint-group" aria-label="Fill">
+          <legend>Fill</legend>
+          <ColorControls
+            label="Fill"
+            value={settings.fill}
+            recent={recent}
+            onFocus={() => onTarget("fill")}
+            change={(fill) => change({ fill })}
+          />
+          <PaintControls settings={settings} change={change} />
+        </fieldset>
       )}
       {controls.paint && (
         <label className="drawing-field">
@@ -71,7 +80,6 @@ export function BrushControls({
           </span>
         </label>
       )}
-      {controls.fill && <PaintControls settings={settings} change={change} />}
       {selected && settings.mode !== "highlight" && (
         <button onClick={onClose}>{closed ? "Open selected paths" : "Close selected paths"}</button>
       )}
@@ -120,7 +128,7 @@ function ColorControls({
 }>) {
   return (
     <div className="drawing-field stacked" onFocus={onFocus}>
-      <span>{label}</span>
+      <span>Color</span>
       <div className="drawing-options" role="group" aria-label={`${label} colors`}>
         <button
           className="no-paint"

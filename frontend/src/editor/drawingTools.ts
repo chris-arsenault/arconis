@@ -71,7 +71,7 @@ export const DRAWING_TOOLS = {
     cursor: "lasso",
   },
   eraser: {
-    label: "Erase whole stroke",
+    label: "Erase stroke",
     hint: "Click or sweep across paths to remove whole strokes.",
     family: null,
     mode: "eraser",
@@ -107,8 +107,8 @@ export const DRAWING_FAMILIES: { id: DrawingFamily; label: string }[] = [
 ];
 export const DRAWING_UTILITIES: DrawingTool[] = [
   "lasso",
-  "precision",
   "eraser",
+  "precision",
   "fill",
   "eyedropper",
 ];

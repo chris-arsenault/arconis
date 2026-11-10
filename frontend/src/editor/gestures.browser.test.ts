@@ -3,6 +3,7 @@ import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
+  drawInto,
   errors,
   open,
   add,
@@ -166,7 +167,7 @@ it("styles a new group immediately for its creator and selects it", async () => 
 it("keeps the drawn shape of a freehand stroke without per-point handles", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
-  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  await drawInto(page, "content");
   const origin = await canvasOrigin(page);
   const middle = { x: origin.x + 450, y: origin.y + 350 };
   const radius = 40;
@@ -272,7 +273,7 @@ it("scales and rotates a mixed selection as one undoable step, and rotates one s
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await add(page, "Rectangle (R)", "Scaled shape", 220, 170);
-  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  await drawInto(page, "content");
   await drag(page, 500, 180, 160, 80);
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
   await row(page, "Scaled shape").click();

@@ -53,7 +53,7 @@ it("erases sparse sweep crossings and single clicks without touching workspace o
     x = box.x + box.width / 2,
     y = box.y;
   await page.keyboard.press("m");
-  await page.getByRole("button", { name: "Erase whole stroke", exact: true }).click();
+  await page.getByRole("button", { name: "Erase stroke", exact: true }).click();
   await page.mouse.move(x, y - 100);
   await page.mouse.down();
   await page.mouse.move(x, y + 100);

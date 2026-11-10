@@ -3,6 +3,7 @@ import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
+  drawInto,
   errors,
   open,
   add,
@@ -190,7 +191,7 @@ it("shows a compact property panel only for a selection, with controls that appl
   expect(await page.getByLabel("Font size", { exact: true }).inputValue()).toBe("16");
   await add(page, "Text (T)", "Words", 500, 400);
   expect(await page.getByLabel("Fill color", { exact: true }).count()).toBe(0);
-  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  await drawInto(page, "content");
   const bounds = (await canvas(page).boundingBox())!;
   await page.mouse.move(bounds.x + 200, bounds.y + 400);
   await page.mouse.down();

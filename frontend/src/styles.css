@@ -813,7 +813,7 @@ dialog.password-gate {
 }
 .rail-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   flex-shrink: 0;
   padding: 4px 8px 0;
   gap: 4px;
@@ -2931,30 +2931,22 @@ input.outline-name {
 }
 .drawing-instruments {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
 }
 .drawing-tools .drawing-instruments button {
-  justify-content: flex-start;
-  min-height: 40px;
-  text-align: left;
-  line-height: 1.3;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 44px;
+  padding: 5px 2px;
+  line-height: 1.15;
+  font-size: 10.5px;
 }
 .drawing-instruments svg {
   flex: none;
 }
 .drawing-instruments span {
   min-width: 0;
-}
-.instrument-hint {
-  min-height: 32px;
-}
-.saved-brushes,
-.drawing-selection,
-.drawing-object-actions,
-.annotation-actions {
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
 }
 .saved-brushes > summary {
   padding-left: 0;
@@ -2978,9 +2970,7 @@ input.outline-name {
   color: var(--text-soft);
   font-size: 10px;
 }
-.drawing-selection,
-.drawing-object-actions,
-.annotation-actions {
+.drawing-object-actions {
   display: grid;
   gap: 8px;
 }
@@ -3000,9 +2990,9 @@ input.outline-name {
   accent-color: var(--purple);
 }
 .drawing-tools .delete-annotations {
+  gap: 5px;
   color: #b43b53;
   background: transparent;
-  justify-self: start;
 }
 .drawing-tools .finish-drawing {
   background: var(--pressed);

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { browser, exported, open, row, errors } from "./browserHarness";
+import { browser, drawInto, exported, open, row, errors } from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 import { CURSORS } from "./cursors";
 
@@ -66,7 +66,7 @@ it("matches armed tools to cursors over objects and restores the pen after tempo
   }
   for (const [tool, name] of [
     ["Erase segment", "eraser"],
-    ["Erase whole stroke", "eraser"],
+    ["Erase stroke", "eraser"],
     ["Select ink", "lasso"],
     ["Fill path", "fill"],
     ["Pick color", "picker"],
@@ -214,8 +214,9 @@ it("samples visible content beneath hidden Markup", async () => {
       "arconis 1\ndrawing annotation markup points 150,200 330,200 line #ff0000 line-width 20"
     ),
   });
-  await page.keyboard.press("p");
+  await page.keyboard.press("m");
   await page.getByRole("checkbox", { name: "Show annotations", exact: true }).uncheck();
+  await drawInto(page, "content");
   await button(page, "Pick color").click();
   await row(page, "Sample").click();
   expect(await page.getByLabel("Stroke color", { exact: true }).inputValue()).toBe("#112233");
