@@ -154,6 +154,14 @@ export const STOPS: Stop[] = [
     side: "top",
   },
   {
+    target: "scale-controls",
+    title: "Scale, units and measurement",
+    panel: "",
+    tryIt: false,
+    text: "Click the scale bar to choose units, a preset or custom calibration, and grid spacing. The ruler measures between points; enter a known distance to calibrate a drawing. Measured distances stay the same as you zoom.",
+    side: "top",
+  },
+  {
     target: "canvas-title",
     title: "Canvas title",
     panel: "",

@@ -12,7 +12,11 @@ export function ScaleControls({ editor }: Readonly<{ editor: EditorController }>
     if (line.current) line.current.style.width = `${bar.pixels}px`;
   }, [bar.pixels]);
   return (
-    <div className="scale-controls">
+    <div
+      className="scale-controls"
+      data-help-id="scale-controls"
+      data-help-topic="editing#scale-units-and-measurement"
+    >
       <button
         className="scale-bar"
         aria-label="Scale and units"
