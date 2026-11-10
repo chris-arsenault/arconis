@@ -12,7 +12,7 @@ import { configureLocking } from "./locking";
 import type { RoomSession } from "../collaboration/room";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { Item, ItemType } from "../document/types";
-import { newItemFields, shapeItem, type Shape, type Tool } from "./shapes";
+import { newItemFields, ringShape, shapeItem, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
@@ -270,7 +270,7 @@ export class EditorController {
   }
   setTool(tool: Tool) {
     this.drawing.setDestination(tool);
-    this.ui.relating = null;
+    Object.assign(this.ui, { relating: null, lastShape: ringShape(tool) ?? this.ui.lastShape });
     this.armedIcon = null;
     this.armedScreen = null;
     this.connectionSource = "";

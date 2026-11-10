@@ -97,9 +97,13 @@ All notable user-visible changes are recorded here.
   view history, including drawings and routed lines.
 - Added guest usability feedback saved to private S3 storage with diagnostic metadata and tags.
   An unchecked screenshot option attaches the standard whole-canvas PNG export only when selected.
-- Added a Mode wedge to the canvas radial that opens a small arc of Select, Add, Draw, Markup and Connect
-  beside it, without changing the ring's commands; Add shows shapes in the ring. Drawing hides
-  workspace connection and resize widgets while retaining transform handles for lassoed ink.
+- Gave every radial one layout: Mode west and the menu south-west on the canvas, objects, lines
+  and slides and in every mode. One stroke west then toward Select, Add, Draw, Markup or Connect
+  switches mode with nothing further to choose; Draw, Markup and Add then show their own tools in
+  the ring. Wedges that open another ring do so on a rest or a stroke through them, around the
+  pointer, with Back opposite and no ring more than two levels deep. Shape, Capture, Straighten
+  and Copy link moved from the ring to the menu and toolbar. Drawing hides workspace connection
+  and resize widgets while retaining transform handles for lassoed ink.
 - Attached object indicators directly to the painted edge, centered so lone badges stay close to
   curved stencils. Connected-copy handles move only when they overlap the indicator strip.
 - Added Settings with independent Show, Selected and Hide preferences for comments, tags, markers,

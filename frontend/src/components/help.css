@@ -348,7 +348,8 @@
 .driver-active .menu-anchor * {
   pointer-events: auto;
 }
-.driver-active .menu-anchor .ring-mode text {
+.driver-active .menu-anchor .ring-wedge text,
+.driver-active .menu-anchor .ring-rim {
   pointer-events: none;
 }
 

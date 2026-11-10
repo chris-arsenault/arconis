@@ -2,17 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { COLORS } from "../document/types";
 import type { EditorController } from "../editor/controller";
-import {
-  chooseRingEntry,
-  chooseRingMode,
-  currentMode,
-  menuGroups,
-  ringEntries,
-  RING_MODES,
-  type RingMode,
-  type MenuEntry,
-} from "../editor/contextMenu";
-import { RING_MODE_HELP } from "../editor/ringHelp";
+import { chooseRingEntry, menuGroups, ringEntries, type MenuEntry } from "../editor/contextMenu";
 import { commandContext, findCommand, runCommand } from "../editor/registry";
 import { closeMenu } from "../editor/ui";
 import { shortcutLabel } from "../editor/shortcuts";
@@ -21,10 +11,6 @@ import {
   RING_INNER,
   RING_OUTER,
   RING_COUNT,
-  MODE_INNER,
-  MODE_OUTER,
-  MODE_SPAN,
-  modeArcStart,
   ringCentre,
 } from "../editor/pointerButtons";
 
@@ -42,18 +28,33 @@ function bandPath(start: number, end: number, inner: number, outer: number) {
   ].join(" ");
 }
 
-function wedgePath(index: number, count: number) {
+function wedgeSpan(index: number, count: number) {
   const span = (Math.PI * 2) / count;
   const start = index * span - span / 2 - Math.PI / 2;
-  return bandPath(start, start + span, RING_INNER, RING_OUTER);
+  return { start, end: start + span };
 }
 
-/** The ring: eight wedges around the press point, a stroke or a click on each runs it. */
+function wedgePath(index: number, count: number) {
+  const { start, end } = wedgeSpan(index, count);
+  return bandPath(start, end, RING_INNER, RING_OUTER);
+}
+
+/** A rim along a wedge's outer edge: the mark of a wedge that opens another ring. */
+function rimPath(index: number, count: number) {
+  const { start, end } = wedgeSpan(index, count);
+  const inset = (end - start) / 4;
+  return bandPath(start + inset, end - inset, RING_OUTER - 7, RING_OUTER - 4);
+}
+
+/**
+ * The ring: eight wedges around the press point. A stroke or a click on a wedge runs it, and a
+ * wedge with a rim opens another ring in its place.
+ */
 function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
   const menu = editor.ui.menu!;
-  const entries = ringEntries(commandContext(editor), menu.subRing);
+  const entries = ringEntries(commandContext(editor), menu.subRing, menu.back);
   const count = RING_COUNT;
-  const size = MODE_OUTER * 2 + 4;
+  const size = RING_OUTER * 2 + 4;
   return (
     <svg
       className="command-ring"
@@ -62,17 +63,6 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
       height={size}
       viewBox={`${-size / 2} ${-size / 2} ${size} ${size}`}
     >
-      {menu.modes &&
-        RING_MODES.map((mode, index) => (
-          <ModeSegment
-            key={mode}
-            mode={mode}
-            index={index}
-            current={currentMode(editor.tool) === mode}
-            active={menu.mode === index}
-            onChoose={() => chooseRingMode(editor, mode)}
-          />
-        ))}
       {entries.map((entry, index) =>
         entry ? (
           <Wedge
@@ -81,7 +71,7 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
             index={index}
             count={count}
             active={menu.wedge === index}
-            onChoose={() => chooseRingEntry(editor, entry)}
+            onChoose={() => chooseRingEntry(editor, entry, index)}
           />
         ) : (
           <g key={index} className="ring-wedge empty" role="menuitem" aria-disabled="true">
@@ -93,51 +83,19 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-/** One mode in the arc beside the Mode wedge; the current tool's mode is marked. */
-function ModeSegment({
-  mode,
-  index,
-  current,
-  active,
-  onChoose,
-}: Readonly<{
-  mode: RingMode;
-  index: number;
-  current: boolean;
-  active: boolean;
-  onChoose: () => void;
-}>) {
-  const start = modeArcStart() + index * MODE_SPAN - Math.PI / 2;
-  const angle = start + MODE_SPAN / 2;
-  const radius = (MODE_INNER + MODE_OUTER) / 2;
-  return (
-    <g
-      className={`ring-mode${active ? " active" : ""}${current ? " current" : ""}`}
-      role="menuitemradio"
-      aria-checked={current}
-      tabIndex={0}
-      aria-label={mode}
-      data-hint={mode}
-      data-hint-detail={RING_MODE_HELP[mode]}
-      onClick={onChoose}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onChoose();
-        }
-      }}
-    >
-      <path d={bandPath(start, start + MODE_SPAN, MODE_INNER, MODE_OUTER)} />
-      <text
-        x={radius * Math.cos(angle)}
-        y={radius * Math.sin(angle)}
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {mode}
-      </text>
-    </g>
-  );
+/** How a wedge announces and marks itself: a mode is a radio, the ways out read as asides. */
+function wedgeRole(entry: MenuEntry, active: boolean) {
+  const classes = ["ring-wedge"];
+  if (entry.kind === "more" || entry.kind === "back") classes.push("more");
+  if (active) classes.push("active");
+  if (entry.kind !== "mode")
+    return {
+      className: classes.join(" "),
+      role: "menuitem",
+      "aria-haspopup": entry.kind === "ring" ? ("menu" as const) : undefined,
+    };
+  if (entry.current) classes.push("current");
+  return { className: classes.join(" "), role: "menuitemradio", "aria-checked": entry.current };
 }
 
 function Wedge({
@@ -155,7 +113,6 @@ function Wedge({
 }>) {
   const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
   const label = { x: RING_RADIUS * Math.cos(angle), y: RING_RADIUS * Math.sin(angle) };
-  const classes = ["ring-wedge", entry.kind === "more" ? "more" : "", active ? "active" : ""];
   const text = entry.short;
   const colorIndex = entry.id.startsWith("colour.") ? Number(entry.id.slice(7)) : -1;
   const color = COLORS[colorIndex];
@@ -164,8 +121,7 @@ function Wedge({
   const short = text.length > 11 ? `${text.slice(0, 10)}…` : text;
   return (
     <g
-      className={classes.join(" ")}
-      role="menuitem"
+      {...wedgeRole(entry, active)}
       tabIndex={0}
       aria-label={entry.label}
       data-hint={color ? `Fill ${colorName}` : entry.label}
@@ -179,6 +135,7 @@ function Wedge({
       }}
     >
       <path d={wedgePath(index, count)} />
+      {entry.kind === "ring" && <path className="ring-rim" d={rimPath(index, count)} />}
       {color ? (
         <circle cx={label.x} cy={label.y} r={13} fill={color} stroke="#8991a6" />
       ) : (
@@ -304,10 +261,10 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
   useEffect(() => {
     ref.current
       ?.querySelector<HTMLElement>(
-        ".ring-mode, .ring-wedge[role=menuitem]:not([aria-disabled=true]), .context-menu [role=menuitem]:not([aria-disabled=true])"
+        ".ring-wedge:not(.empty), .context-menu [role=menuitem]:not([aria-disabled=true])"
       )
       ?.focus();
-  }, [menu?.ring, menu?.subRing, menu?.modes]);
+  }, [menu?.ring, menu?.subRing]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -348,7 +305,7 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
 function focusMenuEntry(menu: HTMLDivElement | null, event: KeyboardEvent) {
   const entries = [
     ...(menu?.querySelectorAll<HTMLElement | SVGElement>(
-      "[role=menuitem]:not([aria-disabled=true])"
+      "[role=menuitem]:not([aria-disabled=true]), [role=menuitemradio]"
     ) ?? []),
   ];
   const current = entries.findIndex((entry) => entry === document.activeElement);

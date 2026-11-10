@@ -7,6 +7,24 @@ import { defaultFields } from "./styleClipboard";
 export type Shape = Stencil | "note" | "text" | "frame" | "slide";
 export type Tool = Shape | "select" | "pan" | "draw" | "markup" | "connect" | "measure";
 
+/** The shapes the Add ring places; the last one chosen is what the Add mode returns to. */
+export const RING_SHAPES = [
+  "note",
+  "text",
+  "rectangle",
+  "ellipse",
+  "frame",
+  "decision",
+  "service",
+  "database",
+  "cloud",
+  "person",
+] as const satisfies readonly Shape[];
+
+/** The tool as a shape the Add ring places, or null for any other tool. */
+export const ringShape = (tool: Tool): Shape | null =>
+  (RING_SHAPES as readonly Tool[]).includes(tool) ? (tool as Shape) : null;
+
 /** The type and stencil a shape makes. */
 export function shapeItem(shape: Shape): { type: ItemType; stencil: Stencil } {
   if ((STENCILS as readonly string[]).includes(shape))

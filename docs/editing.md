@@ -161,27 +161,38 @@ keeps the selection. Empty-space right-click opens canvas actions even when an o
 The browser's own menu never appears over the canvas. Tab and arrows navigate the open menu;
 Escape closes it and preserves the selection.
 
-The canvas ring's south-west wedge, **Mode**, switches what the pointer does. Choose it, or rest
-a held right button on it, and a small arc of **Select**, **Add**, **Draw**, **Markup** and **Connect** opens
-beside it, with the current mode outlined. The ring's own wedges stay as they are. Release a held
-button on a mode, or click one, to switch: Select and Connect change the tool; Draw opens the
-drawing tools and Markup opens its own. Add shows shapes in the ring for the next canvas click. **Select all** is in the canvas
-menu and on its shortcut. Escape cancels an unfinished radial choice.
+Every ring keeps two wedges in the same place, whatever was pressed and whatever the mode:
+**Mode** to the west and **More**, the full menu, to the south-west. The other six belong to
+what was pressed, or to the mode when it has tools of its own.
+
+**Mode** switches what the pointer does. Stroke west onto it and a ring of **Select**, **Add**,
+**Draw**, **Markup** and **Connect** opens around the pointer, with the current mode outlined;
+carry on toward one and release. That is the whole switch: straight on is Select, Draw and
+Markup return to the tool each last used, and Add arms the shape last placed. In Draw, Markup
+and Add the ring then holds that mode's tools wherever it is pressed, so changing tool is one
+more stroke and never a required step.
+
+A wedge with a rim on its outer edge opens another ring: Mode, Colour, and in Draw the
+highlighters, vector shapes and erasers. It opens when a held pointer rests on it or strokes
+out through it, centred on the pointer, and when clicked. **Back** sits opposite the wedge that
+opened it, so reversing the stroke returns. No ring opens a third. Escape cancels an unfinished
+choice.
 
 The ring on an object reads like a compass, so a stroke can be learned once:
 
 | Direction | Command                     | Direction | Command             |
 | --------- | --------------------------- | --------- | ------------------- |
 | North     | Add branch                  | South     | Delete              |
-| East      | Relate to another object    | West      | Tag                 |
+| East      | Relate to another object    | West      | Mode                |
 | Northeast | Colour, a sub-ring of fills | Southwest | More: the full menu |
-| Southeast | Comment                     | Northwest | Shape, a sub-ring   |
+| Southeast | Comment                     | Northwest | Tag                 |
 
-**Shape** changes the object's kind in place, keeping its text, size, contents and lines. A line's
-ring keeps delete south, tag west and the menu south-west, with comment, colour, reverse, route
-and straighten around them; a slide's leads with Present. On empty canvas the ring places a
-note, text or frame, pastes, captures notes, selects all, fits the canvas or opens find; the
-grid and reference lines live in the view controls.
+A line's ring keeps delete south and tag north-west, with comment, colour, reverse and route
+around them; a slide's leads with Present. On empty canvas the ring places a note, text or
+frame, pastes, fits the canvas or opens find. **Select all** and **Capture** are in the canvas
+menu, and the grid and reference lines live in the view controls. The selection toolbar's
+**Change shape** opens a ring of kinds the object can become, keeping its text, size, contents
+and lines.
 
 The menu groups the same commands by intent: text, structure (branch, sibling, relate,
 connect), tags and status, arrangement, visibility, clipboard, view, and delete last. Families
@@ -496,7 +507,7 @@ under **Tags and status**.
   the same fold. **Expand** restores it.
 - **Tags** are words, shown in badges outside the object text. Click a tag badge to highlight
   other objects with that tag. Type one and press Enter, comma or
-  space to add it as a chip, or pick one the room already uses. **Tag…** in the ring's west
+  space to add it as a chip, or pick one the room already uses. **Tag…** in the ring's north-west
   wedge or the menu opens the same editor above the selection. With several objects selected,
   the chips are the tags they share; adding or removing one changes every object.
 - **Marker** adds a priority badge, P1 to P5, or a progress quarter from ○ to ●, outside the text.

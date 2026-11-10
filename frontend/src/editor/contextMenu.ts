@@ -4,10 +4,11 @@ import { MARKERS } from "../document/types";
 import { worldBounds } from "../document/relations";
 import type { CommandContext } from "./registry";
 import { findCommand, isAvailable, runCommand } from "./registry";
-import { closeMenu, openMenu, openSubRing } from "./ui";
+import { closeMenu, closeSubRing, openMenu, openSubRing } from "./ui";
 import type { EditorController } from "./controller";
 import { DRAWING_SHAPES } from "./drawingTools";
-import { SUB_RING_HELP } from "./ringHelp";
+import { RING_MODE_HELP, SUB_RING_HELP } from "./ringHelp";
+import { chooseRingMode, currentMode, type RingMode } from "./ringModes";
 
 /**
  * What the right button offers: a ring of eight commands laid out like a compass, and a menu of
@@ -119,80 +120,104 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
 
 /** Opens the menu where the ring was, in place of the ring. */
 const MORE = "ring.more";
-/** Opens the arc of editing modes beside its wedge. */
+/** Opens the ring of editing modes. */
 export const MODES = "ring.mode";
+/** Returns from a sub-ring to the ring that opened it. */
+const BACK = "ring.back";
+/** The wedges every ring keeps: the menu south-west and the modes west. */
+export const MORE_WEDGE = 5;
+export const MODE_WEDGE = 6;
+
+type Slot = string | null;
 
 /**
- * The eight wedges, clockwise from the top. On anything selected the compass holds: north grows
- * a branch or the main verb, east relates, south deletes, west tags, and south-west opens the
- * menu. Stacking order and the other occasional verbs live in the menu.
+ * A ring: six wedges of its own, given clockwise from north through south and then north-west,
+ * around the two every ring keeps. Mode is west and the menu south-west whatever was pressed
+ * and whatever the mode, so those two strokes are learned once.
  */
-const RINGS: Record<MenuContext, string[]> = {
-  canvas: [
+function ring(n: Slot, ne: Slot, e: Slot, se: Slot, s: Slot, nw: Slot): Slot[] {
+  return [n, ne, e, se, s, MORE, MODES, nw];
+}
+
+/**
+ * What Select shows, by what was pressed. On anything selected the compass holds: north is the
+ * main verb, south deletes and north-west tags. The occasional verbs live in the menu.
+ */
+const RINGS: Record<MenuContext, Slot[]> = {
+  canvas: ring(
     "create.noteHere",
     "create.textHere",
     "create.frameHere",
     "edit.pasteHere",
-    "create.capture",
-    MODES,
     "view.fit",
-    "view.find",
-  ],
-  object: [
+    "view.find"
+  ),
+  object: ring(
     "structure.branch",
     "ring.colour",
     "structure.relate",
     "comments.open",
     "edit.delete",
-    MORE,
-    "fields.tag",
-    "ring.shape",
-  ],
-  line: [
+    "fields.tag"
+  ),
+  line: ring(
     "comments.open",
     "ring.colour",
     "line.reverse",
     "arrange.route",
     "edit.delete",
-    MORE,
-    "fields.tag",
-    "line.clearPoints",
-  ],
-  slide: [
+    "fields.tag"
+  ),
+  slide: ring(
     "structure.present",
     "edit.text",
     "edit.duplicate",
     "comments.open",
     "edit.delete",
-    MORE,
-    "fields.tag",
-    "presence.copyLink",
-  ],
+    "fields.tag"
+  ),
 };
 
-/** The sub-rings a ring opens: the fills, and the shapes an object can become. */
-export const SUB_RINGS: Record<string, string[]> = {
-  "ring.draw": [
+/**
+ * What a mode with tools of its own shows wherever the button is pressed: the mode's tools, so
+ * choosing a mode never has to be followed by choosing a tool. Draw and Markup keep the pen
+ * north, the highlighter north-east, shapes east, selection south-east and the eraser south.
+ */
+const MODE_RINGS: Partial<Record<RingMode, Slot[]>> = {
+  Draw: ring(
     "draw.freehand",
     "ring.highlight",
     "ring.vector",
     "draw.lasso",
     "ring.erasers",
-    "draw.fill",
-    "draw.eyedropper",
-    "tool.select",
-  ],
-  "ring.markup": [
+    "draw.fill"
+  ),
+  Markup: ring(
     "markup.pen",
     "markup.marker",
     "markup.arrow",
-    "markup.box",
-    "markup.outline",
-    "markup.eraser",
     "markup.select",
-    "tool.select",
-  ],
-  "ring.highlight": ["draw.marker", "ring.highlightShapes", "draw.outline", "ring.draw"],
+    "markup.eraser",
+    "markup.box"
+  ),
+  Add: ring(
+    "tool.note",
+    "tool.text",
+    "tool.rectangle",
+    "tool.ellipse",
+    "tool.frame",
+    "ring.stencils"
+  ),
+};
+
+/**
+ * The sub-rings a wedge opens, one level and no deeper. Entries fill the wedges clockwise from
+ * north, skipping the Back wedge; a null leaves a wedge empty to hold the others in place.
+ */
+export const SUB_RINGS: Record<string, Slot[]> = {
+  // Back is east, so the modes fan around west: straight on is Select.
+  [MODES]: ["mode.Markup", null, null, "mode.Connect", "mode.Add", "mode.Select", "mode.Draw"],
+  "ring.highlight": ["draw.marker", "draw.highlightShape", "draw.outline"],
   "ring.vector": [
     "draw.shape.line",
     "draw.shape.arrow",
@@ -200,42 +225,10 @@ export const SUB_RINGS: Record<string, string[]> = {
     "draw.shape.rectangle",
     "draw.shape.ellipse",
     "draw.shape.polygon",
-    "ring.drawingMarks",
-    "ring.draw",
   ],
-  "ring.highlightShapes": [
-    "draw.highlight.line",
-    "draw.highlight.arrow",
-    "draw.highlight.double-arrow",
-    "draw.highlight.rectangle",
-    "draw.highlight.ellipse",
-    "draw.highlight.polygon",
-    "ring.highlightMarks",
-    "ring.draw",
-  ],
-  "ring.drawingMarks": [
-    "draw.shape.bracket",
-    "draw.shape.brace",
-    "draw.shape.cloud",
-    "ring.vector",
-  ],
-  "ring.highlightMarks": [
-    "draw.highlight.bracket",
-    "draw.highlight.brace",
-    "draw.highlight.cloud",
-    "ring.highlightShapes",
-  ],
-  "ring.erasers": ["draw.precision", "draw.eraser", "ring.draw"],
-  "ring.add": [
-    "tool.note",
-    "tool.text",
-    "tool.rectangle",
-    "tool.ellipse",
-    "tool.decision",
-    "tool.frame",
-    "tool.service",
-    "tool.database",
-  ],
+  // Back is north, so the erasers sit around south.
+  "ring.erasers": [null, null, "draw.precision", "draw.eraser"],
+  "ring.stencils": ["tool.decision", "tool.service", "tool.database", "tool.cloud", "tool.person"],
   "ring.colour": [
     "colour.0",
     "colour.1",
@@ -257,19 +250,14 @@ export const SUB_RINGS: Record<string, string[]> = {
   ],
 };
 const SUB_RING_LABELS: Record<string, string> = {
-  "ring.add": "Add",
-  "ring.draw": "Drawing tools",
-  "ring.markup": "Markup tools",
+  [MODES]: "Mode",
+  "ring.stencils": "Stencils",
   "ring.highlight": "Highlight",
   "ring.vector": "Vector",
   "ring.erasers": "Erase",
-  "ring.highlightShapes": "Shaped highlight",
-  "ring.drawingMarks": "More shapes",
-  "ring.highlightMarks": "More highlights",
   "ring.colour": "Colour",
   "ring.shape": "Shape",
 };
-export { RING_MODES, MODE_WEDGE, currentMode, chooseRingMode, type RingMode } from "./ringModes";
 
 interface EntryLabel {
   id: string;
@@ -280,7 +268,19 @@ interface EntryLabel {
   short: string;
 }
 export type MenuEntry = EntryLabel &
-  ({ kind: "command" | "ring" | "more" | "modes" } | { kind: "submenu"; submenu: MenuEntry[] });
+  (
+    | { kind: "command" | "ring" | "more" | "back" }
+    | { kind: "mode"; mode: RingMode; current: boolean }
+    | { kind: "submenu"; submenu: MenuEntry[] }
+  );
+
+const BACK_ENTRY: MenuEntry = {
+  id: BACK,
+  label: "Back",
+  help: "Return to the ring this one opened from.",
+  kind: "back",
+  short: "Back",
+};
 
 function entryFor(id: string, context: CommandContext): MenuEntry | null {
   if (id === MORE)
@@ -291,19 +291,21 @@ function entryFor(id: string, context: CommandContext): MenuEntry | null {
       kind: "more",
       short: "More…",
     };
-  if (id === MODES)
+  if (id.startsWith("mode.")) {
+    const mode = id.slice(5) as RingMode;
     return {
       id,
-      label: "Switch mode",
-      help: "Open an arc of editing modes beside this wedge.",
-      short: "Mode",
-      kind: "modes",
+      label: mode,
+      help: RING_MODE_HELP[mode],
+      kind: "mode",
+      mode,
+      current: currentMode(context.editor.tool) === mode,
+      short: mode,
     };
+  }
   if (id in SUB_RINGS) {
-    const inner = SUB_RINGS[id].filter(
-      (sub) => sub in SUB_RINGS || isAvailable(findCommand(sub), context)
-    );
-    return inner.length
+    const opens = SUB_RINGS[id].some((sub) => sub !== null && entryFor(sub, context) !== null);
+    return opens
       ? {
           kind: "ring",
           id,
@@ -342,17 +344,28 @@ export function menuGroups(context: CommandContext): MenuEntry[][] {
     .filter((group) => group.length > 0);
 }
 
-/** The ring's wedges in order; a wedge that does not apply is left empty rather than shifted. */
-export function ringEntries(context: CommandContext, subRing: string | null): (MenuEntry | null)[] {
+/**
+ * The ring's eight wedges in order; a wedge that does not apply is left empty rather than
+ * shifted. The mode's own ring wins over what was pressed, and a sub-ring keeps its Back wedge
+ * opposite the wedge that opened it.
+ */
+export function ringEntries(
+  context: CommandContext,
+  subRing: string | null,
+  back: number | null = null
+): (MenuEntry | null)[] {
   if (subRing) {
-    const entries = SUB_RINGS[subRing].map((id) => entryFor(id, context));
-    return Array.from({ length: 8 }, (_, index) => entries[index] ?? null);
+    const wedges: (MenuEntry | null)[] = Array.from({ length: 8 }, () => null);
+    const free = wedges.map((_, index) => index).filter((index) => index !== back);
+    if (back !== null) wedges[back] = BACK_ENTRY;
+    SUB_RINGS[subRing].forEach((id, index) => {
+      if (id !== null && index < free.length) wedges[free[index]] = entryFor(id, context);
+    });
+    return wedges;
   }
-  const kind = menuContextOf(context.selected);
-  return RINGS[kind].map((id) => {
-    const entry = entryFor(id, context);
-    return entry && RING_LABELS[id] ? { ...entry, short: RING_LABELS[id] } : entry;
-  });
+  const mode = currentMode(context.editor.tool);
+  const root = (mode && MODE_RINGS[mode]) ?? RINGS[menuContextOf(context.selected)];
+  return root.map((id) => (id === null ? null : entryFor(id, context)));
 }
 
 /** Wedges are narrow: these commands show a one-word name there, keeping their full label. */
@@ -366,8 +379,16 @@ const RING_LABELS: Record<string, string> = {
   "draw.precision": "Segment",
   "draw.eraser": "Whole stroke",
   "draw.outline": "Outline",
-  "markup.outline": "Outline",
+  "draw.highlightShape": "Shaped",
+  "draw.lasso": "Lasso",
+  "draw.fill": "Fill",
+  "markup.pen": "Pen",
+  "markup.marker": "Marker",
+  "markup.arrow": "Arrow",
+  "markup.box": "Box",
+  "markup.eraser": "Erase",
   "markup.select": "Select",
+  "tool.note": "Note",
   "structure.branch": "Branch",
   "structure.relate": "Relate",
   "comments.open": "Comment",
@@ -380,29 +401,37 @@ const RING_LABELS: Record<string, string> = {
   "view.fit": "Fit",
   "view.find": "Find",
   "structure.present": "Present",
-  "presence.copyLink": "Copy link",
-  "line.clearPoints": "Straighten",
   "arrange.route": "Route",
   "line.reverse": "Reverse",
 };
 
-/** What choosing a wedge does, by click or by stroke: open a sub-ring, show the menu, or run. */
-export function chooseRingEntry(editor: EditorController, entry: MenuEntry) {
+/** Whether choosing the entry moves between rings rather than running something. */
+export const opensRing = (entry: MenuEntry) => entry.kind === "ring" || entry.kind === "back";
+
+/**
+ * What choosing a wedge does, by click, by stroke or by resting on it: open a sub-ring from that
+ * wedge, go back, switch mode, show the menu, or run.
+ */
+export function chooseRingEntry(
+  editor: EditorController,
+  entry: MenuEntry,
+  wedge: number | null = null
+) {
   const menu = editor.ui.menu;
   if (entry.kind === "ring") {
-    openSubRing(editor, entry.id);
+    openSubRing(editor, entry.id, wedge);
     return;
   }
-  if (entry.kind === "modes" && menu) {
-    menu.modes = true;
-    menu.wedge = null;
-    editor.emit();
+  if (entry.kind === "back") {
+    closeSubRing(editor);
+    return;
+  }
+  if (entry.kind === "mode") {
+    chooseRingMode(editor, entry.mode);
     return;
   }
   if (entry.kind === "more" && menu) {
-    menu.ring = false;
-    menu.wedge = null;
-    menu.subRing = null;
+    Object.assign(menu, { ring: false, wedge: null, subRing: null, back: null });
     editor.emit();
     return;
   }

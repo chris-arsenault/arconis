@@ -2147,8 +2147,7 @@ input.outline-name {
   overflow: visible;
   filter: drop-shadow(0 4px 14px #35324c2e);
 }
-.ring-wedge path,
-.ring-mode path {
+.ring-wedge path {
   fill: var(--panel);
   stroke: var(--line);
   stroke-width: 1;
@@ -2158,31 +2157,35 @@ input.outline-name {
   fill: #ffffff88;
   cursor: default;
 }
-.ring-wedge:focus,
-.ring-mode:focus {
+.ring-wedge:focus {
   outline: none;
 }
 .ring-wedge:not(.empty):hover path,
 .ring-wedge.active path,
-.ring-wedge:focus-visible path,
-.ring-mode:hover path,
-.ring-mode.active path,
-.ring-mode:focus-visible path {
+.ring-wedge:focus-visible path {
   fill: var(--pressed);
   stroke: var(--purple);
 }
-.ring-wedge text,
-.ring-mode text {
+.ring-wedge text {
   font-size: 10px;
   fill: var(--text);
   pointer-events: none;
 }
-/* The mode the current tool belongs to keeps a purple rim in the Mode arc. */
-.ring-mode.current path {
+/* A wedge that opens another ring carries a rim on its outer edge. */
+.ring-wedge path.ring-rim,
+.ring-wedge:not(.empty):hover path.ring-rim,
+.ring-wedge.active path.ring-rim,
+.ring-wedge:focus-visible path.ring-rim {
+  fill: var(--muted);
+  stroke: none;
+  pointer-events: none;
+}
+/* The mode the current tool belongs to keeps a purple outline in the Mode ring. */
+.ring-wedge.current path {
   stroke: var(--purple);
   stroke-width: 2;
 }
-.ring-mode.current text {
+.ring-wedge.current text {
   font-weight: 600;
 }
 .context-menu {

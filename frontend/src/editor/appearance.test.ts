@@ -125,8 +125,7 @@ it("uses the same defaults and zoom policy for rail and context creation while p
     at: { x: 0, y: 0 },
     world: { x: 120, y: 300 },
     ring: false,
-    modes: false,
-    mode: null,
+    back: null,
     wedge: null,
     subRing: null,
   };

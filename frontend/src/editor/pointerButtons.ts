@@ -3,13 +3,7 @@ import type { EditorController } from "./controller";
 import { closeMenu, openMenu } from "./ui";
 import { commandContext } from "./registry";
 import { isUnderlay } from "./templates";
-import {
-  chooseRingEntry,
-  chooseRingMode,
-  MODE_WEDGE,
-  ringEntries,
-  RING_MODES,
-} from "./contextMenu";
+import { chooseRingEntry, opensRing, ringEntries, type MenuEntry } from "./contextMenu";
 
 /** The object under a pointer, including its label and indicators, excluding template underlays. */
 export function cellAt(editor: EditorController, event: MouseEvent) {
@@ -59,29 +53,12 @@ export const RING_RADIUS = 84;
 export const RING_INNER = 48;
 export const RING_OUTER = 120;
 export const RING_COUNT = 8;
-/** The Mode wedge's arc sits just outside the ring, centred on that wedge, one segment per mode. */
-export const MODE_INNER = 126;
-export const MODE_OUTER = 172;
-export const MODE_SPAN = Math.PI / 6;
-
-/** The first mode segment's starting angle, clockwise from the top, so the arc centres on its wedge. */
-export function modeArcStart() {
-  return (MODE_WEDGE * Math.PI * 2) / RING_COUNT - (MODE_SPAN * RING_MODES.length) / 2;
-}
-
-/** The mode segment under a pointer relative to the ring's centre, or null. */
-export function modeAt(dx: number, dy: number) {
-  const distance = Math.hypot(dx, dy);
-  if (distance < MODE_INNER || distance > MODE_OUTER) return null;
-  const angle = Math.atan2(dx, -dy);
-  const turn = (angle < 0 ? angle + Math.PI * 2 : angle) - modeArcStart();
-  const index = Math.floor(turn / MODE_SPAN);
-  return index >= 0 && index < RING_MODES.length ? index : null;
-}
+/** How long a held pointer rests on a wedge that opens a ring before that ring opens. */
+export const RING_DWELL_MS = 180;
 
 /** The clamped centre used by both the rendered ring and a held pointer's hit test. */
 export function ringCentre(at: { x: number; y: number }, width: number, height: number) {
-  const half = MODE_OUTER + 2;
+  const half = RING_OUTER + 2;
   return {
     x: Math.max(8 + half, Math.min(at.x, width - half - 8)),
     y: Math.max(8 + half, Math.min(at.y, height - half - 8)),
@@ -151,27 +128,21 @@ function selectUnderPointer(editor: EditorController, event: PointerEvent) {
 }
 
 /**
- * Ends a right-button gesture. A stroke, once dragged, either chooses the wedge or mode it ends on
- * or cancels; a button held still and released in the centre leaves the menu for a click.
+ * Ends a right-button gesture. A stroke, once dragged, either chooses the wedge it ends on or
+ * cancels; a button held still and released in the centre leaves the menu for a click.
  */
-function releaseRing(editor: EditorController, event: PointerEvent, dragged: boolean) {
+function releaseRing(editor: EditorController, dragged: boolean, stroke: Stroke) {
   const menu = editor.ui.menu;
   if (!menu?.ring) return;
-  const area = editor.element.getBoundingClientRect();
-  const centre = ringCentre(menu.at, area.width, area.height);
-  const mode = menu.modes
-    ? modeAt(event.clientX - area.left - centre.x, event.clientY - area.top - centre.y)
-    : null;
-  if (mode !== null) {
-    chooseRingMode(editor, RING_MODES[mode]);
-    return;
-  }
+  const wedge = menu.wedge;
   const entry =
-    menu.wedge === null ? null : ringEntries(commandContext(editor), menu.subRing)[menu.wedge];
+    wedge === null ? null : ringEntries(commandContext(editor), menu.subRing, menu.back)[wedge];
   if (entry) {
-    chooseRingEntry(editor, entry);
+    chooseRingEntry(editor, entry, wedge);
     return;
   }
+  // Released where a ring just opened under the pointer: that ring stays for a click.
+  if (stroke.fresh) return;
   if (dragged) {
     closeMenu(editor);
     return;
@@ -181,23 +152,91 @@ function releaseRing(editor: EditorController, event: PointerEvent, dragged: boo
   editor.emit();
 }
 
-/**
- * Follows a held pointer over the ring: the wedge under it, and the Mode arc's segment once
- * resting on the Mode wedge has revealed the arc. The ring's own wedges never change on the way.
- */
-function trackRing(editor: EditorController, event: PointerEvent) {
-  const menu = editor.ui.menu!;
+/** What one held stroke remembers between pointer moves. */
+interface Stroke {
+  /** The pointer's last place, in canvas-area pixels. */
+  at: { x: number; y: number };
+  /** Whether the pointer was last inside the ring's outer edge. */
+  within: boolean;
+  /** The wait before a rested-on wedge opens its ring. */
+  dwell: ReturnType<typeof setTimeout> | null;
+  /** A wedge a new ring opened under the pointer, which counts only once the pointer leaves it. */
+  skip: number | null;
+  /** Whether a ring opened under the pointer and the pointer has yet to reach one of its wedges. */
+  fresh: boolean;
+}
+
+/** The pointer relative to the ring's clamped centre, and the wedge in its direction if any. */
+function strokePoint(editor: EditorController, at: { x: number; y: number }) {
   const area = editor.element.getBoundingClientRect();
-  const centre = ringCentre(menu.at, area.width, area.height);
-  const px = event.clientX - area.left - centre.x;
-  const py = event.clientY - area.top - centre.y;
-  const wedge = wedgeAt(px, py, RING_COUNT);
-  const entry = wedge === null ? null : ringEntries(commandContext(editor), menu.subRing)[wedge];
-  const modes = menu.modes || entry?.kind === "modes";
-  const mode = modes ? modeAt(px, py) : null;
-  if (wedge === menu.wedge && modes === Boolean(menu.modes) && mode === (menu.mode ?? null)) return;
-  Object.assign(menu, { wedge, modes, mode });
+  const centre = ringCentre(editor.ui.menu!.at, area.width, area.height);
+  const dx = at.x - centre.x;
+  const dy = at.y - centre.y;
+  const distance = Math.hypot(dx, dy);
+  return {
+    distance,
+    wedge: wedgeAt(dx, dy, RING_COUNT),
+    toward: distance < RING_INNER ? null : wedgeAt(dx, dy, RING_COUNT, RING_INNER, Infinity),
+  };
+}
+
+/**
+ * Moves a held stroke into the ring a wedge opens, or back out of it, and centres that ring on
+ * the pointer so the stroke carries on from its neutral centre. A ring held in from the canvas
+ * edge can open with a wedge already under the pointer; that wedge waits until the pointer leaves.
+ */
+function enterRing(editor: EditorController, stroke: Stroke, entry: MenuEntry, wedge: number) {
+  const menu = editor.ui.menu;
+  if (stroke.dwell) clearTimeout(stroke.dwell);
+  stroke.dwell = null;
+  if (!menu?.ring) return;
+  menu.at = { ...stroke.at };
+  chooseRingEntry(editor, entry, wedge);
+  stroke.skip = strokePoint(editor, stroke.at).toward;
+  stroke.within = true;
+  stroke.fresh = true;
+}
+
+/**
+ * Follows a held pointer over the ring. The wedge under it lights; a wedge that opens another
+ * ring does so when the pointer rests on it or strokes out through it, so two levels are one
+ * continuous stroke.
+ */
+function trackRing(editor: EditorController, stroke: Stroke) {
+  const menu = editor.ui.menu!;
+  const { wedge, through } = advanceStroke(editor, stroke);
+  const entries = ringEntries(commandContext(editor), menu.subRing, menu.back);
+  const crossed = through === null ? null : entries[through];
+  if (crossed && opensRing(crossed)) {
+    enterRing(editor, stroke, crossed, through!);
+    return;
+  }
+  if (wedge === menu.wedge) return;
+  menu.wedge = wedge;
   editor.emit();
+  if (stroke.dwell) clearTimeout(stroke.dwell);
+  const entry = wedge === null ? null : entries[wedge];
+  stroke.dwell =
+    entry && opensRing(entry)
+      ? setTimeout(() => enterRing(editor, stroke, entry, wedge!), RING_DWELL_MS)
+      : null;
+}
+
+/**
+ * Brings the stroke's memory up to the pointer: the wedge it is on, and the wedge it has just
+ * left the ring through, if it has. A wedge that opened under the pointer counts as neither
+ * until the pointer leaves its direction.
+ */
+function advanceStroke(editor: EditorController, stroke: Stroke) {
+  const point = strokePoint(editor, stroke.at);
+  if (point.toward !== stroke.skip) stroke.skip = null;
+  const waiting = stroke.skip !== null;
+  const outside = !waiting && point.distance > RING_OUTER;
+  const through = outside && stroke.within ? point.toward : null;
+  const wedge = waiting ? null : point.wedge;
+  stroke.within = point.distance <= RING_OUTER;
+  if (wedge !== null || outside) stroke.fresh = false;
+  return { wedge, through };
 }
 
 function menuWithRightButton(editor: EditorController, event: PointerEvent, onEnd: () => void) {
@@ -226,6 +265,7 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent, onEn
   };
   const hold = setTimeout(showRing, RING_HOLD_MS);
   let dragged = false;
+  const stroke: Stroke = { at, within: true, dwell: null, skip: null, fresh: false };
   const move = (moveEvent: PointerEvent) => {
     const menu = editor.ui.menu;
     if (!menu) return;
@@ -235,10 +275,12 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent, onEn
       dragged = true;
       showRing();
     }
-    if (menu.ring) trackRing(editor, moveEvent);
+    stroke.at = { x: moveEvent.clientX - bounds.left, y: moveEvent.clientY - bounds.top };
+    if (menu.ring) trackRing(editor, stroke);
   };
   const finish = (finishEvent: PointerEvent) => {
     clearTimeout(hold);
+    if (stroke.dwell) clearTimeout(stroke.dwell);
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", finish);
     element.removeEventListener("pointercancel", finish);
@@ -248,7 +290,7 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent, onEn
       closeMenu(editor);
       return;
     }
-    releaseRing(editor, finishEvent, dragged);
+    releaseRing(editor, dragged, stroke);
   };
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", finish);

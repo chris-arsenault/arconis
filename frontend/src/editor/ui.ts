@@ -1,4 +1,5 @@
 import type { EditorController } from "./controller";
+import type { Shape } from "./shapes";
 import { EMPTY_FILTER } from "./filter";
 
 /** Form controls and modal/menu surfaces own input instead of the canvas underneath them. */
@@ -42,6 +43,8 @@ export interface EditorUi {
   dragging: boolean;
   /** The help reference, open at a topic: a guide id, `guide#anchor`, or `commands`. */
   help: string | null;
+  /** The shape the ring's Add mode arms: the last one chosen for placing. */
+  lastShape: Shape;
 }
 
 /** Nothing open, nothing followed, nothing dragged: how an editor starts. */
@@ -64,6 +67,7 @@ export function initialUi(): EditorUi {
     relating: null,
     dragging: false,
     help: null,
+    lastShape: "note",
   };
 }
 
@@ -75,11 +79,10 @@ export interface MenuState {
   wedge: number | null;
   /** The sub-ring open in place of the ring, by the entry that opened it. */
   subRing: string | null;
+  /** The sub-ring's Back wedge, opposite the wedge that opened it; null when nothing did. */
+  back: number | null;
   /** Whether the ring shows: a held or dragged right button brings it; a click leaves the menu. */
   ring: boolean;
-  /** Whether the Mode wedge's arc of editing modes shows, and which of its modes a held pointer is on. */
-  modes: boolean;
-  mode: number | null;
 }
 
 /** Opens or closes the palette, returning focus to the canvas when it closes. */
@@ -113,8 +116,8 @@ export function showFilter(editor: EditorController, open: boolean) {
   if (!open) editor.element.focus({ preventScroll: true });
 }
 
-export function openMenu(editor: EditorController, menu: Omit<MenuState, "modes" | "mode">) {
-  editor.ui.menu = { ...menu, modes: false, mode: null };
+export function openMenu(editor: EditorController, menu: Omit<MenuState, "back">) {
+  editor.ui.menu = { ...menu, back: null };
   editor.emit();
 }
 
@@ -124,11 +127,24 @@ export function closeMenu(editor: EditorController) {
   editor.emit();
 }
 
-export function openSubRing(editor: EditorController, id: string) {
+/**
+ * Opens a sub-ring in place of the ring. Opened from a wedge, its Back sits opposite that wedge,
+ * so reversing the stroke returns; opened from elsewhere, it has no ring to go back to.
+ */
+export function openSubRing(editor: EditorController, id: string, from: number | null = null) {
   if (!editor.ui.menu) return;
-  editor.ui.menu.subRing = id;
-  editor.ui.menu.wedge = null;
-  editor.ui.menu.modes = false;
+  Object.assign(editor.ui.menu, {
+    subRing: id,
+    back: from === null ? null : (from + 4) % 8,
+    wedge: null,
+  });
+  editor.emit();
+}
+
+/** Returns from a sub-ring to the ring that opened it. */
+export function closeSubRing(editor: EditorController) {
+  if (!editor.ui.menu) return;
+  Object.assign(editor.ui.menu, { subRing: null, back: null, wedge: null });
   editor.emit();
 }
 

@@ -198,7 +198,9 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   maxGraph only ever sees the left: the middle button pans, and the right button opens
   `editor/ui.ts`'s menu state, which `components/ContextMenu.tsx` draws as a ring and a list
   from `editor/contextMenu.ts`, itself read from the command table. A right drag past the dead
-  zone picks a wedge by angle. Comments open through `showComments` into
+  zone picks a wedge by angle; a wedge that opens a sub-ring does so on a rest or a stroke out
+  through it, recentred on the pointer with Back opposite. Every ring keeps Mode west and the
+  menu south-west, and the mode's own ring wins over what was pressed. Comments open through `showComments` into
   `components/CommentModal.tsx`, anchored to the cell's state above the object. Swapping kinds,
   swapping positions and the line and frame verbs live in `editor/swap.ts`; stencils made of
   ordinary items (tables of docked frames, task lists) in `editor/stencils.ts`; docked edges in
