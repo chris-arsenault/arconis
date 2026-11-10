@@ -90,17 +90,17 @@ export const TASKS: Task[] = [
   },
   {
     title: "Mark it up",
-    text: "Press M for markup and drag across the diagram, as you would to circle something in a review. Markup sits above everything.",
+    text: "Press M for Markup and drag across the diagram, as you would to circle something in a review. Markup sits above everything and stays out of the layers.",
     target: "canvas",
-    reach: ["rail-draw"],
+    reach: ["rail-tools", "markup-bar"],
     done: (editor, start) =>
       editor.document.list().filter(isMarkup).length > start.filter(isMarkup).length,
   },
   {
     title: "Present it",
-    text: "Open Slides on the left and press Present beside the practice deck. Escape leaves the presentation. That is the whole practice.",
-    target: "rail-slides",
-    reach: ["rail-content", "rail-tools"],
+    text: "Open Slides on the right and press Present beside the practice deck. Escape leaves the presentation. That is the whole practice.",
+    target: "dock-slides",
+    reach: ["dock", "dock-toggle"],
     done: (editor) => editor.presenter.active,
   },
 ];

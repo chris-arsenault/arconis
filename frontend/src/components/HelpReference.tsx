@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -28,16 +28,19 @@ import "./help.css";
 export const CONTENTS = "contents";
 export const COMMANDS_TOPIC = "commands";
 
-/**
- * The help reference: the user guides, searchable and cross-linked, and every command with its
- * shortcut. It sits beside the canvas without blocking it, so a reader can try what they read.
- */
 /** The tutorials the reference can start: the orientation and the hands-on practice room. */
 export interface Tutorials {
   tour: () => void;
   practice: () => void;
 }
 
+/** What the content pane shows when Help opens without a topic. */
+const FIRST_GUIDE = "getting-started";
+
+/**
+ * The help reference: a centred dialog with the topics on the left and the chosen guide section,
+ * search results or command list on the right. A narrow screen shows one side at a time.
+ */
 export function HelpReference({
   editor,
   tutorials,
@@ -45,66 +48,96 @@ export function HelpReference({
   const topic = editor.ui.help ?? CONTENTS;
   const [sections, setSections] = useState<Section[] | null>(null);
   const [query, setQuery] = useState("");
-  const panel = useRef<HTMLElement>(null);
-  const opener = useRef<Element | null>(document.activeElement);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   useEffect(() => {
     void loadSections().then(setSections);
   }, []);
   useEffect(() => {
-    panel.current?.querySelector<HTMLElement>("input")?.focus();
+    const node = dialog.current!;
+    // Canvas shortcuts stay out of the dialog while it is open.
+    const stop = (event: KeyboardEvent) => event.stopPropagation();
+    node.addEventListener("keydown", stop);
+    node.showModal();
+    return () => node.removeEventListener("keydown", stop);
   }, []);
-  const body = useRef<HTMLDivElement>(null);
   // Following a link moves focus to what it opened, so reading continues where it appears.
   const go = (next: string) => {
     setQuery("");
     showHelp(editor, next);
     requestAnimationFrame(() => body.current?.focus({ preventScroll: true }));
   };
-  const close = () => {
-    showHelp(editor, null);
-    const back = opener.current;
-    if (back instanceof HTMLElement && back.isConnected) back.focus();
-    else editor.element.focus({ preventScroll: true });
-  };
-  // Escape inside the reference clears a search first, then closes it.
-  useEscape(panel, () => (query ? setQuery("") : close()));
+  const shown = topic === CONTENTS ? FIRST_GUIDE : topic;
+  const view = topic === CONTENTS && !query.trim() ? "topics" : "content";
   return (
-    <aside
-      ref={panel}
-      className="help-reference"
-      aria-label="Help reference"
+    <dialog
+      ref={dialog}
+      className="help-dialog"
+      aria-labelledby="help-title"
       data-help-id="help-reference"
+      data-view={view}
+      // Escape clears a search first, then closes Help; the dialog returns focus by itself.
+      onCancel={(event) => {
+        if (!query) return;
+        event.preventDefault();
+        setQuery("");
+      }}
+      onClose={() => showHelp(editor, null)}
     >
-      <header>
-        <h2>Help</h2>
-        <button
-          className="icon-action"
-          aria-label="Close help"
-          data-hint-detail="Close the reference and return to where you were."
-          onClick={close}
-        >
-          <X size={18} />
-        </button>
-      </header>
+      <HelpHeader query={query} onQuery={setQuery} onClose={() => dialog.current?.close()} />
+      <div className="help-layout">
+        <Topics
+          sections={sections}
+          current={query.trim() ? "" : shown}
+          onGo={go}
+          tutorials={tutorials}
+        />
+        <div className="help-body" ref={body} tabIndex={-1}>
+          <button
+            className="help-back"
+            data-hint-detail="Return to the list of help topics."
+            onClick={() => go(CONTENTS)}
+          >
+            <ArrowLeft size={15} /> Topics
+          </button>
+          <ReferenceBody
+            editor={editor}
+            sections={sections}
+            query={query}
+            topic={shown}
+            onGo={go}
+          />
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+function HelpHeader({
+  query,
+  onQuery,
+  onClose,
+}: Readonly<{ query: string; onQuery: (query: string) => void; onClose: () => void }>) {
+  return (
+    <header>
+      <h2 id="help-title">Help</h2>
       <input
         type="search"
         aria-label="Search help"
         placeholder="Search the guides"
         data-hint-detail="Find guide sections containing every word you type."
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => onQuery(event.target.value)}
       />
-      <div className="help-body" ref={body} tabIndex={-1}>
-        <ReferenceBody
-          editor={editor}
-          sections={sections}
-          query={query}
-          topic={topic}
-          onGo={go}
-          tutorials={tutorials}
-        />
-      </div>
-    </aside>
+      <button
+        className="icon-action"
+        aria-label="Close help"
+        data-hint-detail="Close Help and return to where you were."
+        onClick={onClose}
+      >
+        <X size={18} />
+      </button>
+    </header>
   );
 }
 
@@ -117,50 +150,41 @@ function useLatest<T>(value: T) {
   return ref;
 }
 
-function useEscape(panel: RefObject<HTMLElement | null>, onEscape: () => void) {
-  const latest = useLatest(onEscape);
-  useEffect(() => {
-    const node = panel.current;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      event.stopPropagation();
-      latest.current();
-    };
-    node?.addEventListener("keydown", onKey);
-    return () => node?.removeEventListener("keydown", onKey);
-  }, [panel, latest]);
-}
-
 function ReferenceBody({
   editor,
   sections,
   query,
   topic,
   onGo,
-  tutorials,
 }: Readonly<{
   editor: EditorController;
   sections: Section[] | null;
   query: string;
   topic: string;
   onGo: (topic: string) => void;
-  tutorials: Tutorials;
 }>) {
   if (!sections) return <p className="help-loading">Loading the guides…</p>;
   if (query.trim()) return <SearchResults sections={sections} query={query} onGo={onGo} />;
-  if (topic === CONTENTS) return <Contents sections={sections} onGo={onGo} tutorials={tutorials} />;
-  if (topic === COMMANDS_TOPIC) return <Commands editor={editor} onGo={onGo} />;
+  if (topic === COMMANDS_TOPIC) return <Commands editor={editor} />;
   return <Article sections={sections} topic={topic} onGo={onGo} />;
 }
 
-function Contents({
+/** The left side: tutorials, the command list, and every guide, the open one's sections listed. */
+function Topics({
   sections,
+  current,
   onGo,
   tutorials,
-}: Readonly<{ sections: Section[]; onGo: (topic: string) => void; tutorials: Tutorials }>) {
+}: Readonly<{
+  sections: Section[] | null;
+  current: string;
+  onGo: (topic: string) => void;
+  tutorials: Tutorials;
+}>) {
+  const guide = current.split("#")[0];
+  const open = sections && findSection(sections, current);
   return (
-    <nav aria-label="Help contents">
+    <nav className="help-topics" aria-label="Help topics">
       <div className="help-start">
         <button
           data-hint-detail="Walk through the workspace's main areas, one highlighted step at a time."
@@ -175,38 +199,46 @@ function Contents({
           <GraduationCap size={16} /> Practice in a sample room
         </button>
         <button
+          aria-current={current === COMMANDS_TOPIC ? "page" : undefined}
           data-hint-detail="Every command, grouped by task, with its keyboard shortcut."
           onClick={() => onGo(COMMANDS_TOPIC)}
         >
           <Keyboard size={16} /> Commands and shortcuts
         </button>
       </div>
-      {GUIDES.map((guide) => (
-        <section key={guide.id} className="help-guide">
-          <h3>
+      <h3>Guides</h3>
+      <ul>
+        {GUIDES.map(({ id, title }) => (
+          <li key={id}>
             <button
+              className="help-guide"
+              aria-current={guide === id && !open?.id ? "page" : undefined}
+              aria-expanded={guide === id}
               data-hint-detail="Read this guide from the start."
-              onClick={() => onGo(guide.id)}
+              onClick={() => onGo(id)}
             >
-              {guide.title}
+              {title}
             </button>
-          </h3>
-          <ul>
-            {sections
-              .filter((section) => section.guide === guide.id && section.id)
-              .map((section) => (
-                <li key={section.id}>
-                  <button
-                    data-hint-detail="Open this section of the guide."
-                    onClick={() => onGo(`${guide.id}#${section.id}`)}
-                  >
-                    {section.title}
-                  </button>
-                </li>
-              ))}
-          </ul>
-        </section>
-      ))}
+            {guide === id && sections && (
+              <ul>
+                {sections
+                  .filter((section) => section.guide === id && section.id)
+                  .map((section) => (
+                    <li key={section.id}>
+                      <button
+                        aria-current={open === section ? "page" : undefined}
+                        data-hint-detail="Open this section of the guide."
+                        onClick={() => onGo(`${id}#${section.id}`)}
+                      >
+                        {section.title}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
     </nav>
   );
 }
@@ -277,13 +309,6 @@ function Article({
   const topicOf = (entry: Section) => (entry.id ? `${entry.guide}#${entry.id}` : entry.guide);
   return (
     <article className="help-article">
-      <button
-        className="help-back"
-        data-hint-detail="Return to the list of guides."
-        onClick={() => onGo(CONTENTS)}
-      >
-        <ArrowLeft size={15} /> Contents
-      </button>
       <p className="help-crumb">{guideTitle(section.guide)}</p>
       {!section.id && <h2>{guideTitle(section.guide)}</h2>}
       <div ref={body} className="help-markdown" dangerouslySetInnerHTML={{ __html: html }} />
@@ -309,23 +334,13 @@ function Article({
   );
 }
 
-function Commands({
-  editor,
-  onGo,
-}: Readonly<{ editor: EditorController; onGo: (topic: string) => void }>) {
+function Commands({ editor }: Readonly<{ editor: EditorController }>) {
   const context = commandContext(editor);
   const groups = new Map<string, Command[]>();
   for (const command of COMMANDS)
     groups.set(command.group, [...(groups.get(command.group) ?? []), command]);
   return (
     <article className="help-article help-commands">
-      <button
-        className="help-back"
-        data-hint-detail="Return to the list of guides."
-        onClick={() => onGo(CONTENTS)}
-      >
-        <ArrowLeft size={15} /> Contents
-      </button>
       <h2>Commands and shortcuts</h2>
       <p>
         Every command is also in the command palette, Ctrl/⌘ K. Single-key shortcuts work while the

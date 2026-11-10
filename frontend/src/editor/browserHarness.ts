@@ -180,10 +180,24 @@ export async function open(context: BrowserContext, room = "", join = false, sta
   await page.getByTestId("connection-status").filter({ hasText: status }).waitFor();
   return page;
 }
-export async function add(page: Page, tool: string, label: string, x: number, y: number) {
+/** Shows one of the left rail's panels: Shapes or Draw. */
+export async function railPanel(page: Page, name: "Shapes" | "Draw") {
   await page
-    .getByRole("button", { name: tool === "Slide" ? "Slides" : "Add", exact: true })
+    .getByRole("navigation", { name: "Workspace panels" })
+    .getByRole("button", { name, exact: true })
     .click();
+}
+/** Shows one of the right dock's document panels, leaving it open if it already is. */
+export async function dockPanel(page: Page, name: "Layers" | "Slides" | "Navigate") {
+  const tabs = page.getByRole("navigation", { name: "Document panels" });
+  if (!(await tabs.isVisible()))
+    await page.getByRole("button", { name: /^(Document panels|Object properties)$/ }).click();
+  const tab = tabs.getByRole("button", { name, exact: true });
+  if ((await tab.getAttribute("aria-pressed")) !== "true") await tab.click();
+}
+export async function add(page: Page, tool: string, label: string, x: number, y: number) {
+  if (tool === "Slide") await dockPanel(page, "Slides");
+  else await railPanel(page, "Shapes");
   await page
     .getByRole("button", { name: tool === "Slide" ? "Add slide" : tool, exact: true })
     .click();
@@ -224,31 +238,39 @@ export function groupLabel(page: Page) {
 export function selectConnector(page: Page, modifiers: "Shift"[] = []) {
   return clickPath(page, "#7f8aa3", modifiers);
 }
-/** Opens the Draw panel and chooses where ink goes, as a person does from the rail. */
-export async function drawInto(page: Page, target: "content" | "markup") {
-  await page
-    .getByRole("navigation", { name: "Workspace panels" })
-    .getByRole("button", { name: "Draw", exact: true })
-    .click();
-  await page
-    .getByRole("button", {
-      name: target === "content" ? "Content layer (P)" : "Markup (M)",
-      exact: true,
-    })
-    .click();
+/** Markup's bar, which shows while Markup is armed. */
+export function markupBar(page: Page) {
+  return page.getByRole("toolbar", { name: "Markup", exact: true });
 }
-export async function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
+/** Arms Draw from the rail's Draw panel, or Markup from the tool row, as a person does. */
+export async function drawInto(page: Page, target: "content" | "markup") {
+  if (target === "content") return railPanel(page, "Draw");
+  await page.getByRole("button", { name: "Markup (M)", exact: true }).click();
+  await markupBar(page).waitFor();
+}
+/**
+ * Lassos the first default-coloured ink path. Annotations are lassoed from Markup's bar and
+ * content ink from the Draw panel; unsaid, it is an annotation while Markup is armed.
+ */
+export async function selectDrawing(
+  page: Page,
+  modifiers: "Shift"[] = [],
+  target?: "markup" | "content"
+) {
   const box = await page
     .getByTestId("canvas")
-    .locator('path[stroke="#6554c0"]')
+    .locator('path[stroke="#6554c0"], path[stroke="#e03131"]')
     .first()
     .boundingBox();
   if (!box) throw new Error("No visible ink path to lasso.");
-  await page
-    .getByRole("navigation", { name: "Workspace panels" })
-    .getByRole("button", { name: "Draw", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Select ink", exact: true }).click();
+  const markup = target ? target === "markup" : (await markupBar(page).count()) > 0;
+  if (markup) {
+    await drawInto(page, "markup");
+    await markupBar(page).getByRole("button", { name: "Select annotations", exact: true }).click();
+  } else {
+    await railPanel(page, "Draw");
+    await page.getByRole("button", { name: "Select ink", exact: true }).click();
+  }
   if (modifiers.length) await page.keyboard.down("Shift");
   await page.mouse.move(box.x - 12, box.y - 12);
   await page.mouse.down();

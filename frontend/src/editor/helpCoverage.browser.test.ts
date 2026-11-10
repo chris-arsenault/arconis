@@ -1,6 +1,15 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { add, browser, errors, open } from "./browserHarness";
+import {
+  add,
+  browser,
+  dockPanel,
+  drawInto,
+  errors,
+  open,
+  railPanel,
+  selectDrawing,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const CONTROLS =
@@ -53,23 +62,32 @@ class UniqueList {
   }
 }
 
-async function rail(page: Page, panel: string) {
-  await page
-    .getByRole("navigation", { name: "Workspace panels" })
-    .getByRole("button", { name: panel, exact: true })
-    .click();
-}
-
 it("gives every visible control on the main surfaces a help sentence", async () => {
   const context = await browser.newContext(VIEWPORT);
   try {
     const page = await open(context);
     const missing = new UniqueList();
     missing.push(...(await unexplained(page, "workspace")));
-    for (const panel of ["Draw", "Layers", "Explore", "Slides", "Add"]) {
-      await rail(page, panel);
+    for (const panel of ["Draw", "Shapes"] as const) {
+      await railPanel(page, panel);
       missing.push(...(await unexplained(page, `rail ${panel}`)));
     }
+    for (const panel of ["Layers", "Slides", "Navigate"] as const) {
+      await dockPanel(page, panel);
+      missing.push(...(await unexplained(page, `dock ${panel}`)));
+    }
+    // Markup's bar, then an annotation selected so the property panel shows its ink controls.
+    await drawInto(page, "markup");
+    missing.push(...(await unexplained(page, "Markup bar")));
+    const canvas = (await page.getByTestId("canvas").boundingBox())!;
+    await page.mouse.move(canvas.x + 200, canvas.y + 500);
+    await page.mouse.down();
+    await page.mouse.move(canvas.x + 360, canvas.y + 540, { steps: 8 });
+    await page.mouse.up();
+    await selectDrawing(page, [], "markup");
+    await page.getByRole("button", { name: "Move to content layer", exact: true }).waitFor();
+    missing.push(...(await unexplained(page, "selected annotation")));
+    await page.keyboard.press("Escape");
     await add(page, "Sticky note (N)", "Explain me", 420, 300);
     missing.push(...(await unexplained(page, "selected note")));
 

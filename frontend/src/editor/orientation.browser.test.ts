@@ -51,16 +51,18 @@ it("offers the orientation once, walks every area without changing the room, and
     for (const title of [
       "The canvas",
       "Select, Pan and Connect",
-      "Add",
-      "Draw and markup",
-      "Layers",
-      "Explore",
-      "Slides and presenting",
+      "Markup",
+      "Shapes",
+      "Draw",
       "Properties",
+      "Layers",
+      "Slides and presenting",
+      "Navigate",
       "Find and filter",
       "File",
       "Share the room",
       "Settings",
+      "Feedback",
       "Who is here",
       "Commands and shortcuts",
       "The help zone",
@@ -70,8 +72,16 @@ it("offers the orientation once, walks every area without changing the room, and
     expect(await objectCount(page)).toBe(before);
     const tabs = page.getByRole("navigation", { name: "Workspace panels" });
     expect(
-      await tabs.getByRole("button", { name: "Add", exact: true }).getAttribute("aria-pressed")
+      await tabs.getByRole("button", { name: "Shapes", exact: true }).getAttribute("aria-pressed")
     ).toBe("true");
+    // The tour opened the document panels and Markup's bar to show them, then put them away.
+    expect(
+      await page
+        .getByRole("navigation", { name: "Document panels" })
+        .locator('[aria-pressed="true"]')
+        .count()
+    ).toBe(0);
+    expect(await page.getByRole("toolbar", { name: "Markup", exact: true }).count()).toBe(0);
     expect(await offer.count()).toBe(0);
     await page.reload();
     await page.getByRole("navigation", { name: "Workspace panels" }).waitFor();
@@ -89,6 +99,40 @@ it("offers the orientation once, walks every area without changing the room, and
   }
 });
 
+it("lets people try the right button while the tour describes it", async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  firstVisit(context);
+  try {
+    const page = await open(context);
+    await page.getByRole("button", { name: "Take the tour", exact: true }).click();
+    const title = tourPopup(page).locator(".driver-popover-title");
+    for (const next of ["The canvas", "Right button: menu and ring"]) {
+      await expect.poll(() => nextFocused(page)).toBe(true);
+      await page.keyboard.press("ArrowRight");
+      await expect.poll(() => title.textContent()).toBe(next);
+    }
+    // A real right click on the highlighted canvas opens the menu, and its items work.
+    const canvas = (await page.getByTestId("canvas").boundingBox())!;
+    await page.mouse.click(canvas.x + 300, canvas.y + 300, { button: "right" });
+    const menu = page.getByRole("menu", { name: "Canvas menu" });
+    await menu.waitFor();
+    const grid = page.getByRole("button", { name: "Grid and snapping", exact: true });
+    expect(await grid.getAttribute("aria-pressed")).toBe("true");
+    await menu.getByRole("menuitem", { name: /^Hide grid/ }).click();
+    await expect.poll(() => grid.getAttribute("aria-pressed")).toBe("false");
+    // Holding the button brings the ring there too.
+    await page.mouse.move(canvas.x + 400, canvas.y + 350);
+    await page.mouse.down({ button: "right" });
+    await page.getByTestId("command-ring").waitFor();
+    await page.mouse.up({ button: "right" });
+    await page.keyboard.press("Escape");
+    expect(await title.textContent()).toBe("Right button: menu and ring");
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 it("fits every orientation step on a phone, skipping areas the narrow layout hides", async () => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -100,10 +144,12 @@ it("fits every orientation step on a phone, skipping areas the narrow layout hid
     await page.getByRole("button", { name: "Take the tour", exact: true }).click();
     const titles = await walk(page, 390, 844);
     expect(titles).toContain("Slides and presenting");
-    expect(titles).toContain("Draw and markup");
-    await page.screenshot({ path: "test-results/orientation-phone-end.png" });
+    expect(titles).toContain("Markup");
+    expect(titles).toContain("Draw");
+    await expect.poll(() => page.locator(".right-dock").count()).toBe(0);
     const rail = page.locator(".left-rail");
-    expect(await rail.getAttribute("data-expanded")).toBe("false");
+    await expect.poll(() => rail.getAttribute("data-expanded")).toBe("false");
+    await page.screenshot({ path: "test-results/orientation-phone-end.png" });
     expect(errors).toEqual([]);
   } finally {
     await context.close();

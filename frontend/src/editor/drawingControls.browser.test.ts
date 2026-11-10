@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { browser, drawInto, exported, open, row, errors } from "./browserHarness";
+import { browser, drawInto, exported, markupBar, open, row, errors } from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 import { CURSORS } from "./cursors";
 
@@ -118,7 +118,10 @@ it("shares immediate selected paint edits with undo while preserving the next br
   await page.getByLabel("Stroke color", { exact: true }).fill("#ff0000");
   await mark(page, 370);
   await selectDrawingRed(page);
-  await page.getByLabel("Stroke color", { exact: true }).fill("#1971c2");
+  // The selected ink is edited on the right; the brush for the next mark stays on the left.
+  const selected = page.getByLabel("Object properties");
+  const brush = page.getByLabel("Tools and stencils");
+  await selected.getByLabel("Stroke color", { exact: true }).fill("#1971c2");
   await expect
     .poll(async () => (await exported(peer)).objects.find((i) => i.type === "drawing")?.look.line)
     .toBe("#1971c2");
@@ -127,7 +130,7 @@ it("shares immediate selected paint edits with undo while preserving the next br
     .poll(async () => (await exported(peer)).objects.find((i) => i.type === "drawing")?.look.line)
     .toBe("#ff0000");
   await button(page, "Freehand").click();
-  expect(await page.getByLabel("Stroke color", { exact: true }).inputValue()).toBe("#ff0000");
+  expect(await brush.getByLabel("Stroke color", { exact: true }).inputValue()).toBe("#ff0000");
   await button(page, "Vector").click();
   await button(page, "Pick color").click();
   await page
@@ -136,8 +139,8 @@ it("shares immediate selected paint edits with undo while preserving the next br
     .click();
   await row(page, "Sample").click();
   await cursor(page, "crosshair");
-  expect(await page.getByLabel("Fill color", { exact: true }).inputValue()).toBe("#abcdef");
-  await page.getByLabel("Ink opacity", { exact: true }).fill("65");
+  expect(await brush.getByLabel("Fill color", { exact: true }).inputValue()).toBe("#abcdef");
+  await brush.getByLabel("Ink opacity", { exact: true }).fill("65");
   await mark(page, 500);
   await expect
     .poll(async () => (await exported(peer)).objects.filter((i) => i.type === "drawing").length)
@@ -215,7 +218,7 @@ it("samples visible content beneath hidden Markup", async () => {
     ),
   });
   await page.keyboard.press("m");
-  await page.getByRole("checkbox", { name: "Show annotations", exact: true }).uncheck();
+  await markupBar(page).getByRole("button", { name: "Show annotations", exact: true }).click();
   await drawInto(page, "content");
   await button(page, "Pick color").click();
   await row(page, "Sample").click();

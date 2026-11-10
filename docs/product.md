@@ -29,19 +29,21 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 
 ## Drawing and markup
 
-- Choose Freehand, Highlight or Vector with independent remembered brushes and contextual paint controls.
-- Annotate the workspace with pen, marker, attached object outlines and quick shapes.
+- Annotate a diagram with Markup: a short bar of pen, marker, arrow, box, object outline and
+  eraser for temporary, shared annotations that stay out of the layers.
+- Draw artwork into the active layer with Freehand, Highlight or Vector, each with independent
+  remembered brushes and contextual paint controls.
 - Lasso whole ink paths, recolor and transform them, and use whole or precision erasing.
 - Fill closed paths with solid colors or linear gradients.
-- Use Draw for the selected content layer and Markup for annotations, with the same brush controls.
+- Keep Markup's choices and the Draw brush apart, so each stays as it was left.
 - Move selected ink between layers and Markup; group artwork with ordinary frames and groups.
 - Enable Scale content on resize on a panel to resize its ink, shapes, text and other contents together.
 - Hide markup locally, clear it with Undo, or omit it from portable exports.
 
 ## Layers
 
-- Organize the canvas in named content layers beneath markup, with frames and groups keeping
-  their contents on one layer.
+- Organize the canvas in named content layers, with frames and groups keeping their contents on
+  one layer. Markup sits above them all and is not a layer.
 - Create, choose, rename, reorder, hide, merge and delete layers in a layer browser, and move
   selected objects between layers; hiding a layer changes only your view.
 - Let assistants read the layers, work in the right one and give a new addition its own layer.

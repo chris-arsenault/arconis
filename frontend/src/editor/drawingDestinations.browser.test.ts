@@ -1,6 +1,15 @@
 import { expect, it } from "vitest";
-import type { Page } from "playwright";
-import { browser, open, exported, errors, row, drawInto } from "./browserHarness";
+import type { Locator, Page } from "playwright";
+import {
+  browser,
+  open,
+  exported,
+  errors,
+  row,
+  dockPanel,
+  drawInto,
+  markupBar,
+} from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
@@ -11,8 +20,8 @@ async function drag(page: Page, from: [number, number], to: [number, number]) {
   await page.mouse.move(bounds.x + to[0], bounds.y + to[1], { steps: 10 });
   await page.mouse.up();
 }
-async function lasso(page: Page) {
-  await button(page, "Select ink").click();
+async function lasso(page: Page, tool: Locator) {
+  await tool.click();
   const bounds = (await page.getByTestId("canvas").boundingBox())!;
   await page.mouse.move(bounds.x + 170, bounds.y + 170);
   await page.mouse.down();
@@ -43,18 +52,22 @@ async function resizePanelHandle(page: Page) {
   await page.mouse.up();
 }
 
-it("keeps the same brushes while Draw and Markup create, erase and transfer in their own destinations", async () => {
+it("keeps Draw's brush and Markup's choices apart while each creates, erases and transfers in its own place", async () => {
   const room = createRoomId();
   const context = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
   const peerContext = await browser.newContext();
   const page = await open(context, room),
     peer = await open(peerContext, room);
-  await button(page, "Layers").click();
+  await dockPanel(page, "Layers");
   await button(page, "New layer").click();
   await page.locator('[data-testid="layer"] .layer-name', { hasText: "Layer 2" }).dblclick();
   await page.getByLabel("New name for Layer 2", { exact: true }).fill("Earth detail");
   await page.getByLabel("New name for Layer 2", { exact: true }).press("Enter");
+  // Draw paints into the layer chosen in Layers, and names it.
   await drawInto(page, "content");
+  await expect
+    .poll(() => page.getByTestId("drawing-layer").textContent())
+    .toContain("Earth detail");
   await button(page, "Vector").click();
   await button(page, "Rectangle").click();
   await page.getByLabel("Fill color", { exact: true }).fill("#247dab");
@@ -62,32 +75,39 @@ it("keeps the same brushes while Draw and Markup create, erase and transfer in t
   const content = (await exported(page)).objects[0];
   expect(content).toMatchObject({ type: "drawing", markup: false });
   expect(content.layer).toBeTruthy();
+  // Markup has its own few tools and colours; it never takes the brush's fill.
   await drawInto(page, "markup");
-  expect(await button(page, "Vector").getAttribute("aria-pressed")).toBe("true");
-  expect(await page.getByLabel("Fill color", { exact: true }).inputValue()).toBe("#247dab");
-  await page.getByLabel("Fill color", { exact: true }).fill("#e64980");
+  const bar = markupBar(page);
+  await bar.getByRole("button", { name: "Box", exact: true }).click();
+  await bar.getByRole("button", { name: "Blue", exact: true }).click();
   await drag(page, [230, 230], [360, 360]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(2);
-  await button(page, "Erase stroke").click();
+  const annotation = (await exported(page)).objects.find((i) => i.markup)!;
+  expect(annotation.look).toMatchObject({ line: "#1971c2", fill: "none" });
+  expect(annotation.layer).toBeUndefined();
+  await bar.getByRole("button", { name: "Erase", exact: true }).click();
   await drag(page, [300, 160], [300, 430]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);
   expect((await exported(page)).objects[0]).toEqual(content);
   await button(page, "Undo").click();
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(2);
+  // Back in Draw the brush is as it was left: Markup's box, blue and eraser changed nothing.
   await drawInto(page, "content");
-  expect(await button(page, "Erase stroke").getAttribute("aria-pressed")).toBe("true");
+  expect(await button(page, "Vector").getAttribute("aria-pressed")).toBe("true");
+  expect(await page.getByLabel("Fill color", { exact: true }).inputValue()).toBe("#247dab");
+  await button(page, "Erase stroke").click();
   await drag(page, [300, 160], [300, 430]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(1);
   expect((await exported(page)).objects[0].markup).toBe(true);
   await button(page, "Undo").click();
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(2);
-  await lasso(page);
+  await lasso(page, button(page, "Select ink"));
   await button(page, "Move to Markup").click();
   await expect
     .poll(async () => (await exported(peer)).objects.filter((i) => i.markup).length)
     .toBe(2);
   await drawInto(page, "markup");
-  await lasso(page);
+  await lasso(page, bar.getByRole("button", { name: "Select annotations", exact: true }));
   await button(page, "Move to content layer").click();
   await expect
     .poll(async () => (await exported(peer)).objects.filter((i) => i.markup).length)

@@ -779,6 +779,7 @@ dialog.password-gate {
   font-size: 12px;
 }
 .left-rail h3,
+.dock-panels h3,
 .inspector-section h3 {
   margin: 0 0 6px;
   font-size: 11px;
@@ -805,15 +806,19 @@ dialog.password-gate {
   background: var(--pressed);
   color: var(--pressed-text);
 }
+/* Four tools share the row, so each stacks its name under its icon. */
 .tool-row .tool {
   flex: 1;
-  height: 36px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  height: 45px;
   padding: 0;
-  font-size: 11px;
+  font-size: 10.5px;
 }
 .rail-tabs {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   flex-shrink: 0;
   padding: 4px 8px 0;
   gap: 4px;
@@ -920,7 +925,7 @@ dialog.password-gate {
 }
 /* One disclosure style for every panel header, in the rail and in the inspector. */
 .left-rail summary,
-.inspector summary {
+.right-dock summary {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -935,11 +940,11 @@ dialog.password-gate {
   color: var(--text-soft);
 }
 .left-rail summary::-webkit-details-marker,
-.inspector summary::-webkit-details-marker {
+.right-dock summary::-webkit-details-marker {
   display: none;
 }
 .left-rail summary::before,
-.inspector summary::before {
+.right-dock summary::before {
   content: "";
   flex: none;
   width: 5px;
@@ -955,16 +960,16 @@ details[open] > summary::before {
 }
 @media (prefers-reduced-motion: reduce) {
   .left-rail summary::before,
-  .inspector summary::before {
+  .right-dock summary::before {
     transition: none;
   }
 }
 .left-rail summary:hover,
-.inspector summary:hover {
+.right-dock summary:hover {
   background: var(--hover);
 }
 .left-rail summary:focus-visible,
-.inspector summary:focus-visible {
+.right-dock summary:focus-visible {
   outline: 3px solid #b6a4ef;
   outline-offset: -2px;
 }
@@ -3361,12 +3366,12 @@ input.outline-name {
     display: none;
   }
   .left-rail button,
-  .inspector button,
+  .right-dock button,
   .participants button {
     min-height: 36px;
   }
-  .inspector input,
-  .inspector select,
+  .right-dock input,
+  .right-dock select,
   .left-rail input,
   .left-rail select {
     font-size: 16px;

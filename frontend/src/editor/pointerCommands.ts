@@ -13,6 +13,7 @@ import {
 import { pasteFromClipboard } from "./clipboardInput";
 import { showComments } from "./ui";
 import { DRAWING_TOOLS, DRAWING_SHAPES, type DrawingTool } from "./drawingTools";
+import { MARKUP_TOOLS, type MarkupTool } from "./markupPreferences";
 
 /** Commands the pointer reaches for: the ring's colours and shapes, verbs for lines and frames. */
 
@@ -69,6 +70,14 @@ export const POINTER_COMMANDS: Command[] = [
     help: DRAWING_HELP[tool],
     group: "tools",
     run: ({ editor }) => editor.drawing.activate(tool),
+  })),
+  ...(Object.keys(MARKUP_TOOLS) as MarkupTool[]).map((tool): Command => ({
+    id: `markup.${tool}`,
+    label: `Markup: ${MARKUP_TOOLS[tool].label.toLowerCase()}`,
+    help: MARKUP_TOOLS[tool].hint,
+    group: "tools",
+    keywords: ["annotate", "annotation"],
+    run: ({ editor }) => editor.drawing.chooseMarkup({ tool }),
   })),
   ...DRAWING_SHAPES.flatMap(({ id, label }): Command[] => [
     {

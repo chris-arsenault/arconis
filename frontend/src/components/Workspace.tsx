@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Plus, CheckCircle2, WifiOff, SlidersHorizontal, X } from "lucide-react";
+import { Plus, CheckCircle2, WifiOff } from "lucide-react";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { CommandPalette } from "./CommandPalette";
@@ -14,7 +14,8 @@ import { Announcer } from "./Announcer";
 import { CommentModal } from "./CommentModal";
 import { CanvasHUD } from "./CanvasHUD";
 import { Canvas, InlineEditor, Cursors } from "./Canvas";
-import { Inspector } from "./Inspector";
+import { DockToggle, RightDock } from "./RightDock";
+import { MarkupBar } from "./MarkupBar";
 import { PasswordGate } from "./PasswordGate";
 import { LeftRail } from "./LeftRail";
 import { SelectionFrame } from "./SelectionFrame";
@@ -166,21 +167,12 @@ function PropertyPanel({
   Readonly<{ narrow: boolean; open: boolean; onToggle: () => void }>) {
   if (!editor) return null;
   if (presenting) return notes ? <PresenterNotes editor={editor} onClose={onToggleNotes} /> : null;
-  const toggle = narrow && editor.selected().length > 0;
   return (
     <>
-      {toggle && (
-        <button
-          className="properties-toggle"
-          aria-label={open ? "Close properties" : "Object properties"}
-          aria-expanded={open}
-          data-hint-detail="Show or hide the properties of the selected objects."
-          onClick={onToggle}
-        >
-          {open ? <X size={16} /> : <SlidersHorizontal size={16} />} Properties
-        </button>
+      {narrow && (
+        <DockToggle selection={editor.selected().length > 0} open={open} onToggle={onToggle} />
       )}
-      {(!narrow || open) && <Inspector editor={editor} />}
+      {(!narrow || open) && <RightDock editor={editor} />}
     </>
   );
 }
@@ -235,6 +227,7 @@ function EditingOverlays({
       <GradientDirection editor={editor} />
       <Cursors editor={editor} session={session} />
       <CanvasHUD editor={editor} />
+      <MarkupBar editor={editor} />
       <TextOverflow editor={editor} />
       <Measure editor={editor} />
       <Announcer editor={editor} />

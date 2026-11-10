@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Locator } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, drawInto, errors, exported, open, row } from "./browserHarness";
+import { add, browser, drawInto, errors, exported, open, railPanel, row } from "./browserHarness";
 
 async function clearAndType(field: Locator, replacement: string) {
   await field.click();
@@ -132,7 +132,7 @@ it("keeps brush and gradient-angle drafts editable with valid native constraints
     await clearAndType(brush, "0.5");
     await page.getByText("Fill gradient", { exact: true }).click();
     await clearAndType(page.getByLabel("Gradient angle", { exact: true }), "-45");
-    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await railPanel(page, "Shapes");
     await drawInto(page, "content");
     expect(await brush.inputValue()).toBe("0.5");
     expect(errors).toEqual([]);

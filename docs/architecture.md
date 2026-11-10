@@ -98,9 +98,13 @@ independent of a participant's undo history. Records a peer writes in an unknown
   boundaries. `drawingInput.ts` supplies local previews and completes each pointer gesture;
   `drawingEditor.ts` composes focused controls and graph selection. Visibility and the active
   destination are local application state. Draw targets the current content layer and Markup
-  targets annotations; both share brushes. `drawingTools.ts` supplies tool identity to the palette,
-  commands and cursor policy; `drawingPreferences.ts` stores independent local brushes and migrates
-  previous preferences. Selected-path paint edits use `inkStyle.ts` without mutating those defaults.
+  targets annotations; they share the ink gestures and item model, and each keeps its own local
+  preferences. `drawingTools.ts` supplies Draw's tool identity to the palette, commands and cursor
+  policy, and `drawingPreferences.ts` stores its independent brushes and migrates previous
+  preferences. `markupPreferences.ts` defines Markup's fixed tools, one colour and one size, and
+  derives the ink settings a gesture paints with. Selected-path paint edits use `inkStyle.ts`
+  without mutating either. The left rail (`LeftRail.tsx`) holds tools and the next thing made;
+  the right dock (`RightDock.tsx`) holds the selection's properties and the document's panels.
   `cursors.ts` defines every persistent tool's native cursor or SVG, hotspot and fallback;
   `interactionCursors.ts` binds that registry once, including temporary-pan precedence over graph
   child cursors. `temporaryPan.ts` restores the suspended tool and its placement payload.

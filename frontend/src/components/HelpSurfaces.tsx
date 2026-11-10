@@ -9,10 +9,13 @@ import { requestPractice, startPractice } from "../help/practice";
 import { HelpReference } from "./HelpReference";
 import { OrientationOffer } from "./OrientationOffer";
 
-/** The orientation runs over a clear workspace, so the reference closes first. */
+/**
+ * The orientation runs over a clear workspace, so Help closes first. The tour starts a frame
+ * later, once the closing dialog has handed focus back, so its first step keeps focus.
+ */
 function tour(editor: EditorController) {
   showHelp(editor, null);
-  startOrientation(editor);
+  requestAnimationFrame(() => startOrientation(editor));
 }
 
 /**

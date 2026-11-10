@@ -56,6 +56,7 @@ export function StyleControls({
   children,
   appearances,
   mixedStyle = false,
+  paint,
 }: StyleProps &
   Readonly<{
     item: Item;
@@ -63,13 +64,16 @@ export function StyleControls({
     onStyle: (style: string) => void;
     children: ReactNode;
     mixedStyle?: boolean;
+    /** Paint controls of the selection's own kind, shown in place of the general fill and line. */
+    paint?: ReactNode;
   }>) {
   const props = { drawn, appearances, change };
   return (
     <>
       <NamedStyle item={item} names={names} onStyle={onStyle} mixed={mixedStyle} />
-      {hasFill(item) && <FillControls {...props} />}
-      {hasLine(item) && <LineControls {...props} />}
+      {paint}
+      {!paint && hasFill(item) && <FillControls {...props} />}
+      {!paint && hasLine(item) && <LineControls {...props} />}
       {canColorIcon(item) && (
         <Section title="Icon">
           <ColorChip

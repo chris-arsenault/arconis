@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
 import { quote } from "../language/printer";
-import { browser, errors, open, add, objectCount } from "./browserHarness";
+import { browser, dockPanel, errors, open, add, objectCount } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
@@ -46,7 +46,7 @@ it("renders agent-authored Markdown and math during a presentation and reflects 
   await b.getByTestId("canvas").locator("h1").dblclick();
   const peerSource = b.getByLabel("Edit canvas text", { exact: true });
   await peerSource.waitFor();
-  await a.getByRole("button", { name: "Slides", exact: true }).click();
+  await dockPanel(a, "Slides");
   await a.getByRole("button", { name: "Present pitch", exact: true }).click();
   await a.getByTestId("presenter").waitFor();
   expect(await a.getByTestId("canvas").locator(".katex-display").count()).toBe(1);

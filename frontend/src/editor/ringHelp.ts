@@ -3,7 +3,8 @@ import type { RingMode } from "./contextMenu";
 /** The help zone's sentence for each sub-ring, which opens choices rather than running. */
 export const SUB_RING_HELP: Record<string, string> = {
   "ring.add": "Open a ring of shapes to place with the next click on the canvas.",
-  "ring.draw": "Open a ring of drawing tools for ink and markup.",
+  "ring.draw": "Open a ring of drawing tools for ink in the active layer.",
+  "ring.markup": "Open a ring of Markup's pen, marker, arrow, box, outline and eraser.",
   "ring.highlight": "Open a ring of translucent highlighters and the object outline.",
   "ring.vector": "Open a ring of shapes to construct in ink.",
   "ring.erasers": "Open a ring with the whole-stroke and segment erasers.",
@@ -19,6 +20,6 @@ export const RING_MODE_HELP: Record<RingMode, string> = {
   Select: "Switch to Select, where clicks and drags select and move objects.",
   Add: "Open a ring of shapes to place with the next click on the canvas.",
   Draw: "Switch to drawing ink into the active content layer, and open the drawing tools.",
-  Markup: "Switch to drawing shared annotations above the workspace, and open the drawing tools.",
+  Markup: "Switch to temporary annotations above the canvas, and open Markup's tools.",
   Connect: "Switch to the connector tool: click one object, then another, to join them.",
 };

@@ -1,6 +1,15 @@
 import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, open, row, selectConnector } from "./browserHarness";
+import {
+  add,
+  browser,
+  dockPanel,
+  errors,
+  exported,
+  open,
+  row,
+  selectConnector,
+} from "./browserHarness";
 
 const desktop = { viewport: { width: 1440, height: 1000 } };
 
@@ -199,7 +208,7 @@ it("keeps editing, File actions, participants and presentation reachable after l
     .click();
   await page.getByTestId("following").waitFor();
   await page.getByRole("button", { name: "Stop following", exact: true }).click();
-  await page.getByRole("button", { name: "Slides", exact: true }).click();
+  await dockPanel(page, "Slides");
   await page.getByRole("button", { name: "Add slide", exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x: 100, y: 280 } });
   await page.getByRole("button", { name: "Object properties", exact: true }).click();

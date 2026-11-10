@@ -23,25 +23,63 @@ import {
 } from "./inkCommands";
 import { DrawingPreferences, DRAWING_PREFERENCES_KEY } from "./drawingPreferences";
 import { isInkTool, type DrawingFamily, type DrawingTool, type InkTarget } from "./drawingTools";
+import {
+  MarkupPreferences,
+  MARKUP_PREFERENCES_KEY,
+  type MarkupSize,
+  type MarkupTool,
+} from "./markupPreferences";
 import { changeInkStyle } from "./inkStyle";
 import { transferInk } from "./inkTransfer";
 
-/** The two authoring tools share brushes; the selected tool supplies the destination. */
+function savedPreferences(key: string): unknown {
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? "null");
+  } catch {
+    return null; /* Local preferences are optional. */
+  }
+}
+
+function savePreferences(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* Tools remain usable without local storage. */
+  }
+}
+
+/**
+ * Draw and Markup share the ink gestures and nothing else: each keeps its own remembered tools,
+ * and the armed tool supplies both the destination and the settings a gesture paints with.
+ */
 export class DrawingEditor {
   visible = true;
   destination: InkTarget = "markup";
-  private preferences = new DrawingPreferences();
+  private preferences = new DrawingPreferences(savedPreferences(DRAWING_PREFERENCES_KEY));
+  private markupPreferences = new MarkupPreferences(savedPreferences(MARKUP_PREFERENCES_KEY));
+  /** What the next gesture paints with: Markup's settings under Markup, the brush under Draw. */
   get settings() {
+    return this.markup ? this.markupPreferences.settings : this.preferences.settings;
+  }
+  get tool() {
+    return this.markup ? this.markupPreferences.drawingTool : this.preferences.tool;
+  }
+  /** The Draw brush, whichever tool is armed: what the Draw panel shows and edits. */
+  get brush() {
     return this.preferences.settings;
+  }
+  get brushTool() {
+    return this.preferences.tool;
+  }
+  /** Markup's remembered tool, colour and size: what the Markup bar shows and edits. */
+  get markupChoice(): Readonly<{ tool: MarkupTool; color: string; size: MarkupSize }> {
+    return this.markupPreferences;
   }
   get favorites() {
     return this.preferences.favorites;
   }
   get recent() {
     return this.preferences.recent;
-  }
-  get tool() {
-    return this.preferences.tool;
   }
   get active() {
     return isInkTool(this.editor.tool);
@@ -62,13 +100,6 @@ export class DrawingEditor {
     private editor: EditorController,
     private changed: () => void
   ) {
-    try {
-      this.preferences = new DrawingPreferences(
-        JSON.parse(localStorage.getItem(DRAWING_PREFERENCES_KEY) ?? "null")
-      );
-    } catch {
-      /* Local preferences are optional. */
-    }
     const selectable = editor.graph.isCellSelectable.bind(editor.graph);
     editor.graph.isCellSelectable = (cell) => selectable(cell) && this.selectable(cell);
     const handles = editor.graph.getPlugin<SelectionCellsHandler>("SelectionCellsHandler");
@@ -119,13 +150,18 @@ export class DrawingEditor {
     this.preferences.family(family);
     this.arm();
   }
+  /** Changing a brush is a decision to draw, so it arms Draw. */
   private arm() {
-    try {
-      localStorage.setItem(DRAWING_PREFERENCES_KEY, JSON.stringify(this.preferences.serialize()));
-    } catch {
-      /* Brushes remain usable without local storage. */
-    }
-    this.editor.setTool(this.destination);
+    savePreferences(DRAWING_PREFERENCES_KEY, this.preferences.serialize());
+    this.editor.setTool("draw");
+    this.changed();
+  }
+  /** Changing Markup's tool, colour or size arms Markup and leaves the Draw brush alone. */
+  chooseMarkup(choice: Partial<{ tool: MarkupTool; color: string; size: MarkupSize }>) {
+    this.gestureVersion++;
+    Object.assign(this.markupPreferences, choice);
+    savePreferences(MARKUP_PREFERENCES_KEY, this.markupPreferences.serialize());
+    this.editor.setTool("markup");
     this.changed();
   }
   style(values: Partial<InkSettings>) {

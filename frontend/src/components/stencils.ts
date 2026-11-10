@@ -4,10 +4,10 @@ import {
   Database,
   Diamond,
   Hand,
+  Highlighter,
   MousePointer2,
   MoveUpRight,
   PanelTop,
-  Pencil,
   Server,
   Square,
   StickyNote,
@@ -78,7 +78,7 @@ export const TOOLS: ToolEntry[] = [
   toolEntry("select", "Select", MousePointer2),
   toolEntry("pan", "Pan", Hand, "Space"),
   toolEntry("connect", "Connector: click two objects", MoveUpRight),
-  toolEntry("draw", "Draw", Pencil),
+  toolEntry("markup", "Markup", Highlighter),
 ];
 
 export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [

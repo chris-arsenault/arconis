@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { browser, errors, exported, open, row, selectDrawing } from "./browserHarness";
+import { browser, errors, exported, markupBar, open, row, selectDrawing } from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 
 async function scene(source: string) {
@@ -53,7 +53,7 @@ it("erases sparse sweep crossings and single clicks without touching workspace o
     x = box.x + box.width / 2,
     y = box.y;
   await page.keyboard.press("m");
-  await page.getByRole("button", { name: "Erase stroke", exact: true }).click();
+  await markupBar(page).getByRole("button", { name: "Erase", exact: true }).click();
   await page.mouse.move(x, y - 100);
   await page.mouse.down();
   await page.mouse.move(x, y + 100);
@@ -73,8 +73,8 @@ it("erases sparse sweep crossings and single clicks without touching workspace o
   await page.keyboard.press("v");
   await row(page, "Workspace").click();
   await page.keyboard.press("m");
-  await page.getByRole("button", { name: "Freehand", exact: true }).click();
-  await page.getByRole("button", { name: "Stroke #e64980", exact: true }).click();
+  await markupBar(page).getByRole("button", { name: "Pen", exact: true }).click();
+  await markupBar(page).getByRole("button", { name: "Blue", exact: true }).click();
   expect(
     await page.getByRole("button", { name: "Apply ink color to strokes", exact: true }).count()
   ).toBe(0);
@@ -91,8 +91,7 @@ it("highlights the displayed rotated object and ignores its former footprint", a
   const x = box.x + box.width / 2,
     y = box.y + box.height * 0.8;
   await page.keyboard.press("m");
-  await page.getByRole("button", { name: "Highlight", exact: true }).click();
-  await page.getByRole("button", { name: "Object outline", exact: true }).click();
+  await markupBar(page).getByRole("button", { name: "Outline object", exact: true }).click();
   await page.mouse.click(x, y);
   await expect
     .poll(
@@ -111,7 +110,7 @@ it("keeps a rectangular gradient handle continuous and shares one undoable direc
     `drawing p markup points 150,150 350,150 350,250 150,250 150,150 closed fill #ff0000 gradient #0000ff gradient-angle 45`
   );
   const peer = await open(await browser.newContext(), room);
-  await selectDrawing(page);
+  await selectDrawing(page, [], "markup");
   const handle = page.getByRole("button", { name: "Gradient direction", exact: true });
   const first = (await handle.boundingBox())!;
   const x = first.x + first.width / 2,
@@ -140,8 +139,11 @@ it("keeps a rectangular gradient handle continuous and shares one undoable direc
 
 it("preserves visible wide ink when moving between markup and content layers", async () => {
   const { page } = await scene(`drawing p markup points 200,200 400,200 line-width 48`);
-  await selectDrawing(page);
-  await page.getByLabel("Stroke color", { exact: true }).fill("#ff0000");
+  await selectDrawing(page, [], "markup");
+  await page
+    .getByLabel("Object properties")
+    .getByLabel("Stroke color", { exact: true })
+    .fill("#ff0000");
   const box = await bounds(page, "#ff0000");
   const x = box.x + box.width / 2,
     y = box.y - (22 * box.width) / 200;

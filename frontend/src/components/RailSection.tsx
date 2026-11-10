@@ -1,7 +1,20 @@
 import type { ReactNode, SyntheticEvent } from "react";
 
+/** A panel's title and the one line that says what the panel is for. */
+export function PanelHeading({
+  title,
+  children,
+}: Readonly<{ title: string; children: ReactNode }>) {
+  return (
+    <div className="rail-heading">
+      <h2>{title}</h2>
+      <p>{children}</p>
+    </div>
+  );
+}
+
 /**
- * One collapsible section of the left rail: every secondary panel opens and closes the same way,
+ * One collapsible section of a side panel: every secondary panel opens and closes the same way,
  * from the same header, with a count beside the title when the panel lists things.
  */
 export function RailSection({

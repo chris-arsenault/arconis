@@ -36,6 +36,7 @@ export function Feedback(props: Readonly<Props>) {
       <button
         ref={trigger}
         className="feedback-button"
+        data-help-id="feedback"
         aria-label="Feedback"
         aria-haspopup="dialog"
         data-hint-detail="Tell the Arconis team what got in your way, optionally with a screenshot."

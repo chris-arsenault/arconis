@@ -8,7 +8,16 @@ import { AgentGateway } from "../relay/mcpHttp";
 import { createRoomId } from "../collaboration/room";
 import { readCopy } from "../document/pngCopy";
 import { BATCH_EXAMPLE } from "../language/reference";
-import { browser, errors, exported, exportPng, fixture, open, row } from "./browserHarness";
+import {
+  browser,
+  dockPanel,
+  errors,
+  exported,
+  exportPng,
+  fixture,
+  open,
+  row,
+} from "./browserHarness";
 import type { Page } from "playwright";
 
 async function connectAgent() {
@@ -185,7 +194,7 @@ it("builds the batched workspace in two browsers and preserves a person's slide 
     await agent.call("open_room", { room });
     expect(await agent.call("write", { statements: BATCH_EXAMPLE })).toContain("29 created");
     await expect.poll(async () => (await exported(peer)).objects.length).toBe(29);
-    await page.getByRole("button", { name: "Slides", exact: true }).click();
+    await dockPanel(page, "Slides");
     const deck = page.getByTestId("deck");
     await deck.getByRole("button", { name: "1 · Network", exact: true }).click();
     const canvas = page.getByTestId("canvas");
@@ -236,11 +245,9 @@ it("shows an agent's addition in its own layer, which a person can hide in their
           'node api "Orders API"\nlayer review "Review notes"\nnote n1 "Retry?" in-layer review',
       })
     ).toContain("Done:");
-    await page.getByRole("button", { name: "Layers", exact: true }).click();
+    await dockPanel(page, "Layers");
     const names = page.locator('[data-testid="layer"] .layer-name');
-    await expect
-      .poll(() => names.allTextContents())
-      .toEqual(["Markup", "Review notes", "Workspace"]);
+    await expect.poll(() => names.allTextContents()).toEqual(["Review notes", "Workspace"]);
     await expect.poll(() => row(page, "Retry?").count()).toBe(1);
     await page.getByRole("button", { name: "Hide Review notes", exact: true }).click();
     await expect.poll(() => row(page, "Retry?").count()).toBe(0);

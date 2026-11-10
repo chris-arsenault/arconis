@@ -182,6 +182,16 @@ export const SUB_RINGS: Record<string, string[]> = {
     "draw.eyedropper",
     "tool.select",
   ],
+  "ring.markup": [
+    "markup.pen",
+    "markup.marker",
+    "markup.arrow",
+    "markup.box",
+    "markup.outline",
+    "markup.eraser",
+    "markup.select",
+    "tool.select",
+  ],
   "ring.highlight": ["draw.marker", "ring.highlightShapes", "draw.outline", "ring.draw"],
   "ring.vector": [
     "draw.shape.line",
@@ -249,6 +259,7 @@ export const SUB_RINGS: Record<string, string[]> = {
 const SUB_RING_LABELS: Record<string, string> = {
   "ring.add": "Add",
   "ring.draw": "Drawing tools",
+  "ring.markup": "Markup tools",
   "ring.highlight": "Highlight",
   "ring.vector": "Vector",
   "ring.erasers": "Erase",
@@ -260,8 +271,8 @@ const SUB_RING_LABELS: Record<string, string> = {
 };
 /**
  * The canvas ring's Mode wedge opens a small arc beside it with the editing modes. Nothing else
- * in the ring changes until a mode is chosen: Select, Draw and Connect switch the tool, and Add
- * shows the shapes to place in the ring.
+ * in the ring changes until a mode is chosen: Select and Connect switch the tool, Add shows the
+ * shapes to place, and Draw and Markup each show their own tools: the brushes, or Markup's few.
  */
 export const RING_MODES = ["Select", "Add", "Draw", "Markup", "Connect"] as const;
 export type RingMode = (typeof RING_MODES)[number];
@@ -279,7 +290,7 @@ export function chooseRingMode(editor: EditorController, mode: RingMode) {
   if (mode === "Draw" || mode === "Markup") {
     editor.setTool(mode === "Draw" ? "draw" : "markup");
     if (editor.ui.menu) editor.ui.menu.modes = false;
-    openSubRing(editor, "ring.draw");
+    openSubRing(editor, mode === "Draw" ? "ring.draw" : "ring.markup");
     return;
   }
   if (mode === "Add") {
@@ -378,6 +389,8 @@ const RING_LABELS: Record<string, string> = {
   "draw.precision": "Segment",
   "draw.eraser": "Whole stroke",
   "draw.outline": "Outline",
+  "markup.outline": "Outline",
+  "markup.select": "Select",
   "structure.branch": "Branch",
   "structure.relate": "Relate",
   "comments.open": "Comment",

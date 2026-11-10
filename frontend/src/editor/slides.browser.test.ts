@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, open, row } from "./browserHarness";
+import { add, browser, dockPanel, errors, exported, open, row } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
@@ -69,7 +69,7 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   const framed = async () => (await exported(page)).objects.find((item) => item.name === "Framed")!;
   const placed = await framed();
   expect(placed.inside).toBe("");
-  await page.getByRole("button", { name: "Slides", exact: true }).click();
+  await dockPanel(page, "Slides");
   await page.getByTestId("deck").getByRole("button", { name: "1 · Problem" }).click();
   await page.getByLabel("Object x", { exact: true }).fill("9000");
   await page.getByLabel("Object x", { exact: true }).press("Tab");
@@ -90,7 +90,7 @@ it("presents a deck with the chrome gone, moving by key and button, with notes a
   await a.keyboard.press("Enter");
   await expect.poll(() => a.getByTestId("comment-thread").count()).toBe(1);
   await canvas(a).press("Escape");
-  await b.getByRole("button", { name: "Slides", exact: true }).click();
+  await dockPanel(b, "Slides");
   await expect.poll(() => b.getByTestId("deck").count()).toBe(1);
 
   await a.getByRole("button", { name: "Present deck", exact: true }).click();
@@ -162,7 +162,7 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   expect(objects.find((item) => item.name === "Acme")!.inside).toBe("");
 
   // On the other slide the copy cannot be picked: clicking it selects the slide beneath.
-  await page.getByRole("button", { name: "Slides", exact: true }).click();
+  await dockPanel(page, "Slides");
   await page.getByTestId("deck").getByRole("button", { name: "1 · Body" }).click();
   await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
   await page.keyboard.press("Escape");

@@ -9,6 +9,8 @@ import { effectiveAppearance } from "../document/appearance";
 import { hasSubtitle, hasText } from "../document/capabilities";
 import { ConnectionControls } from "./ConnectionControls";
 import { LayerField } from "./LayersPanel";
+import { InkMoves, InkPaint } from "./InkProperties";
+import { isInk } from "../document/ink";
 import { StyleControls, GeometryControls } from "./ObjectProperties";
 import { AlignControls, Relationships, ScreenSizeControl } from "./TopicControls";
 import { itemName } from "../editor/relate";
@@ -72,6 +74,7 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
     >
       <InspectorHeader editor={editor} selected={selected} />
       <PrimaryControls key={selectionKey} {...props} />
+      {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
       <LayerField editor={editor} selected={selected} />
       <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
       <LayoutSection key={`layout ${selectionKey}`} {...props} />
@@ -252,6 +255,8 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
   const [item] = selected;
   const textItems = selected.filter(hasText);
   const drawn = (target: Item) => effectiveAppearance(target, canvas.namedStyle(target.style));
+  // Ink keeps the paint controls of the brush that made it; a mixed selection uses the general ones.
+  const inkOnly = selected.every(isInk);
   return (
     <RailSection
       id="appearance"
@@ -266,6 +271,7 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
         drawn={drawn(item)}
         appearances={selected.map(drawn)}
         mixedStyle={!selected.every((target) => target.style === item.style)}
+        paint={inkOnly ? <InkPaint editor={editor} ink={selected} /> : undefined}
         change={(look) => changeSelectionLook(canvas, selected, look)}
         onStyle={(style) => changeSelectionStyle(canvas, selected, style)}
       >

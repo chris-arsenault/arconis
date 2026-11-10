@@ -3,6 +3,7 @@ import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import {
   browser,
+  dockPanel,
   drawInto,
   errors,
   open,
@@ -203,7 +204,9 @@ it("shows a compact property panel only for a selection, with controls that appl
   expect(await page.getByLabel("Object text", { exact: true }).count()).toBe(0);
   expect(await page.getByLabel("Font size", { exact: true }).count()).toBe(0);
   expect(await page.getByLabel("Fill color", { exact: true }).count()).toBe(0);
-  expect(await page.getByLabel("Line width", { exact: true }).count()).toBe(1);
+  // Selected ink keeps the paint controls of the brush that made it.
+  expect(await panel.getByLabel("Stroke width", { exact: true }).count()).toBe(1);
+  expect(await panel.getByLabel("Line width", { exact: true }).count()).toBe(0);
   await canvas(page).click({ position: { x: 600, y: 600 } });
   await expect.poll(() => panel.count()).toBe(0);
   expect(errors).toEqual([]);
@@ -219,6 +222,8 @@ it("saves a place, lists it, returns to it on another window size and syncs it",
   await a.getByRole("button", { name: "Zoom in", exact: true }).click();
   await a.getByLabel("Object x", { exact: true }).fill("5000");
   await canvas(a).click({ position: emptySpot });
+  // Opening a document panel narrows the canvas, so the view is fitted and measured after it.
+  await dockPanel(a, "Navigate");
   await a.getByRole("button", { name: "Fit canvas", exact: true }).click();
   const zoom = await a.getByTestId("zoom-level").textContent();
   const offsetFromCenter = async (page: Page) => {
@@ -228,7 +233,6 @@ it("saves a place, lists it, returns to it on another window size and syncs it",
     return box.x + box.width / 2 - (bounds.x + bounds.width / 2);
   };
   const expected = await offsetFromCenter(a);
-  await a.getByRole("button", { name: "Explore", exact: true }).click();
   await a.getByRole("button", { name: "Save current view", exact: true }).click();
   const saved = a.getByRole("button", { name: "View 1", exact: true });
   await saved.waitFor();
@@ -237,7 +241,7 @@ it("saves a place, lists it, returns to it on another window size and syncs it",
   await a.getByLabel("New name for View 1", { exact: true }).fill("Far corner");
   await a.keyboard.press("Enter");
   const b = await open(second, room);
-  await b.getByRole("button", { name: "Explore", exact: true }).click();
+  await dockPanel(b, "Navigate");
   const named = b.getByRole("button", { name: "Far corner", exact: true });
   await named.waitFor({ timeout: 15000 });
   await named.click();
@@ -266,7 +270,7 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
     150
   );
   await canvas(page).click({ position: emptySpot });
-  await page.getByRole("button", { name: "Explore", exact: true }).click();
+  await dockPanel(page, "Navigate");
   await page
     .getByLabel("View name", { exact: true })
     .fill("Overview of the whole platform at a glance");
@@ -309,7 +313,7 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
   // The undo history does not survive a reload, so only the saved views panel is there to check.
   await page.reload();
   await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
-  await page.getByRole("button", { name: "Explore", exact: true }).click();
+  await dockPanel(page, "Navigate");
   expect(await views.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
   await views.locator("summary").click();
   await page.getByLabel("View name", { exact: true }).waitFor();
@@ -359,11 +363,11 @@ it("tags from the ring, filters from the rail's tags, and grows compact branches
     .poll(async () => (await exported(page)).objects.filter((item) => item.tags).length)
     .toBe(2);
 
-  // The rail lists the room's tags; choosing one filters the canvas to what carries it.
+  // Navigate lists the room's tags; choosing one filters the canvas to what carries it.
   await canvas(page).click({ position: emptySpot });
-  await page.getByRole("button", { name: "Explore", exact: true }).click();
+  await dockPanel(page, "Navigate");
   await page
-    .locator(".left-rail details[aria-label='Tags']")
+    .locator(".right-dock details[aria-label='Tags']")
     .getByRole("button", { name: "#growth" })
     .click();
   await page.getByRole("region", { name: "Filter" }).waitFor();

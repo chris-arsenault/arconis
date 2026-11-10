@@ -50,6 +50,8 @@ function metadataOwner(editor: EditorController, target: EventTarget | null) {
 
 /** How far the right button moves before a press becomes a stroke, in pixels. */
 export const DEAD_ZONE = 6;
+/** How long after a right release the browser's own menu, fired on release, stays suppressed. */
+const CONTEXT_MENU_GRACE_MS = 500;
 /** How long the right button rests before the ring appears around the pointer. */
 export const RING_HOLD_MS = 250;
 /** The ring's radius to the middle of its wedges, in pixels, for stroke angles. */
@@ -149,7 +151,11 @@ function selectUnderPointer(editor: EditorController, event: PointerEvent) {
     editor.select(item.id);
 }
 
-function releaseRing(editor: EditorController, event: PointerEvent) {
+/**
+ * Ends a right-button gesture. A stroke, once dragged, either chooses the wedge or mode it ends on
+ * or cancels; a button held still and released in the centre leaves the menu for a click.
+ */
+function releaseRing(editor: EditorController, event: PointerEvent, dragged: boolean) {
   const menu = editor.ui.menu;
   if (!menu?.ring) return;
   const area = editor.element.getBoundingClientRect();
@@ -161,18 +167,19 @@ function releaseRing(editor: EditorController, event: PointerEvent) {
     chooseRingMode(editor, RING_MODES[mode]);
     return;
   }
-  if (menu.wedge === null) {
-    // Released on the centre: the ring folds away and the menu stays for a click.
-    menu.ring = false;
-    editor.emit();
+  const entry =
+    menu.wedge === null ? null : ringEntries(commandContext(editor), menu.subRing)[menu.wedge];
+  if (entry) {
+    chooseRingEntry(editor, entry);
     return;
   }
-  const entry = ringEntries(commandContext(editor), menu.subRing)[menu.wedge];
-  if (entry) chooseRingEntry(editor, entry);
-  else {
-    menu.wedge = null;
-    editor.emit();
+  if (dragged) {
+    closeMenu(editor);
+    return;
   }
+  // Held still and released on the centre: the ring folds away and the menu stays for a click.
+  Object.assign(menu, { ring: false, wedge: null });
+  editor.emit();
 }
 
 /**
@@ -194,7 +201,7 @@ function trackRing(editor: EditorController, event: PointerEvent) {
   editor.emit();
 }
 
-function menuWithRightButton(editor: EditorController, event: PointerEvent) {
+function menuWithRightButton(editor: EditorController, event: PointerEvent, onEnd: () => void) {
   const { element } = editor;
   event.preventDefault();
   event.stopPropagation();
@@ -219,12 +226,16 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
     }
   };
   const hold = setTimeout(showRing, RING_HOLD_MS);
+  let dragged = false;
   const move = (moveEvent: PointerEvent) => {
     const menu = editor.ui.menu;
     if (!menu) return;
     const dx = moveEvent.clientX - event.clientX;
     const dy = moveEvent.clientY - event.clientY;
-    if (Math.hypot(dx, dy) >= DEAD_ZONE) showRing();
+    if (Math.hypot(dx, dy) >= DEAD_ZONE) {
+      dragged = true;
+      showRing();
+    }
     if (menu.ring) trackRing(editor, moveEvent);
   };
   const finish = (finishEvent: PointerEvent) => {
@@ -233,11 +244,12 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent) {
     element.removeEventListener("pointerup", finish);
     element.removeEventListener("pointercancel", finish);
     if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    onEnd();
     if (finishEvent.type === "pointercancel") {
       closeMenu(editor);
       return;
     }
-    releaseRing(editor, finishEvent);
+    releaseRing(editor, finishEvent, dragged);
   };
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", finish);
@@ -258,25 +270,34 @@ export function bindPointerButtons(editor: EditorController, signal: AbortSignal
   };
   editor.graph.addListener(InternalEvent.PAN, preview);
   signal.addEventListener("abort", () => editor.graph.removeListener(preview), { once: true });
+  // From a right press on the canvas until just after its release, wherever the release lands.
+  let gestureUntil = 0;
   editor.element.addEventListener(
     "pointerdown",
     (event) => {
       if (editor.presenter.active || editor.editId) return;
       if (event.button === 1) panWithPointer(editor, event);
-      else if (event.button === 2) menuWithRightButton(editor, event);
+      else if (event.button === 2) {
+        gestureUntil = Infinity;
+        menuWithRightButton(editor, event, () => {
+          gestureUntil = performance.now() + CONTEXT_MENU_GRACE_MS;
+        });
+      }
     },
     { signal, capture: true }
   );
   // The browser's own menu never shows over the canvas; the page's menu takes its place. Browsers
-  // fire contextmenu on release as well as on press, by which time the ring sits under the
-  // pointer, so the whole canvas area and an open ring count, while typing keeps the browser's.
+  // fire contextmenu on press or on release, and a stroke can be released anywhere, so a right
+  // gesture that began on the canvas, the canvas area and an open menu all count, while typing
+  // keeps the browser's.
   window.addEventListener(
     "contextmenu",
     (event) => {
       if (editor.editId) return;
       const area = editor.element.parentElement ?? editor.element;
       const overCanvas = event.target instanceof Node && area.contains(event.target);
-      if (overCanvas || editor.ui.menu !== null) event.preventDefault();
+      const gesture = performance.now() < gestureUntil;
+      if (overCanvas || gesture || editor.ui.menu !== null) event.preventDefault();
     },
     { signal, capture: true }
   );

@@ -1,0 +1,111 @@
+/* The right side: the selection's properties above, the document's panels below. */
+.right-dock {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 248px;
+  min-height: 0;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  font-size: 12px;
+}
+.right-dock .inspector {
+  position: static;
+  flex: 1 1 55%;
+  width: auto;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.dock-empty {
+  flex: none;
+  margin: 0;
+  padding: 14px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+.dock-panels {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-height: 0;
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+}
+.dock-panels[data-open="true"] {
+  flex: 1 1 45%;
+}
+/* With nothing selected the open panel has the whole dock. */
+.right-dock[data-selection="false"] .dock-panels[data-open="true"] {
+  flex: 1 1 auto;
+  margin-top: 0;
+}
+.dock-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: none;
+  gap: 4px;
+  padding: 4px 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dock-panels[data-open="false"] .dock-tabs {
+  padding-bottom: 4px;
+  border-bottom: 0;
+}
+.dock-tabs button {
+  gap: 5px;
+  padding: 8px 2px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 5px 5px 0 0;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.dock-tabs button[aria-pressed="true"] {
+  color: var(--pressed-text);
+  border-bottom-color: var(--purple);
+  background: var(--pressed);
+  font-weight: 600;
+}
+.dock-tabs button:hover {
+  background: var(--hover);
+}
+/* Nothing selected and no panel open: only the tabs remain, stacked in a slim strip. */
+.right-dock[data-collapsed="true"] {
+  width: 56px;
+}
+.right-dock[data-collapsed="true"] .dock-panels {
+  margin-top: 0;
+  border-top: 0;
+}
+.right-dock[data-collapsed="true"] .dock-tabs {
+  grid-template-columns: 1fr;
+  padding: 4px;
+}
+.right-dock[data-collapsed="true"] .dock-tabs button {
+  flex-direction: column;
+  gap: 3px;
+  height: 45px;
+  padding: 0;
+  border-bottom: 0;
+  border-radius: 5px;
+  font-size: 10px;
+}
+@media (max-width: 1200px) {
+  .right-dock {
+    width: 220px;
+  }
+}
+@media (max-width: 1100px) {
+  .right-dock {
+    position: absolute;
+    z-index: 7;
+    inset: 52px 8px 8px auto;
+    width: min(320px, calc(100vw - 88px));
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 5px 24px #11182726;
+  }
+}

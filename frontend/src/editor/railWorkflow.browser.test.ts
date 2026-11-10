@@ -1,13 +1,36 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, drawInto, errors, exported, open, selectDrawing } from "./browserHarness";
+import {
+  add,
+  browser,
+  dockPanel,
+  drawInto,
+  errors,
+  exported,
+  markupBar,
+  open,
+  selectDrawing,
+} from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const panel = (page: Page, name: string) =>
   page
     .getByRole("navigation", { name: "Workspace panels" })
     .getByRole("button", { name, exact: true });
+
+/** Whether a side panel shows every control without scrolling sideways or spilling out. */
+function fits(page: Page, side: string) {
+  return page.locator(side).evaluate((node) => {
+    const bounds = node.getBoundingClientRect();
+    return (
+      node.scrollWidth <= node.clientWidth &&
+      [...node.querySelectorAll("button, input, select")]
+        .filter((entry) => entry.getClientRects().length)
+        .every((entry) => entry.getBoundingClientRect().right <= bounds.right + 1)
+    );
+  });
+}
 
 async function drawStroke(page: Page) {
   await drawInto(page, "markup");
@@ -45,18 +68,20 @@ it("gives libraries a consistent disclosure and keeps document navigation in its
   await page.getByRole("button", { name: "Icon: AWS Lambda", exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x: 280, y: 180 } });
   expect((await exported(page)).objects[0].icon).toBe("aws:AWS-Lambda");
-  await panel(page, "Explore").click();
+  // The document's panels are on the right, and leave the stencils where they were.
+  await dockPanel(page, "Navigate");
   await page.getByLabel("View name", { exact: true }).fill("Overview");
   await page.getByRole("button", { name: "Save current view", exact: true }).click();
-  await panel(page, "Slides").click();
+  await dockPanel(page, "Slides");
   await page.getByText("No slides yet.", { exact: false }).waitFor();
   await page.getByRole("button", { name: "Add slide", exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x: 90, y: 90 } });
   await page.getByRole("button", { name: "Present deck", exact: true }).waitFor();
-  await page.screenshot({ path: "test-results/rail-slides.png" });
-  await panel(page, "Explore").click();
+  await page.screenshot({ path: "test-results/dock-slides.png" });
+  await dockPanel(page, "Navigate");
   await page.getByRole("button", { name: "Overview", exact: true }).waitFor();
-  await page.screenshot({ path: "test-results/rail-explore.png" });
+  expect(await page.getByLabel("Search stencils", { exact: true }).isVisible()).toBe(true);
+  await page.screenshot({ path: "test-results/dock-navigate.png" });
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -101,19 +126,30 @@ it("distinguishes local annotation visibility from shared recoloring, deletion a
   await add(a, "Sticky note (N)", "Keep this idea", 180, 120);
   await drawStroke(a);
   await expect.poll(async () => (await exported(b)).objects.length).toBe(2);
+  // Annotating left the stencils showing and never opened the drawing controls.
+  expect(await a.getByLabel("Search stencils", { exact: true }).isVisible()).toBe(true);
+  expect(await a.getByText("Saved brushes", { exact: true }).count()).toBe(0);
+  expect(await a.getByTestId("markup-count").textContent()).toBe("1");
   await selectDrawing(a);
-  await a.getByLabel("Stroke color", { exact: true }).fill("#1971c2");
+  // Selected annotations are edited in the property panel, like any selection.
+  await a
+    .getByLabel("Object properties")
+    .getByLabel("Stroke color", { exact: true })
+    .fill("#1971c2");
   await expect
     .poll(
       async () => (await exported(b)).objects.find((item) => item.type === "drawing")?.look.line
     )
     .toBe("#1971c2");
   const paths = (page: Page) => page.getByTestId("canvas").locator('path[stroke="#1971c2"]');
-  await a.getByRole("checkbox", { name: "Show annotations", exact: true }).uncheck();
+  await drawInto(a, "markup");
+  const show = markupBar(a).getByRole("button", { name: "Show annotations", exact: true });
+  await show.click();
   await expect.poll(() => paths(a).count()).toBe(0);
+  expect(await show.getAttribute("aria-pressed")).toBe("false");
   expect(await paths(b).count()).toBeGreaterThan(0);
   expect((await exported(a)).objects.length).toBe(2);
-  await a.getByRole("checkbox", { name: "Show annotations", exact: true }).check();
+  await show.click();
   await expect.poll(() => paths(a).count()).toBeGreaterThan(0);
   await a.getByRole("button", { name: "Delete all annotations", exact: true }).click();
   await expect
@@ -137,26 +173,39 @@ it("keeps task controls within the panel in light, dark and narrow layouts", asy
     await page.setViewportSize({ width, height: 900 });
     for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
-      for (const task of ["Add", "Draw", "Layers", "Explore", "Slides"]) {
+      for (const task of ["Shapes", "Draw"] as const) {
         await panel(page, task).click();
-        const fits = await page.locator(".left-rail").evaluate((node) => {
-          const bounds = node.getBoundingClientRect();
-          return (
-            node.scrollWidth <= node.clientWidth &&
-            [...node.querySelectorAll("button, input, select")]
-              .filter((entry) => entry.getClientRects().length)
-              .every((entry) => entry.getBoundingClientRect().right <= bounds.right + 1)
-          );
-        });
-        expect(fits).toBe(true);
+        expect(await fits(page, ".left-rail")).toBe(true);
         await page.screenshot({
-          path: `test-results/rail-${task.split(" ")[0].toLowerCase()}-${width}-${colorScheme}.png`,
+          path: `test-results/rail-${task.toLowerCase()}-${width}-${colorScheme}.png`,
         });
       }
-      await page.screenshot({ path: `test-results/rail-${width}-${colorScheme}.png` });
+      for (const task of ["Layers", "Slides", "Navigate"] as const) {
+        await dockPanel(page, task);
+        expect(await fits(page, ".right-dock")).toBe(true);
+        await page.screenshot({
+          path: `test-results/dock-${task.toLowerCase()}-${width}-${colorScheme}.png`,
+        });
+      }
+      // Fold the document panels away again, and check Markup's bar stays on the canvas.
+      await page
+        .getByRole("navigation", { name: "Document panels" })
+        .getByRole("button", { name: "Navigate", exact: true })
+        .click();
+      if (width <= 1100)
+        await page.getByRole("button", { name: "Close properties", exact: true }).click();
+      await drawInto(page, "markup");
+      const area = (await page.locator(".canvas-area").boundingBox())!;
+      const bar = (await markupBar(page).boundingBox())!;
+      expect(bar.x).toBeGreaterThanOrEqual(area.x);
+      expect(bar.x + bar.width).toBeLessThanOrEqual(area.x + area.width + 1);
+      await page.screenshot({ path: `test-results/markup-bar-${width}-${colorScheme}.png` });
+      await markupBar(page).getByRole("button", { name: "Finish markup", exact: true }).click();
     }
+    await panel(page, "Shapes").click();
     await page.getByRole("button", { name: "Hide panel", exact: true }).click();
-    expect((await page.getByTestId("canvas").boundingBox())!.width).toBeGreaterThan(width - 70);
+    // With the panels folded the canvas has all but the two slim strips of tabs.
+    expect((await page.getByTestId("canvas").boundingBox())!.width).toBeGreaterThan(width - 130);
   }
   expect(errors).toEqual([]);
   await context.close();

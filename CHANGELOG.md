@@ -45,24 +45,34 @@ All notable user-visible changes are recorded here.
   focus and explains it in one sentence; every workspace control and command has its sentence.
   It docks below the header when the panel is hidden, and Settings can hide it. Floating tooltips
   now carry only information about content and people.
-- Added **Help** and the **?** key: a searchable reference beside the canvas built from the user
-  guides, with every command and its shortcut. **?** opens the guide for the area under the pointer.
+- Added **Help** and the **?** key: a centred dialog with topics on the left and the user guides,
+  search and every command with its shortcut on the right. **?** opens the guide for the area under
+  the pointer.
 - Added an orientation tour, offered on a first visit in any room, that highlights each area of the
-  workspace in turn without changing the room.
+  workspace in turn, Feedback included. Its canvas steps accept real input, so the right-button
+  menu and ring can be tried while the tour describes them.
+- Changed a right-button drag released anywhere but a wedge to cancel instead of leaving the menu
+  open, and kept the browser's own menu away when such a drag ends outside the canvas.
 - Added **Practice in a sample room**: a device-only room with a sample diagram where each step
   waits for the person to edit, connect, mark up and present.
 - Fixed a guide link to the Lasso section of the drawing guide.
 
 ### Canvas interactions
 
-- Split Draw (P), which paints into the selected content layer, from Markup (M), which creates
-  annotations. Both share brush controls and support moving selected ink between destinations.
-  Replaced special Drawing holders with ordinary panels and added Scale content on resize for
+- Arranged the workspace with what you make on the left and the document on the right. The left
+  rail keeps Select, Pan, Connect and Markup above two panels, **Shapes** and **Draw**. A right
+  dock shows the selection's properties above **Layers**, **Slides** and **Navigate** (saved
+  views, outline, tags and history); it narrows to its tabs when there is nothing to show.
+- Gave Markup (M) its own bar over the canvas for temporary annotations: pen, marker, arrow, box,
+  object outline, eraser and selection, one colour and size, with show/hide, clear and a count on
+  the Markup button. It leaves the side panels as they were, remembers its choices apart from the
+  Draw brush, and no longer appears as a layer.
+- Made Draw (P) paint into the active layer chosen in Layers, with one tool palette, tool options
+  beneath it, and a brush grouped into Stroke, Fill and Opacity. Selected ink is edited in the
+  property panel, which also moves it between Markup and the content layer. Renamed Erase whole
+  stroke to Erase stroke.
+- Replaced special Drawing holders with ordinary panels and added Scale content on resize for
   general panel content, including ink, text and shapes, across browser and MCP edits.
-- Rebuilt the rail's Draw panel around the order of drawing decisions: one **Draw** tab holds a
-  Layer/Markup destination switch with a layer picker, one exclusive tool palette, tool options
-  beneath it, and a brush grouped into Stroke, Fill and Opacity. Annotation visibility and
-  deletion sit under Markup. The rail's tabs fit one row. Renamed Erase whole stroke to Erase stroke.
 - Reorganized drawing around Freehand, Highlight and Vector with independent remembered brushes,
   contextual Stroke, Fill and opacity controls, immediate undoable selected-ink styling and a stroke
   preview. Radial menus and shortcuts use the same tools. Added a shared cursor registry for drawing,

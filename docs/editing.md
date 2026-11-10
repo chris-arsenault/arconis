@@ -1,32 +1,42 @@
 # Using the canvas
 
-Use the left rail to place objects and choose tools. Select an object to edit its properties on
-the right. The same room holds diagrams, notes, topic trees, pictures, ink and slides.
+The left side holds what you make with; the right side holds the document and the selection. The
+same room holds diagrams, notes, topic trees, pictures, ink and slides.
 
 For a first walkthrough, start with [your first shared canvas](getting-started.md).
 
-The rail has six task areas: **Add** for shapes and icon libraries, **Draw** for ink on the chosen
-content layer, **Markup** for annotations, **Layers** for organising the canvas, **Explore** for saved views, topic
-outlines, tags and history, and **Slides** for building and presenting decks. Select, Pan and Connect stay above these areas. **Hide panel**
-leaves the tools and task buttons available while giving the canvas more space. On phones, the
-panel starts hidden; choosing a task opens it over the canvas. On phones and tablets, choosing a
-stencil closes the panel for placement. **Properties** opens the selected object's controls;
-tools and properties share that space so the canvas stays available.
+The left rail has the tools **Select**, **Pan**, **Connect** and **Markup**, and two panels:
+**Shapes** for stencils and icon libraries, and **Draw** for ink in the active layer. Markup opens
+its own bar over the canvas and leaves the panel as it was. **Hide panel** leaves the tools and
+panel buttons available while giving the canvas more space.
+
+The right dock shows the selected object's properties, and beneath them three document panels:
+**Layers** for organising the canvas, **Slides** for building and presenting decks, and
+**Navigate** for saved views, topic outlines, tags and history. Choosing a panel's tab opens it
+and choosing it again folds it away. With nothing selected and no panel open, the dock narrows to
+its tabs.
+
+On phones, the left panel starts hidden; choosing a panel opens it over the canvas, and choosing
+a stencil closes it for placement. **Properties**, or **Panels** when nothing is selected, opens
+the dock over the canvas. The left panel and the dock share that space so the canvas stays
+available.
 
 The **help zone** at the foot of the left panel names the control under the pointer or keyboard
 focus and says in one sentence what it does. When the panel is hidden, the help appears below the
 header while you point at a control. On touch screens, hold a control to read its help without
 activating it. **Settings** can hide the help zone on this device.
 
-**Help** in the header, or **?**, opens the help reference beside the canvas: these guides,
-searchable and linked to one another, and every command with its shortcut. Pressing **?** while
-pointing at a panel or header control opens the guide for that area. The reference stays open while
-you work, and Escape closes it.
+**Help** in the header, or **?**, opens Help in the middle of the screen: the topics on the left,
+and on the right the chosen guide section or every command with its shortcut. Search finds guide
+sections, and links between guides open inside Help. Pressing **?** while pointing at a panel or
+header control opens the guide for that area. Escape clears a search, then closes Help. On a
+phone, Help shows the topics first and **Topics** returns to them from a guide.
 
 The first time you open a room in a browser, Arconis offers a short tour. Each step highlights one
-area of the workspace, from the canvas and tools to slides, settings and help, and the tour changes
-nothing in the room. **Take the tour** in the help reference runs it again. Arrow keys or **Next**
-and **Back** move through it; Escape ends it.
+area of the workspace, from the canvas and tools to slides, settings, feedback and help. The canvas
+steps accept real input, so you can drag, zoom and right-click while they explain it; the tour
+itself changes nothing in the room. **Take the tour** in Help runs it again. Arrow keys or
+**Next** and **Back** move through it; Escape ends it.
 
 **Practice in a sample room**, also in the help reference, opens a new room on this device with a
 small diagram and a slide. Each step waits for you to do what it describes: edit a note, connect two
@@ -57,11 +67,12 @@ keeps your text and screenshot choice so you can retry.
 
 ## Place and name objects
 
-Open **Add**. Click a stencil, then click the canvas, or drag the stencil directly onto it.
+Open **Shapes**. Click a stencil, then click the canvas, or drag the stencil directly onto it.
 Basics include notes, free text, rectangles, ellipses, decisions and frames. Architecture stencils
 include services, databases, clouds and people. Every library, including Screens and cloud
 providers, opens and closes from its header and remembers that choice on this device. Search
-finds items across libraries even when they are closed. Create slides from **Slides**.
+finds items across libraries even when they are closed. Create slides from **Slides** in the
+right dock.
 
 Notes and free text open ready for typing. Double-click another object or select it and press
 Enter to edit its label. Use **Ctrl/Command Enter**, Escape, or leave the source/tools to finish
@@ -101,8 +112,9 @@ style** (Ctrl/Command Alt V) applies them to the selection in place of its own. 
 default for new …** makes the selected object's look what new objects of its kind start with
 on this page.
 
-Ordinary selection reaches workspace objects beneath markup. Use [Lasso](drawing.md#select-edit-and-transfer-ink)
-for annotation paths. Use **Properties** to open the panel in the narrow layout.
+Ordinary selection reaches workspace objects beneath markup. Use Markup's
+[Select annotations](drawing.md#markup) for annotation paths. Use **Properties** to open the
+panel in the narrow layout.
 
 ## Pan, zoom and grid
 
@@ -114,8 +126,8 @@ horizontal or smooth scroll gestures pan, and Ctrl/Command scrolling zooms.
 
 A right click opens the menu at the pointer. Holding the right button, or moving it, brings a
 ring of eight commands around the press point, replacing the menu; drag past a short dead
-zone toward a wedge and release to stroke it without looking, or release in the centre to keep
-the menu. The ring and the menu change with what was pressed: an object, a line, a slide or
+zone toward a wedge and release to stroke it without looking. A drag released anywhere but a
+wedge cancels; holding still and releasing in the centre keeps the menu. The ring and the menu change with what was pressed: an object, a line, a slide or
 empty canvas. A right click on an unselected object selects it; one on a member of a selection
 keeps the selection. Empty-space right-click opens canvas actions even when an object was selected.
 The browser's own menu never appears over the canvas. Tab and arrows navigate the open menu;
@@ -124,8 +136,8 @@ Escape closes it and preserves the selection.
 The canvas ring's south-west wedge, **Mode**, switches what the pointer does. Choose it, or rest
 a held right button on it, and a small arc of **Select**, **Add**, **Draw**, **Markup** and **Connect** opens
 beside it, with the current mode outlined. The ring's own wedges stay as they are. Release a held
-button on a mode, or click one, to switch: Select and Connect change the tool; Draw and Markup
-choose the destination and open the same drawing-tool arc. Add shows shapes in the ring for the next canvas click. **Select all** is in the canvas
+button on a mode, or click one, to switch: Select and Connect change the tool; Draw opens the
+drawing tools and Markup opens its own. Add shows shapes in the ring for the next canvas click. **Select all** is in the canvas
 menu and on its shortcut. Escape cancels an unfinished radial choice.
 
 The ring on an object reads like a compass, so a stroke can be learned once:
@@ -206,16 +218,16 @@ A frame with an active arrangement also reflows its members.
 
 ## Layers
 
-Layers stack the canvas in named collections. Open **Layers** in the rail to see them top first:
-**Markup** is always on top, then each content layer, down to **Workspace**, where existing
-objects start. Slides sit beneath every layer and show whatever is visible within them.
+Layers stack the canvas in named collections. Open **Layers** in the right dock to see them top
+first, down to **Workspace**, where existing objects start. Slides sit beneath every layer and
+show whatever is visible within them. Markup annotations sit above every layer and belong to
+none; [Markup's bar](drawing.md#markup) shows and hides them.
 
-- Click a layer's name to choose it. New objects go into the chosen layer.
+- Click a layer's name to choose it. New objects and Draw's ink go into the chosen layer.
 - **New layer** adds a layer above the chosen one and chooses it. Double-click a name, or use
   **Rename**, to rename it.
 - Drag a layer onto another to put it above that layer, or use **Move up** and **Move down**.
 - The eye button hides or shows a layer in your view only. Other people keep their own view.
-  Hiding Markup is the same as clearing **Show annotations**.
 - **Merge down** moves the chosen layer's objects into the layer beneath, keeping how they stack,
   and removes the layer. **Delete** removes the layer and its objects for everyone. Undo restores
   either. Workspace stays; it cannot be merged away or deleted.
@@ -311,7 +323,7 @@ The keyboard walks and edits a tree without the pointer:
 - **.** focuses on the selection: its tree, contents and references stay bright while all else
   dims. Escape or **.** again leaves focus. Clicking a label's `▸N` count expands it.
 
-**Outline**, under **Explore**, shows the selected tree as text, or every tree when nothing is
+**Outline**, under **Navigate**, shows the selected tree as text, or every tree when nothing is
 selected: the chevrons fold and unfold, a click flies to a topic, a double click or F2 renames
 it, and with a row focused, Tab indents it under the topic above, Shift Tab promotes it, Enter
 adds a branch, Shift Enter a sibling, and Alt Up or Down reorders it.
@@ -354,8 +366,8 @@ another room, a file or a chat, and paste any canvas language back onto a canvas
 
 ## Property panel
 
-Selecting something opens the property panel on the right, in the same order for every kind of
-object. Its head names what is selected; click the name to edit it on the canvas, or **More**
+Selecting something shows its properties at the top of the right dock, in the same order for
+every kind of object. Its head names what is selected; click the name to edit it on the canvas, or **More**
 for the full menu. **Edit source** unfolds the label's Markdown. Then come:
 
 - **Relationships**: the topic it branches from, the frame it sits in, its references and lines,
@@ -377,7 +389,7 @@ assistants carry them as `property owner "Ada"`.
 
 ## History
 
-**History**, under **Explore**, lists your undo steps by what they did, newest first: "Move 3
+**History**, under **Navigate**, lists your undo steps by what they did, newest first: "Move 3
 objects", "Edit text of Orders API", "Delete 2 objects". Click an earlier step to return to just
 after it; the steps you passed move to the top as redo steps you can click to go forward
 again. Each object's **Last edited by** names who changed it most recently. There is no history
@@ -429,7 +441,7 @@ While typing a label, `#word` adds a tag, `[]` or `[x]` at the start makes it an
 task, and `:p1` to `:p5` or `:q0` to `:q4` set a marker. The shorthand leaves the label when the
 edit finishes and becomes the fields above.
 
-**Tags**, under **Explore**, lists the room's tags with how many objects carry each; choosing one
+**Tags**, under **Navigate**, lists the room's tags with how many objects carry each; choosing one
 filters the canvas to it. **Ctrl/Command Shift F** opens the same **Find and filter** panel,
 with named, counted chips for tags, markers, task states and editors. Chosen chips keep their objects bright, with the
 lines among them, and dim everything else; chips of one kind are alternatives, and kinds
@@ -452,7 +464,7 @@ see [files and pictures](files.md#add-and-move-pictures).
 
 ## Saved views
 
-Open **Explore**, name the current position and zoom under **Saved views**, and choose **Save view**.
+Open **Navigate** in the right dock, name the current position and zoom under **Saved views**, and choose **Save view**.
 Click a saved view to fly there. The buttons beside its name rename or remove it.
 
 Saved views are shared document data, while following one changes only your viewport. Use

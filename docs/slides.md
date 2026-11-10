@@ -5,7 +5,7 @@ presentation, ordered by **Slide number**. Content stays in the same workspace w
 
 ## Build a deck
 
-1. Open **Slides** in the left rail, choose **Add slide**, and click the canvas.
+1. Open **Slides** in the right dock, choose **Add slide**, and click the canvas.
 2. Select the slide and use the property panel's **Slide** section to set its deck and number.
 3. Choose **Wide 16:9**, **Standard 4:3**, or keep a custom size. Drag its handles to resize
    while preserving proportions.
@@ -13,7 +13,7 @@ presentation, ordered by **Slide number**. Content stays in the same workspace w
 5. Add more slides. A new slide uses the selected slide's deck, otherwise the last used or an
    existing deck, and follows its highest number. It adopts that deck's slide size.
 
-The **Slides** task area groups slides by deck, with a **Present** button beside each deck name.
+The **Slides** panel groups slides by deck, with a **Present** button beside each deck name.
 Click a slide entry to fly to it.
 Gaps in slide numbers are valid; matching numbers are ordered by item id.
 
@@ -52,7 +52,7 @@ a bounded area below the slide; **Close speaker notes** restores the full stage.
 
 ![A presentation with a template, service diagram and shared speaker notes](images/presentation.png)
 
-Choose **Present** beside a deck in the left rail, or **Present from here** in the selected
+Choose **Present** beside a deck in the Slides panel, or **Present from here** in the selected
 slide's properties. The editor controls give way to the slide and its presentation bar.
 
 | Control                         | Action                                 |

@@ -50,7 +50,7 @@ it("practises editing, connecting, markup and presenting in a sample room on thi
 
     await onTask(page, "Present it");
     await page
-      .getByRole("navigation", { name: "Workspace panels" })
+      .getByRole("navigation", { name: "Document panels" })
       .getByRole("button", { name: "Slides", exact: true })
       .click();
     await page.getByRole("button", { name: "Present practice", exact: true }).click();

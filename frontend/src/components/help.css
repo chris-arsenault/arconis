@@ -1,41 +1,82 @@
-/* The help reference reads beside the canvas, over the property panel, without blocking it. */
-.help-reference {
-  position: absolute;
-  z-index: 40;
-  inset: 0 0 0 auto;
-  width: min(420px, 100%);
-  display: flex;
+/* Help is a centred dialog: topics on the left, the chosen content on the right. */
+.help-dialog {
+  width: min(1040px, calc(100vw - 32px));
+  height: min(760px, calc(100dvh - 32px));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  display: none;
   flex-direction: column;
-  min-height: 0;
   background: var(--panel);
-  border-left: 1px solid var(--line);
-  box-shadow: -8px 0 24px #1118271f;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 24px 64px #11182740;
   font-size: 13px;
+  text-align: left;
 }
-.help-reference > header {
+.help-dialog[open] {
+  display: flex;
+}
+.help-dialog::backdrop {
+  background: #11182759;
+}
+.help-dialog > header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px 6px;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
 }
-.help-reference > header h2 {
+.help-dialog > header h2 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
 }
-.help-reference > input {
-  margin: 4px 14px 10px;
+.help-dialog > header input {
+  flex: 1;
+  max-width: 420px;
+  margin-left: auto;
   padding: 7px 10px;
+}
+.help-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+.help-topics {
+  min-height: 0;
+  overflow: hidden auto;
+  padding: 12px 10px 20px;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+.help-topics h3 {
+  margin: 14px 6px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.help-topics ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.help-topics ul ul {
+  margin: 2px 0 6px 10px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
 }
 .help-body:focus {
   outline: none;
 }
 .help-body {
-  flex: 1;
   min-height: 0;
   overflow: hidden auto;
-  padding: 0 14px 20px;
-  border-top: 1px solid var(--line);
+  padding: 4px 28px 28px;
 }
 .help-loading,
 .help-empty {
@@ -44,46 +85,46 @@
 }
 .help-start {
   display: grid;
-  gap: 6px;
-  padding: 12px 0;
+  gap: 2px;
 }
 .help-start button {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: flex-start;
   color: var(--pressed-text);
 }
-.help-guide h3 {
-  margin: 12px 0 2px;
-  font-size: 13px;
-}
-.help-guide ul,
-.help-results {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.help-reference nav button,
+.help-topics button,
 .help-results button,
 .help-back {
   width: 100%;
   border: none;
   background: transparent;
   text-align: left;
-  padding: 4px 6px;
-  border-radius: 5px;
+  justify-content: flex-start;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: var(--text);
 }
-.help-guide h3 button {
+.help-topics button.help-guide {
   font-weight: 600;
 }
-.help-guide li button {
+.help-topics ul ul button {
   color: var(--text-soft);
+  font-size: 12px;
 }
-.help-reference nav button:hover,
+.help-topics button[aria-current="page"] {
+  background: var(--pressed);
+  color: var(--pressed-text);
+}
+.help-topics button:hover,
 .help-results button:hover,
 .help-back:hover {
   background: var(--hover);
+}
+.help-results {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
 }
 .help-results li {
   border-bottom: 1px solid var(--line);
@@ -104,13 +145,51 @@
   color: var(--text-soft);
   font-size: 12px;
 }
+/* Only a narrow screen, which shows one side at a time, needs the way back to the topics. */
 .help-back {
-  display: inline-flex;
+  display: none;
   width: auto;
   align-items: center;
   gap: 4px;
   margin-top: 10px;
   color: var(--text-soft);
+}
+@media (max-width: 720px) {
+  .help-dialog {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+  .help-dialog > header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .help-dialog > header input {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .help-dialog > header button {
+    flex: none;
+    width: auto;
+    margin-left: auto;
+  }
+  .help-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .help-topics {
+    border-right: none;
+  }
+  .help-dialog[data-view="topics"] .help-body,
+  .help-dialog[data-view="content"] .help-topics {
+    display: none;
+  }
+  .help-back {
+    display: inline-flex;
+  }
+  .help-body {
+    padding: 4px 16px 24px;
+  }
 }
 .help-crumb {
   margin: 10px 0 0;
@@ -263,6 +342,14 @@
 }
 .driver-active [data-help-id="canvas"] foreignObject * {
   pointer-events: inherit;
+}
+/* A tour step that invites a right-click leaves the menu and ring it opens usable. */
+.driver-active .menu-anchor,
+.driver-active .menu-anchor * {
+  pointer-events: auto;
+}
+.driver-active .menu-anchor .ring-mode text {
+  pointer-events: none;
 }
 
 /* The orientation's popups take the workspace's own colours in light and dark modes. */

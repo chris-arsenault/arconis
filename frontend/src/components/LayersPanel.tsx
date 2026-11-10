@@ -17,8 +17,9 @@ import { isMarkup } from "../document/ink";
 import type { Item } from "../document/types";
 
 /**
- * The layer browser: markup pinned on top, then content layers top to bottom. A row's name makes
- * it the layer new objects go into; the toolbar acts on that layer, as in a paint program.
+ * The layer browser: content layers top to bottom. A row's name makes it the layer new objects
+ * go into; the toolbar acts on that layer, as in a paint program. Markup is not a layer and has
+ * its own bar.
  */
 export function LayersPanel({ editor }: Readonly<{ editor: EditorController }>) {
   const { document } = editor;
@@ -53,7 +54,7 @@ export function LayersPanel({ editor }: Readonly<{ editor: EditorController }>) 
   );
 }
 
-/** Markup pinned on top, then each content layer; drag a row onto another to put it above. */
+/** Each content layer, top first; drag a row onto another to put it above. */
 function LayerList({
   editor,
   renaming,
@@ -73,15 +74,6 @@ function LayerList({
   };
   return (
     <ul className="rail-list layer-list" aria-label="Layers, top first">
-      <li className="rail-row layer-row markup-row" data-testid="layer" data-layer="markup">
-        <VisibilityButton
-          name="Markup"
-          hidden={!editor.drawing.visible}
-          onToggle={() => editor.drawing.toggle()}
-        />
-        <span className="rail-entry layer-name">Markup</span>
-        <span className="rail-count">{items.filter(isMarkup).length}</span>
-      </li>
       {[...layers].reverse().map((layer) =>
         renaming === layer.id ? (
           <RenameLayer

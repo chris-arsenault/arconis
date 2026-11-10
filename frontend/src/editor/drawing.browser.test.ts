@@ -1,5 +1,15 @@
 import { expect, it } from "vitest";
-import { browser, open, exported, errors, row, add, fileMenu, drawInto } from "./browserHarness";
+import {
+  browser,
+  open,
+  exported,
+  errors,
+  row,
+  add,
+  fileMenu,
+  drawInto,
+  markupBar,
+} from "./browserHarness";
 import { createRoomId } from "../collaboration/room";
 import type { Page } from "playwright";
 
@@ -20,8 +30,10 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
   await add(page, "Sticky note (N)", "Review", 150, 150);
   const before = (await exported(page)).objects.find((item) => item.type === "note")!;
   await page.keyboard.press("m");
-  await page.getByRole("button", { name: "Highlight", exact: true }).click();
-  await page.getByRole("button", { name: "Marker", exact: true }).click();
+  const bar = markupBar(page);
+  await bar.getByRole("button", { name: "Marker", exact: true }).click();
+  // Markup leaves the stencils showing and brings no drawing panel with it.
+  expect(await page.getByLabel("Search stencils", { exact: true }).isVisible()).toBe(true);
   await stroke(page, [130, 190], [360, 200]);
   await expect
     .poll(async () => (await exported(peer)).objects.filter((item) => item.markup).length)
@@ -29,7 +41,7 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
   const ink = (await exported(page)).objects.find((item) => item.type === "drawing")!;
   expect(ink.look.strokeOpacity).toBe(30);
   expect((await exported(page)).objects.find((item) => item.id === before.id)).toEqual(before);
-  await page.getByRole("button", { name: "Object outline", exact: true }).click();
+  await bar.getByRole("button", { name: "Outline object", exact: true }).click();
   const canvas = await page.getByTestId("canvas").boundingBox();
   await page.mouse.click(canvas!.x + 200, canvas!.y + 220);
   await expect
@@ -61,7 +73,7 @@ it("moves lassoed annotations to the content layer and back with shared Undo", a
   await page.keyboard.press("m");
   await stroke(page, [150, 150], [290, 220]);
   await stroke(page, [190, 180], [310, 240]);
-  await page.getByRole("button", { name: "Select ink", exact: true }).click();
+  await markupBar(page).getByRole("button", { name: "Select annotations", exact: true }).click();
   const canvas = (await page.getByTestId("canvas").boundingBox())!;
   await page.mouse.move(canvas.x + 130, canvas.y + 130);
   await page.mouse.down();
@@ -80,13 +92,12 @@ it("moves lassoed annotations to the content layer and back with shared Undo", a
   let saved = await exported(page);
   expect(saved.objects).toHaveLength(2);
   expect(saved.objects.every((item) => item.type === "drawing" && !item.markup)).toBe(true);
+  await drawInto(page, "markup");
   expect(
     await page.getByRole("button", { name: "Delete all annotations", exact: true }).isDisabled()
   ).toBe(true);
   await drawInto(page, "content");
-  expect(
-    await page.getByRole("button", { name: "Delete all annotations", exact: true }).count()
-  ).toBe(0);
+  expect(await markupBar(page).count()).toBe(0);
   await page.getByRole("button", { name: "Freehand", exact: true }).click();
   await stroke(page, [210, 170], [250, 200]);
   await expect.poll(async () => (await exported(peer)).objects.length).toBe(3);

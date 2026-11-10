@@ -1,0 +1,115 @@
+/* Markup's bar floats over the canvas, clear of Find at the top right. */
+.markup-bar {
+  position: absolute;
+  z-index: 6;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  max-width: calc(100% - 200px);
+  padding: 5px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 5px 24px #11182726;
+  font-size: 12px;
+}
+/* Other things that take the top edge keep it: the bar moves to the row beneath them. */
+.canvas-area:has(.find-bar, .name-prompt, .back-to-content) .markup-bar {
+  top: 64px;
+  max-width: calc(100% - 24px);
+}
+.markup-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.markup-group + .markup-group,
+.markup-group + .markup-fold,
+.markup-fold + .markup-group,
+.markup-fold + .markup-fold {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+.markup-bar button {
+  gap: 5px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+.markup-bar button:hover:not(:disabled) {
+  background: var(--hover);
+}
+.markup-bar button[aria-pressed="true"] {
+  background: var(--pressed);
+  border-color: var(--pressed-text);
+  color: var(--pressed-text);
+}
+.markup-bar button:disabled {
+  opacity: 0.4;
+}
+.markup-bar .markup-swatch {
+  min-width: 26px;
+  padding: 0;
+}
+.markup-bar .markup-swatch[aria-pressed="true"] {
+  background: transparent;
+  outline: 2px solid var(--purple);
+  outline-offset: -2px;
+  border-color: transparent;
+}
+.markup-bar .markup-clear {
+  color: #b43b53;
+}
+.markup-bar .markup-done {
+  color: var(--pressed-text);
+  font-weight: 600;
+}
+.markup-fold {
+  position: relative;
+}
+.markup-popover {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 8px);
+  left: 0;
+  padding: 5px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 5px 24px #11182726;
+}
+/* The Markup tool counts the annotations on the canvas while its bar is away. */
+.tool-row .tool {
+  position: relative;
+}
+.tool-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 9px;
+  line-height: 15px;
+  text-align: center;
+}
+@media (max-width: 1100px) {
+  .markup-bar {
+    left: 8px;
+    max-width: calc(100% - 16px);
+  }
+  .canvas-area:has(.properties-toggle) .markup-bar,
+  .workspace-body:has(.properties-toggle) .markup-bar {
+    top: 52px;
+  }
+}

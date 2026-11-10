@@ -20,27 +20,30 @@ The welcome screen also offers **Create a password room** and **Work on this dev
 
 1. Press **N** and click the canvas to add a note. Type an idea and press **Ctrl/Command Enter**
    to finish. Enter by itself inserts a line.
-2. Open **Add** in the left rail and choose **Rectangle**, then click the canvas. Double-click the rectangle to
-   name it, and finish the edit.
+2. Open **Shapes** in the left rail and choose **Rectangle**, then click the canvas. Double-click
+   the rectangle to name it, and finish the edit.
 3. Choose **Connector: click two objects** and click the note followed by the rectangle.
 4. Press **V** to select. Drag either object; the connector stays attached.
-5. Select an object to see the property panel on the right: its relationships, tags and status,
+5. Select an object to see its properties in the right dock: its relationships, tags and status,
    appearance and layout. Right-click it for the menu, or hold the right button for a ring of
    the most-used commands. On narrow screens, **Hide panel** folds the left panel to give the canvas room.
 
 You can also drag stencils directly from the rail. Search the rail to find architecture icons.
-Use **Explore** for saved views, topic outlines, tags and history, and **Slides** to create and present decks.
+The right dock's tabs open **Layers**, **Slides** to create and present decks, and **Navigate**
+for saved views, topic outlines, tags and history.
 The [canvas guide](editing.md) covers selection, containers, connectors and keyboard navigation.
 
 ## Mark it up
 
-Press **M**, choose **Highlight → Marker**, and drag over the diagram. The marks belong to shared
-markup above the workspace. Choose **Object outline** and click an object to attach an outline.
+Press **M**. A small bar opens over the canvas; choose **Marker** and drag over the diagram. The
+marks are temporary annotations above the workspace, shared with the room. Choose **Outline
+object** and click an object to attach an outline. **Clear** removes every annotation, and
+**Done** puts Markup away.
 
-Use **Select ink** to select marks and **Move to content layer** to keep them as workspace artwork.
-Press **P**, or choose **Layer** under **Draw into**, to paint directly into a content layer with
-the same controls. The
-[drawing guide](drawing.md) covers shapes, erasing, fills, gradients and transfers.
+To keep a mark, choose **Select annotations**, drag around it, and choose **Move to content
+layer** in the property panel. To draw artwork that belongs to the canvas, press **P** for
+**Draw**. The [drawing guide](drawing.md) covers brushes, shapes, erasing, fills, gradients and
+transfers.
 
 ## Keep a copy
 

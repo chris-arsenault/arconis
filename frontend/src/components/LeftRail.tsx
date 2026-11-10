@@ -1,74 +1,50 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Compass, Layers, Pencil, Play, Plus, Shapes, Presentation } from "lucide-react";
-import { LayersPanel } from "./LayersPanel";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { Pencil, Shapes } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import type { Item } from "../document/types";
-import { decks, isTemplate, type Deck } from "../document/slides";
-import { goToSlide } from "../editor/topics";
-import { flyToView, removeView, renameView, saveCurrentView, savedViews } from "../editor/views";
-import { SavedViews } from "./SavedViews";
 import { StencilBrowser } from "./StencilBrowser";
-import { OutlinePanel } from "./OutlinePanel";
-import { HistoryPanel } from "./HistoryPanel";
 import { TOOLS } from "./stencils";
 import { DrawingTools, type DrawingActions } from "./DrawingTools";
-import { selectedInkSettings } from "../editor/inkStyle";
-import { effectiveAppearance } from "../document/appearance";
 import { isMarkup } from "../document/ink";
-import { RailSection } from "./RailSection";
-import { useRailSections } from "./useRailSections";
-import { historyEntries } from "../editor/history";
-import { roomTags } from "../editor/tags";
-import { toggled } from "../editor/filter";
-import { showFilter } from "../editor/ui";
-import { isInkTool } from "../editor/drawingTools";
+import { PanelHeading } from "./RailSection";
 import { HelpZone } from "./HelpZone";
-import { PANEL_DETAILS, PANEL_TOPICS, TOOL_DETAILS, type Panel } from "./railHelp";
+import { PANEL_DETAILS, PANEL_TOPICS, TOOL_DETAILS, type RailPanel } from "./railHelp";
 
-const TOOL_NAMES: Record<string, string> = { select: "Select", pan: "Pan", connect: "Connect" };
-const SECTION_DEFAULTS = {
-  outline: true,
-  tags: true,
-  history: false,
-  views: true,
+const TOOL_NAMES: Record<string, string> = {
+  select: "Select",
+  pan: "Pan",
+  connect: "Connect",
+  markup: "Markup",
 };
-
-type Sections = ReturnType<typeof useRailSections>;
 const PANELS = [
-  { id: "add", label: "Add", icon: Shapes },
-  { id: "draw", label: "Draw", icon: Pencil },
-  { id: "layers", label: "Layers", icon: Layers },
-  { id: "explore", label: "Explore", icon: Compass },
-  { id: "slides", label: "Slides", icon: Presentation },
+  { id: "add", label: "Shapes", icon: Shapes, hint: "Shapes" },
+  { id: "draw", label: "Draw", icon: Pencil, hint: "Draw (P)" },
 ] as const;
 
-/** Tool shortcuts open their controls; selection after placement or a lasso keeps that panel. */
+/** Tool shortcuts open their controls; Markup and selection leave the panel as it was. */
 function usePanel(
   editor: EditorController,
   compact: boolean,
   shown: boolean | undefined,
   onExpand?: (open: boolean) => void
 ) {
-  const [state, setState] = useState<{ panel: Panel; tool: string; expanded: boolean }>(() => ({
+  const [state, setState] = useState<{ panel: RailPanel; tool: string; expanded: boolean }>(() => ({
     panel: "add",
     tool: "select",
     expanded: !compact,
   }));
   useEffect(() => {
-    if (compact && !["select", "pan", "connect", "draw", "markup"].includes(editor.tool))
-      onExpand?.(false);
+    if (compact && !["select", "pan", "connect", "draw"].includes(editor.tool)) onExpand?.(false);
   }, [compact, editor.tool, onExpand]);
   if (state.tool !== editor.tool) {
     let panel = state.panel;
-    const creating = !["select", "pan", "connect"].includes(editor.tool);
-    if (isInkTool(editor.tool)) panel = "draw";
-    else if (editor.tool === "slide") panel = "slides";
-    else if (creating) panel = "add";
-    setState({ panel, tool: editor.tool, expanded: state.expanded || creating });
+    const placing = !["select", "pan", "connect", "markup", "draw", "slide"].includes(editor.tool);
+    if (editor.tool === "draw") panel = "draw";
+    else if (placing) panel = "add";
+    const opens = placing || editor.tool === "draw";
+    setState({ panel, tool: editor.tool, expanded: state.expanded || opens });
   }
-  const choose = (panel: Panel) => {
-    if (panel === "draw") editor.setTool(editor.drawing.destination);
-    else editor.setTool("select");
+  const choose = (panel: RailPanel) => {
+    editor.setTool(panel === "draw" ? "draw" : "select");
     setState({ panel, tool: editor.tool, expanded: true });
     onExpand?.(true);
   };
@@ -80,8 +56,9 @@ function usePanel(
   return { panel: state.panel, expanded, choose, toggle };
 }
 
-/** Select, Pan and Connect stay above every panel. */
+/** Select, Pan, Connect and Markup stay above every panel: each works whatever the panel shows. */
 function ToolRow({ editor }: Readonly<{ editor: EditorController }>) {
+  const annotations = editor.document.list().filter(isMarkup).length;
   return (
     <div
       className="tool-row"
@@ -90,11 +67,13 @@ function ToolRow({ editor }: Readonly<{ editor: EditorController }>) {
       data-help-id="rail-tools"
       data-help-topic="editing#select-and-transform"
     >
-      {TOOLS.filter((tool) => !isInkTool(tool.id)).map((tool) => (
+      {TOOLS.map((tool) => (
         <button
           key={tool.id}
           data-hint={tool.label}
           data-hint-detail={TOOL_DETAILS[tool.id]}
+          data-help-id={tool.id === "markup" ? "markup-tool" : undefined}
+          data-help-topic={tool.id === "markup" ? "drawing#markup" : undefined}
           aria-label={tool.label}
           aria-pressed={editor.tool === tool.id}
           className="tool"
@@ -102,6 +81,11 @@ function ToolRow({ editor }: Readonly<{ editor: EditorController }>) {
         >
           <tool.icon size={17} />
           <span>{TOOL_NAMES[tool.id]}</span>
+          {tool.id === "markup" && annotations > 0 && (
+            <span className="tool-badge" data-testid="markup-count">
+              {annotations}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -120,13 +104,12 @@ export function LeftRail({
   onExpand?: (open: boolean) => void;
 }>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
-  const sections = useRailSections(SECTION_DEFAULTS);
   const { panel, expanded, choose, toggle } = usePanel(editor, compact, shown, onExpand);
   return (
     <aside className="left-rail" aria-label="Tools and stencils" data-expanded={expanded}>
       <ToolRow editor={editor} />
       <nav className="rail-tabs" aria-label="Workspace panels">
-        {PANELS.map(({ id, label, icon: Icon }) => (
+        {PANELS.map(({ id, label, icon: Icon, hint }) => (
           <button
             key={id}
             aria-label={label}
@@ -134,7 +117,7 @@ export function LeftRail({
             aria-controls="rail-content"
             data-help-id={`rail-${id}`}
             data-help-topic={PANEL_TOPICS[id]}
-            data-hint={id === "draw" ? "Draw (P) or Markup (M)" : label}
+            data-hint={hint}
             data-hint-detail={PANEL_DETAILS[id]}
             onClick={() => choose(id)}
           >
@@ -159,9 +142,6 @@ export function LeftRail({
       >
         {panel === "add" && <StencilBrowser editor={editor} />}
         {panel === "draw" && <DrawingSection editor={editor} />}
-        {panel === "layers" && <LayersPanel editor={editor} />}
-        {panel === "explore" && <ExploreSection editor={editor} sections={sections} />}
-        {panel === "slides" && <SlidesSection editor={editor} />}
       </div>
       <HelpZone />
     </aside>
@@ -169,245 +149,34 @@ export function LeftRail({
 }
 
 function DrawingSection({ editor }: Readonly<{ editor: EditorController }>) {
-  const selected = editor.selected();
-  const ink = selected.filter((item) => item.type === "drawing" || item.type === "highlight");
-  const selection = {
-    canPromote: ink.some(isMarkup),
-    canDemote: ink.some((item) => !isMarkup(item)),
-    strokes: ink.length,
-    settings: ink.length ? selectedInkSettings(editor.document, ink[0]) : null,
-    closed: ink.some(
-      (item) => effectiveAppearance(item, editor.document.namedStyle(item.style)).closed
-    ),
-  };
-  const destination = {
-    markup: editor.drawing.markup,
-    layer: editor.layers.active,
-    layers: editor.document.layerList().map(({ id, name }) => ({ id, name })),
-    visible: editor.drawing.visible,
-    markupCount: editor.document.list().filter(isMarkup).length,
-  };
+  const layer = editor.document.layerList().find(({ id }) => id === editor.layers.active);
   return (
     <section aria-label="Drawing" className="drawing-section">
-      <PanelHeading title="Draw">
-        {editor.drawing.markup
-          ? "Annotate above every content layer."
-          : "Draw editable ink as part of a content layer."}
-      </PanelHeading>
+      <PanelHeading title="Draw">Draw editable ink that stays part of the canvas.</PanelHeading>
       <DrawingTools
-        tool={editor.drawing.tool}
+        tool={editor.drawing.brushTool}
         colorTarget={editor.drawing.colorTarget}
-        armed={editor.drawing.active}
-        destination={destination}
-        settings={editor.drawing.settings}
+        armed={editor.tool === "draw"}
+        layer={layer?.name ?? ""}
+        settings={editor.drawing.brush}
         favorites={editor.drawing.favorites}
         recent={editor.drawing.recent}
-        selection={selection}
         actions={drawingActions(editor)}
       />
     </section>
   );
 }
 
-function PanelHeading({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
-  return (
-    <div className="rail-heading">
-      <h2>{title}</h2>
-      <p>{children}</p>
-    </div>
-  );
-}
-
-function ExploreSection({
-  editor,
-  sections,
-}: Readonly<{ editor: EditorController; sections: Sections }>) {
-  const history = historyEntries(editor.document);
-  const steps = history.undo.length + history.redo.length;
-  const views = savedViews(editor.document);
-  return (
-    <>
-      <PanelHeading title="Explore this canvas">
-        Return to a saved place or find related ideas.
-      </PanelHeading>
-      <RailSection
-        id="views"
-        title="Saved views"
-        count={views.length}
-        detail="Positions and zoom levels saved for everyone in this room."
-        open={sections.open.views}
-        onToggle={sections.toggle}
-      >
-        <p className="rail-description">
-          Save the current position and zoom for everyone in this room.
-        </p>
-        <SavedViews
-          views={views}
-          onGo={(view) => flyToView(editor.graph, editor.element, view)}
-          onRemove={(id) => removeView(editor.document, id)}
-          onRename={(view, name) => renameView(editor.document, view, name)}
-          onSave={(name) => saveCurrentView(editor, name)}
-        />
-      </RailSection>
-      <OutlinePanel editor={editor} open={sections.open.outline} onToggle={sections.toggle} />
-      <TagsSection editor={editor} sections={sections} />
-      {steps > 0 && (
-        <RailSection
-          id="history"
-          title="History"
-          count={steps}
-          detail="Your recent changes, which you can undo or redo back to any step."
-          open={sections.open.history}
-          onToggle={sections.toggle}
-        >
-          <HistoryPanel editor={editor} />
-        </RailSection>
-      )}
-    </>
-  );
-}
-
-function SlidesSection({ editor }: Readonly<{ editor: EditorController }>) {
-  const all = decks(editor.document.list());
-  return (
-    <section aria-label="Slide decks">
-      <PanelHeading title="Slides and presenting">
-        Frame parts of the canvas and present them in order.
-      </PanelHeading>
-      <div className="rail-panel-actions">
-        <button
-          aria-pressed={editor.tool === "slide"}
-          data-hint-detail="Then click the canvas to place a slide frame where you want it."
-          onClick={() => editor.setTool("slide")}
-        >
-          <Plus size={16} /> Add slide
-        </button>
-        <p className="rail-description">
-          {editor.tool === "slide"
-            ? "Click the canvas to place a slide."
-            : "Select a slide to set its deck, size and speaker notes."}
-        </p>
-      </div>
-      {all.length ? (
-        <Decks
-          all={all}
-          onPresent={(deck) => editor.presenter.start(deck)}
-          onGo={(id) => goToSlide(editor, id)}
-        />
-      ) : (
-        <p className="rail-empty">
-          No slides yet. Add a slide around the content you want to present.
-        </p>
-      )}
-    </section>
-  );
-}
-
-/** Every tag in the room with its count; choosing one filters the canvas to what carries it. */
-function TagsSection({
-  editor,
-  sections,
-}: Readonly<{ editor: EditorController; sections: Sections }>) {
-  const tags = roomTags(editor.document.list());
-  if (!tags.length) return null;
-  const choose = (tag: string) => {
-    if (!editor.ui.filter) showFilter(editor, true);
-    editor.setFilter(toggled(editor.filter, "tags", tag));
-  };
-  return (
-    <RailSection
-      id="tags"
-      title="Tags"
-      count={tags.length}
-      detail="Every tag used in this room, with how many objects carry it."
-      open={sections.open.tags}
-      onToggle={sections.toggle}
-    >
-      <div className="rail-list tag-list">
-        {tags.map(({ tag, count }) => (
-          <div className="rail-row" key={tag}>
-            <button
-              className="rail-entry"
-              aria-pressed={editor.filter.tags.includes(tag)}
-              data-hint={`Show only what is tagged #${tag}`}
-              data-hint-detail="Filter the canvas to objects with this tag; choose it again to drop it."
-              onClick={() => choose(tag)}
-            >
-              #{tag}
-            </button>
-            <span className="rail-count">{count}</span>
-          </div>
-        ))}
-      </div>
-    </RailSection>
-  );
-}
-
 function drawingActions(editor: EditorController): DrawingActions {
   const drawing = editor.drawing;
   return {
-    destination: (target) => editor.setTool(target),
-    layer: (id) => {
-      editor.layers.setActive(id);
-      editor.setTool("draw");
-    },
     tool: (tool) => drawing.activate(tool),
     family: (family) => drawing.family(family),
-    style: (settings) => drawing.style(settings),
     target: (target) => {
       drawing.colorTarget = target;
       editor.emit();
     },
     change: (settings) => drawing.update(settings),
     favorite: (index, save) => drawing.favorite(index, save),
-    toggle: () => drawing.toggle(),
-    clear: () => drawing.clear(),
-    promote: () => drawing.transfer(false),
-    demote: () => drawing.transfer(true),
-    close: () => drawing.close(),
   };
-}
-
-/** A slide's line in the rail: its number, or Template, then its name. */
-function slideEntry(slide: Item) {
-  if (isTemplate(slide)) return slide.name ? `Template · ${slide.name}` : "Template";
-  return `${slide.slide ?? 0} · ${slide.name || "Slide"}`;
-}
-
-/** Every deck in the room with its slides in order; clicking a slide flies to it. */
-function Decks({
-  all,
-  onPresent,
-  onGo,
-}: Readonly<{ all: Deck[]; onPresent: (deck: string) => void; onGo: (id: string) => void }>) {
-  return (
-    <div className="rail-list">
-      {all.map(({ deck, slides }) => (
-        <div className="deck" key={deck} data-testid="deck">
-          <div className="deck-title">
-            <span>{deck}</span>
-            <button
-              className="rail-action deck-present"
-              data-hint={`Present ${deck}`}
-              aria-label={`Present ${deck}`}
-              data-hint-detail="Show this deck slide by slide with the editing tools hidden."
-              onClick={() => onPresent(deck)}
-            >
-              <Play size={13} /> Present
-            </button>
-          </div>
-          {slides.map((slide) => (
-            <button
-              key={slide.id}
-              className="rail-entry"
-              data-hint-detail="Select this slide and move your view to it."
-              onClick={() => onGo(slide.id)}
-            >
-              {slideEntry(slide)}
-            </button>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
 }
