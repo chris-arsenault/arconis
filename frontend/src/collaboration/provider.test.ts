@@ -4,7 +4,14 @@ import { CanvasDocument } from "../document/canvasDocument";
 import type { ConnectionState, FrameChannel } from "./channel";
 import { CHUNK_BYTES, FrameAssembler, frames } from "./frames";
 import { MAX_MESSAGE_BYTES } from "../relay/relay";
-import { parseRoom, createRoomId, createLocalRoomId, isLocalRoom, roomHash } from "./room";
+import {
+  parseRoom,
+  createRoomId,
+  createLocalRoomId,
+  createRecoveryRoomId,
+  isLocalRoom,
+  roomHash,
+} from "./room";
 
 class Bus implements FrameChannel {
   onMessage: (message: string) => void = () => {};
@@ -266,3 +273,14 @@ it("keeps device-only rooms distinct through their links", () => {
   const shared = createRoomId();
   expect(parseRoom(roomHash(shared))).toBe(shared);
 });
+
+it.each(["", "local-", "locked-"])(
+  "preserves %sroom access when creating a recovery room",
+  (prefix) => {
+    const source = `${prefix}${createRoomId()}`;
+    const recovered = createRecoveryRoomId(source);
+    expect(recovered).not.toBe(source);
+    expect(recovered).toMatch(new RegExp(`^${prefix}[a-f0-9]{48}$`));
+    expect(parseRoom(roomHash(recovered))).toBe(recovered);
+  }
+);

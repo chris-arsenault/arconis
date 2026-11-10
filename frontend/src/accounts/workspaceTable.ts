@@ -76,7 +76,7 @@ async function commit(
             },
           },
           ...pruned.map((entry) => ({ Delete: { TableName, Key: revisionKey(user, entry) } })),
-          storageUpdate(TableName, user, delta, expected ? 0 : 1),
+          storageUpdate(TableName, user, delta, expected ? 0 : 1, true),
           storageUpdate(TableName, null, delta, 0),
         ],
       })
@@ -90,8 +90,16 @@ async function commit(
       )
     )
       return "conflict" as const;
-    if (error.CancellationReasons?.some((reason) => reason.Code === "ConditionalCheckFailed"))
-      return "full" as const;
+    if (error.CancellationReasons?.some((reason) => reason.Code === "ConditionalCheckFailed")) {
+      const { Item } = await client.send(
+        new GetCommand({
+          TableName,
+          Key: { pk: `USER#${user}`, sk: "PROFILE" },
+          ConsistentRead: true,
+        })
+      );
+      return Item?.deleting ? ("deleting" as const) : ("full" as const);
+    }
     throw error;
   }
 }

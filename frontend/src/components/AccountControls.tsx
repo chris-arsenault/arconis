@@ -118,6 +118,26 @@ function SignedIn({
   );
 }
 
+function Deleting({ account }: Readonly<{ account: AccountStore }>) {
+  return (
+    <div className="account-form">
+      <p>{account.email}</p>
+      <p>Account deletion is unfinished. Retry to finish removing your saved work and account.</p>
+      {account.error && <p role="alert">{account.error}</p>}
+      <button
+        className="primary"
+        disabled={account.deletionPending}
+        onClick={() => {
+          void account.deleteAccount().catch(() => {});
+        }}
+      >
+        {account.deletionPending ? "Working…" : "Retry account deletion"}
+      </button>
+      <button onClick={() => void account.signOut()}>Sign out</button>
+    </div>
+  );
+}
+
 /** Sign-in, and everything in the account once signed in. */
 export function AccountButton({
   account,
@@ -132,12 +152,14 @@ export function AccountButton({
   const [chosen, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState("");
   const signedIn = account.status === "in";
+  const deleting = account.status === "deleting";
+  const name = signedIn ? account.name : "Sign in";
   // A sign-in that came back refused opens the panel to say why, until it is closed.
   const open = chosen || (account.error !== "" && account.error !== dismissed);
   return (
     <>
       <button className="icon-button account-button" onClick={() => setOpen(true)}>
-        <CircleUser size={18} /> {signedIn ? account.name : "Sign in"}
+        <CircleUser size={18} /> {deleting ? "Account deletion" : name}
       </button>
       {open && (
         <div className="password-gate" role="dialog" aria-label="Account">
@@ -152,7 +174,7 @@ export function AccountButton({
             >
               <X size={15} />
             </button>
-            {signedIn ? (
+            {signedIn && (
               <SignedIn
                 account={account}
                 onJoin={(id) => {
@@ -164,9 +186,9 @@ export function AccountButton({
                   onOpen(copy);
                 }}
               />
-            ) : (
-              <SignedOut account={account} />
             )}
+            {deleting && <Deleting account={account} />}
+            {!signedIn && !deleting && <SignedOut account={account} />}
           </section>
         </div>
       )}

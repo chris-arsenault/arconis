@@ -1,10 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  DeleteCommand,
-  DynamoDBDocumentClient,
-  GetCommand,
-  UpdateCommand,
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -32,26 +27,57 @@ const objectKey = (user: string, id: string) => `workspaces/${user}/${id}`;
 const table: AccountTable = {
   ...dynamoLibrary(dynamo, TableName),
   ...dynamoWorkspaces(dynamo, TableName),
+  isDeleting: async (user) => {
+    const { Item } = await dynamo.send(
+      new GetCommand({ TableName, Key: { pk: userKey(user), sk: "PROFILE" }, ConsistentRead: true })
+    );
+    return Boolean(Item?.deleting);
+  },
   profile: async (user) => {
     const { Item } = await dynamo.send(
-      new GetCommand({ TableName, Key: { pk: userKey(user), sk: "PROFILE" } })
+      new GetCommand({ TableName, Key: { pk: userKey(user), sk: "PROFILE" }, ConsistentRead: true })
     );
-    if (!Item?.name) return null;
+    if (!Item?.name || Item.deleting) return null;
     return { name: Item.name as string, bytes: Number(Item.bytes ?? 0) };
   },
   saveProfile: async (user, { name }) => {
+    try {
+      await dynamo.send(
+        new UpdateCommand({
+          TableName,
+          Key: { pk: userKey(user), sk: "PROFILE" },
+          UpdateExpression: "SET #name = :name",
+          ConditionExpression: "attribute_not_exists(deleting)",
+          ExpressionAttributeNames: { "#name": "name" },
+          ExpressionAttributeValues: { ":name": name },
+        })
+      );
+      return true;
+    } catch (error) {
+      if (error instanceof Error && error.name === "ConditionalCheckFailedException") return false;
+      throw error;
+    }
+  },
+  beginDelete: async (user) => {
     await dynamo.send(
       new UpdateCommand({
         TableName,
         Key: { pk: userKey(user), sk: "PROFILE" },
-        UpdateExpression: "SET #name = :name",
-        ExpressionAttributeNames: { "#name": "name" },
-        ExpressionAttributeValues: { ":name": name },
+        UpdateExpression: "SET deleting = :yes",
+        ExpressionAttributeValues: { ":yes": true },
       })
     );
   },
   deleteProfile: async (user) => {
-    await dynamo.send(new DeleteCommand({ TableName, Key: { pk: userKey(user), sk: "PROFILE" } }));
+    await dynamo.send(
+      new UpdateCommand({
+        TableName,
+        Key: { pk: userKey(user), sk: "PROFILE" },
+        UpdateExpression: "SET deleting = :yes REMOVE #name, #bytes, workspaceCount",
+        ExpressionAttributeNames: { "#name": "name", "#bytes": "bytes" },
+        ExpressionAttributeValues: { ":yes": true },
+      })
+    );
   },
 };
 

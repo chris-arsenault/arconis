@@ -14,7 +14,7 @@ export interface SaveableRoom {
   onChange(listener: () => void): () => void;
 }
 
-type Account = Pick<AccountStore, "workspaces" | "save" | "load">;
+type Account = Pick<AccountStore, "workspaces" | "save" | "load" | "subscribe">;
 
 /**
  * Keeps one room's saved copy current once a person has chosen to save it. Another device may have
@@ -27,6 +27,8 @@ export class WorkspaceSaver {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private saving = Promise.resolve();
   private stopWatching: () => void;
+  private stopAccountWatching: () => void;
+  private keepSaved = false;
   private closed = false;
 
   constructor(
@@ -35,9 +37,12 @@ export class WorkspaceSaver {
     private changed: () => void
   ) {
     this.stopWatching = room.onChange(() => {
-      if (!this.id) return;
+      if (!this.keepSaved) return;
       if (this.timer) clearTimeout(this.timer);
       this.timer = setTimeout(() => void this.save(), AUTOSAVE_MS);
+    });
+    this.stopAccountWatching = account.subscribe(() => {
+      void this.checkRemoved().catch(() => {});
     });
   }
 
@@ -46,6 +51,7 @@ export class WorkspaceSaver {
     const saved = (await this.account.workspaces()).find(({ roomId }) => roomId === this.room.id);
     if (!saved || this.closed) return;
     this.id = saved.id;
+    this.keepSaved = true;
     await this.mergeNewer(saved.revision);
     this.changed();
   }
@@ -59,31 +65,59 @@ export class WorkspaceSaver {
 
   /** Stores the room now, starting to keep it saved if it was not already. */
   save() {
+    this.keepSaved = true;
     this.saving = this.saving.then(() => this.store());
     return this.saving;
   }
 
   private async mergeSaved() {
-    if (!this.id) return;
+    if (!this.id) return true;
     const saved = (await this.account.workspaces()).find(({ id }) => id === this.id);
-    if (saved) await this.mergeNewer(saved.revision);
+    if (!saved) {
+      this.forgetSaved();
+      return false;
+    }
+    await this.mergeNewer(saved.revision);
+    return true;
+  }
+
+  private async checkRemoved() {
+    const { id, revision } = this;
+    if (!id) return;
+    const saved = await this.account.workspaces();
+    if (
+      !this.closed &&
+      this.id === id &&
+      this.revision === revision &&
+      !saved.some((item) => item.id === id)
+    )
+      this.forgetSaved();
+  }
+
+  private forgetSaved() {
+    this.id = null;
+    this.revision = "";
+    this.keepSaved = false;
+    this.error = "";
+    this.cancelAutosave();
+    this.changed();
+  }
+
+  private cancelAutosave() {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+  }
+
+  private get active() {
+    return !this.closed && this.keepSaved;
   }
 
   private async store(retry = true): Promise<void> {
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = null;
+    if (!this.active) return;
+    this.cancelAutosave();
     try {
-      await this.mergeSaved();
-      const id = this.id ?? crypto.randomUUID();
-      const revision = await this.account.save(
-        id,
-        this.room.title(),
-        await this.room.contents(),
-        this.revision
-      );
-      this.id = id;
-      this.revision = revision;
-      this.error = "";
+      if (!(await this.mergeSaved()) || !this.active) return;
+      await this.publish();
     } catch (error) {
       if (error instanceof WorkspaceConflict && retry && !this.closed) return this.store(false);
       this.error = error instanceof Error ? error.message : "The workspace could not be saved.";
@@ -91,9 +125,22 @@ export class WorkspaceSaver {
     this.changed();
   }
 
+  private async publish() {
+    const id = this.id ?? crypto.randomUUID();
+    const expectedRevision = this.revision;
+    const contents = await this.room.contents();
+    if (!this.active) return;
+    const revision = await this.account.save(id, this.room.title(), contents, expectedRevision);
+    if (!this.active) return;
+    this.id = id;
+    this.revision = revision;
+    this.error = "";
+  }
+
   close() {
     this.closed = true;
-    if (this.timer) clearTimeout(this.timer);
+    this.cancelAutosave();
     this.stopWatching();
+    this.stopAccountWatching();
   }
 }

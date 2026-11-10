@@ -142,7 +142,6 @@ export async function startRelayFixture(siteOrigin = "") {
     config: fixtureConfig(base),
     /** Tests attach real MCP sessions to this same relay without an external service. */
     relay: () => relay,
-    savedObjects: () => [...accounts.objects.values()],
     feedback: feedback.records,
     feedbackScreenshot: feedback.screenshot,
     get starts() {

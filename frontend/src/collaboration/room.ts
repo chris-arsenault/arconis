@@ -51,6 +51,12 @@ export function createLocalRoomId() {
 export function isLocalRoom(id: string) {
   return id.startsWith(LOCAL_PREFIX);
 }
+/** History recovery creates an independent room with the source's access mode. */
+export function createRecoveryRoomId(source: string) {
+  if (isLockedRoom(source)) return createLockedRoomId();
+  if (isLocalRoom(source)) return createLocalRoomId();
+  return createRoomId();
+}
 export function roomHash(id: string) {
   if (isLocalRoom(id)) return `local=${id.slice(LOCAL_PREFIX.length)}`;
   if (isLockedRoom(id)) return `locked=${id.slice(LOCKED_PREFIX.length)}`;
@@ -156,14 +162,14 @@ export class RoomSession {
     this.document.doc.on("update", this.emit);
     this.document.doc.on("update", this.onEdit);
   }
-  async start() {
+  async start(restoringCopy = false) {
     await this.lock.whenSynced;
     if (!this.disposed) {
       this.stored = true;
       // A person arriving at a room or at their own saved work is about to use the relay. Someone
       // following a link with no local copy has nothing to send yet, and can use the button.
       const hasCopy = this.lock.hasLocalCopy;
-      if (this.created || hasCopy) {
+      if (this.created || hasCopy || restoringCopy) {
         this.activation?.markFresh();
         this.activation?.start();
       }

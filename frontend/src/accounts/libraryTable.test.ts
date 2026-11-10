@@ -1,9 +1,5 @@
 import { expect, it, vi } from "vitest";
-import {
-  ConditionalCheckFailedException,
-  DynamoDBClient,
-  TransactionCanceledException,
-} from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, TransactionCanceledException } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { dynamoLibrary } from "./libraryTable";
 import type { LibraryEntry } from "../protocol/library";
@@ -87,12 +83,42 @@ it("distinguishes duplicate publication, quota refusal and storage failure", asy
 
 it("updates only the name and refuses a rename after deletion", async () => {
   const { send, table, entry } = setup();
-  send.mockRejectedValueOnce(
-    new ConditionalCheckFailedException({ $metadata: {}, message: "Gone" })
-  );
+  send.mockRejectedValueOnce(canceled(["ConditionalCheckFailed"]));
   expect(await table.renameLibrary("a", entry)).toBe(false);
   expect(send.mock.calls[0][0].input).toMatchObject({
-    ConditionExpression: "#entry.#revision = :revision",
-    UpdateExpression: "SET #entry.#name = :name",
+    TransactItems: [
+      {
+        Update: {
+          ConditionExpression: "#entry.#revision = :revision",
+          UpdateExpression: "SET #entry.#name = :name",
+        },
+      },
+      {
+        ConditionCheck: {
+          Key: { pk: "USER#a", sk: "PROFILE" },
+          ConditionExpression: "attribute_not_exists(#deleting)",
+        },
+      },
+    ],
   });
+});
+
+it("reports account deletion distinctly from full storage and blocks rename", async () => {
+  const { send, table, entry } = setup();
+  send.mockRejectedValueOnce(canceled(["None", "ConditionalCheckFailed"]));
+  send.mockImplementationOnce(async () => ({ Item: { deleting: true } }));
+  expect(await table.createLibrary("a", entry)).toBe("deleting");
+  expect(send.mock.calls[0][0].input).toMatchObject({
+    TransactItems: [
+      {},
+      {
+        Update: {
+          ConditionExpression: expect.stringContaining("attribute_not_exists(#deleting)"),
+        },
+      },
+      {},
+    ],
+  });
+  send.mockRejectedValueOnce(canceled(["None", "ConditionalCheckFailed"]));
+  expect(await table.renameLibrary("a", entry)).toBe(false);
 });

@@ -4,7 +4,7 @@ import { PictureStore, type StoredPicture } from "../collaboration/pictureStore"
 import { RoomLock, type LockedStorage } from "../collaboration/roomLock";
 import { LockedTransport } from "../collaboration/lockedTransport";
 import type { FrameChannel } from "../collaboration/channel";
-import type { Envelope } from "../collaboration/roomKey";
+import { openEnvelope, WrongPassword, type Envelope } from "../collaboration/roomKey";
 import { SavedRoom } from "./savedRoom";
 import { decodeContents } from "./workspaceFile";
 
@@ -153,6 +153,41 @@ it("does not apply a saved copy after the room departs", async () => {
   await target.room.apply(await first.room.contents());
   expect(target.document.list()).toEqual([]);
   await expect(target.room.contents()).rejects.toMatchObject({ name: "AbortError" });
+});
+
+it("updates account saving when only the room password changes", async () => {
+  const first = await workspace(true);
+  await first.key.choose("initial password");
+  first.document.create("note", 0, 0, { name: "Saved before rewrap" });
+  let latest = await first.room.contents();
+  const previous = await workspace(true);
+  const applyingPrevious = previous.room.apply(latest);
+  await previous.key.enter("initial password");
+  await applyingPrevious;
+  let saving = Promise.resolve();
+  const changed = vi.fn(() => {
+    saving = first.room.contents().then((copy) => {
+      latest = copy;
+    });
+  });
+  const stop = first.room.onChange(changed);
+  await first.key.changePassword("replacement password");
+  expect(changed).toHaveBeenCalledOnce();
+  await saving;
+  await expect(openEnvelope("initial password", latest.envelope)).rejects.toBeInstanceOf(
+    WrongPassword
+  );
+  const restored = await workspace(true);
+  const applying = restored.room.apply(latest);
+  await restored.key.enter("replacement password");
+  await applying;
+  expect(restored.document.list()[0]?.name).toBe("Saved before rewrap");
+  const received = vi.fn();
+  const stopReceived = previous.room.onChange(received);
+  await previous.room.apply(latest);
+  expect(received).not.toHaveBeenCalled();
+  stopReceived();
+  stop();
 });
 
 it("refuses a plain saved copy while a password room is waiting for its envelope", async () => {

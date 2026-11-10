@@ -13,6 +13,7 @@ interface SavedRoomKey {
   readonly currentEnvelope: Envelope | null;
   readonly whenOpen: Promise<void>;
   adoptEnvelope(envelope: Envelope): void;
+  onPasswordChange(listener: () => void): () => void;
 }
 
 interface SavedPictures {
@@ -75,7 +76,11 @@ export class SavedRoom implements SaveableRoom {
       if (origin !== this.origin && origin !== this.key) listener();
     };
     this.document.doc.on("update", onUpdate);
-    return () => this.document.doc.off("update", onUpdate);
+    const stop = this.key.onPasswordChange(listener);
+    return () => {
+      this.document.doc.off("update", onUpdate);
+      stop();
+    };
   }
 
   private async waitForKey(key: SavedRoomKey) {

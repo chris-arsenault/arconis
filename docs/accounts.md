@@ -60,6 +60,7 @@ Choose **History** beside an account copy to see its last five successful saves 
 **Recover copy** opens the selected version in a separate room, including its retained pictures
 and objects deleted since that save. The current room and its saved copy stay intact. A recovered
 password room still asks for its room password. Save the recovered room to retain another account copy.
+Device-only copies recover into another device-only room.
 
 ## Keep reusable layouts
 
@@ -83,6 +84,9 @@ Neither operation deletes objects from an open peer's canvas or the other kind o
 **Sign out** ends account access in this browser. **Delete account** asks for confirmation and
 removes the account, its saved workspaces and histories, and reusable layouts.
 Export any portable copies you want before deleting saved data.
+Deletion stops new account writes before removing data. If it fails partway through, the account
+panel offers **Retry account deletion**, including after a reload. A small server-side deletion
+marker prevents still-valid sign-in tokens from recreating the account's saved data.
 
 ## When saving or signing in fails
 

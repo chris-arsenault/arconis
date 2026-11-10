@@ -16,6 +16,11 @@ All notable user-visible changes are recorded here.
 - Unified room frames, local persistence, pictures and account copies under room encryption.
   Rooms without a password prompt use the internal `nopass` default with unchanged guest UI.
   Removed the separate plaintext storage and saved-copy formats without compatibility readers.
+- Fixed first-save autosave, resaving after account-copy deletion, password-only saved updates
+  and restoring shared work while the relay is stopped. History recovery preserves device-only mode.
+- Fixed copied layouts so internal Markdown and object links follow the copied objects.
+- Prevented account deletion from racing new saves and kept interrupted deletion retryable.
+  Reusing an existing revision cannot prune its data.
 
 ### Layers and slides
 

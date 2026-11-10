@@ -16,9 +16,7 @@ const ROOM = "ab".repeat(24);
 function setup() {
   const table = memoryAccountTable();
   const services = {
-    objectInfo: vi.fn<AccountServices["objectInfo"]>(() =>
-      Promise.resolve({ size: 100, checksum: "abc=" })
-    ),
+    objectInfo: vi.fn<AccountServices["objectInfo"]>(async () => ({ size: 100, checksum: "abc=" })),
     signUpload: vi.fn((user: string, id: string) => Promise.resolve(`put:${user}:${id}`)),
     signDownload: vi.fn((user: string, id: string) => Promise.resolve(`get:${user}:${id}`)),
     deleteObject: vi.fn(() => Promise.resolve()),
@@ -229,6 +227,21 @@ describe("workspace records", () => {
 });
 
 describe("workspace publication", () => {
+  it("rejects reuse of current and retained revisions without pruning their data", async () => {
+    const { api, save, table, services } = setup();
+    await save("a", ID);
+    await save("a", ID);
+    const history = await table.workspaceHistory("a", ID);
+    for (const entry of history) {
+      const body = { ...entry, checksum: "abc=", expectedRevision: history[0].revision };
+      const reply = await api.handle("a", "POST", `/api/workspaces/${ID}`, JSON.stringify(body));
+      expect(reply.status).toBe(400);
+    }
+    expect(await table.workspaceHistory("a", ID)).toEqual(history);
+    expect(table.bytes("a")).toBe(200);
+    expect(services.deleteObject).not.toHaveBeenCalled();
+  });
+
   it("allows only one simultaneous publication against the same base revision", async () => {
     const { api, save, table } = setup();
     await save("a", ID);
@@ -278,6 +291,83 @@ describe("deleting an account", () => {
     expect(await table.workspaces("a")).toEqual([]);
     expect(table.total()).toBe(0);
     expect(services.deleteLogin).toHaveBeenCalledWith("a");
+  });
+});
+
+describe("account deletion guards", () => {
+  it("rejects publication already in flight when deletion begins", async () => {
+    const { api, table, services } = setup();
+    let release!: () => void;
+    let uploaded!: () => void;
+    const waiting = new Promise<void>((resolve) => {
+      uploaded = resolve;
+    });
+    services.objectInfo.mockImplementationOnce(async () => {
+      uploaded();
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return { size: 100, checksum: "abc=" };
+    });
+    const publishing = api.handle(
+      "a",
+      "POST",
+      `/api/workspaces/${ID}`,
+      JSON.stringify({
+        size: 100,
+        checksum: "abc=",
+        name: "Concurrent",
+        roomId: ROOM,
+        expectedRevision: "",
+        revision: crypto.randomUUID(),
+      })
+    );
+    await waiting;
+    expect((await api.handle("a", "DELETE", "/api/me", "")).status).toBe(200);
+    release();
+    expect((await publishing).status).toBe(409);
+    expect(await table.workspaces("a")).toEqual([]);
+    expect(table.total()).toBe(0);
+  });
+
+  it("keeps deletion retryable and refuses recreation with a still-valid token", async () => {
+    const { api, save, table, services } = setup();
+    await save("a", ID);
+    services.deleteLogin.mockRejectedValueOnce(new Error("Sign-in service unavailable"));
+    await expect(api.handle("a", "DELETE", "/api/me", "")).rejects.toThrow(
+      "Sign-in service unavailable"
+    );
+    expect(await table.isDeleting("a")).toBe(true);
+    expect(await table.saveProfile("a", { name: "Recreated" })).toBe(false);
+    expect(
+      (await api.handle("a", "PUT", "/api/me", JSON.stringify({ name: "Recreated" }))).status
+    ).toBe(409);
+    expect((await save("a", OTHER)).status).toBe(409);
+    expect((await api.handle("a", "DELETE", "/api/me", "")).status).toBe(200);
+    expect(await table.isDeleting("a")).toBe(true);
+    expect(table.total()).toBe(0);
+  });
+  it("blocks a smaller replacement after deletion starts while allowing cleanup decrements", async () => {
+    const { save, table } = setup();
+    for (let n = 0; n < 5; n++) await save("a", ID);
+    const history = await table.workspaceHistory("a", ID);
+    await table.beginDelete("a");
+    expect(
+      await table.commitWorkspace(
+        "a",
+        {
+          ...history[0],
+          revision: crypto.randomUUID(),
+          size: 1,
+          updated: 2000,
+        },
+        history[0].revision,
+        history.slice(4)
+      )
+    ).toBe("deleting");
+    expect(table.bytes("a")).toBe(500);
+    expect(await table.deleteWorkspace("a", history[0])).toBe(true);
+    expect(table.total()).toBe(0);
   });
 });
 

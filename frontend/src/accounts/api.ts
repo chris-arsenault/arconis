@@ -16,7 +16,9 @@ export const TOTAL_STORAGE_BYTES = 20 * 1024 * 1024 * 1024;
 /** What the API needs from DynamoDB. */
 export interface AccountTable extends LibraryTable, WorkspaceTable {
   profile(user: string): Promise<AccountProfile | null>;
-  saveProfile(user: string, values: Pick<AccountProfile, "name">): Promise<void>;
+  saveProfile(user: string, values: Pick<AccountProfile, "name">): Promise<boolean>;
+  beginDelete(user: string): Promise<void>;
+  isDeleting(user: string): Promise<boolean>;
   deleteProfile(user: string): Promise<void>;
 }
 
@@ -69,6 +71,11 @@ export class AccountsApi {
     body: string
   ): Promise<AccountReply | LibraryReply> {
     const route = path.split("/").slice(1).join("/");
+    if (!(route === "api/me" && method === "DELETE") && (await this.table.isDeleting(user)))
+      return {
+        status: 409,
+        body: { error: "This account is being deleted.", code: "account_deleting" },
+      };
     if (/^api\/library(?:\/|$)/.test(route))
       return this.library.handle(user, method, route, parseBody(body));
     if (route === "api/me") return this.me(user, method, parseBody(body));
@@ -97,11 +104,16 @@ export class AccountsApi {
   ): Promise<AccountReply<"updateProfile">> {
     const name = cleanName(body.name);
     if (!name) return invalid(`A name needs 1 to ${MAX_NAME_LENGTH} characters.`);
-    await this.table.saveProfile(user, { name });
+    if (!(await this.table.saveProfile(user, { name })))
+      return {
+        status: 409,
+        body: { error: "This account is being deleted.", code: "account_deleting" },
+      };
     return { status: 200, body: { name } };
   }
 
   private async deleteAccount(user: string): Promise<AccountReply<"deleteAccount">> {
+    await this.table.beginDelete(user);
     await this.library.deleteAll(user);
     const workspaceProblem = await this.workspaces.deleteAll(user);
     if (workspaceProblem) return conflict(workspaceProblem);

@@ -23,8 +23,9 @@ reusable layouts. Collaboration continues through room links and explicit room p
   UI; explicit password rooms retain their prompts. No encryption rollback is part of removal.
 - **Preserved constraint:** keep the server footprint small. This is not a numeric concurrency
   test target, new runtime cap or benchmark gate.
-- **Verification boundary:** use local fixtures only. Put parameter combinations in unit tests
-  and use browser journeys for distinct product workflows.
+- **Verification boundary:** use local fixtures only. Use unit tests wherever they can validate
+  the behavior. Browser journeys cover several related outcomes using the same setup and exist
+  only for behavior that requires a browser.
 - **Authorization boundary:** local changes and validation only; no live data deletion or
   external writes are part of this task.
 
@@ -79,8 +80,7 @@ The former peer-key proposal, independent device-key split, authenticated team d
 membership leases and browser re-encryption jobs were never implemented. They are dropped
 without replacing them with another access system.
 
-Ahara source already configures SES and verification/reset templates. Deployment and actual
-email delivery remain unverified; that existing backlog item is outside this removal.
+The user has confirmed deployed email delivery. No email-delivery verification work remains.
 
 ## Sulion mapping
 

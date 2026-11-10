@@ -46,16 +46,19 @@ it("keeps incomplete or damaged uploads out of the library", async () => {
   const { call, list, values, revision, id, services } = setup();
   vi.mocked(services.objectInfo).mockResolvedValueOnce(null);
   expect((await call("a", "POST", id, { ...values, revision })).status).toBe(400);
-  vi.mocked(services.objectInfo).mockResolvedValueOnce({ size: 100, checksum: "wrong" });
+  vi.mocked(services.objectInfo).mockResolvedValueOnce({
+    size: 100,
+    checksum: "wrong",
+  });
   expect((await call("a", "POST", id, { ...values, revision })).status).toBe(400);
   expect(await list("a")).toEqual([]);
 });
 
 it("removes a person's saved layouts when deleting their account", async () => {
-  const { call, api, values, revision, id, list, services } = setup();
+  const { call, api, values, revision, id, table, services } = setup();
   await call("a", "POST", id, { ...values, revision });
   expect((await api.handle("a", "DELETE", "/api/me", "")).status).toBe(200);
-  expect(await list("a")).toEqual([]);
+  expect(await table.library("a")).toEqual([]);
   expect(services.deleteObject).toHaveBeenCalledWith("a", `sections/${id}/${revision}`);
 });
 
@@ -76,4 +79,15 @@ it("charges a concurrent layout publication once and releases its bytes once on 
   expect(services.deleteObject).toHaveBeenCalledOnce();
   expect(await table.renameLibrary("a", { ...entry, name: "Late rename" })).toBe(false);
   expect(await list("a")).toEqual([]);
+});
+
+it("blocks layout creation and rename after account deletion starts, while allowing removal", async () => {
+  const { call, values, revision, id, table, list } = setup();
+  await call("a", "POST", id, { ...values, revision });
+  const [entry] = await list("a");
+  await table.beginDelete("a");
+  expect(await table.createLibrary("a", { ...entry, id: crypto.randomUUID() })).toBe("deleting");
+  expect(await table.renameLibrary("a", { ...entry, name: "Late rename" })).toBe(false);
+  expect(await table.deleteLibrary("a", entry)).toBe(true);
+  expect(table.total()).toBe(0);
 });

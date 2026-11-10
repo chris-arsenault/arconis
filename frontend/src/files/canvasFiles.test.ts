@@ -96,6 +96,39 @@ it("inserts independent library sections with pictures and internal references w
 });
 
 it.each([false, true])(
+  "keeps copied layout object links within the inserted copy, same room=%s",
+  async (sameRoom) => {
+    const source = workspace();
+    const target = sameRoom ? source : workspace();
+    source.document.create("note", 0, 0, { id: "Storage_A", name: "Storage" });
+    source.document.create("note", 100, 0, {
+      id: "reader",
+      name: "[Inline](canvas://Storage_A) [Local](local://Storage_A/) [Ref][store]\n\n[store]: CANVAS://Storage_A/\n\n[Outside](canvas://outside) [Web](https://example.com/?url=canvas://Storage_A)",
+      link: "local://Storage_A/",
+    });
+    source.document.create("note", 200, 0, {
+      id: "bare",
+      name: "Bare link",
+      link: "Storage_A",
+    });
+    const created = await target.files.insertSection(
+      await source.files.canvas(["Storage_A", "reader", "bare"]),
+      () => {}
+    );
+    const items = created.map((id) => target.document.get(id)!);
+    const storage = items.find((item) => item.name === "Storage")!;
+    const reader = items.find((item) => item.name.startsWith("[Inline]"))!;
+    expect(storage.id).not.toBe("Storage_A");
+    expect(reader.name).toBe(
+      `[Inline](canvas://${storage.id}) [Local](canvas://${storage.id}) [Ref][store]\n\n[store]: canvas://${storage.id}\n\n[Outside](canvas://outside) [Web](https://example.com/?url=canvas://Storage_A)`
+    );
+    expect(reader.link).toBe(`canvas://${storage.id}`);
+    expect(items.find((item) => item.name === "Bare link")?.link).toBe(storage.id);
+    if (sameRoom) expect(source.document.get("Storage_A")?.name).toBe("Storage");
+  }
+);
+
+it.each([false, true])(
   "imports portable pictures through the destination codec, encrypted=%s, and exports plain hashes",
   async (encrypted) => {
     const source = workspace();

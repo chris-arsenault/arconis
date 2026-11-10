@@ -9,15 +9,13 @@ async function readBody(request: IncomingMessage) {
   return Buffer.concat(chunks);
 }
 
-/** A token shaped like the pool's. The real ALB validates tokens; this stand-in has nothing to check. */
+/** A stand-in OIDC token. The real ALB validates tokens; this local fixture has nothing to check. */
 function token(claims: object) {
   const part = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
   const now = Math.floor(Date.now() / 1000);
   return `${part({ alg: "none" })}.${part({ iat: now, exp: now + 3600, ...claims })}.x`;
 }
 
-/** An email the stand-in treats as never activated, as Auth0's post-login Action refuses it. */
-export const UNACTIVATED_EMAIL = "unactivated@example.com";
 export const FIXTURE_CLIENT_ID = "fixture";
 
 interface Grant {
@@ -39,7 +37,7 @@ function signInPage(query: URLSearchParams) {
 
 /**
  * Test-only: the real accounts API over memory, and a stand-in for the sign-in service the site
- * uses (the user pool, federating Auth0), so the real OIDC library runs unchanged. Passwords are
+ * uses (Auth0 directly), so the real OIDC library runs unchanged. Passwords are
  * the one thing here that only real Auth0 checks.
  */
 export function accountFixture(base: () => string) {
@@ -81,7 +79,6 @@ export function accountFixture(base: () => string) {
     response.end(JSON.stringify(result.body));
   };
   return {
-    objects,
     /** Answers this fixture's requests, and returns false for anyone else's. */
     handle(request: IncomingMessage, response: ServerResponse) {
       const url = request.url ?? "";
@@ -138,17 +135,9 @@ function signInStandIn(base: () => string) {
     const back = new URL(form.get("redirect_uri")!);
     back.searchParams.set("state", form.get("state") ?? "");
     const email = form.get("email") ?? "";
-    if (email === UNACTIVATED_EMAIL) {
-      back.searchParams.set("error", "access_denied");
-      back.searchParams.set(
-        "error_description",
-        "Activate your Arconis account from the email we sent, then sign in again."
-      );
-    } else {
-      const code = randomBytes(16).toString("hex");
-      grants.set(code, { email, challenge: form.get("code_challenge") ?? "" });
-      back.searchParams.set("code", code);
-    }
+    const code = randomBytes(16).toString("hex");
+    grants.set(code, { email, challenge: form.get("code_challenge") ?? "" });
+    back.searchParams.set("code", code);
     redirect(response, back.toString());
   };
   const exchange = async (request: IncomingMessage, response: ServerResponse) => {
@@ -171,7 +160,7 @@ function signInStandIn(base: () => string) {
     if (path === "/oidc/authorize") return void authorize(request, response);
     if (path === "/oidc/token") return void exchange(request, response);
     if (path === "/oidc/jwks") return json(response, 200, { keys: [] });
-    // Signing out returns to the site, as the pool and then Auth0 do.
+    // Signing out returns to the site, as Auth0 does.
     if (path === "/oidc/logout")
       return redirect(response, `${new URL(request.headers.referer ?? base()).origin}/`);
     json(response, 404, {});

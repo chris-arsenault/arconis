@@ -48,6 +48,8 @@ browser journey earns its place only where a unit test cannot reach: several bro
 on one room, real pointer and keyboard semantics, the clipboard, pictures and what the canvas
 draws. A feature's logic, including each command's behavior on a document, is unit-tested
 beside its module, and the browser suite does not repeat it.
+Cover related outcomes in one journey and reuse its setup and browser contexts. A regression
+does not need a separate browser journey when unit coverage or an existing journey can validate it.
 
 ## Browser setup and lifecycle
 

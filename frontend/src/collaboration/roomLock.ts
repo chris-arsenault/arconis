@@ -46,6 +46,7 @@ export class RoomLock {
   private envelope: Envelope | null = null;
   private saving = Promise.resolve();
   private retained = false;
+  private passwordListeners = new Set<() => void>();
   private opened: () => void = () => {};
   /** Resolves once the room's password has opened it. */
   readonly whenOpen = new Promise<void>((resolve) => {
@@ -127,15 +128,25 @@ export class RoomLock {
     this.envelope = await createEnvelope(password, this.key, this.envelope.revision + 1);
     await this.storage.saveEnvelope(this.envelope);
     this.transport.broadcastEnvelope(this.envelope);
+    this.passwordListeners.forEach((listener) => listener());
+    this.changed();
   }
 
-  private async receiveEnvelope(envelope: Envelope) {
+  onPasswordChange(listener: () => void) {
+    this.passwordListeners.add(listener);
+    return () => {
+      this.passwordListeners.delete(listener);
+    };
+  }
+
+  private async receiveEnvelope(envelope: Envelope, notify = true) {
     if (this.envelope && envelope.revision <= this.envelope.revision) return;
     if (this.key) {
       // Only a holder of the key can replace an envelope, or anyone could lock others out.
       if (!(await envelopeMatches(this.key, envelope))) return;
       await this.storage.saveEnvelope(envelope);
       this.envelope = envelope;
+      if (notify) this.passwordListeners.forEach((listener) => listener());
       return;
     }
     this.envelope = envelope;
@@ -165,7 +176,7 @@ export class RoomLock {
   /** Takes an envelope from a saved copy, so the room can open where nobody else is online. */
   adoptEnvelope(envelope: Envelope) {
     this.transport.envelopeKnown();
-    void this.receiveEnvelope(envelope);
+    void this.receiveEnvelope(envelope, false);
   }
 
   private onUpdate = (update: Uint8Array, origin: unknown) => {
@@ -186,6 +197,7 @@ export class RoomLock {
   }
 
   async destroy() {
+    this.passwordListeners.clear();
     this.doc.off("update", this.onUpdate);
     await this.saving;
     this.storage.close();

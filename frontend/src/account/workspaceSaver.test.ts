@@ -15,7 +15,15 @@ function setup() {
     copy: null,
   };
   let revisions = 0;
+  const listeners = new Set<() => void>();
+  const changed = () => listeners.forEach((listener) => listener());
   const account = {
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     workspaces: vi.fn(() => Promise.resolve(server.saved ? [server.saved] : [])),
     save: vi.fn((id: string, name: string, copy: SavedCopy, expected: string) => {
       if (expected !== (server.saved?.revision ?? ""))
@@ -47,7 +55,7 @@ function setup() {
     },
   };
   const saver = new WorkspaceSaver(account, room, () => {});
-  return { doc, server, account, saver, room };
+  return { doc, server, account, saver, room, changed };
 }
 
 describe("saving", () => {
@@ -97,6 +105,67 @@ describe("saving", () => {
     publish("published");
     await saving;
     expect(saver.id).not.toBeNull();
+  });
+});
+
+describe("retained copies", () => {
+  it("autosaves edits made while the first publication is pending", async () => {
+    vi.useFakeTimers();
+    const { account, saver, doc, server } = setup();
+    const publishSave = account.save.getMockImplementation()!;
+    let publish!: () => void;
+    account.save.mockImplementationOnce(
+      (...args) =>
+        new Promise<string>((resolve) => {
+          publish = () => void publishSave(...args).then(resolve);
+        })
+    );
+    const saving = saver.save();
+    await vi.waitFor(() => expect(account.save).toHaveBeenCalledOnce());
+    doc.getMap("m").set("during upload", 1);
+    publish();
+    await saving;
+    await vi.advanceTimersByTimeAsync(AUTOSAVE_MS);
+    expect(account.save).toHaveBeenCalledTimes(2);
+    const restored = new Y.Doc();
+    Y.applyUpdate(restored, server.copy!.sealed);
+    expect(restored.getMap("m").get("during upload")).toBe(1);
+    restored.destroy();
+    saver.close();
+  });
+
+  it("stops autosaving a deleted copy and permits an explicit new save", async () => {
+    vi.useFakeTimers();
+    const { account, saver, doc, server, changed } = setup();
+    await saver.save();
+    const previousId = saver.id;
+    doc.getMap("m").set("retained locally", 1);
+    server.saved = null;
+    server.copy = null;
+    changed();
+    await vi.waitFor(() => expect(saver.id).toBeNull());
+    await vi.advanceTimersByTimeAsync(AUTOSAVE_MS * 2);
+    expect(account.save).toHaveBeenCalledOnce();
+    await saver.save();
+    expect(saver.id).not.toBe(previousId);
+    expect(saver.error).toBe("");
+    expect(server.saved).not.toBeNull();
+    saver.close();
+  });
+
+  it("recognizes deletion on another device before an autosave", async () => {
+    vi.useFakeTimers();
+    const { account, saver, doc, server } = setup();
+    await saver.save();
+    doc.getMap("m").set("retained locally", 1);
+    server.saved = null;
+    await vi.advanceTimersByTimeAsync(AUTOSAVE_MS);
+    expect(saver.id).toBeNull();
+    expect(account.save).toHaveBeenCalledOnce();
+    await saver.save();
+    expect(saver.error).toBe("");
+    expect(server.saved).not.toBeNull();
+    saver.close();
   });
 });
 

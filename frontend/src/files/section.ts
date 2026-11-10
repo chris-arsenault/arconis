@@ -6,6 +6,20 @@ import { listComments } from "../document/comments";
 import { parse } from "../language/parser";
 import { printItems, discussionStatements, quote } from "../language/printer";
 import { writeStatements } from "../language/writer";
+import { canvasObjectId, canvasObjectUrl } from "../text/objectLinks";
+
+function copiedObjectUrl(url: string, ids: Map<string, string>) {
+  const id = canvasObjectId(url);
+  const copied = id && ids.get(id);
+  return copied ? canvasObjectUrl(copied) : url;
+}
+
+/** Object URI references follow copied targets in labels, including Markdown link destinations. */
+function copiedObjectLinks(source: string, ids: Map<string, string>) {
+  return source.replace(/\b[a-z][a-z0-9+.-]*:[^\s<>()"'`[\]\\]+/gi, (url) =>
+    copiedObjectUrl(url, ids)
+  );
+}
 
 /** A library insertion carries items and their own appearance, without changing room metadata. */
 export function sectionForInsertion(source: string, destination: CanvasDocument) {
@@ -19,12 +33,17 @@ export function sectionForInsertion(source: string, destination: CanvasDocument)
       used.add(fresh);
       ids.set(item.id, fresh);
     }
-    const items = copy.list().map((item) => ({
-      ...renameItem(item, ids),
-      style: "",
-      look: authoredLook(item, copy.styles.get(item.style)),
-      layer: destination.activeLayer,
-    }));
+    const items = copy.list().map((item) => {
+      const renamed = renameItem(item, ids);
+      return {
+        ...renamed,
+        name: copiedObjectLinks(item.name, ids),
+        ...(renamed.link ? { link: copiedObjectUrl(renamed.link, ids) } : {}),
+        style: "",
+        look: authoredLook(item, copy.styles.get(item.style)),
+        layer: destination.activeLayer,
+      };
+    });
     const comments = listComments(copy);
     const commentIds = new Map(
       comments.map((comment) => [comment.id, newId((id) => destination.comments.has(id))])

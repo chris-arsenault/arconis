@@ -41,7 +41,7 @@ export interface WorkspaceListReply {
 export type EmptyReply = Record<string, never>;
 export interface AccountError {
   error: string;
-  code?: "workspace_conflict";
+  code?: "workspace_conflict" | "account_deleting";
 }
 
 /** Each endpoint checks its own successful construction, including the two empty replies. */

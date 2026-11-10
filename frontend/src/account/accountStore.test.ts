@@ -230,4 +230,44 @@ describe("the account", () => {
     expect(objects.size).toBe(0);
     expect(services.deleteLogin).toHaveBeenCalledWith("ada");
   });
+
+  it("resumes unfinished deletion after reloading with the same authenticated account", async () => {
+    const { store, make, services, auth, table } = setup();
+    await store.restore();
+    services.deleteLogin = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Sign-in removal unavailable"))
+      .mockResolvedValue(undefined);
+    await expect(store.deleteAccount()).rejects.toThrow("Sign-in removal unavailable");
+    expect(store.status).toBe("deleting");
+    expect(auth.signOut).not.toHaveBeenCalled();
+    expect(await table.isDeleting("ada")).toBe(true);
+
+    const reloaded = make();
+    await reloaded.restore();
+    expect(reloaded.status).toBe("deleting");
+    expect(reloaded.email).toBe(EMAIL);
+    expect(reloaded.error).toBe("This account is being deleted.");
+    await reloaded.deleteAccount();
+    expect(reloaded.status).toBe("out");
+    expect(reloaded.error).toBe("");
+    expect(services.deleteLogin).toHaveBeenCalledTimes(2);
+    expect(auth.signOut).toHaveBeenCalledOnce();
+  });
+
+  it("leaves account controls in deletion state when another browser began deleting", async () => {
+    const { store, table } = setup();
+    await store.restore();
+    const changed = vi.fn();
+    store.subscribe(changed);
+    await table.beginDelete("ada");
+    await expect(store.workspaces()).rejects.toThrow("This account is being deleted.");
+    expect(store.status).toBe("deleting");
+    expect(store.email).toBe(EMAIL);
+    await expect(store.workspaces()).rejects.toThrow("This account is being deleted.");
+    expect(changed).toHaveBeenCalledOnce();
+    await store.signOut();
+    expect(store.status).toBe("out");
+    expect(store.error).toBe("");
+  });
 });

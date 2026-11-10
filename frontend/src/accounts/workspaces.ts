@@ -17,7 +17,7 @@ export interface WorkspaceTable {
     record: WorkspaceRecord,
     expected: string,
     pruned: WorkspaceRecord[]
-  ): Promise<"saved" | "conflict" | "full">;
+  ): Promise<"saved" | "conflict" | "full" | "deleting">;
   deleteWorkspace(user: string, record: WorkspaceRecord): Promise<boolean>;
 }
 export const snapshotObject = (record: Pick<WorkspaceRecord, "id" | "revision">) =>
@@ -141,14 +141,22 @@ export class WorkspacesApi {
     const { expectedRevision } = body as unknown as SaveWorkspaceRequest;
     const current = await this.table.workspace(user, id);
     if ((current?.revision ?? "") !== expectedRevision) return conflict();
+    const history = await this.table.workspaceHistory(user, id);
+    if (history.some((entry) => entry.revision === body.revision))
+      return invalid("This revision has already been published. Upload a new saved copy.");
     const record = await this.uploadedRecord(user, id, body, current);
     if ("status" in record) return record;
-    const pruned = (await this.table.workspaceHistory(user, id)).slice(4);
+    const pruned = history.slice(4);
     const result = await this.table.commitWorkspace(user, record, expectedRevision, pruned);
     if (result === "conflict") return conflict();
+    if (result === "deleting")
+      return {
+        status: 409,
+        body: { error: "This account is being deleted.", code: "account_deleting" },
+      };
     if (result === "full")
       return { status: 409, body: { error: "This account's storage is full." } };
-    for (const old of pruned) await this.services.deleteObject(user, snapshotObject(old));
+    await Promise.all(pruned.map((old) => this.services.deleteObject(user, snapshotObject(old))));
     return { status: 200, body: { revision: record.revision } };
   }
 

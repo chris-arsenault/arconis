@@ -30,4 +30,4 @@ export type LibraryReply =
         | { entry: LibraryEntry }
         | Record<string, never>;
     }
-  | { status: 400 | 404 | 409; body: { error: string } };
+  | { status: 400 | 404 | 409; body: { error: string; code?: "account_deleting" } };

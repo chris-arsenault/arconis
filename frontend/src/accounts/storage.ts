@@ -5,12 +5,17 @@ export function storageUpdate(
   TableName: string,
   user: string | null,
   delta: number,
-  count: number | null
+  count: number | null,
+  saving = false
 ) {
   const limit = user === null ? TOTAL_STORAGE_BYTES : USER_STORAGE_BYTES;
   const names: Record<string, string> = { "#bytes": "bytes" };
   const values: Record<string, number> = { ":delta": delta };
   const clauses: string[] = [];
+  if (saving) {
+    names["#deleting"] = "deleting";
+    clauses.push("attribute_not_exists(#deleting)");
+  }
   if (delta > 0) {
     values[":space"] = limit - delta;
     clauses.push("(attribute_not_exists(#bytes) OR #bytes <= :space)");

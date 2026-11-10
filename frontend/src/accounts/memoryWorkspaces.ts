@@ -3,7 +3,8 @@ import type { WorkspaceTable } from "./workspaces";
 import { MAX_WORKSPACES } from "./api";
 
 export function memoryWorkspaces(
-  adjustBytes: (user: string, delta: number) => boolean
+  adjustBytes: (user: string, delta: number) => boolean,
+  writable: (user: string) => boolean
 ): WorkspaceTable {
   const records = new Map<string, WorkspaceRecord>();
   const revisions = new Map<string, WorkspaceRecord[]>();
@@ -18,6 +19,7 @@ export function memoryWorkspaces(
     workspaceHistory: (user, id) =>
       Promise.resolve(structuredClone(revisions.get(key(user, id)) ?? [])),
     commitWorkspace: (user, record, expected, pruned) => {
+      if (!writable(user)) return Promise.resolve("deleting");
       const id = key(user, record.id);
       if ((records.get(id)?.revision ?? "") !== expected) return Promise.resolve("conflict");
       if (!expected && list(user).length >= MAX_WORKSPACES) return Promise.resolve("full");

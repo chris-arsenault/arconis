@@ -14,19 +14,20 @@ import type {
   WorkspaceUploadReply,
 } from "../protocol/account";
 
-/** out: nobody is signed in. in: signed in, with the account's profile. */
-export type AccountStatus = "loading" | "out" | "in";
+/** deleting: authenticated, with unfinished deletion that can be retried. */
+export type AccountStatus = "loading" | "out" | "in" | "deleting";
 
 export type SavedWorkspace = WorkspaceRecord;
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 export class WorkspaceConflict extends Error {}
+class AccountDeleting extends Error {}
 
 function accountFailure(value: unknown) {
   if (!isRecord(value) || typeof value.error !== "string") return new Error("The request failed.");
-  return value.code === "workspace_conflict"
-    ? new WorkspaceConflict(value.error)
-    : new Error(value.error);
+  if (value.code === "workspace_conflict") return new WorkspaceConflict(value.error);
+  if (value.code === "account_deleting") return new AccountDeleting(value.error);
+  return new Error(value.error);
 }
 
 /** The name an account starts with, from its email, until the person chooses another. */
@@ -84,6 +85,7 @@ export class AccountStore {
   email = "";
   /** Why the last sign-in did not finish, for the account panel. */
   error = "";
+  deletionPending = false;
   private listeners = new Set<() => void>();
   version = 0;
 
@@ -121,6 +123,14 @@ export class AccountStore {
       return;
     }
     this.email = (await this.auth.email()) ?? "";
+    try {
+      await this.restoreProfile();
+    } catch (error) {
+      if (!(error instanceof AccountDeleting)) throw error;
+    }
+  }
+
+  private async restoreProfile() {
     const reply = await this.api("GET", "me");
     const profile = reply === null ? null : profileName(reply);
     this.name = profile?.name ?? startingName(this.email);
@@ -147,7 +157,14 @@ export class AccountStore {
     });
     if (response.status === 404) return null;
     const parsed: unknown = await response.json();
-    if (!response.ok) throw accountFailure(parsed);
+    if (!response.ok) {
+      const error = accountFailure(parsed);
+      if (error instanceof AccountDeleting && this.status !== "deleting") {
+        this.error = error.message;
+        this.set("deleting");
+      }
+      throw error;
+    }
     return parsed;
   }
 
@@ -201,14 +218,27 @@ export class AccountStore {
   async signOut() {
     this.name = "";
     this.email = "";
+    this.error = "";
     this.set("out");
     await this.auth.signOut();
   }
 
   /** Removes the account, its sign-in and everything saved in it. */
   async deleteAccount() {
-    await this.api("DELETE", "me");
-    await this.signOut();
+    this.error = "";
+    this.deletionPending = true;
+    this.set("deleting");
+    try {
+      await this.api("DELETE", "me");
+      await this.signOut();
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : "Could not delete account.";
+      this.changed();
+      throw error;
+    } finally {
+      this.deletionPending = false;
+      this.changed();
+    }
   }
 
   async workspaces(): Promise<SavedWorkspace[]> {

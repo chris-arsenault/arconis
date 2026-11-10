@@ -51,8 +51,6 @@ export function auth0Management(config: ManagementConfig, request: Fetcher = fet
   };
 }
 
-export type Auth0Management = ReturnType<typeof auth0Management>;
-
 export function managementFromEnvironment(env: Record<string, string | undefined>) {
   return auth0Management({
     domain: env.AUTH0_DOMAIN ?? "",

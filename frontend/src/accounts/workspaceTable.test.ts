@@ -49,3 +49,40 @@ it("distinguishes stale publication, quota refusal and storage outages", async (
   send.mockRejectedValueOnce(new Error("Unavailable"));
   await expect(table.commitWorkspace("a", record, "base", [])).rejects.toThrow("Unavailable");
 });
+
+it("guards a shrinking publication against account deletion", async () => {
+  const { send, table, record } = setup();
+  const old = { ...record, revision: "older", size: 200, updated: 999 };
+  send.mockRejectedValueOnce(
+    new TransactionCanceledException({
+      $metadata: {},
+      message: "Deleting",
+      CancellationReasons: [
+        { Code: "None" },
+        { Code: "None" },
+        { Code: "None" },
+        { Code: "ConditionalCheckFailed" },
+      ],
+    })
+  );
+  send.mockImplementationOnce(async () => ({ Item: { deleting: true } }));
+  expect(await table.commitWorkspace("a", record, "base", [old])).toBe("deleting");
+  expect(send.mock.calls[0][0].input).toMatchObject({
+    TransactItems: [
+      {},
+      {},
+      {},
+      {
+        Update: {
+          ConditionExpression: "attribute_not_exists(#deleting)",
+          ExpressionAttributeValues: { ":delta": -100 },
+        },
+      },
+      { Update: { ExpressionAttributeValues: { ":delta": -100 } } },
+    ],
+  });
+  expect(send.mock.calls[1][0].input).toMatchObject({
+    Key: { pk: "USER#a", sk: "PROFILE" },
+    ConsistentRead: true,
+  });
+});

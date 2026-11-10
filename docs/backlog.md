@@ -11,12 +11,6 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Reserve a dedicated help zone in the left rail that shows one sentence about the hovered
   control or feature, following Ableton Live's contextual-help approach.
 
-## Accounts
-
-- Verify deployed Ahara sign-in email delivery through SES from an Ahara address. The provider
-  and verification/reset templates already exist in Ahara-infra source; deployment and delivery
-  have not been verified.
-
 ## Agents
 
 - Let a person ask an assistant from the canvas, with one key on a selected topic sending

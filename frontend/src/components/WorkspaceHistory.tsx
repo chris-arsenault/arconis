@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AccountStore, SavedWorkspace } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
-import { createLockedRoomId, createRoomId, isLockedRoom } from "../collaboration/room";
+import { createRecoveryRoomId, isLockedRoom } from "../collaboration/room";
 import { recoverPublicWorkspace } from "../account/recoverWorkspace";
 import { downloadPicture } from "../collaboration/pictureStore";
 
@@ -29,7 +29,7 @@ export function WorkspaceHistory({
   const recover = async (revision: string) => {
     try {
       const { copy } = await account.loadRevision(id, revision);
-      const roomId = isLockedRoom(copy.roomId) ? createLockedRoomId() : createRoomId();
+      const roomId = createRecoveryRoomId(copy.roomId);
       const restored = isLockedRoom(copy.roomId)
         ? { ...copy, roomId }
         : await recoverPublicWorkspace(copy, roomId, downloadPicture);

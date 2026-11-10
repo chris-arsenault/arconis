@@ -414,8 +414,15 @@ upload, then conditionally publishes metadata through `accounts/workspaceTable.t
 updates the latest pointer, history and existing account/service quotas together. Five successful
 revisions remain; failed uploads never publish or prune the last usable copy. WorkspaceSaver merges
 newer copies before saving and retries a concurrent publication conflict after merging again.
+Password-only changes also schedule a save of the current key envelope. Deleting the active
+account copy returns the room to an unsaved state, so a later explicit save creates a new copy.
 History recovery creates a separate room. For an automatic `nopass` room it reseals the document
-and pictures under the new identity's key, so fresh peers can join that recovered room.
+and pictures under the new identity's key, preserving device-only mode when applicable. Opening
+a saved shared room starts the relay through the same activation path as local restoration.
+
+Account deletion marks the existing profile before enumeration; publication and
+rename transactions reject that marker. Cleanup is retryable, and the marker remains after
+profile removal to reject writes from still-valid tokens.
 
 `components/WorkBrowser.tsx` serves both home and account-panel discovery, grouping room identities
 while keeping local/account actions separate. Saved copies and reusable layouts are private

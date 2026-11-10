@@ -11,7 +11,7 @@ export const feedbackMetadata = z.object({
   page: text(500),
   reporter: z.object({
     name: text(200),
-    accountStatus: z.enum(["loading", "out", "in", "unavailable"]),
+    accountStatus: z.enum(["loading", "out", "in", "deleting", "unavailable"]),
     accountEmail: text(320).nullable(),
   }),
   browser: z.object({

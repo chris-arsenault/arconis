@@ -43,7 +43,7 @@ function useRoomSession(room: string | null, createdRoom: RefObject<string>) {
       next = instance;
       const saved = takeSavedCopy(room);
       if (saved) instance.lock.adoptEnvelope(saved.envelope);
-      await instance.start();
+      await instance.start(Boolean(saved));
       if (!active) return;
       const openedAt = Date.now();
       let previousTitle = "";
@@ -119,6 +119,7 @@ export function App() {
   };
   const openSaved = (copy: SavedCopy) => {
     if (session?.id === copy.roomId) {
+      if (session.canStartCollaboration) session.startCollaboration();
       void session.saveable.apply(copy);
       return;
     }

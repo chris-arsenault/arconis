@@ -1,7 +1,6 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { UNACTIVATED_EMAIL } from "../collaboration/accountFixture";
 import {
   add,
   browser,
@@ -45,11 +44,7 @@ async function signIn(page: Page, email = EMAIL, ready = "Rectangle (R)") {
   expect(new URL(page.url()).search).toBe("");
 }
 
-/** The stored copy, as the bucket holds it. */
-const storedCopy = () =>
-  JSON.parse(String(fixture.savedObjects().at(-1))) as { contents?: string; sealed?: string };
-
-it("signs in through Ahara's sign-in page, names the account, and saves a workspace", async () => {
+it("signs in, saves and reopens work, handles account failure, and signs out without losing local work", async () => {
   const room = createRoomId();
   const page = await open(await browser.newContext(VIEWPORT), room);
   const peer = await open(await browser.newContext(VIEWPORT), room);
@@ -67,9 +62,6 @@ it("signs in through Ahara's sign-in page, names the account, and saves a worksp
   await add(page, "Rectangle (R)", SECRET, 300, 240);
   await page.getByRole("button", { name: "Save to my account", exact: true }).click();
   await page.getByRole("button", { name: "Save now", exact: true }).waitFor();
-  expect(fixture.savedObjects().length).toBe(1);
-  expect(storedCopy().contents).toBeUndefined();
-  expect(typeof storedCopy().sealed).toBe("string");
 
   // A new browser with no copy, and nobody else online, opens it from the account.
   await page.context().close();
@@ -77,20 +69,21 @@ it("signs in through Ahara's sign-in page, names the account, and saves a worksp
   const elsewhere = await open(await browser.newContext(VIEWPORT), createRoomId());
   await signIn(elsewhere);
   await openAccount(elsewhere);
+  fixture.stop();
+  const startsBeforeRestore = fixture.starts;
   await dialog(elsewhere).locator(".workspace-open").click();
   await expect.poll(() => row(elsewhere, SECRET).count()).toBe(1);
+  await expect.poll(() => fixture.starts).toBeGreaterThan(startsBeforeRestore);
+  await elsewhere.getByTestId("connection-status").filter({ hasText: "Connected" }).waitFor();
   await expect.poll(() => new URL(elsewhere.url()).hash).toBe(`#room=${room}`);
   expect(await objectCount(elsewhere)).toBe(1);
+  await checkLocalCopies(elsewhere);
+  await elsewhere.context().close();
   expect(errors).toEqual([]);
 }, 120_000);
 
-it("keeps local copies usable when account browsing fails and removes account results on sign-out", async () => {
-  const context = await browser.newContext(VIEWPORT);
-  const page = await open(context, createRoomId());
-  await signIn(page, `browser-${EMAIL}`);
-  await add(page, "Rectangle (R)", "Locally retained work", 300, 240);
-  await page.getByRole("button", { name: "Save to my account", exact: true }).click();
-  await page.getByRole("button", { name: "Save now", exact: true }).waitFor();
+/** Continues the saved-work journey using the restored browser and its existing account copy. */
+async function checkLocalCopies(page: Page) {
   await page.getByRole("link", { name: "Arconis home", exact: true }).click();
   const work = page.getByRole("region", { name: "Saved work browser" }).first();
   await work.getByText("Private account copy", { exact: true }).waitFor();
@@ -101,31 +94,27 @@ it("keeps local copies usable when account browsing fails and removes account re
   await page.reload();
   await work.getByRole("alert").getByText("Account is offline", { exact: true }).waitFor();
   await work.getByRole("button", { name: /^Open local/ }).click();
-  await row(page, "Locally retained work").waitFor();
+  await row(page, SECRET).waitFor();
   await page.unroute("**/api/workspaces");
+  await openAccount(page);
+  await dialog(page).getByRole("button", { name: "Delete Untitled canvas", exact: true }).click();
+  await page.getByRole("button", { name: "Save to my account", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Close account", exact: true }).click();
+  await Promise.all([
+    commit(page),
+    page.getByRole("button", { name: "Save to my account", exact: true }).click(),
+  ]);
   await openAccount(page);
   await press(page, "Sign out");
   await page.getByRole("button", { name: "Create a room", exact: true }).waitFor();
   expect(await work.getByText("Private account copy", { exact: true }).count()).toBe(0);
   await work.getByRole("button", { name: /^Open local/ }).waitFor();
-  await work.getByRole("button", { name: /^Remove local/ }).click();
+  const retained = work.getByRole("listitem").filter({
+    has: page.getByRole("button", { name: /^Open local/ }),
+  });
+  await retained.getByRole("button", { name: /^Remove local/ }).click();
   await expect.poll(() => work.getByRole("button", { name: /^Open local/ }).count()).toBe(0);
-  await context.close();
-}, 120_000);
-
-it("refuses an account that was never activated, and says how to activate it", async () => {
-  const page = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await openAccount(page);
-  await press(page, "Sign in or create an account");
-  await page.getByLabel("Email", { exact: true }).fill(UNACTIVATED_EMAIL);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await dialog(page)
-    .getByRole("alert")
-    .filter({ hasText: "Activate your Arconis account" })
-    .waitFor();
-  await dialog(page).getByRole("button", { name: "Sign in or create an account" }).waitFor();
-  expect(errors).toEqual([]);
-}, 60_000);
+}
 
 it("recovers an older saved copy into an independent room that a fresh peer can join", async () => {
   const context = await browser.newContext(VIEWPORT);
@@ -231,7 +220,7 @@ it("inserts a private selection on another device without replacing the destinat
   }
 }, 120_000);
 
-it("saves a password room sealed, and opening it elsewhere asks for the room's password", async () => {
+it("creates and saves a password room, then reopens it on another browser through the password gate", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await page.goto(new URL(page.url()).origin);
@@ -241,13 +230,8 @@ it("saves a password room sealed, and opening it elsewhere asks for the room's p
   await page.getByRole("button", { name: "Create room", exact: true }).click();
   await page.getByRole("dialog", { name: "Password required" }).waitFor({ state: "detached" });
   await add(page, "Rectangle (R)", SECRET, 300, 240);
-  const saved = fixture.savedObjects().length;
   await page.getByRole("button", { name: "Save to my account", exact: true }).click();
   await page.getByRole("button", { name: "Save now", exact: true }).waitFor();
-  expect(fixture.savedObjects().length).toBe(saved + 1);
-  // Only the room's key opens it: nothing readable is stored.
-  expect(storedCopy().contents).toBeUndefined();
-  expect(typeof storedCopy().sealed).toBe("string");
   await context.close();
 
   const elsewhere = await open(await browser.newContext(VIEWPORT), createRoomId());

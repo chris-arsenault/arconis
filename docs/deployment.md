@@ -30,7 +30,7 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
   and issues checksum-bound screenshot PUTs through `/control/feedback/upload`; it never provides
   read or listing URLs. Feedback remains available while the relay is stopped.
 
-State uses the shared bucket at `projects/arconis.tfstate`. Arconis registers no login client.
+State uses the shared bucket at `projects/arconis.tfstate`.
 
 Run infrastructure deployment through the shared CI/CD workflow. Local validation builds and
 test fixtures exercise application behavior without deploying or calling real AWS services.

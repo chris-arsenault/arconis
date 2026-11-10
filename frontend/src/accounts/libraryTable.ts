@@ -2,15 +2,11 @@ import {
   GetCommand,
   QueryCommand,
   TransactWriteCommand,
-  UpdateCommand,
   type DynamoDBDocumentClient,
 } from "@aws-sdk/lib-dynamodb";
 import { libraryEntrySchema, type LibraryEntry } from "../protocol/library";
 import type { LibraryTable } from "./library";
-import {
-  ConditionalCheckFailedException,
-  TransactionCanceledException,
-} from "@aws-sdk/client-dynamodb";
+import { TransactionCanceledException } from "@aws-sdk/client-dynamodb";
 import { storageUpdate } from "./storage";
 
 const sameRevision = (entry: LibraryEntry) => ({
@@ -37,7 +33,7 @@ async function create(
               ConditionExpression: "attribute_not_exists(pk)",
             },
           },
-          storageUpdate(TableName, user, entry.size, null),
+          storageUpdate(TableName, user, entry.size, null, true),
           storageUpdate(TableName, null, entry.size, null),
         ],
       })
@@ -49,8 +45,63 @@ async function create(
       return "conflict" as const;
     if (
       error.CancellationReasons?.slice(1).some((reason) => reason.Code === "ConditionalCheckFailed")
+    ) {
+      const { Item } = await client.send(
+        new GetCommand({
+          TableName,
+          Key: { pk: `USER#${user}`, sk: "PROFILE" },
+          ConsistentRead: true,
+        })
+      );
+      return Item?.deleting ? ("deleting" as const) : ("full" as const);
+    }
+    throw error;
+  }
+}
+
+async function rename(
+  client: DynamoDBDocumentClient,
+  TableName: string,
+  Key: { pk: string; sk: string },
+  user: string,
+  entry: LibraryEntry
+) {
+  const condition = sameRevision(entry);
+  try {
+    await client.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Update: {
+              TableName,
+              Key,
+              ...condition,
+              UpdateExpression: "SET #entry.#name = :name",
+              ExpressionAttributeNames: { ...condition.ExpressionAttributeNames, "#name": "name" },
+              ExpressionAttributeValues: {
+                ...condition.ExpressionAttributeValues,
+                ":name": entry.name,
+              },
+            },
+          },
+          {
+            ConditionCheck: {
+              TableName,
+              Key: { pk: `USER#${user}`, sk: "PROFILE" },
+              ConditionExpression: "attribute_not_exists(#deleting)",
+              ExpressionAttributeNames: { "#deleting": "deleting" },
+            },
+          },
+        ],
+      })
+    );
+    return true;
+  } catch (error) {
+    if (
+      error instanceof TransactionCanceledException &&
+      error.CancellationReasons?.some((reason) => reason.Code === "ConditionalCheckFailed")
     )
-      return "full" as const;
+      return false;
     throw error;
   }
 }
@@ -83,28 +134,7 @@ export function dynamoLibrary(client: DynamoDBDocumentClient, TableName: string)
       );
       return Item ? libraryEntrySchema.parse(Item.entry) : null;
     },
-    renameLibrary: async (user, entry) => {
-      const condition = sameRevision(entry);
-      try {
-        await client.send(
-          new UpdateCommand({
-            TableName,
-            Key: Key(user, entry.id),
-            ...condition,
-            UpdateExpression: "SET #entry.#name = :name",
-            ExpressionAttributeNames: { ...condition.ExpressionAttributeNames, "#name": "name" },
-            ExpressionAttributeValues: {
-              ...condition.ExpressionAttributeValues,
-              ":name": entry.name,
-            },
-          })
-        );
-        return true;
-      } catch (error) {
-        if (error instanceof ConditionalCheckFailedException) return false;
-        throw error;
-      }
-    },
+    renameLibrary: (user, entry) => rename(client, TableName, Key(user, entry.id), user, entry),
     deleteLibrary: async (user, entry) => {
       try {
         await client.send(

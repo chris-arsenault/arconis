@@ -6,7 +6,10 @@ export interface LibraryTable {
   library(user: string): Promise<LibraryEntry[]>;
   libraryEntry(user: string, id: string): Promise<LibraryEntry | null>;
   renameLibrary(user: string, entry: LibraryEntry): Promise<boolean>;
-  createLibrary(user: string, entry: LibraryEntry): Promise<"saved" | "conflict" | "full">;
+  createLibrary(
+    user: string,
+    entry: LibraryEntry
+  ): Promise<"saved" | "conflict" | "full" | "deleting">;
   deleteLibrary(user: string, entry: LibraryEntry): Promise<boolean>;
 }
 const object = (entry: Pick<LibraryEntry, "id" | "revision">) =>
@@ -78,6 +81,11 @@ export class LibraryApi {
       };
     const result = await this.table.createLibrary(user, entry);
     if (result === "full") return full;
+    if (result === "deleting")
+      return {
+        status: 409,
+        body: { error: "This account is being deleted.", code: "account_deleting" },
+      };
     if (result === "conflict")
       return { status: 409, body: { error: "This layout was saved by another request." } };
     return { status: 200, body: { entry } };
