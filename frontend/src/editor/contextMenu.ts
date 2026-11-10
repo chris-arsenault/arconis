@@ -5,6 +5,7 @@ import { worldBounds } from "../document/relations";
 import type { CommandContext } from "./registry";
 import { closeMenu, findCommand, isAvailable, openMenu, openSubRing, runCommand } from "./registry";
 import type { EditorController } from "./controller";
+import { DRAWING_SHAPES } from "./drawingTools";
 
 /**
  * What the right button offers: a ring of eight commands laid out like a compass, and a menu of
@@ -164,6 +165,50 @@ const RINGS: Record<MenuContext, string[]> = {
 
 /** The sub-rings a ring opens: the fills, and the shapes an object can become. */
 export const SUB_RINGS: Record<string, string[]> = {
+  "ring.draw": [
+    "draw.freehand",
+    "ring.highlight",
+    "ring.vector",
+    "draw.lasso",
+    "ring.erasers",
+    "draw.fill",
+    "draw.eyedropper",
+    "tool.select",
+  ],
+  "ring.highlight": ["draw.marker", "ring.highlightShapes", "draw.outline", "ring.draw"],
+  "ring.vector": [
+    "draw.shape.line",
+    "draw.shape.arrow",
+    "draw.shape.double-arrow",
+    "draw.shape.rectangle",
+    "draw.shape.ellipse",
+    "draw.shape.polygon",
+    "ring.drawingMarks",
+    "ring.draw",
+  ],
+  "ring.highlightShapes": [
+    "draw.highlight.line",
+    "draw.highlight.arrow",
+    "draw.highlight.double-arrow",
+    "draw.highlight.rectangle",
+    "draw.highlight.ellipse",
+    "draw.highlight.polygon",
+    "ring.highlightMarks",
+    "ring.draw",
+  ],
+  "ring.drawingMarks": [
+    "draw.shape.bracket",
+    "draw.shape.brace",
+    "draw.shape.cloud",
+    "ring.vector",
+  ],
+  "ring.highlightMarks": [
+    "draw.highlight.bracket",
+    "draw.highlight.brace",
+    "draw.highlight.cloud",
+    "ring.highlightShapes",
+  ],
+  "ring.erasers": ["draw.precision", "draw.eraser", "ring.draw"],
   "ring.add": [
     "tool.note",
     "tool.text",
@@ -195,6 +240,14 @@ export const SUB_RINGS: Record<string, string[]> = {
   ],
 };
 const SUB_RING_LABELS: Record<string, string> = {
+  "ring.add": "Add",
+  "ring.draw": "Drawing tools",
+  "ring.highlight": "Highlight",
+  "ring.vector": "Vector",
+  "ring.erasers": "Erase",
+  "ring.highlightShapes": "Shaped highlight",
+  "ring.drawingMarks": "More shapes",
+  "ring.highlightMarks": "More highlights",
   "ring.colour": "Colour",
   "ring.shape": "Shape",
 };
@@ -204,19 +257,25 @@ const SUB_RING_LABELS: Record<string, string> = {
  * in the ring changes until a mode is chosen: Select, Draw and Connect switch the tool, and Add
  * shows the shapes to place in the ring.
  */
-export const RING_MODES = ["Select", "Add", "Draw", "Connect"] as const;
+export const RING_MODES = ["Select", "Add", "Draw", "Markup", "Connect"] as const;
 export type RingMode = (typeof RING_MODES)[number];
 /** The Mode wedge's place in the canvas ring, where its arc opens. */
 export const MODE_WEDGE = 5;
 
 /** The mode the current tool belongs to, for marking it in the arc. */
 export function currentMode(tool: string): RingMode | null {
-  if (tool === "select" || tool === "draw" || tool === "connect")
+  if (["select", "draw", "markup", "connect"].includes(tool))
     return RING_MODES.find((mode) => mode.toLowerCase() === tool) ?? null;
   return null;
 }
 
 export function chooseRingMode(editor: EditorController, mode: RingMode) {
+  if (mode === "Draw" || mode === "Markup") {
+    editor.setTool(mode === "Draw" ? "draw" : "markup");
+    if (editor.ui.menu) editor.ui.menu.modes = false;
+    openSubRing(editor, "ring.draw");
+    return;
+  }
   if (mode === "Add") {
     if (editor.ui.menu) editor.ui.menu.modes = false;
     openSubRing(editor, "ring.add");
@@ -245,13 +304,15 @@ function entryFor(id: string, context: CommandContext): MenuEntry | null {
   if (id === MORE) return { id, label: "More…", more: true };
   if (id === MODES) return { id, label: "Switch mode", short: "Mode", modes: true };
   if (id in SUB_RINGS) {
-    const inner = SUB_RINGS[id].filter((sub) => isAvailable(findCommand(sub), context));
+    const inner = SUB_RINGS[id].filter(
+      (sub) => sub in SUB_RINGS || isAvailable(findCommand(sub), context)
+    );
     return inner.length ? { id, label: SUB_RING_LABELS[id], opens: inner } : null;
   }
   const command = findCommand(id);
   if (!isAvailable(command, context)) return null;
   const label = typeof command.label === "string" ? command.label : command.label(context);
-  return { id, label };
+  return { id, label, short: RING_LABELS[id] };
 }
 
 function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {
@@ -285,6 +346,15 @@ export function ringEntries(context: CommandContext, subRing: string | null): (M
 
 /** Wedges are narrow: these commands show a one-word name there, keeping their full label. */
 const RING_LABELS: Record<string, string> = {
+  ...Object.fromEntries(
+    DRAWING_SHAPES.flatMap(({ id, label }) => [
+      [`draw.shape.${id}`, label],
+      [`draw.highlight.${id}`, label],
+    ])
+  ),
+  "draw.precision": "Segment",
+  "draw.eraser": "Whole stroke",
+  "draw.outline": "Outline",
   "structure.branch": "Branch",
   "structure.relate": "Relate",
   "comments.open": "Comment",

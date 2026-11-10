@@ -60,6 +60,8 @@ function TextSizeButtons({
 function hidden(editor: EditorController, selected: Item[]) {
   return (
     !selected.length ||
+    editor.drawing.active ||
+    selected.every((item) => item.type === "drawing") ||
     editor.ui.dragging ||
     editor.ui.menu !== null ||
     editor.ui.tagging ||

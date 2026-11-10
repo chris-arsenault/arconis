@@ -52,7 +52,8 @@ const TOOLS: Command[] = [
   tool("select", "Select", "v"),
   tool("pan", "Pan", "h", ["hand", "move view"]),
   tool("connect", "Connector: click two objects", "c", ["line", "arrow", "link"]),
-  tool("draw", "Draw", "p", ["pen", "marker", "ink"]),
+  tool("draw", "Draw", "p", ["pen", "ink", "content layer"]),
+  tool("markup", "Markup", "m", ["annotate", "annotation", "highlighter"]),
 ];
 
 const CREATE: Command[] = [

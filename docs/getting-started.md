@@ -34,11 +34,12 @@ The [canvas guide](editing.md) covers selection, containers, connectors and keyb
 
 ## Mark it up
 
-Press **P**, choose **Highlighter**, and drag over the diagram. The marks belong to shared
-markup above the workspace. Choose **Highlight object** and click an object to attach an outline.
+Press **M**, choose **Highlight → Marker**, and drag over the diagram. The marks belong to shared
+markup above the workspace. Choose **Object outline** and click an object to attach an outline.
 
-Use **Lasso** to select marks. **Make Drawing** promotes them into an editable workspace Drawing.
-The [drawing guide](drawing.md) covers shapes, erasing, fills, gradients and promotion.
+Use **Select ink** to select marks and **Move to content layer** to keep them as workspace artwork.
+**Draw (P)** paints directly into the selected layer using the same controls. The
+[drawing guide](drawing.md) covers shapes, erasing, fills, gradients and transfers.
 
 ## Keep a copy
 
@@ -55,7 +56,7 @@ exports. [Files and pictures](files.md) explains import, export and storage choi
 | Task                                                | Guide                                        |
 | --------------------------------------------------- | -------------------------------------------- |
 | Arrange objects, connect them or build a topic tree | [Using the canvas](editing.md)               |
-| Annotate, draw shapes or create a Drawing           | [Drawing and markup](drawing.md)             |
+| Annotate or draw editable shapes in layers          | [Drawing and markup](drawing.md)             |
 | Write Markdown, code or equations                   | [Text and formatting](text.md)               |
 | Turn a canvas into a presentation                   | [Slides and presentations](slides.md)        |
 | Invite people, work offline or use a password       | [Rooms and collaboration](collaboration.md)  |

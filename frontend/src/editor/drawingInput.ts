@@ -3,7 +3,7 @@ import { isClosedInk, shapePoints } from "../document/ink";
 import { pointInBox, simplifyPath } from "../document/geometry";
 import { effectiveAppearance } from "../document/appearance";
 import { isBox, type InkKind, type PathPoint } from "../document/types";
-import { addInk, eraseWholeInk, eraseInk, type InkSettings } from "./inkCommands";
+import { eraseWholeInk, eraseInk, type InkSettings } from "./inkCommands";
 import { creationOffset, roundForScale } from "./zoom";
 
 /** Pointer previews are local; completed gestures call application commands. */
@@ -23,6 +23,12 @@ class DrawingGesture {
 
   bind() {
     const { signal, editor } = this;
+    let version = editor.drawing.gestureVersion;
+    const unsubscribe = editor.subscribe(() => {
+      if (version !== editor.drawing.gestureVersion || !editor.drawing.active) this.cancel();
+      version = editor.drawing.gestureVersion;
+    });
+    signal.addEventListener("abort", unsubscribe, { once: true });
     editor.element.addEventListener("pointerdown", this.down, { signal, capture: true });
     editor.element.addEventListener("pointermove", this.move, { signal });
     window.addEventListener("pointerup", this.up, { signal });
@@ -60,23 +66,16 @@ class DrawingGesture {
     );
     line.setAttribute("stroke", settings.color);
     line.setAttribute("stroke-width", String(settings.width * creationOffset(scale) * scale));
-    line.setAttribute("opacity", settings.mode === "highlighter" ? "0.3" : "1");
+    line.setAttribute("opacity", String(settings.opacity / 100));
     previewArrows(this.preview, line, shape, settings.color);
   };
   private savePolygon() {
-    if (this.polygon.length >= 3)
-      addInk(
-        this.editor.document,
-        [...this.polygon, this.polygon[0]],
-        this.editor.drawing.settings,
-        this.editor.drawing.activeSketch,
-        this.editor.graph.view.scale
-      );
+    if (this.polygon.length >= 3) this.editor.drawing.create([...this.polygon, this.polygon[0]]);
     this.cancel();
   }
   private down = (event: PointerEvent) => {
     const { editor } = this;
-    if (editor.tool !== "draw" || event.button !== 0 || editor.presenter.active) return;
+    if (!editor.drawing.active || event.button !== 0 || editor.presenter.active) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     editor.element.focus();
@@ -138,13 +137,7 @@ class DrawingGesture {
     else if (mode === "precision")
       eraseInk(editor.document, editor.drawing.candidates(), this.points, editor.drawing.radius(2));
     else if (this.points.length > 1)
-      addInk(
-        editor.document,
-        gesturePath(this.points, shape, editor.graph.view.scale),
-        editor.drawing.settings,
-        editor.drawing.activeSketch,
-        editor.graph.view.scale
-      );
+      editor.drawing.create(gesturePath(this.points, shape, editor.graph.view.scale));
     this.cancel();
   };
   private key = (event: KeyboardEvent) => {

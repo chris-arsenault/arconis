@@ -10,7 +10,7 @@ const panel = (page: Page, name: string) =>
     .getByRole("button", { name, exact: true });
 
 async function drawStroke(page: Page) {
-  await panel(page, "Draw (P)").click();
+  await panel(page, "Markup (M)").click();
   const canvas = (await page.getByTestId("canvas").boundingBox())!;
   await page.mouse.move(canvas.x + 170, canvas.y + 350);
   await page.mouse.down();
@@ -65,26 +65,28 @@ it("saves and recalls a visible brush preset without a hidden modifier gesture",
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await panel(page, "Draw (P)").click();
-  await page.getByLabel("Drawing geometry", { exact: true }).selectOption("arrow");
-  await page.getByLabel("Ink color", { exact: true }).fill("#1971c2");
-  await page.getByLabel("Brush width", { exact: true }).fill("10");
+  await page.getByRole("button", { name: "Vector", exact: true }).click();
+  await page.getByRole("button", { name: "Arrow", exact: true }).click();
+  await page.getByLabel("Stroke color", { exact: true }).fill("#1971c2");
+  await page.getByLabel("Stroke width", { exact: true }).fill("10");
+  await page.getByLabel("Stroke width", { exact: true }).press("Enter");
   await page.getByText("Saved brushes", { exact: true }).click();
   await page.getByRole("button", { name: "Replace saved brush 1", exact: true }).click();
   await page.getByRole("button", { name: "Use saved brush 3", exact: true }).click();
   expect(
-    await page
-      .getByRole("button", { name: "Highlighter", exact: true })
-      .getAttribute("aria-pressed")
+    await page.getByRole("button", { name: "Marker", exact: true }).getAttribute("aria-pressed")
   ).toBe("true");
   await page.getByRole("button", { name: "Use saved brush 1", exact: true }).click();
-  expect(await page.getByLabel("Ink color", { exact: true }).inputValue()).toBe("#1971c2");
-  expect(await page.getByLabel("Brush width", { exact: true }).inputValue()).toBe("10");
-  expect(await page.getByLabel("Drawing geometry", { exact: true }).inputValue()).toBe("arrow");
+  expect(await page.getByLabel("Stroke color", { exact: true }).inputValue()).toBe("#1971c2");
+  expect(await page.getByLabel("Stroke width", { exact: true }).inputValue()).toBe("10");
+  expect(
+    await page.getByRole("button", { name: "Arrow", exact: true }).getAttribute("aria-pressed")
+  ).toBe("true");
   await page.reload();
   await panel(page, "Draw (P)").click();
   await page.getByText("Saved brushes", { exact: true }).click();
   await page.getByRole("button", { name: "Use saved brush 1", exact: true }).click();
-  expect(await page.getByLabel("Brush width", { exact: true }).inputValue()).toBe("10");
+  expect(await page.getByLabel("Stroke width", { exact: true }).inputValue()).toBe("10");
   await page.screenshot({ path: "test-results/rail-brushes.png" });
   expect(errors).toEqual([]);
   await context.close();
@@ -100,8 +102,7 @@ it("distinguishes local annotation visibility from shared recoloring, deletion a
   await drawStroke(a);
   await expect.poll(async () => (await exported(b)).objects.length).toBe(2);
   await selectDrawing(a);
-  await a.getByLabel("Ink color", { exact: true }).fill("#1971c2");
-  await a.getByRole("button", { name: "Apply ink color to strokes", exact: true }).click();
+  await a.getByLabel("Stroke color", { exact: true }).fill("#1971c2");
   await expect
     .poll(
       async () => (await exported(b)).objects.find((item) => item.type === "drawing")?.look.line

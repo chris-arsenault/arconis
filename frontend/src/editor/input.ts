@@ -11,6 +11,8 @@ import { changeFields } from "./commands";
 import { canConnect } from "../document/capabilities";
 import { relateTo } from "./topics";
 import { bindMarkdownLinks } from "./links";
+import { bindInteractionCursors } from "./interactionCursors";
+import { TemporaryPan } from "./temporaryPan";
 
 function isTyping(target: EventTarget | null) {
   return (
@@ -49,11 +51,11 @@ function takesKey(editor: EditorController, event: KeyboardEvent) {
  * Keys run commands from the registry, so a key means the same everywhere it applies. Space is a
  * hold rather than a command, and the palette takes its own keys while it is open.
  */
-function keyboard(editor: EditorController, event: KeyboardEvent) {
+function keyboard(editor: EditorController, event: KeyboardEvent, pan: TemporaryPan) {
   if (!takesKey(editor, event)) return;
   if (event.key === " " && !event.ctrlKey && !event.metaKey) {
     event.preventDefault();
-    editor.setTool("pan");
+    pan.start();
     return;
   }
   const command = commandForKey(event, commandContext(editor));
@@ -131,7 +133,7 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
       if (event.button !== 0 || ["select", "pan"].includes(editor.tool)) return;
       event.preventDefault();
       event.stopPropagation();
-      if (editor.tool === "draw") return;
+      if (editor.drawing.active) return;
       if (editor.tool === "connect") {
         const cell = cellAt(editor, event);
         if (cell?.isVertex())
@@ -188,12 +190,7 @@ function bindRelateInput(editor: EditorController, options: { signal: AbortSigna
       }
       const cell = cellAt(editor, event);
       const target = cell?.id ? editor.document.get(cell.id) : undefined;
-      if (
-        !target ||
-        target.id === source ||
-        !canConnect(target, editor.document.get(target.inside) ?? undefined)
-      )
-        return;
+      if (!target || target.id === source || !canConnect(target)) return;
       relateTo(editor, target.id, source);
       showRelate(editor, false);
     },
@@ -213,6 +210,8 @@ function bindRelateInput(editor: EditorController, options: { signal: AbortSigna
 
 export function bindCanvasInput(editor: EditorController) {
   const abort = new AbortController();
+  const panHold = new TemporaryPan(editor);
+  bindInteractionCursors(editor, abort.signal);
   const options = { signal: abort.signal };
   bindMarkdownLinks(editor, abort.signal);
   bindRelateInput(editor, options);
@@ -271,14 +270,15 @@ export function bindCanvasInput(editor: EditorController) {
     options
   );
   editor.element.addEventListener("pointerleave", () => (editor.pointer = null), options);
-  window.addEventListener("keydown", (event) => keyboard(editor, event), options);
+  window.addEventListener("keydown", (event) => keyboard(editor, event, panHold), options);
   window.addEventListener(
     "keyup",
     (event) => {
-      if (event.code === "Space" && editor.tool === "pan") editor.setTool("select");
+      if (event.code === "Space") panHold.release();
     },
     options
   );
+  window.addEventListener("blur", panHold.release, options);
   // The right button opens the menu and the middle button pans; maxGraph handles the left alone.
   const pan = editor.graph.getPlugin<PanningHandler>("PanningHandler");
   if (pan) pan.usePopupTrigger = false;

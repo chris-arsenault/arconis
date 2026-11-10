@@ -142,7 +142,7 @@ it("keeps keyboard shortcuts working after clicking interface controls", async (
   await page.keyboard.down("Space");
   expect(await pressed.getAttribute("aria-label")).toBe("Pan (H / Space)");
   await page.keyboard.up("Space");
-  expect(await pressed.getAttribute("aria-label")).toBe("Select (V)");
+  expect(await canvas(page).getAttribute("data-tool")).toBe("ellipse");
   expect(errors).toEqual([]);
   await context.close();
 });

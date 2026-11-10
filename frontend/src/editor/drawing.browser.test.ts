@@ -19,8 +19,9 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
   const peer = await open(await browser.newContext(), new URL(page.url()).hash.slice(6));
   await add(page, "Sticky note (N)", "Review", 150, 150);
   const before = (await exported(page)).objects.find((item) => item.type === "note")!;
-  await page.keyboard.press("p");
-  await page.getByRole("button", { name: "Highlighter", exact: true }).click();
+  await page.keyboard.press("m");
+  await page.getByRole("button", { name: "Highlight", exact: true }).click();
+  await page.getByRole("button", { name: "Marker", exact: true }).click();
   await stroke(page, [130, 190], [360, 200]);
   await expect
     .poll(async () => (await exported(peer)).objects.filter((item) => item.markup).length)
@@ -28,7 +29,7 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
   const ink = (await exported(page)).objects.find((item) => item.type === "drawing")!;
   expect(ink.look.strokeOpacity).toBe(30);
   expect((await exported(page)).objects.find((item) => item.id === before.id)).toEqual(before);
-  await page.getByRole("button", { name: "Highlight object", exact: true }).click();
+  await page.getByRole("button", { name: "Object outline", exact: true }).click();
   const canvas = await page.getByTestId("canvas").boundingBox();
   await page.mouse.click(canvas!.x + 200, canvas!.y + 220);
   await expect
@@ -51,16 +52,16 @@ it("draws shared markup without moving notes; highlights follow objects; clean e
   expect(errors).toEqual([]);
 });
 
-it("promotes lassoed ink into an editable Drawing and keeps it when markup is cleared", async () => {
+it("moves lassoed annotations to the content layer and back with shared Undo", async () => {
   const page = await open(
     await browser.newContext({ viewport: { width: 1440, height: 1000 } }),
     createRoomId()
   );
   const peer = await open(await browser.newContext(), new URL(page.url()).hash.slice(6));
-  await page.keyboard.press("p");
+  await page.keyboard.press("m");
   await stroke(page, [150, 150], [290, 220]);
   await stroke(page, [190, 180], [310, 240]);
-  await page.getByRole("button", { name: "Lasso", exact: true }).click();
+  await page.getByRole("button", { name: "Select ink", exact: true }).click();
   const canvas = (await page.getByTestId("canvas").boundingBox())!;
   await page.mouse.move(canvas.x + 130, canvas.y + 130);
   await page.mouse.down();
@@ -75,33 +76,24 @@ it("promotes lassoed ink into an editable Drawing and keeps it when markup is cl
   await expect
     .poll(async () => await page.getByTestId("selection-count").textContent())
     .toBe("2 objects");
-  await page.getByRole("button", { name: "Make Drawing", exact: true }).click();
+  await page.getByRole("button", { name: "Move to content layer", exact: true }).click();
   let saved = await exported(page);
-  const sketch = saved.objects.find((item) => item.type === "sketch")!;
-  expect(sketch).toBeDefined();
-  expect(saved.objects.filter((item) => item.inside === sketch.id)).toHaveLength(2);
-  await stroke(page, [210, 170], [250, 200]);
-  await expect.poll(async () => (await exported(peer)).objects.length).toBe(4);
-  await page.keyboard.press("Escape");
+  expect(saved.objects).toHaveLength(2);
+  expect(saved.objects.every((item) => item.type === "drawing" && !item.markup)).toBe(true);
   await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  await page.getByRole("button", { name: "Freehand", exact: true }).click();
+  await stroke(page, [210, 170], [250, 200]);
+  await expect.poll(async () => (await exported(peer)).objects.length).toBe(3);
   expect(
     await page.getByRole("button", { name: "Delete all annotations", exact: true }).isDisabled()
   ).toBe(true);
-  expect((await exported(page)).objects).toHaveLength(4);
-  await page.getByRole("button", { name: "Select (V)", exact: true }).click();
-  await row(page, "Drawing").dblclick();
-  await page.getByRole("button", { name: "Fit bounds to drawing", exact: true }).click();
-  await page.getByRole("button", { name: "Return to markup", exact: true }).click();
+  await page.getByRole("button", { name: "Move to Markup", exact: true }).click();
   saved = await exported(page);
-  expect(
-    saved.objects.every((item) => item.type === "drawing" && item.markup && !item.inside)
-  ).toBe(true);
+  expect(saved.objects.filter((item) => item.markup)).toHaveLength(2);
   await page.keyboard.press("Control+z");
   await expect
-    .poll(
-      async () => (await exported(peer)).objects.filter((item) => item.type === "sketch").length
-    )
-    .toBe(1);
+    .poll(async () => (await exported(peer)).objects.filter((item) => item.markup).length)
+    .toBe(0);
   expect(errors).toEqual([]);
 });
 
@@ -111,9 +103,10 @@ it("fills closed shapes with a gradient, adjusts its direction and erases part o
     createRoomId()
   );
   await page.keyboard.press("p");
-  await page.getByLabel("Drawing geometry", { exact: true }).selectOption("rectangle");
-  await page.getByText("Fill and gradient", { exact: true }).click();
-  await page.getByLabel("Shape fill", { exact: true }).fill("#ff0000");
+  await page.getByRole("button", { name: "Vector", exact: true }).click();
+  await page.getByRole("button", { name: "Rectangle", exact: true }).click();
+  await page.getByText("Fill gradient", { exact: true }).click();
+  await page.getByLabel("Fill color", { exact: true }).fill("#ff0000");
   await page.getByLabel("Gradient color", { exact: true }).fill("#0000ff");
   await stroke(page, [180, 170], [380, 310]);
   const first = (await exported(page)).objects[0];
@@ -121,7 +114,7 @@ it("fills closed shapes with a gradient, adjusts its direction and erases part o
   await expect
     .poll(() => page.getByTestId("canvas").locator("defs.ink-gradients linearGradient").count())
     .toBe(1);
-  await page.getByRole("button", { name: "Lasso", exact: true }).click();
+  await page.getByRole("button", { name: "Select ink", exact: true }).click();
   const canvas = (await page.getByTestId("canvas").boundingBox())!;
   await page.mouse.move(canvas.x + 160, canvas.y + 150);
   await page.mouse.down();
@@ -142,10 +135,10 @@ it("fills closed shapes with a gradient, adjusts its direction and erases part o
   await page.mouse.up();
   expect((await exported(page)).objects[0].look.gradientAngle).toBeGreaterThan(70);
   await page.screenshot({ path: "test-results/drawing-tools.png" });
-  await page.getByRole("button", { name: "Pen", exact: true }).click();
-  await page.getByLabel("Drawing geometry", { exact: true }).selectOption("line");
+  await page.getByRole("button", { name: "Vector", exact: true }).click();
+  await page.getByRole("button", { name: "Line", exact: true }).click();
   await stroke(page, [170, 420], [450, 420]);
-  await page.getByRole("button", { name: "Precision eraser", exact: true }).click();
+  await page.getByRole("button", { name: "Erase segment", exact: true }).click();
   await stroke(page, [310, 390], [310, 450]);
   await expect.poll(async () => (await exported(page)).objects.length).toBe(3);
   await page.keyboard.press("Control+z");

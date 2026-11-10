@@ -1363,6 +1363,7 @@ details[open] > summary::before {
   overflow: hidden;
 }
 .canvas-surface {
+  cursor: var(--interaction-cursor, default);
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -1378,11 +1379,9 @@ details[open] > summary::before {
 .canvas-surface.grid-off {
   background-image: none;
 }
-.canvas-surface[data-tool="pan"] {
-  cursor: grab;
-}
-.canvas-surface[data-tool="draw"] {
-  cursor: crosshair;
+.canvas-surface[data-cursor-override="true"] svg,
+.canvas-surface[data-cursor-override="true"] svg * {
+  cursor: var(--interaction-cursor) !important;
 }
 .canvas-hint {
   position: absolute;

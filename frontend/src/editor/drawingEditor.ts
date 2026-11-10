@@ -5,218 +5,184 @@ import {
   type SelectionCellsHandler,
 } from "@maxgraph/core";
 import { refreshInkView } from "./inkView";
-import { closeInk, paintInk } from "./inkCommands";
 import { effectiveAppearance } from "../document/appearance";
 import { creationOffset } from "./zoom";
-import { makeDrawing, returnToMarkup, fitDrawing } from "./drawingCommands";
 import type { EditorController } from "./controller";
-import { isMarkup } from "../document/ink";
+import { highlighted, isMarkup } from "../document/ink";
+import { visibleItems } from "../document/relations";
+import { layerOf, hiddenByLayers } from "../document/layers";
 import { inPolygon, pathDistance } from "../document/inkHit";
 import type { Item, PathPoint } from "../document/types";
 import {
+  addInk,
   clearInk,
+  closeInk,
   fillInk,
   highlightObject,
-  inkAction,
-  recolorInk,
   type InkSettings,
 } from "./inkCommands";
+import { DrawingPreferences, DRAWING_PREFERENCES_KEY } from "./drawingPreferences";
+import { isInkTool, type DrawingFamily, type DrawingTool, type InkTarget } from "./drawingTools";
+import { changeInkStyle } from "./inkStyle";
+import { transferInk } from "./inkTransfer";
 
-const DEFAULT: InkSettings = {
-  mode: "pen",
-  shape: "freehand",
-  color: "#6554c0",
-  width: 3,
-  fill: "none",
-  gradient: "none",
-  gradientAngle: 0,
-};
-const KEY = "arconis-drawing-tools";
-
-/** Graph-facing composition of drawing state and semantic commands; no shared document mirror. */
+/** The two authoring tools share brushes; the selected tool supplies the destination. */
 export class DrawingEditor {
   visible = true;
-  activeSketch = "";
-  settings: InkSettings = { ...DEFAULT };
-  favorites: InkSettings[] = [
-    DEFAULT,
-    { ...DEFAULT, color: "#e64980", width: 6 },
-    { ...DEFAULT, mode: "highlighter", color: "#ffcc00", width: 24 },
-  ];
-  recent: string[] = [];
+  destination: InkTarget = "markup";
+  private preferences = new DrawingPreferences();
+  get settings() {
+    return this.preferences.settings;
+  }
+  get favorites() {
+    return this.preferences.favorites;
+  }
+  get recent() {
+    return this.preferences.recent;
+  }
+  get tool() {
+    return this.preferences.tool;
+  }
+  get active() {
+    return isInkTool(this.editor.tool);
+  }
+  get markup() {
+    return this.destination === "markup";
+  }
+  setDestination(tool: string) {
+    if (!isInkTool(tool)) return;
+    if (this.destination !== tool) this.gestureVersion++;
+    this.destination = tool;
+  }
+  colorTarget: "color" | "fill" = "color";
+  gestureVersion = 0;
   private drawing = false;
-  private instruments = {
-    pen: { color: DEFAULT.color, width: 3 },
-    highlighter: { color: "#ffcc00", width: 24 },
-  };
 
   constructor(
     private editor: EditorController,
     private changed: () => void
   ) {
     try {
-      const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
-      if (saved) {
-        this.settings = { ...DEFAULT, ...saved.settings };
-        this.favorites = saved.favorites ?? this.favorites;
-        this.instruments = saved.instruments ?? this.instruments;
-        this.recent = saved.recent ?? [];
-      }
+      this.preferences = new DrawingPreferences(
+        JSON.parse(localStorage.getItem(DRAWING_PREFERENCES_KEY) ?? "null")
+      );
     } catch {
-      /* Defaults remain usable when local preferences are unavailable. */
+      /* Local preferences are optional. */
     }
     const selectable = editor.graph.isCellSelectable.bind(editor.graph);
     editor.graph.isCellSelectable = (cell) => selectable(cell) && this.selectable(cell);
     const handles = editor.graph.getPlugin<SelectionCellsHandler>("SelectionCellsHandler");
     if (handles) {
       const selected = handles.getHandledSelectionCells.bind(handles);
-      handles.getHandledSelectionCells = () => (editor.tool === "draw" ? [] : selected());
+      handles.getHandledSelectionCells = () => (editor.tool === "select" ? selected() : []);
     }
     editor.graph.getSelectionModel().addListener(InternalEvent.CHANGE, () => this.refresh());
   }
-
   private selectable(cell: Cell) {
     const item = this.editor.document.get(cell.id ?? "");
-    if (!item) return true;
-    if (item.inside && this.editor.document.get(item.inside)?.type === "sketch")
-      return item.inside === this.activeSketch;
-    if (isMarkup(item))
-      return (
-        this.visible &&
+    return (
+      !item ||
+      !isMarkup(item) ||
+      (this.visible &&
         (this.editor.graph.isCellSelected(cell) ||
-          (this.editor.tool === "draw" && this.settings.mode === "lasso"))
-      );
-    return true;
+          (this.active && this.markup && this.settings.mode === "lasso")))
+    );
   }
   refresh() {
-    const drawing = this.editor.tool === "draw";
-    if (drawing !== this.drawing) {
-      this.drawing = drawing;
+    if (this.active !== this.drawing) {
+      this.drawing = this.active;
       const graph = this.editor.graph;
-      graph.setConnectable(!drawing);
+      graph.setConnectable(!this.drawing);
       const connection = graph.getPlugin<ConnectionHandler>("ConnectionHandler");
-      connection?.constraintHandler.setEnabled(!drawing);
+      connection?.constraintHandler.setEnabled(!this.drawing);
       connection?.reset();
-      graph.getPlugin<SelectionCellsHandler>("SelectionCellsHandler")?.refresh();
     }
+    this.editor.graph.getPlugin<SelectionCellsHandler>("SelectionCellsHandler")?.refresh();
     refreshInkView(
       this.editor.graph,
       this.editor.document,
-      this.editor.tool === "draw" && this.settings.mode === "lasso",
-      this.activeSketch
+      this.active && this.markup && this.settings.mode === "lasso"
     );
   }
-
   update(values: Partial<InkSettings>) {
-    const mode = values.mode;
-    if (mode === "pen" || mode === "highlighter")
-      Object.assign(this.settings, this.instruments[mode]);
-    Object.assign(this.settings, values);
-    if (this.settings.mode === "pen" || this.settings.mode === "highlighter")
-      this.instruments[this.settings.mode] = {
-        color: this.settings.color,
-        width: this.settings.width,
-      };
-    if (values.color)
-      this.recent = [values.color, ...this.recent.filter((color) => color !== values.color)].slice(
-        0,
-        8
-      );
-    localStorage.setItem(
-      KEY,
-      JSON.stringify({
-        settings: this.settings,
-        favorites: this.favorites,
-        instruments: this.instruments,
-        recent: this.recent,
-      })
-    );
-    this.editor.setTool("draw");
+    if (values.mode || values.shape) this.gestureVersion++;
+    this.preferences.update(values);
+    this.arm();
+  }
+  activate(tool: DrawingTool) {
+    this.gestureVersion++;
+    this.preferences.choose(tool);
+    this.arm();
+  }
+  family(family: DrawingFamily) {
+    this.gestureVersion++;
+    this.preferences.family(family);
+    this.arm();
+  }
+  private arm() {
+    try {
+      localStorage.setItem(DRAWING_PREFERENCES_KEY, JSON.stringify(this.preferences.serialize()));
+    } catch {
+      /* Brushes remain usable without local storage. */
+    }
+    this.editor.setTool(this.destination);
     this.changed();
   }
-
+  style(values: Partial<InkSettings>) {
+    changeInkStyle(this.editor.document, this.editor.selected(), values);
+  }
   favorite(index: number, save: boolean) {
     if (save) this.favorites[index] = { ...this.settings };
     this.update(save ? {} : this.favorites[index]);
   }
-
   toggle() {
     this.visible = !this.visible;
     this.editor.graph.clearSelection();
     this.editor.graph.view.revalidate();
     this.changed();
   }
-  make(blank = false) {
-    const { scale, translate } = this.editor.graph.view;
-    const id = makeDrawing(
-      this.editor.document,
-      blank ? [] : this.editor.selected(),
-      {
-        x: this.editor.element.clientWidth / 2 / scale - translate.x,
-        y: this.editor.element.clientHeight / 2 / scale - translate.y,
-      },
-      scale
-    );
-    this.activeSketch = id;
-    this.editor.setTool("draw");
-    this.update({ mode: "pen", shape: "freehand" });
-    this.changed();
-  }
-  enter(id: string) {
-    const item = this.editor.document.get(id);
-    const sketch = item?.type === "sketch" ? item : this.editor.document.get(item?.inside ?? "");
-    if (sketch?.type !== "sketch") return false;
-    this.activeSketch = sketch.id;
-    this.editor.graph.clearSelection();
-    this.update({ mode: "pen" });
-    return true;
-  }
-  leave() {
-    if (!this.activeSketch) return;
-    this.activeSketch = "";
-    this.changed();
-  }
-  fit() {
-    const sketch =
-      this.editor.document.get(this.activeSketch) ??
-      this.editor.selected().find((item) => item.type === "sketch");
-    if (sketch) fitDrawing(this.editor.document, sketch);
-  }
-  demote() {
-    const sketch =
-      this.editor.document.get(this.activeSketch) ??
-      this.editor.selected().find((item) => item.type === "sketch");
-    if (!sketch) return;
-    this.activeSketch = "";
-    returnToMarkup(this.editor.document, sketch);
-    this.changed();
-  }
   clear() {
     clearInk(this.editor.document);
-  }
-  recolor() {
-    recolorInk(this.editor.document, this.editor.selected(), this.settings.color);
   }
   close() {
     closeInk(this.editor.document, this.editor.selected());
   }
-  fill() {
-    paintInk(this.editor.document, this.editor.selected(), this.settings);
+  transfer(markup: boolean) {
+    if (
+      !transferInk(this.editor.document, this.editor.selected(), markup, this.editor.layers.active)
+    )
+      this.editor.room?.setNotice("Disconnect the selected ink before moving it to Markup.");
   }
-
-  candidates() {
-    return this.editor.document
-      .list()
+  create(points: PathPoint[]) {
+    return addInk(
+      this.editor.document,
+      points,
+      this.settings,
+      this.markup,
+      this.editor.graph.view.scale
+    );
+  }
+  candidates(allLayers = false, outlines = false) {
+    const document = this.editor.document,
+      items = document.list();
+    const byId = new Map(items.map((item) => [item.id, item]));
+    const hidden = hiddenByLayers(items, this.editor.layers.hidden, document.layerList());
+    return visibleItems(items)
+      .filter((item) => !isMarkup(item) || this.visible)
       .filter(
         (item) =>
-          item.type === "drawing" &&
-          (this.activeSketch ? item.inside === this.activeSketch : isMarkup(item))
+          (item.type === "drawing" || (outlines && item.type === "highlight")) &&
+          !item.locked &&
+          !hidden.has(item.id) &&
+          (allLayers ||
+            (this.markup
+              ? this.visible && isMarkup(item)
+              : !isMarkup(item) && layerOf(item, byId) === this.editor.layers.active))
       );
   }
-
-  hit(point: PathPoint): Item | undefined {
+  hit(point: PathPoint, sampling = false): Item | undefined {
     const radius = this.radius();
-    return [...this.candidates()]
+    return [...this.candidates(sampling)]
       .reverse()
       .find(
         (item) =>
@@ -228,24 +194,28 @@ export class DrawingEditor {
     const scale = this.editor.graph.view.scale;
     return (this.settings.width * creationOffset(scale)) / 2 + extra / scale;
   }
-
   click(point: PathPoint, target?: string) {
     const canvas = this.editor.document,
       { mode } = this.settings;
-    if (mode === "highlight" && target) return highlightObject(canvas, target, this.settings.color);
-    const item = this.hit(point) ?? (target ? canvas.get(target) : undefined);
+    if (mode === "highlight" && target)
+      return highlightObject(canvas, target, this.settings, this.markup);
+    const item =
+      this.hit(point, mode === "eyedropper") ??
+      (mode === "eyedropper" && target ? canvas.get(target) : undefined);
     if (!item) return;
-    if (mode === "eraser") inkAction(canvas, () => canvas.remove([item.id]));
     if (mode === "fill") fillInk(canvas, item, this.settings);
     if (mode === "eyedropper") {
       const appearance = effectiveAppearance(item, canvas.namedStyle(item.style));
-      this.update({ color: appearance.fill !== "none" ? appearance.fill : appearance.line });
+      this.preferences.choose(this.preferences.sampleTool);
+      this.update({
+        [this.colorTarget]: this.colorTarget === "fill" ? appearance.fill : appearance.line,
+      });
     }
   }
-
   lasso(points: PathPoint[], append: boolean) {
-    const ids = this.candidates()
-      .filter((item) => item.points.some((point) => inPolygon(point, points)))
+    const items = new Map(this.editor.document.list().map((item) => [item.id, item]));
+    const ids = this.candidates(false, true)
+      .filter((item) => selectionPoints(item, items).some((point) => inPolygon(point, points)))
       .map((item) => item.id);
     const model = this.editor.graph.getDataModel();
     const cells = ids.map((id) => model.getCell(id)).filter((cell) => cell !== null);
@@ -253,4 +223,15 @@ export class DrawingEditor {
     else this.editor.graph.setSelectionCells(cells);
     this.editor.setTool("select");
   }
+}
+
+function selectionPoints(item: Item, items: Map<string, Item>): PathPoint[] {
+  if (item.type !== "highlight") return item.points;
+  const { x, y, width, height } = highlighted(item, items);
+  return [
+    [x, y],
+    [x + width, y],
+    [x + width, y + height],
+    [x, y + height],
+  ];
 }

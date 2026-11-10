@@ -52,8 +52,8 @@ it("erases sparse sweep crossings and single clicks without touching workspace o
   const box = await bounds(page, "#6554c0"),
     x = box.x + box.width / 2,
     y = box.y;
-  await page.keyboard.press("p");
-  await page.getByRole("button", { name: "Eraser", exact: true }).click();
+  await page.keyboard.press("m");
+  await page.getByRole("button", { name: "Erase whole stroke", exact: true }).click();
   await page.mouse.move(x, y - 100);
   await page.mouse.down();
   await page.mouse.move(x, y + 100);
@@ -72,9 +72,9 @@ it("erases sparse sweep crossings and single clicks without touching workspace o
   const original = (await exported(page)).objects.find((item) => item.id === "n");
   await page.keyboard.press("v");
   await row(page, "Workspace").click();
-  await page.keyboard.press("p");
-  await page.getByRole("button", { name: "Pen", exact: true }).click();
-  await page.getByRole("button", { name: "Ink #e64980", exact: true }).click();
+  await page.keyboard.press("m");
+  await page.getByRole("button", { name: "Freehand", exact: true }).click();
+  await page.getByRole("button", { name: "Stroke #e64980", exact: true }).click();
   expect(
     await page.getByRole("button", { name: "Apply ink color to strokes", exact: true }).count()
   ).toBe(0);
@@ -90,8 +90,9 @@ it("highlights the displayed rotated object and ignores its former footprint", a
   const box = await bounds(page, "#112233");
   const x = box.x + box.width / 2,
     y = box.y + box.height * 0.8;
-  await page.keyboard.press("p");
-  await page.getByRole("button", { name: "Highlight object", exact: true }).click();
+  await page.keyboard.press("m");
+  await page.getByRole("button", { name: "Highlight", exact: true }).click();
+  await page.getByRole("button", { name: "Object outline", exact: true }).click();
   await page.mouse.click(x, y);
   await expect
     .poll(
@@ -137,44 +138,41 @@ it("keeps a rectangular gradient handle continuous and shares one undoable direc
   expect(errors).toEqual([]);
 });
 
-it("preserves visible wide ink through promotion and Fit", async () => {
+it("preserves visible wide ink when moving between markup and content layers", async () => {
   const { page } = await scene(`drawing p markup points 200,200 400,200 line-width 48`);
   await selectDrawing(page);
-  await page.getByLabel("Ink color", { exact: true }).fill("#ff0000");
-  await page.getByRole("button", { name: "Apply ink color to strokes", exact: true }).click();
+  await page.getByLabel("Stroke color", { exact: true }).fill("#ff0000");
   const box = await bounds(page, "#ff0000");
   const x = box.x + box.width / 2,
     y = box.y - (22 * box.width) / 200;
   expect(await redAt(page, x, y)).toBe(true);
   const before = (await exported(page)).objects[0];
-  await page.getByRole("button", { name: "Make Drawing", exact: true }).click();
+  await page.getByRole("button", { name: "Move to content layer", exact: true }).click();
   const promoted = (await exported(page)).objects;
-  const holder = promoted.find((item) => item.type === "sketch")!;
-  expect(holder.y).toBeLessThan(176);
-  expect(holder.y + holder.height).toBeGreaterThan(224);
+  expect(promoted).toHaveLength(1);
+  expect(promoted[0].markup).toBe(false);
   expect(promoted.find((item) => item.id === "p")?.points).toEqual(before.points);
   expect(await redAt(page, x, y)).toBe(true);
-  await page.getByRole("button", { name: "Fit bounds to drawing", exact: true }).click();
-  expect(
-    (await exported(page)).objects.find((item) => item.id === holder.id)?.height
-  ).toBeGreaterThanOrEqual(72);
+  await page.getByRole("button", { name: "Move to Markup", exact: true }).click();
   expect(await redAt(page, x, y)).toBe(true);
   expect(errors).toEqual([]);
 });
 
-it("renders Drawing contents against a clip rotated by its named style", async () => {
+it("reads legacy Drawing holders as ordinary scalable panels without clipping their ink", async () => {
   const { page } = await scene(`style turned rotate 90 line #112233
     sketch s at 200,200 size 200,100 turned {
       drawing p points 270,170 330,170 330,330 270,330 270,170 closed fill #ff0000 line #ff0000
     }`);
   const canvas = page.getByTestId("canvas");
-  await expect
-    .poll(() => canvas.locator("defs.ink-clips rect").first().getAttribute("transform"))
-    .toMatch(/^rotate\(90 /);
+  expect(await canvas.locator("defs.ink-clips").count()).toBe(0);
   const box = await bounds(page, "#ff0000");
   expect(await redAt(page, box.x + box.width / 2, box.y + 10)).toBe(true);
   expect(
     (await exported(page)).objects.find((item) => item.id === "s")?.look.rotation
   ).toBeUndefined();
+  expect((await exported(page)).objects.find((item) => item.id === "s")).toMatchObject({
+    type: "frame",
+    scaleContents: true,
+  });
   expect(errors).toEqual([]);
 });

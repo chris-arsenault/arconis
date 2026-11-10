@@ -29,11 +29,13 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 
 ## Drawing and markup
 
-- Annotate the workspace with pen, highlighter, attached object outlines and quick shapes.
+- Choose Freehand, Highlight or Vector with independent remembered brushes and contextual paint controls.
+- Annotate the workspace with pen, marker, attached object outlines and quick shapes.
 - Lasso whole ink paths, recolor and transform them, and use whole or precision erasing.
 - Fill closed paths with solid colors or linear gradients.
-- Promote markup into editable Drawing objects that move, resize, rotate, connect and take part
-  in workspace containment; edit their contents with the same drawing tools.
+- Use Draw for the selected content layer and Markup for annotations, with the same brush controls.
+- Move selected ink between layers and Markup; group artwork with ordinary frames and groups.
+- Enable Scale content on resize on a panel to resize its ink, shapes, text and other contents together.
 - Hide markup locally, clear it with Undo, or omit it from portable exports.
 
 ## Layers

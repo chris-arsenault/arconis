@@ -7,7 +7,6 @@ import { LOCAL, type Item, type Look } from "../document/types";
 import type { EditorController } from "./controller";
 import { fittedTextHeight } from "./textLayout";
 import type { SourceEdit } from "../text/commands";
-import { resizeDrawing } from "./drawingCommands";
 
 /** A control changes the selection as one undoable operation, regardless of item count. */
 export function changeSelectionLook(
@@ -77,8 +76,6 @@ export function changeGeometry(
   key: "x" | "y" | "width" | "height",
   value: number
 ) {
-  if (item.type === "sketch" && (key === "width" || key === "height"))
-    return resizeDrawing(editor.document, item, key, value);
   if (keepsAspectOnResize(item) && (key === "width" || key === "height")) {
     const other = key === "width" ? "height" : "width";
     editor.updateGeometry(item.id, { [key]: value, [other]: (value * item[other]) / item[key] });

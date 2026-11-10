@@ -48,7 +48,7 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Lines.** A line names the items at its ends and any ports where it attaches. A line with a missing
   end stays in Yjs, hidden from the graph, so out-of-order updates can complete it.
 - **Holders.** `inside` relates contents to their holder while preserving world coordinates.
-  Workspace placement uses `document/capabilities.ts` to choose eligible boxes; Drawings hold
+  Workspace placement uses `document/capabilities.ts` to choose eligible boxes; ordinary panels hold
   ink paths, while markup stays outside workspace containment. A group's
   frame follows its members; everything else keeps its size. Cycles break deterministically during
   projection. A band marks a span behind the items it covers and holds nothing.
@@ -90,24 +90,33 @@ independent of a participant's undo history. Records a peer writes in an unknown
 - **Drawings.** Strokes are non-bendable graph edges with no terminals. Edges have no resize handles,
   so the selection frame scales and rotates them.
   The `drawing` item remains a world-coordinate path, with optional ink geometry and markup
-  membership. `sketch` is a boxed Drawing holder; its editable contents are ordinary paths,
-  not an embedded document. `highlight` references a target, and shared removal policy follows
+  membership. Ordinary frames and groups collect paths alongside other content.
+  `highlight` references a target, and shared removal policy follows
   that relation. Semantic appearance resolves closed fills, stroke opacity and gradient terms.
   Language attributes, files and MCP read/write carry the same fields.
-  `editor/inkCommands.ts` and `drawingCommands.ts` own drawing mutations and Undo/action
+  `editor/inkCommands.ts` and `inkTransfer.ts` own drawing mutations and Undo/action
   boundaries. `drawingInput.ts` supplies local previews and completes each pointer gesture;
   `drawingEditor.ts` composes focused controls and graph selection. Visibility and the active
-  Drawing are local application state. `inkShape.ts` and the ink view adapters render editable
-  paths, gradients, target outlines and derived clipping, including template underlays.
+  destination are local application state. Draw targets the current content layer and Markup
+  targets annotations; both share brushes. `drawingTools.ts` supplies tool identity to the palette,
+  commands and cursor policy; `drawingPreferences.ts` stores independent local brushes and migrates
+  previous preferences. Selected-path paint edits use `inkStyle.ts` without mutating those defaults.
+  `cursors.ts` defines every persistent tool's native cursor or SVG, hotspot and fallback;
+  `interactionCursors.ts` binds that registry once, including temporary-pan precedence over graph
+  child cursors. `temporaryPan.ts` restores the suspended tool and its placement payload.
+  `inkShape.ts` and the ink view adapters render editable
+  paths, gradients and target outlines, including template underlays.
   Hiding annotations never deletes their graph records. CanvasFiles filters clean exports
   before printing and picture preparation; the PNG adapter applies the same choice to pixels
   and bounds, and carries SVG definitions into rasterization.
   `document/ink.ts` computes painted bounds through semantic appearance, including stroke width
-  and arrowheads. Promotion and Fit use those bounds. `document/geometry.ts` supplies rotated
+  and arrowheads. `document/geometry.ts` supplies rotated
   box hit testing, and `document/inkHit.ts` supplies segment-crossing tests for erasers.
-  `document/transform.ts` supplies the same Drawing reshape policy to numeric UI commands and
-  `language/drawing.ts`; gradient direction follows path rotation and geometry-only resizing
-  preserves sparse authored appearance. Clips resolve named styles before rendering.
+  `document/panelResize.ts` uses the shared transform policy for frames/groups with
+  `scaleContents`, across graph geometry edits and `language/drawing.ts`. It scales descendants
+  once, including ink, shapes, text and paint. Images and vendor icons retain their proportions.
+  `document/legacyDrawing.ts` converts old Drawing holders to ordinary scalable frames without
+  replacing their ids. Panels do not clip their contents.
   See the [drawing guide](drawing.md) for the user workflow.
 
 ## Canvas language
@@ -132,8 +141,8 @@ index derives from that same source, including its basic syntax and coordinate c
   `attributeRouting.ts` routes attributes to their actual interpretation passes or explicitly
   rejects/ignores them in context; adding a variant must account for these contracts.
   `drawing.ts` validates the final Draft, including existing connectors whose endpoints changed
-  eligibility. Invalid markup or Drawing-content transitions reject the whole write. Existing
-  Drawing transforms carry their contents before normal holder placement; file declarations
+  eligibility. Invalid transitions to markup reject the whole write. Existing scalable
+  panel resizes carry their contents before normal holder placement; file declarations
   retain explicit geometry without reapplying authoring transforms.
 - **Printing.** `printer.ts` writes items canonically, so an unchanged item always prints the same and
   comparing printed items finds changes. `look.ts` supplies one typed, key-complete descriptor for

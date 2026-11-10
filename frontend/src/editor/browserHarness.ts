@@ -216,8 +216,14 @@ export async function selectDrawing(page: Page, modifiers: "Shift"[] = []) {
     .first()
     .boundingBox();
   if (!box) throw new Error("No visible ink path to lasso.");
-  await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
-  await page.getByRole("button", { name: "Lasso", exact: true }).click();
+  const content =
+    (await page
+      .getByRole("button", { name: "Draw (P)", exact: true })
+      .getAttribute("aria-pressed")) === "true";
+  await page
+    .getByRole("button", { name: content ? "Draw (P)" : "Markup (M)", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Select ink", exact: true }).click();
   if (modifiers.length) await page.keyboard.down("Shift");
   await page.mouse.move(box.x - 12, box.y - 12);
   await page.mouse.down();

@@ -3,7 +3,7 @@ import { MessageSquare, MoreHorizontal } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { runCommand, showComments } from "../editor/registry";
 import { openMenuOverSelection } from "../editor/contextMenu";
-import { isLink, typeLabel, type Item } from "../document/types";
+import { isFrame, isLink, typeLabel, type Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";
 import { hasSubtitle, hasText } from "../document/capabilities";
 import { ConnectionControls } from "./ConnectionControls";
@@ -314,6 +314,18 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
         items={canvas.list()}
         onChange={(values) => changeFields(canvas, ids(selected), values)}
       />
+      {single && isFrame(item) && (
+        <label className="annotation-visibility">
+          <input
+            type="checkbox"
+            checked={item.scaleContents === true}
+            onChange={(event) =>
+              changeFields(canvas, [item.id], { scaleContents: event.target.checked || undefined })
+            }
+          />
+          Scale content on resize
+        </label>
+      )}
     </RailSection>
   );
 }

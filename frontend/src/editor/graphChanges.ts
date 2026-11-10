@@ -14,14 +14,18 @@ import { orphanedAnchors, removalClosure } from "../document/relations";
 import { isUnderlay } from "./templates";
 import { dockedFollowers } from "../document/docking";
 import { TASKS_TAG } from "./stencils";
+import { panelResizeChanges } from "../document/panelResize";
+import { authoredLook } from "../document/appearance";
 
 export function commitGraph(graph: Graph, document: CanvasDocument, edit?: UndoableEdit) {
+  const before = document.list();
   const changed = changedCells(edit);
   if (changed) {
     document.doc.transact(() => {
       for (const cell of changed)
         if (cell.geometry && !isUnderlay(cell) && document.get(cell.id!)?.type !== "highlight")
           commitCell(cell, cellValues(cell, document), document);
+      applyPanelResizes(document, before);
     }, LOCAL);
     return;
   }
@@ -45,7 +49,18 @@ export function commitGraph(graph: Graph, document: CanvasDocument, edit?: Undoa
       if (!removed.has(cell.id!) && document.get(cell.id!)?.type !== "highlight")
         commitCell(cell, values, document);
     });
+    applyPanelResizes(document, before);
   }, LOCAL);
+}
+
+function applyPanelResizes(document: CanvasDocument, before: Item[]) {
+  const changes = panelResizeChanges(before, document.list(), (item) =>
+    authoredLook(item, document.namedStyle(item.style))
+  );
+  for (const { id, geometry, look } of changes) {
+    document.patch(id, geometry);
+    document.patchLook(id, look);
+  }
 }
 
 /** Geometry edits include descendants whose world positions follow their holder. Structural

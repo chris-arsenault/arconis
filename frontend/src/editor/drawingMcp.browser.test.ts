@@ -131,7 +131,7 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
   }
 });
 
-it("uses collective Drawing transforms through MCP and rejects connected markup transitions atomically", async () => {
+it("uses general panel scaling through MCP and rejects connected markup transitions atomically", async () => {
   const room = createRoomId();
   const page = await open(await browser.newContext(), room);
   const peer = await open(await browser.newContext(), room);
@@ -155,17 +155,15 @@ it("uses collective Drawing transforms through MCP and rejects connected markup 
       "Remove connector wire"
     );
     expect((await exported(peer)).text).toBe(original);
-    expect(
-      await call("write", { statements: "edit s size 200,100 rotate 90 at 200,300" })
-    ).toContain("Done");
+    expect(await call("write", { statements: "edit s size 200,100 at 200,300" })).toContain("Done");
     await expect
       .poll(async () => (await exported(peer)).objects.find((item) => item.id === "p")?.points)
       .toEqual([
-        [340, 270],
-        [260, 430],
+        [220, 310],
+        [380, 390],
       ]);
     expect((await exported(peer)).objects.find((item) => item.id === "p")?.look.gradientAngle).toBe(
-      110
+      20
     );
     await call("undo");
     await expect.poll(async () => (await exported(peer)).text).toBe(original);

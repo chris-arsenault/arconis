@@ -1,7 +1,27 @@
 import type { InkSettings } from "../editor/inkCommands";
-import { BrushControls, SHAPES } from "./BrushControls";
+import { BrushControls } from "./BrushControls";
+import {
+  DRAWING_FAMILIES,
+  DRAWING_SHAPES,
+  DRAWING_TOOLS,
+  DRAWING_UTILITIES,
+  drawingToolOf,
+  type DrawingFamily,
+  type DrawingTool,
+} from "../editor/drawingTools";
+import type { InkKind } from "../document/types";
+import { StrokePreview } from "./StrokePreview";
+import "./drawing.css";
 import {
   Circle,
+  RectangleHorizontal,
+  ArrowRight,
+  ArrowLeftRight,
+  Minus,
+  Pentagon,
+  Brackets,
+  Braces,
+  Cloud,
   Eraser,
   Highlighter,
   Lasso,
@@ -16,117 +36,223 @@ import {
 } from "lucide-react";
 
 export interface DrawingActions {
+  tool: (tool: DrawingTool) => void;
+  family: (family: DrawingFamily) => void;
+  style: (settings: Partial<InkSettings>) => void;
+  target: (target: "color" | "fill") => void;
   change: (settings: Partial<InkSettings>) => void;
   favorite: (index: number, save: boolean) => void;
   toggle: () => void;
   clear: () => void;
-  recolor: () => void;
-  make: () => void;
-  blank: () => void;
-  leave: () => void;
-  fit: () => void;
+  promote: () => void;
   demote: () => void;
-  fill: () => void;
   close: () => void;
 }
 interface Props {
+  tool: DrawingTool;
+  armed: boolean;
+  target: string;
+  colorTarget: "color" | "fill";
   settings: InkSettings;
   visible: boolean;
-  activeSketch: string;
   favorites: InkSettings[];
   recent: string[];
-  selection: { canPromote: boolean; hasDrawing: boolean; strokes: number };
+  selection: {
+    canPromote: boolean;
+    canDemote: boolean;
+    strokes: number;
+    settings: InkSettings | null;
+    closed: boolean;
+  };
   markupCount: number;
   actions: DrawingActions;
 }
-const MODES: [InkSettings["mode"], string, LucideIcon, string][] = [
-  ["pen", "Pen", Pencil, "Drag to draw. Hold Shift to constrain a shape."],
-  ["highlighter", "Highlighter", Highlighter, "Drag to draw translucent strokes or shapes."],
-  [
-    "highlight",
-    "Highlight object",
-    ScanLine,
-    "Click an object to add or remove an outline that follows it.",
-  ],
-  ["lasso", "Lasso", Lasso, "Drag around whole strokes to select them. Hold Shift to add more."],
-  ["eraser", "Eraser", Eraser, "Drag across a stroke to erase the whole stroke."],
-  [
-    "precision",
-    "Precision eraser",
-    Scissors,
-    "Drag to cut away only the parts of strokes you touch.",
-  ],
-  [
-    "fill",
-    "Fill",
-    PaintBucket,
-    "Click inside a closed path to fill it with the current ink color.",
-  ],
-  ["eyedropper", "Eyedropper", Pipette, "Click a drawing or object to pick its color."],
-];
+const TOOL_ICONS: Record<DrawingTool, LucideIcon> = {
+  freehand: Pencil,
+  marker: Highlighter,
+  highlightShape: RectangleHorizontal,
+  outline: ScanLine,
+  vector: Pentagon,
+  lasso: Lasso,
+  eraser: Eraser,
+  precision: Scissors,
+  fill: PaintBucket,
+  eyedropper: Pipette,
+};
+const SHAPE_ICONS: Record<Exclude<InkKind, "freehand">, LucideIcon> = {
+  line: Minus,
+  arrow: ArrowRight,
+  "double-arrow": ArrowLeftRight,
+  rectangle: RectangleHorizontal,
+  ellipse: Circle,
+  polygon: Pentagon,
+  bracket: Brackets,
+  brace: Braces,
+  cloud: Cloud,
+};
 /** Leaf controls receive semantic preferences and a focused drawing command port. */
 export function DrawingTools(props: Readonly<Props>) {
-  const { settings, actions } = props;
-  const change = actions.change;
+  const { actions } = props;
   return (
     <div className="drawing-tools">
-      {props.activeSketch && (
-        <button className="finish-drawing" onClick={actions.leave}>
-          Finish drawing
+      <ToolPalette props={props} />
+      <ToolPaint props={props} />
+      <SavedBrushes favorites={props.favorites} actions={actions} />
+      <DrawingObjectActions selection={props.selection} actions={actions} />
+      <AnnotationActions
+        visible={props.visible}
+        markupCount={props.markupCount}
+        actions={actions}
+      />
+    </div>
+  );
+}
+
+function ToolPaint({ props }: Readonly<{ props: Props }>) {
+  const { settings, actions, tool } = props;
+  if (tool === "eyedropper" && props.armed)
+    return (
+      <div className="drawing-options" role="group" aria-label="Sample into">
+        <span>Sample into</span>
+        <button
+          aria-pressed={props.colorTarget === "color"}
+          onClick={() => actions.target("color")}
+        >
+          Stroke
         </button>
-      )}
-      <div className="drawing-instruments" role="group" aria-label="Drawing instruments">
-        {MODES.map(([mode, label, Icon, hint]) => (
+        <button aria-pressed={props.colorTarget === "fill"} onClick={() => actions.target("fill")}>
+          Fill
+        </button>
+      </div>
+    );
+  const editing = props.selection.settings && (!props.armed || tool === "lasso");
+  const shown = editing ? props.selection.settings! : settings;
+  const change = editing ? actions.style : actions.change;
+  const closed = editing
+    ? props.selection.closed
+    : ["rectangle", "ellipse", "polygon", "cloud"].includes(settings.shape);
+  return (
+    <>
+      <PaintHeading editing={Boolean(editing)} props={props} />
+      <BrushControls
+        settings={shown}
+        change={change}
+        recent={props.recent}
+        selected={Boolean(editing)}
+        closed={closed}
+        onTarget={actions.target}
+        onClose={actions.close}
+      />
+    </>
+  );
+}
+
+function PaintHeading({ editing, props }: Readonly<{ editing: boolean; props: Props }>) {
+  const spec = DRAWING_TOOLS[props.tool];
+  if (editing)
+    return (
+      <>
+        <h3>Selected ink · {props.selection.strokes} paths</h3>
+        {props.selection.strokes > 1 && (
+          <p className="drawing-hint">
+            Controls show the first path. Edits apply to all selected paths.
+          </p>
+        )}
+      </>
+    );
+  return (
+    <>
+      <h3>{spec.family ? "Next mark" : spec.label}</h3>
+      {spec.family && <StrokePreview settings={props.settings} />}
+    </>
+  );
+}
+
+function ToolPalette({ props }: Readonly<{ props: Props }>) {
+  const { settings, actions, tool } = props;
+  const spec = DRAWING_TOOLS[tool];
+  return (
+    <>
+      <div className="drawing-families" role="group" aria-label="Drawing families">
+        {DRAWING_FAMILIES.map(({ id, label }) => (
           <button
-            key={mode}
-            data-hint={label}
-            data-hint-detail={hint}
-            aria-pressed={settings.mode === mode}
-            onClick={() => change({ mode })}
+            key={id}
+            aria-pressed={props.armed && spec.family === id}
+            onClick={() => actions.family(id)}
           >
-            <Icon size={18} strokeWidth={1.6} />
-            <span>{label}</span>
+            {label}
           </button>
         ))}
       </div>
+      {props.armed && spec.family === "highlight" && (
+        <div className="drawing-instruments" role="group" aria-label="Highlight tools">
+          {(["marker", "highlightShape", "outline"] as DrawingTool[]).map((id) => (
+            <Instrument key={id} id={id} active={tool === id} choose={actions.tool} />
+          ))}
+        </div>
+      )}
+      {props.armed && ["vector", "highlightShape"].includes(tool) && (
+        <Geometry settings={settings} change={actions.change} />
+      )}
+      <p className="drawing-hint drawing-target">Drawing on: {props.target}</p>
+      <div className="drawing-utilities" role="group" aria-label="Edit ink">
+        {DRAWING_UTILITIES.map((id) => (
+          <Instrument key={id} id={id} active={props.armed && tool === id} choose={actions.tool} />
+        ))}
+      </div>
       <p className="drawing-hint instrument-hint">
-        {MODES.find(([mode]) => mode === settings.mode)?.[3]}
+        {props.armed ? spec.hint : "Select an object or choose a drawing tool."}
       </p>
-      <BrushControls
-        settings={settings}
-        change={change}
-        recent={props.recent}
-        selected={props.selection.strokes > 0}
-        onFill={actions.fill}
-        onClose={actions.close}
-      />
-      <SavedBrushes favorites={props.favorites} actions={actions} />
-      {props.selection.strokes > 0 && (
-        <section className="drawing-selection" aria-label="Selected strokes">
-          <h3>
-            {props.selection.strokes} selected{" "}
-            {props.selection.strokes === 1 ? "stroke" : "strokes"}
-          </h3>
-          <button onClick={actions.recolor}>
-            <Circle size={14} fill={settings.color} color={settings.color} />
-            Apply ink color to strokes
-          </button>
-          <p className="drawing-hint">Changes the outline color of the selected strokes.</p>
-        </section>
+    </>
+  );
+}
+
+function Instrument({
+  id,
+  active,
+  choose,
+}: Readonly<{ id: DrawingTool; active: boolean; choose: (tool: DrawingTool) => void }>) {
+  const spec = DRAWING_TOOLS[id];
+  const Icon = TOOL_ICONS[id];
+  return (
+    <button
+      aria-pressed={active}
+      data-hint={spec.label}
+      data-hint-detail={spec.hint}
+      onClick={() => choose(id)}
+    >
+      <Icon size={17} />
+      <span>{spec.label}</span>
+    </button>
+  );
+}
+
+function Geometry({
+  settings,
+  change,
+}: Readonly<{ settings: InkSettings; change: DrawingActions["change"] }>) {
+  return (
+    <>
+      <div className="drawing-geometries" role="group" aria-label="Vector shapes">
+        {DRAWING_SHAPES.map(({ id, label }) => {
+          const Icon = SHAPE_ICONS[id];
+          return (
+            <button
+              key={id}
+              aria-label={label}
+              aria-pressed={settings.shape === id}
+              onClick={() => change({ shape: id })}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+      {settings.shape === "polygon" && (
+        <p className="drawing-hint">Click corners. Enter closes the polygon; Escape cancels it.</p>
       )}
-      <DrawingObjectActions
-        active={!!props.activeSketch}
-        selection={props.selection}
-        actions={actions}
-      />
-      {!props.activeSketch && (
-        <AnnotationActions
-          visible={props.visible}
-          markupCount={props.markupCount}
-          actions={actions}
-        />
-      )}
-    </div>
+    </>
   );
 }
 
@@ -150,14 +276,15 @@ function SavedBrushes({ favorites, actions }: Readonly<Pick<Props, "favorites" |
                 fill="none"
                 stroke={favorite.color}
                 strokeWidth={Math.min(favorite.width, 12)}
-                strokeOpacity={favorite.mode === "highlighter" ? 0.4 : 1}
+                strokeOpacity={favorite.opacity / 100}
                 strokeLinecap="round"
               />
             </svg>
             <span>
-              {MODES.find(([mode]) => mode === favorite.mode)?.[1]}
+              {DRAWING_TOOLS[drawingToolOf(favorite)].label}
               <small>
-                {SHAPES.find(([shape]) => shape === favorite.shape)?.[1]}, {favorite.width} px
+                {DRAWING_SHAPES.find(({ id }) => id === favorite.shape)?.label ?? "Freehand"},{" "}
+                {favorite.width} px
               </small>
             </span>
           </button>
@@ -177,34 +304,16 @@ function SavedBrushes({ favorites, actions }: Readonly<Pick<Props, "favorites" |
 }
 
 function DrawingObjectActions({
-  active,
   selection,
   actions,
 }: Readonly<{
-  active: boolean;
   selection: Props["selection"];
-  actions: Pick<DrawingActions, "make" | "blank" | "fit" | "demote" | "leave">;
+  actions: Pick<DrawingActions, "promote" | "demote">;
 }>) {
   return (
     <div className="drawing-object-actions">
-      {selection.canPromote && <button onClick={actions.make}>Make Drawing</button>}
-      {!active && (
-        <>
-          <button onClick={actions.blank}>
-            <Pencil size={14} />
-            New Drawing
-          </button>
-          <p className="drawing-hint">
-            A drawing object keeps editable strokes together so you can move and connect them.
-          </p>
-        </>
-      )}
-      {selection.hasDrawing && (
-        <>
-          <button onClick={actions.fit}>Fit bounds to drawing</button>
-          <button onClick={actions.demote}>Return to markup</button>
-        </>
-      )}
+      {selection.canPromote && <button onClick={actions.promote}>Move to content layer</button>}
+      {selection.canDemote && <button onClick={actions.demote}>Move to Markup</button>}
     </div>
   );
 }
@@ -226,7 +335,7 @@ function AnnotationActions(props: Readonly<Pick<Props, "visible" | "markupCount"
         Delete all annotations
       </button>
       <p className="drawing-hint">
-        Removes annotations for everyone. Drawing objects stay. Undo restores annotations.
+        Removes annotations for everyone. Content layers stay. Undo restores annotations.
       </p>
     </section>
   );

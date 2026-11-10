@@ -75,23 +75,25 @@ function frameSelection(editor: EditorController) {
   const first = cells.length ? editor.document.get(cells[0].id!) : null;
   const onlyGroup =
     cells.length === 1 && (isFrame(first ?? undefined) || cells[0].children.length > 0);
-  const drawn = ["drawing", "sketch"].includes(first?.type ?? "");
+  const drawn = first?.type === "drawing";
   return { cells, first, onlyGroup, drawn };
 }
 
-export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }>) {
-  if (
-    editor.tool === "draw" &&
-    (editor.drawing.settings.mode !== "lasso" ||
+function hidesFrame(editor: EditorController) {
+  return (
+    editor.tool !== "select" &&
+    (!editor.drawing.active ||
+      editor.drawing.settings.mode !== "lasso" ||
       editor.selected().some((item) => item.type !== "drawing"))
-  )
-    return null;
-  const { cells, first, onlyGroup, drawn } = frameSelection(editor);
+  );
+}
+
+export function SelectionFrame({ editor }: Readonly<{ editor: EditorController }>) {
+  if (hidesFrame(editor)) return null;
+  const { cells, onlyGroup, drawn } = frameSelection(editor);
   if (cells.length < 2 && !onlyGroup && !drawn) return null;
   const box = editor.graph.getBoundingBox(cells);
-  return (
-    box && <Frame editor={editor} box={box} rotateOnly={onlyGroup && first?.type !== "sketch"} />
-  );
+  return box && <Frame editor={editor} box={box} rotateOnly={onlyGroup} />;
 }
 
 function Frame({

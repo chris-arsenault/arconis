@@ -16,7 +16,6 @@ export type ItemType =
   | "line"
   | "branch"
   | "reference"
-  | "sketch"
   | "highlight"
   | "drawing";
 export type InkKind =
@@ -175,6 +174,8 @@ export interface Item {
   picture?: PictureRef;
   /** For frames and groups that keep their contents arranged. */
   arrange?: Arrangement;
+  /** Scale held content, including its paint and text, when this panel is resized. */
+  scaleContents?: boolean;
   /** For slides: the deck this slide belongs to, and its number in that deck. */
   deck?: string;
   slide?: number;
@@ -235,7 +236,6 @@ const BOX_TYPES = [
   "note",
   "picture",
   "slide",
-  "sketch",
   "highlight",
 ] as const;
 const LINK_TYPES = ["line", "branch", "reference"] as const;
@@ -280,8 +280,7 @@ const TYPE_LABELS: Record<ItemType, string> = {
   line: "Line",
   branch: "Branch",
   reference: "Reference",
-  drawing: "Drawing",
-  sketch: "Drawing",
+  drawing: "Ink",
   highlight: "Object highlight",
 };
 

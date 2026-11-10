@@ -14,7 +14,7 @@ import { pasteFromClipboard } from "./clipboardInput";
 import { creationSize, creationValues } from "./zoom";
 import { containerAt } from "./panels";
 import { showComments } from "./registry";
-import type { InkSettings } from "./inkCommands";
+import { DRAWING_TOOLS, DRAWING_SHAPES, type DrawingTool } from "./drawingTools";
 
 /** Commands the pointer reaches for: the ring's colours and shapes, verbs for lines and frames. */
 
@@ -64,23 +64,32 @@ const changeable = ({ selected }: CommandContext) =>
   selected.some((item) => item.type === "node" || ["note", "text", "card"].includes(item.type));
 
 export const POINTER_COMMANDS: Command[] = [
-  ...(
-    [
-      ["pen", "Pen"],
-      ["highlighter", "Highlighter"],
-      ["highlight", "Highlight object"],
-      ["lasso", "Lasso"],
-      ["eraser", "Eraser"],
-      ["precision", "Precision eraser"],
-      ["fill", "Fill"],
-      ["eyedropper", "Eyedropper"],
-    ] satisfies [InkSettings["mode"], string][]
-  ).map(([mode, label]): Command => ({
-    id: `draw.${mode}`,
-    label,
+  ...(Object.keys(DRAWING_TOOLS) as DrawingTool[]).map((tool): Command => ({
+    id: `draw.${tool}`,
+    label: DRAWING_TOOLS[tool].label,
     group: "tools",
-    run: ({ editor }) => editor.drawing.update({ mode }),
+    run: ({ editor }) => editor.drawing.activate(tool),
   })),
+  ...DRAWING_SHAPES.flatMap(({ id, label }): Command[] => [
+    {
+      id: `draw.shape.${id}`,
+      label: `Draw ${label.toLowerCase()}`,
+      group: "tools",
+      run: ({ editor }) => {
+        editor.drawing.activate("vector");
+        editor.drawing.update({ shape: id });
+      },
+    },
+    {
+      id: `draw.highlight.${id}`,
+      label: `Highlight ${label.toLowerCase()}`,
+      group: "tools",
+      run: ({ editor }) => {
+        editor.drawing.activate("highlightShape");
+        editor.drawing.update({ shape: id });
+      },
+    },
+  ]),
   {
     id: "create.noteHere",
     label: "Add note here",

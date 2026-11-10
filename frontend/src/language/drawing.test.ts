@@ -55,8 +55,10 @@ it("promotes and releases existing ink through MCP language without moving its w
   });
   const before = serializeDocument(canvas);
   expect(agent.write("mark -> s")).toContain("Nothing was changed");
-  expect(agent.write("sketch invalid { note wrong }")).toContain("Nothing was changed");
   expect(serializeDocument(canvas)).toBe(before);
+  expect(agent.write("sketch ordinary { note child }")).toContain("Done");
+  expect(canvas.get("ordinary")).toMatchObject({ type: "frame", scaleContents: true });
+  expect(canvas.get("child")?.inside).toBe("ordinary");
 });
 
 it.each(["ink", "target", "markup", "workspace"])(
@@ -81,7 +83,7 @@ it.each(["ink", "target", "markup", "workspace"])(
   }
 );
 
-it.each(["edit p markup", "sketch s at 0,0 { edit p workspace }"])(
+it.each(["edit p markup"])(
   "rejects a connected path's invalid transition atomically: %s",
   (statement) => {
     const canvas = new CanvasDocument();
@@ -103,33 +105,73 @@ it.each(["edit p markup", "sketch s at 0,0 { edit p workspace }"])(
   }
 );
 
-it("transforms Drawing contents, gradient and placement together through agent edits and Undo", () => {
+it("scales ordinary panel ink and placement together through agent edits and Undo", () => {
   const canvas = new CanvasDocument();
   const agent = new LanguageSession(canvas, "Artist");
   agent.write(`sketch s at 0,0 size 100,100 {
     drawing p points 10,10 90,90 closed fill #ff0000 gradient #0000ff gradient-angle 20
   }`);
   const before = serializeDocument(canvas);
-  expect(agent.write("edit s size 200,100 rotate 90 at 200,300")).toContain("Done");
+  expect(agent.write("edit s size 200,100 at 200,300")).toContain("Done");
   expect(canvas.get("s")).toMatchObject({
     x: 200,
     y: 300,
     width: 200,
     height: 100,
-    look: { rotation: 90 },
+    scaleContents: true,
   });
   expect(canvas.get("p")?.points).toEqual([
-    [340, 270],
-    [260, 430],
+    [220, 310],
+    [380, 390],
   ]);
-  expect(canvas.get("p")?.look.gradientAngle).toBe(110);
+  expect(canvas.get("p")?.look.gradientAngle).toBe(20);
   agent.undoLast();
   expect(serializeDocument(canvas)).toBe(before);
-  expect(agent.write("style turned rotate 90\nedit s turned")).toContain("Done");
-  expect(canvas.get("p")?.points).toEqual([
-    [90, 10],
-    [10, 90],
-  ]);
-  expect(canvas.get("s")?.look).toEqual({});
+  canvas.destroy();
+});
+
+it("moves paths and outlines directly between Markup and a layer through agent writes", () => {
+  const canvas = new CanvasDocument();
+  const agent = new LanguageSession(canvas, "Artist");
+  expect(
+    agent.write(`layer art "Artwork"
+    node planet "Earth" at 100,100
+    drawing p markup points 10,20 40,60
+    highlight h target planet`)
+  ).toContain("Done");
+  expect(
+    agent.write("edit p workspace in none in-layer art\nedit h workspace in none in-layer art")
+  ).toContain("Done");
+  expect(canvas.get("p")).toMatchObject({ markup: false, layer: "art", inside: "" });
+  expect(canvas.get("h")).toMatchObject({ markup: false, layer: "art", target: "planet" });
+  expect(agent.write("edit p markup in none\nedit h markup in none")).toContain("Done");
+  const copy = new CanvasDocument();
+  importDocument(copy, serializeDocument(canvas));
+  expect(copy.get("p")).toMatchObject({
+    markup: true,
+    points: [
+      [10, 20],
+      [40, 60],
+    ],
+  });
+  expect(copy.get("h")).toMatchObject({ markup: true, target: "planet" });
+  expect(copy.list()).toHaveLength(3);
+  agent.undoLast();
+  expect(canvas.get("h")).toMatchObject({ markup: false, layer: "art", target: "planet" });
+  copy.destroy();
+  canvas.destroy();
+});
+
+it("preserves authored appearance when upgrading legacy sketch declarations", () => {
+  const canvas = new CanvasDocument();
+  const agent = new LanguageSession(canvas, "Artist");
+  expect(agent.write('sketch artwork "Art" fill #247dab title side scale-contents off')).toContain(
+    "Done"
+  );
+  expect(canvas.get("artwork")).toMatchObject({
+    type: "frame",
+    look: { fill: "#247dab", title: "side" },
+  });
+  expect(canvas.get("artwork")?.scaleContents).toBeUndefined();
   canvas.destroy();
 });

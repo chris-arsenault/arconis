@@ -135,7 +135,7 @@ export function QuickCreate({ editor }: Readonly<{ editor: EditorController }>) 
   });
   if (!item || editor.selected().length !== 1 || !isBox(item) || item.locked || item.onLine)
     return null;
-  if (editor.tool === "draw" || editor.ui.dragging || editor.editId || item.type === "slide")
+  if (editor.tool !== "select" || editor.ui.dragging || editor.editId || item.type === "slide")
     return null;
   return (
     <div ref={ref} className="quick-create" data-testid="quick-create">

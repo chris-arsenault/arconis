@@ -270,6 +270,7 @@ export class EditorController {
     this.armedScreen = screen;
   }
   setTool(tool: Tool) {
+    this.drawing.setDestination(tool);
     this.ui.relating = null;
     this.armedIcon = null;
     this.armedScreen = null;
@@ -342,7 +343,6 @@ export class EditorController {
   edit(id: string, selectText = false) {
     const item = this.document.get(id);
     if (item?.locked) return;
-    if (this.drawing.enter(id)) return;
     if (item?.type === "drawing") return;
     this.editId = id;
     this.selectOnEdit = selectText;
@@ -354,7 +354,6 @@ export class EditorController {
   }
   /** Leaves selection, inline editing, focus and any armed tool behind, as Escape does. */
   clearEditing() {
-    this.drawing.leave();
     if (this.focus) this.setFocus(null);
     this.editId = null;
     this.graph.clearSelection();

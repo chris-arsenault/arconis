@@ -6,6 +6,7 @@ import { CompletedActions } from "./actions";
 import { removalClosure } from "./relations";
 import { canHoldAnything } from "./capabilities";
 import { BASE_LAYER, inLayers, layerOf, orderedLayers, type LayerRecord } from "./layers";
+import { upgradeDrawingHolders } from "./legacyDrawing";
 
 /** Fields every item has, with the values an item starts from. */
 export const BLANK: Omit<Item, "id" | "type"> = {
@@ -33,7 +34,6 @@ export function defaultSize(type: ItemType, stencil = "rectangle"): [number, num
     note: [190, 170],
     frame: [320, 220],
     slide: [1280, 720],
-    sketch: [400, 300],
     card: [260, 72],
   };
   if (type === "node" && stencil === "icon") return [64, 64];
@@ -79,6 +79,7 @@ export class CanvasDocument {
         if (typeof id === "string") this.snapshots.delete(id);
         else event.changes.keys.forEach((_change, key) => this.snapshots.delete(key));
       }
+      upgradeDrawingHolders(this.items, events);
     });
     this.doc.on("beforeTransaction", () => {
       this.transacting = true;

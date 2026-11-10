@@ -1,5 +1,14 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Compass, Layers, Pencil, Play, Plus, Shapes, Presentation } from "lucide-react";
+import {
+  Compass,
+  Layers,
+  Pencil,
+  Highlighter,
+  Play,
+  Plus,
+  Shapes,
+  Presentation,
+} from "lucide-react";
 import { LayersPanel } from "./LayersPanel";
 import type { EditorController } from "../editor/controller";
 import type { Item } from "../document/types";
@@ -12,6 +21,8 @@ import { OutlinePanel } from "./OutlinePanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { TOOLS } from "./stencils";
 import { DrawingTools, type DrawingActions } from "./DrawingTools";
+import { selectedInkSettings } from "../editor/inkStyle";
+import { effectiveAppearance } from "../document/appearance";
 import { isMarkup } from "../document/ink";
 import { RailSection } from "./RailSection";
 import { useRailSections } from "./useRailSections";
@@ -19,6 +30,7 @@ import { historyEntries } from "../editor/history";
 import { roomTags } from "../editor/tags";
 import { toggled } from "../editor/filter";
 import { showFilter } from "../editor/registry";
+import { isInkTool } from "../editor/drawingTools";
 
 const TOOL_NAMES: Record<string, string> = { select: "Select", pan: "Pan", connect: "Connect" };
 const SECTION_DEFAULTS = {
@@ -29,10 +41,11 @@ const SECTION_DEFAULTS = {
 };
 
 type Sections = ReturnType<typeof useRailSections>;
-type Panel = "add" | "draw" | "layers" | "explore" | "slides";
+type Panel = "add" | "draw" | "markup" | "layers" | "explore" | "slides";
 const PANELS = [
   { id: "add", label: "Add", icon: Shapes },
   { id: "draw", label: "Draw", icon: Pencil },
+  { id: "markup", label: "Markup", icon: Highlighter },
   { id: "layers", label: "Layers", icon: Layers },
   { id: "explore", label: "Explore", icon: Compass },
   { id: "slides", label: "Slides", icon: Presentation },
@@ -51,22 +64,20 @@ function usePanel(
     expanded: !compact,
   }));
   useEffect(() => {
-    if (compact && !["select", "pan", "connect", "draw"].includes(editor.tool)) onExpand?.(false);
+    if (compact && !["select", "pan", "connect", "draw", "markup"].includes(editor.tool))
+      onExpand?.(false);
   }, [compact, editor.tool, onExpand]);
   if (state.tool !== editor.tool) {
     let panel = state.panel;
     const creating = !["select", "pan", "connect"].includes(editor.tool);
-    if (editor.tool === "draw") panel = "draw";
+    if (isInkTool(editor.tool)) panel = editor.tool;
     else if (editor.tool === "slide") panel = "slides";
     else if (creating) panel = "add";
     setState({ panel, tool: editor.tool, expanded: state.expanded || creating });
   }
   const choose = (panel: Panel) => {
-    if (panel === "draw") editor.setTool("draw");
-    else {
-      editor.drawing.leave();
-      editor.setTool("select");
-    }
+    if (isInkTool(panel)) editor.setTool(panel);
+    else editor.setTool("select");
     setState({ panel, tool: editor.tool, expanded: true });
     onExpand?.(true);
   };
@@ -95,7 +106,7 @@ export function LeftRail({
   return (
     <aside className="left-rail" aria-label="Tools and stencils" data-expanded={expanded}>
       <div className="tool-row" role="toolbar" aria-label="Canvas tools">
-        {TOOLS.filter((tool) => tool.id !== "draw").map((tool) => (
+        {TOOLS.filter((tool) => !isInkTool(tool.id)).map((tool) => (
           <button
             key={tool.id}
             data-hint={tool.label}
@@ -114,10 +125,10 @@ export function LeftRail({
         {PANELS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            aria-label={id === "draw" ? "Draw (P)" : label}
+            aria-label={panelLabel(id, label)}
             aria-pressed={panel === id}
             aria-controls="rail-content"
-            data-hint={id === "draw" ? "Draw (P)" : label}
+            data-hint={panelLabel(id, label)}
             onClick={() => choose(id)}
           >
             <Icon size={18} />
@@ -130,7 +141,7 @@ export function LeftRail({
       </button>
       <div className="rail-content" id="rail-content">
         {panel === "add" && <StencilBrowser editor={editor} />}
-        {panel === "draw" && <DrawingSection editor={editor} />}
+        {isInkTool(panel) && <DrawingSection editor={editor} />}
         {panel === "layers" && <LayersPanel editor={editor} />}
         {panel === "explore" && <ExploreSection editor={editor} sections={sections} />}
         {panel === "slides" && <SlidesSection editor={editor} />}
@@ -139,22 +150,39 @@ export function LeftRail({
   );
 }
 
+function panelLabel(id: string, label: string) {
+  if (id === "draw") return "Draw (P)";
+  return id === "markup" ? "Markup (M)" : label;
+}
+
 function DrawingSection({ editor }: Readonly<{ editor: EditorController }>) {
   const selected = editor.selected();
+  const ink = selected.filter((item) => item.type === "drawing" || item.type === "highlight");
   const selection = {
-    canPromote: selected.some((item) => item.type === "drawing" && isMarkup(item)),
-    hasDrawing: !!editor.drawing.activeSketch || selected.some((item) => item.type === "sketch"),
-    strokes: selected.filter((item) => item.type === "drawing").length,
+    canPromote: ink.some(isMarkup),
+    canDemote: ink.some((item) => !isMarkup(item)),
+    strokes: ink.length,
+    settings: ink.length ? selectedInkSettings(editor.document, ink[0]) : null,
+    closed: ink.some(
+      (item) => effectiveAppearance(item, editor.document.namedStyle(item.style)).closed
+    ),
   };
   return (
     <section aria-label="Drawing" className="drawing-section">
-      <PanelHeading title={editor.drawing.activeSketch ? "Edit drawing" : "Draw and annotate"}>
-        {editor.drawing.activeSketch
-          ? "Ink stays inside this drawing object."
-          : "Draw shared annotations over the canvas."}
+      <PanelHeading title={editor.drawing.markup ? "Markup" : "Draw"}>
+        {editor.drawing.markup
+          ? "Annotate above the content layers."
+          : "Draw editable ink into the selected layer."}
       </PanelHeading>
       <DrawingTools
-        activeSketch={editor.drawing.activeSketch}
+        tool={editor.drawing.tool}
+        colorTarget={editor.drawing.colorTarget}
+        armed={editor.drawing.active}
+        target={
+          editor.drawing.markup
+            ? "Markup"
+            : editor.document.layerList().find((layer) => layer.id === editor.layers.active)!.name
+        }
         settings={editor.drawing.settings}
         visible={editor.drawing.visible}
         favorites={editor.drawing.favorites}
@@ -296,20 +324,19 @@ function TagsSection({
 function drawingActions(editor: EditorController): DrawingActions {
   const drawing = editor.drawing;
   return {
+    tool: (tool) => drawing.activate(tool),
+    family: (family) => drawing.family(family),
+    style: (settings) => drawing.style(settings),
+    target: (target) => {
+      drawing.colorTarget = target;
+      editor.emit();
+    },
     change: (settings) => drawing.update(settings),
     favorite: (index, save) => drawing.favorite(index, save),
     toggle: () => drawing.toggle(),
     clear: () => drawing.clear(),
-    recolor: () => drawing.recolor(),
-    make: () => drawing.make(),
-    blank: () => drawing.make(true),
-    fit: () => drawing.fit(),
-    demote: () => drawing.demote(),
-    leave: () => {
-      drawing.leave();
-      editor.setTool("select");
-    },
-    fill: () => drawing.fill(),
+    promote: () => drawing.transfer(false),
+    demote: () => drawing.transfer(true),
     close: () => drawing.close(),
   };
 }

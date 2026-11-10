@@ -71,7 +71,6 @@ const TYPES: Partial<Record<Item["type"], Look>> = {
   band: { fill: "#e6f6f7", line: "none", valign: "top", textSize: 13 },
   line: { line: "#7f8aa3", lineWidth: 2 },
   drawing: { fill: "none", line: "#6554c0", lineWidth: 3, path: "curved", arrow: "none" },
-  sketch: { fill: "none", line: "#b9bfcd", padding: 0 },
   highlight: { fill: "none", line: "#f5bc00", lineWidth: 4 },
   slide: {
     fill: "none",

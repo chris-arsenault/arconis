@@ -10,6 +10,8 @@ export interface SelectionTransform {
   angle: number;
   /** Translation after scaling and rotation, used when a holder's center changes. */
   offset?: { x: number; y: number };
+  /** Uniform size factor for aspect-preserving content in a general panel resize. */
+  aspectScale?: number;
 }
 export type TransformedObject = Pick<Item, "x" | "y" | "width" | "height" | "points"> & {
   rotation: number;
@@ -47,23 +49,6 @@ export function transformObjects(
   return result;
 }
 
-/** Reshaping a Drawing carries its ink from the old bounds into the new bounds. */
-export function drawingTransform(
-  before: Item,
-  after: Item,
-  beforeLook: Look,
-  afterLook: Look
-): SelectionTransform {
-  const anchor = { x: before.x + before.width / 2, y: before.y + before.height / 2 };
-  return {
-    anchor,
-    scaleX: before.width ? after.width / before.width : 1,
-    scaleY: before.height ? after.height / before.height : 1,
-    angle: (afterLook.rotation ?? 0) - (beforeLook.rotation ?? 0),
-    offset: { x: after.x + after.width / 2 - anchor.x, y: after.y + after.height / 2 - anchor.y },
-  };
-}
-
 function pointTransform({
   anchor,
   scaleX,
@@ -83,7 +68,7 @@ function pointTransform({
 
 function transformObject(
   item: Item,
-  { scaleX, scaleY, angle }: SelectionTransform,
+  { scaleX, scaleY, angle, aspectScale }: SelectionTransform,
   apply: (point: PathPoint) => PathPoint,
   look: Look
 ): TransformedObject {
@@ -91,7 +76,7 @@ function transformObject(
   const points = item.points.map((point) => apply(point).map(round) as PathPoint);
   if (!isBox(item)) return transformPath(item, points, rotation, angle, look);
   const locked = isLockedIcon(item);
-  const evenScale = Math.min(scaleX, scaleY);
+  const evenScale = aspectScale ?? Math.min(scaleX, scaleY);
   const even = keepsAspectOnTransform(item);
   const width = Math.max(MINIMUM_SIZE, round(item.width * (even ? evenScale : scaleX)));
   const height = Math.max(MINIMUM_SIZE, round(item.height * (even ? evenScale : scaleY)));

@@ -18,5 +18,8 @@ export function updateCellGeometry(
   if (values.y !== undefined) geometry.y = values.y - origin.y;
   if (values.width !== undefined) geometry.width = values.width;
   if (values.height !== undefined) geometry.height = values.height;
+  // A committed numeric field is one complete undo step, independent of the next field.
+  document.undo.stopCapturing();
   model.setGeometry(cell, geometry);
+  document.undo.stopCapturing();
 }

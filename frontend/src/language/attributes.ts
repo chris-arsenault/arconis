@@ -117,6 +117,11 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   property,
   markup: () => ({ kind: "markup", value: true }),
   workspace: () => ({ kind: "markup", value: false }),
+  "scale-contents": (cursor) => {
+    const value = !cursor.word("off");
+    cursor.word("on");
+    return { kind: "scaleContents", value };
+  },
   target: (cursor) => ({ kind: "target", ref: cursor.ref() }),
   // Not bare `layer`: canvases already use that word as a style's name.
   "in-layer": (cursor) => ({ kind: "layer", ref: cursor.ref("a layer's id") }),

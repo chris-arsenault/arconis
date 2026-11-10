@@ -74,6 +74,7 @@ export function isWebLink(link: string) {
 /** The field words of an item's statement, in canonical order, after what it is and before its look. */
 export function fieldWords(item: Item) {
   const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
+  if (item.scaleContents) parts.push("scale-contents");
   if (item.tags?.length) parts.push("tags", item.tags.join(", "));
   if (item.marker) parts.push("marker", item.marker);
   if (item.task) parts.push("task", item.task);

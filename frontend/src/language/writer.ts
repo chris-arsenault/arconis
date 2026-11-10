@@ -41,8 +41,7 @@ import type {
 } from "./syntax";
 import { isConversation, type Conversation } from "./effects";
 import { attributesFor } from "./attributeRouting";
-import { canConnect } from "../document/capabilities";
-import { checkDrawings, reshapeDrawing } from "./drawing";
+import { checkedDrawingEndpoint, checkDrawings, reshapePanel } from "./drawing";
 
 export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
@@ -116,7 +115,9 @@ class Writer {
       const target = draft.item(ref, line);
       if (!isBox(target) || target.type === "highlight")
         throw new LanguageError("Highlight a workspace object with a box.", line);
-      Object.assign(draft.items.get(id)!, { target: target.id, markup: true, inside: "" });
+      const highlight = draft.items.get(id)!;
+      highlight.target = target.id;
+      if (highlight.markup !== false) highlight.inside = "";
     }
     finishBands(draft, this.bands);
     // A file says exactly where everything is, even a child left outside its frame.
@@ -373,7 +374,7 @@ class Writer {
       );
     const { draft } = this;
     const item = draft.item(statement.ref, statement.line);
-    const before = item.type === "sketch" ? { ...item, look: draft.lookOf(item) } : null;
+    const before = { ...item };
     if (statement.name !== undefined) item.name = statement.name;
     if (statement.subtitle !== undefined) item.subtitle = statement.subtitle;
     if (isLink(item)) {
@@ -382,7 +383,7 @@ class Writer {
     }
     this.describe(item, statement.attributes, statement.line);
     this.matchSizes(item, statement.attributes, statement.line);
-    reshapeDrawing(draft, before, item);
+    reshapePanel(draft, before, item);
     const movesIn = scope.nested && item.inside !== scope.holder;
     if (movesIn) item.inside = scope.holder;
     if (movesIn || attributesFor(statement.attributes, "item", "holder").length)
@@ -426,16 +427,10 @@ class Writer {
   }
 
   private endpoint(endpoint: Endpoint, line: number, scope: Scope, from?: string, branch = false) {
-    if (endpoint.ref) return this.checkedEndpoint(this.draft.resolve(endpoint.ref, line), line);
+    if (endpoint.ref)
+      return checkedDrawingEndpoint(this.draft, this.draft.resolve(endpoint.ref, line), line);
     const follow = from ? this.follower(from, branch) : undefined;
-    return this.checkedEndpoint(this.newItem(endpoint.item!, scope, follow), line);
-  }
-
-  private checkedEndpoint(id: string, line: number) {
-    const item = this.draft.items.get(id)!;
-    if (!canConnect(item, this.draft.items.get(item.inside)))
-      throw new LanguageError("Connect a workspace object or a promoted Drawing.", line);
-    return id;
+    return checkedDrawingEndpoint(this.draft, this.newItem(endpoint.item!, scope, follow), line);
   }
 
   /** An item declared at a line's far end goes to the right of its start, or as a topic's branch. */

@@ -19,13 +19,21 @@ All notable user-visible changes are recorded here.
 
 ### Canvas interactions
 
+- Split Draw (P), which paints into the selected content layer, from Markup (M), which creates
+  annotations. Both share brush controls and support moving selected ink between destinations.
+  Replaced special Drawing holders with ordinary panels and added Scale content on resize for
+  general panel content, including ink, text and shapes, across browser and MCP edits.
+- Reorganized drawing around Freehand, Highlight and Vector with independent remembered brushes,
+  contextual Stroke, Fill and opacity controls, immediate undoable selected-ink styling and a stroke
+  preview. Radial menus and shortcuts use the same tools. Added a shared cursor registry for drawing,
+  erasing, navigation, connection and placement, including temporary pan restoration.
 - Added Markdown object links using `[label](canvas://object-id)`, with a `local://` alias.
   The Markdown toolbar can pick a target directly on the canvas or search by name, tag or id,
   preserving the text selection through peer edits. Following a link uses canvas navigation and
   view history, including drawings and routed lines.
 - Added guest usability feedback saved to private S3 storage with diagnostic metadata and tags.
   An unchecked screenshot option attaches the standard whole-canvas PNG export only when selected.
-- Added a Mode wedge to the canvas radial that opens a small arc of Select, Add, Draw and Connect
+- Added a Mode wedge to the canvas radial that opens a small arc of Select, Add, Draw, Markup and Connect
   beside it, without changing the ring's commands; Add shows shapes in the ring. Drawing hides
   workspace connection and resize widgets while retaining transform handles for lassoed ink.
 - Attached object indicators directly to the painted edge, centered so lone badges stay close to

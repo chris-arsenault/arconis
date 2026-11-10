@@ -1,74 +1,79 @@
-import { Blend } from "lucide-react";
-import { useId } from "react";
 import type { InkSettings } from "../editor/inkCommands";
-import type { InkKind } from "../document/types";
 import { NumericInput } from "./NumericInput";
+import { useId } from "react";
 interface BrushProps {
   settings: InkSettings;
   change: (values: Partial<InkSettings>) => void;
 }
-export const SHAPES: [InkKind, string][] = [
-  ["freehand", "Freehand"],
-  ["line", "Line"],
-  ["arrow", "Arrow"],
-  ["rectangle", "Box"],
-  ["ellipse", "Circle"],
-  ["double-arrow", "Double arrow"],
-  ["polygon", "Polygon"],
-  ["bracket", "Bracket"],
-  ["brace", "Brace"],
-  ["cloud", "Revision cloud"],
-];
 const COLORS = ["#6554c0", "#e64980", "#ffcc00", "#2f9e44", "#1971c2", "#212529", "#ffffff"];
+
+function capabilities(settings: InkSettings, selected: boolean, closed: boolean) {
+  const paint = ["pen", "highlighter", "highlight"].includes(settings.mode) || selected;
+  return {
+    paint,
+    width: paint || ["eraser", "precision"].includes(settings.mode),
+    fill: (paint && closed) || settings.mode === "fill",
+  };
+}
 
 export function BrushControls({
   settings,
   change,
   recent,
   selected,
-  onFill,
   onClose,
+  closed,
+  onTarget,
 }: Readonly<
-  BrushProps & { recent: string[]; selected: boolean; onFill: () => void; onClose: () => void }
+  BrushProps & {
+    recent: string[];
+    selected: boolean;
+    closed: boolean;
+    onClose: () => void;
+    onTarget: (target: "color" | "fill") => void;
+  }
 >) {
-  const drawsShapes = ["pen", "highlighter"].includes(settings.mode);
-  const hasWidth = ["pen", "highlighter", "eraser", "precision"].includes(settings.mode);
+  const controls = capabilities(settings, selected, closed);
   return (
     <>
-      {drawsShapes && (
+      {controls.paint && (
+        <ColorControls
+          label="Stroke"
+          value={settings.color}
+          recent={recent}
+          onFocus={() => onTarget("color")}
+          change={(color) => change({ color })}
+        />
+      )}
+      {controls.width && <BrushWidths settings={settings} change={change} />}
+      {controls.fill && (
+        <ColorControls
+          label="Fill"
+          value={settings.fill}
+          recent={recent}
+          onFocus={() => onTarget("fill")}
+          change={(fill) => change({ fill })}
+        />
+      )}
+      {controls.paint && (
         <label className="drawing-field">
-          Stroke shape
-          <select
-            aria-label="Drawing geometry"
-            value={settings.shape}
-            onChange={(event) => change({ shape: event.target.value as InkKind })}
-          >
-            {SHAPES.map(([kind, label]) => (
-              <option key={kind} value={kind}>
-                {label}
-              </option>
-            ))}
-          </select>
+          Opacity{" "}
+          <span className="drawing-opacity">
+            <input
+              aria-label="Ink opacity"
+              type="range"
+              min="0"
+              max="100"
+              value={settings.opacity}
+              onChange={(event) => change({ opacity: Number(event.target.value) })}
+            />
+            <output>{settings.opacity}%</output>
+          </span>
         </label>
       )}
-      {settings.shape === "polygon" && drawsShapes && (
-        <p className="drawing-hint">Click corners. Enter closes the polygon; Escape cancels it.</p>
-      )}
-      {hasWidth && <BrushWidths settings={settings} change={change} />}
-      {!["eraser", "precision", "eyedropper"].includes(settings.mode) && (
-        <div className="drawing-field stacked">
-          <span>Ink color</span>
-          <BrushColors settings={settings} change={change} recent={recent} />
-        </div>
-      )}
-      {(drawsShapes || settings.mode === "fill" || selected) && (
-        <PaintControls
-          settings={settings}
-          change={change}
-          onFill={onFill}
-          onClose={onClose}
-          selected={selected}
-        />
+      {controls.fill && <PaintControls settings={settings} change={change} />}
+      {selected && settings.mode !== "highlight" && (
+        <button onClick={onClose}>{closed ? "Open selected paths" : "Close selected paths"}</button>
       )}
     </>
   );
@@ -90,7 +95,7 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
           </button>
         ))}
         <NumericInput
-          label="Brush width"
+          label="Stroke width"
           positive
           value={settings.width}
           onCommit={(width) => change({ width })}
@@ -100,61 +105,61 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
   );
 }
 
-function BrushColors({ settings, change, recent }: Readonly<BrushProps & { recent: string[] }>) {
+function ColorControls({
+  label,
+  value,
+  change,
+  recent,
+  onFocus,
+}: Readonly<{
+  label: string;
+  value: string;
+  change: (color: string) => void;
+  recent: string[];
+  onFocus: () => void;
+}>) {
   return (
-    <div className="drawing-options" role="group" aria-label="Ink colors">
-      {[...new Set([...COLORS, ...recent])].map((color) => (
+    <div className="drawing-field stacked" onFocus={onFocus}>
+      <span>{label}</span>
+      <div className="drawing-options" role="group" aria-label={`${label} colors`}>
         <button
-          key={color}
-          aria-label={`Ink ${color}`}
-          aria-pressed={settings.color === color}
-          className="ink-swatch"
-          onClick={() => change({ color })}
+          className="no-paint"
+          aria-label={`No ${label.toLowerCase()}`}
+          aria-pressed={value === "none"}
+          onClick={() => change("none")}
         >
-          <svg width="18" height="18" aria-hidden="true">
-            <circle cx="9" cy="9" r="8" fill={color} />
-          </svg>
+          ∅
         </button>
-      ))}
-      <input
-        aria-label="Ink color"
-        type="color"
-        value={settings.color}
-        onChange={(event) => change({ color: event.target.value })}
-      />
+        {[...new Set([...COLORS, ...recent])].map((color) => (
+          <button
+            key={color}
+            aria-label={`${label} ${color}`}
+            aria-pressed={value === color}
+            className="ink-swatch"
+            onClick={() => change(color)}
+          >
+            <svg width="18" height="18" aria-hidden="true">
+              <circle cx="9" cy="9" r="8" fill={color} />
+            </svg>
+          </button>
+        ))}
+        <input
+          aria-label={`${label} color`}
+          type="color"
+          value={value === "none" ? "#ffffff" : value}
+          onChange={(event) => change(event.target.value)}
+        />
+      </div>
     </div>
   );
 }
 
-function PaintControls({
-  settings,
-  change,
-  onFill,
-  onClose,
-  selected,
-}: Readonly<BrushProps & { onFill: () => void; onClose: () => void; selected: boolean }>) {
+function PaintControls({ settings, change }: Readonly<BrushProps>) {
   const angleId = useId();
   return (
     <details className="drawing-group">
-      <summary>
-        <Blend size={14} />
-        Fill and gradient
-      </summary>
+      <summary>Fill gradient</summary>
       <div className="drawing-tools">
-        <label className="drawing-field">
-          Shape fill
-          <span className="drawing-options">
-            <input
-              aria-label="Shape fill"
-              type="color"
-              value={settings.fill === "none" ? "#ffffff" : settings.fill}
-              onChange={(event) => change({ fill: event.target.value })}
-            />
-            <button type="button" onClick={() => change({ fill: "none" })}>
-              No shape fill
-            </button>
-          </span>
-        </label>
         <label className="drawing-field">
           Gradient color
           <span className="drawing-options">
@@ -178,18 +183,8 @@ function PaintControls({
             onCommit={(gradientAngle) => change({ gradientAngle })}
           />
         </label>
-        {selected && (
-          <div className="drawing-options">
-            <button type="button" onClick={onClose}>
-              Close or open selected path
-            </button>
-            <button type="button" onClick={onFill}>
-              Fill selection
-            </button>
-          </div>
-        )}
         <p className="drawing-hint">
-          Fill uses the ink color. Select a gradient-filled path to drag its direction handle.
+          The gradient starts at Fill. Select a filled path to drag its direction handle.
         </p>
       </div>
     </details>

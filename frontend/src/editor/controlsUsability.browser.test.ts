@@ -126,10 +126,11 @@ it("keeps brush and gradient-angle drafts editable with valid native constraints
   try {
     const page = await open(context, createRoomId());
     await page.getByRole("button", { name: "Draw (P)", exact: true }).click();
-    const brush = page.getByLabel("Brush width", { exact: true });
+    await page.getByRole("button", { name: "Vector", exact: true }).click();
+    const brush = page.getByLabel("Stroke width", { exact: true });
     expect(await brush.evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(true);
     await clearAndType(brush, "0.5");
-    await page.getByText("Fill and gradient", { exact: true }).click();
+    await page.getByText("Fill gradient", { exact: true }).click();
     await clearAndType(page.getByLabel("Gradient angle", { exact: true }), "-45");
     await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("button", { name: "Draw (P)", exact: true }).click();

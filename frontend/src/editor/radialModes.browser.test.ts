@@ -20,7 +20,7 @@ const at = (centre: { x: number; y: number }, degrees: number, radius: number) =
 });
 /** The canvas ring's Mode wedge, south-west, and the arc's segments beside it. */
 const MODE_WEDGE = 225;
-const SEGMENTS = { Select: 180, Add: 210, Draw: 240, Connect: 270 };
+const SEGMENTS = { Select: 165, Add: 195, Draw: 225, Markup: 255, Connect: 285 };
 
 /** Rests a held right button on the Mode wedge, then releases on one of the arc's modes. */
 async function chooseMode(page: Page, mode: keyof typeof SEGMENTS, x = 500, y = 500) {
@@ -103,6 +103,10 @@ it("switches to drawing from the radial and hides workspace handles while preser
   const before = (await exported(page)).objects[0];
   const bounds = (await canvas.boundingBox())!;
   await chooseMode(page, "Draw", 700, 500);
+  await page
+    .getByTestId("command-ring")
+    .getByRole("menuitem", { name: "Freehand", exact: true })
+    .click();
   expect(await canvas.getAttribute("data-tool")).toBe("draw");
   expect(await page.getByTestId("command-ring").count()).toBe(0);
   await expect.poll(() => resize.count()).toBe(0);
@@ -118,7 +122,16 @@ it("switches to drawing from the radial and hides workspace handles while preser
   expect(saved.find((item) => item.id === before.id)).toEqual(before);
   expect(saved.filter((item) => item.type === "drawing")).toHaveLength(1);
 
-  await page.getByRole("button", { name: "Lasso", exact: true }).click();
+  await chooseMode(page, "Draw", 700, 500);
+  const ring = page.getByTestId("command-ring");
+  await ring.getByRole("menuitem", { name: "Vector", exact: true }).click();
+  await ring.getByRole("menuitem", { name: "Draw arrow", exact: true }).click();
+  expect(
+    await page.getByRole("button", { name: "Arrow", exact: true }).getAttribute("aria-pressed")
+  ).toBe("true");
+  expect(await canvas.getAttribute("data-cursor")).toBe("crosshair");
+
+  await page.getByRole("button", { name: "Select ink", exact: true }).click();
   await page.mouse.move(bounds.x + 250, bounds.y + 250);
   await page.mouse.down();
   for (const [x, y] of [

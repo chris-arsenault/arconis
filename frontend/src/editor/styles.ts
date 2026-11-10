@@ -101,14 +101,6 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     startSize: 6,
     endSize: 6,
   },
-  sketch: {
-    rounded: false,
-    verticalLabelPosition: "bottom",
-    whiteSpace: "nowrap",
-    overflow: "visible",
-    rotatable: false,
-    resizable: false,
-  },
   highlight: {
     rounded: true,
     noLabel: true,

@@ -146,21 +146,21 @@ Any item or line takes these among its attributes, whatever its type; canonical 
 
 ## Drawings and markup
 
-Use drawing for an editable world-coordinate path, sketch for a boxed Drawing object, and highlight for an outline attached to a workspace object:
+Use drawing for an editable world-coordinate path, ordinary frames/groups to collect artwork, and highlight for an outline attached to a workspace object:
 
   drawing mark markup ink arrow points 10,20 180,90 line #e64980 line-width 4 arrow arrow
   highlight attention target api line #ffcc00 line-width 4
-  sketch diagram "Sketch" at 200,100 size 400,300 {
+  frame diagram "Artwork" at 200,100 size 400,300 scale-contents title top fill none {
     drawing box ink rectangle points 220,120 360,120 360,220 220,220 220,120 closed fill #ffeeaa
   }
 
-markup places a drawing above the workspace; workspace makes it ordinary content. Existing drawings without markup remain ordinary content. A sketch holds editable drawing paths; its contents use the same world coordinates as every other item, and in <id> changes their holder (in none returns to the canvas). To promote marks, declare a sketch and move the marks into its block with workspace; to return them, use edit <id> markup in none. Highlights always belong to markup, follow target movement/size/rotation, and disappear with their target. They change no target style.
+markup places ink above the workspace; workspace makes it ordinary content. Existing drawings without markup remain ordinary content. Browser Draw targets the chosen content layer; Markup targets annotations, using the same brushes. For agents, use workspace in-layer <layer id> or markup explicitly. Use edit <id> workspace in none in-layer <layer id> to move marks to a content layer; edit <id> markup in none returns them to Markup. Highlights default to markup but accept workspace and in-layer too; they follow target movement/size/rotation and disappear with their target. They change no target style.
 
 ink freehand|line|arrow|double-arrow|rectangle|ellipse|polygon|bracket|brace|cloud names a drawing's geometry convention. points explicitly supplies its path, including shape paths; ink alone does not generate points. closed closes a path for filling; closed off opens it. arrow and start-arrow control arrowheads. stroke-opacity N (0-100) controls ink transparency independently of fill opacity; highlighter strokes use a broad line-width and stroke-opacity around 30. gradient <color|none> sets the second fill color, gradient-angle N sets its clockwise direction in degrees. Gradient and solid fills require a closed drawing path. All new look terms also work in named styles and support default clearing.
 
-Markup is shared, saved and undoable, with no expiration. Visibility and the currently edited Drawing are personal editor state, not shared language fields. Drawing edits use the existing atomic write and agent-local undo. A saved file and MCP read return these exact records.
+Markup is shared, saved and undoable, with no expiration. Tool selection and layer visibility are personal editor state. Ink edits use the existing atomic write and agent-local undo. A saved file and MCP read return these exact records.
 
-Editing an existing sketch's size or rotation transforms its contents with it; file declarations keep their points exactly as written. Markup and paths held by a sketch cannot be connector endpoints. Remove their connectors in the same write before converting connected paths; an invalid conversion rejects the whole write without changing the canvas.
+Frames and groups accept scale-contents (or scale-contents off). Editing an existing panel's size with this enabled scales descendant positions, dimensions, path points, text and paint once, including nested content. Pictures and vendor icons keep their proportions. Ordinary panels leave child geometry unchanged; file declarations keep geometry exactly as written. Legacy sketch syntax loads as an ordinary frame with scale-contents, and is printed as frame. Panels do not clip their contents. Markup cannot be a connector endpoint; remove connectors in the same write before converting connected ink to markup. An invalid conversion rejects the whole write without changing the canvas.
 
 ## Layers
 

@@ -2,7 +2,7 @@
 
 An assistant joins an ordinary room as another participant. It reads and writes the same canvas
 language used by files and browser edits, including diagrams, topic trees, Markdown, slides,
-editable Drawings, markup and comments.
+editable ink, markup and comments.
 
 ## Connect an assistant
 
@@ -113,19 +113,21 @@ frame system "Order flow" at 40,40 row gap 40 {
 }
 highlight review target api line #ffcc00
 drawing mark markup ink arrow points 80,300 260,220 line #e64980 arrow arrow
-sketch sketch1 "Retry sketch" at 500,40 size 260,180 {
+frame artwork "Retry sketch" at 500,40 size 260,180 scale-contents title top fill none {
   drawing path1 ink rectangle points 520,60 720,60 720,180 520,180 520,60 closed fill #ffeeaa
 }
 ```
 
-`ink` names a geometry convention; explicit `points` supply the path. Drawing contents use
-world coordinates, including inside a `sketch`. Moving, resizing or rotating an existing sketch
-through `edit` carries its contents and gradient direction with it. Imported file declarations
-retain the supplied points exactly.
+`ink` names a geometry convention; explicit `points` supply the path. All content uses world
+coordinates, including inside panels. Frames and groups with `scale-contents` scale their
+contents and paint when resized through `edit`. Moving a panel carries its contents.
+Imported file declarations retain the supplied geometry exactly.
 
-Markup and Drawing contents cannot be connector endpoints. To convert a connected workspace
-path, remove its connectors in the same write before changing it to markup or placing it inside
-a Drawing. An invalid conversion rejects the entire write.
+Use `workspace in-layer <id>` for ink on a content layer and `markup` for annotations.
+Move ink between them with `edit <id> workspace in none in-layer <id>` or
+`edit <id> markup in none`. Markup cannot be a connector endpoint. Remove a connected
+path's connectors in the same write before converting it to markup; invalid conversions
+reject the entire write. Use your own browser to inspect the rendered canvas visually.
 
 ## Handle changes and errors
 

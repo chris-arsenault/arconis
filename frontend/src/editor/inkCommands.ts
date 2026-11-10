@@ -22,6 +22,7 @@ export interface InkSettings {
   fill: string;
   gradient: string;
   gradientAngle: number;
+  opacity: number;
 }
 
 /** Application commands own transactions and Undo; controls supply semantic arguments. */
@@ -40,18 +41,18 @@ export function addInk(
   canvas: CanvasDocument,
   points: PathPoint[],
   settings: InkSettings,
-  inside = "",
+  markup = true,
   viewScale = 1
 ) {
-  const { shape, mode, color, width } = settings;
+  const { shape, color, width } = settings;
   const closed = ["rectangle", "ellipse", "polygon", "cloud"].includes(shape);
   const look: Look = {
     ...creationValues("drawing", viewScale).look,
     line: color,
     lineWidth: width,
     path: shape === "brace" ? "curved" : "diagonal",
-    strokeOpacity: mode === "highlighter" ? 30 : 100,
-    opacity: mode === "highlighter" ? 30 : 100,
+    strokeOpacity: settings.opacity,
+    opacity: settings.opacity,
     closed,
     fill: closed ? settings.fill : "none",
     gradient: closed ? settings.gradient : "none",
@@ -60,19 +61,35 @@ export function addInk(
     startArrow: shape === "double-arrow" ? "arrow" : "none",
   };
   return inkAction(canvas, () =>
-    canvas.create("drawing", 0, 0, { points, ink: shape, markup: !inside, inside, look })
+    canvas.create("drawing", 0, 0, { points, ink: shape, markup, look })
   );
 }
 
-export function highlightObject(canvas: CanvasDocument, id: string, color: string) {
+export function highlightObject(
+  canvas: CanvasDocument,
+  id: string,
+  settings: InkSettings,
+  markup = true
+) {
   const target = canvas.get(id);
   if (!target || !isBox(target) || isMarkup(target)) return;
   inkAction(canvas, () => {
     const existing = canvas
       .list()
-      .filter((item) => item.type === "highlight" && item.target === id);
+      .filter(
+        (item) =>
+          item.type === "highlight" &&
+          item.target === id &&
+          isMarkup(item) === markup &&
+          (markup || (item.layer ?? "base") === (canvas.activeLayer || "base"))
+      );
     if (existing.length) canvas.remove(existing.map((item) => item.id));
-    else canvas.create("highlight", 0, 0, { target: id, markup: true, look: { line: color } });
+    else
+      canvas.create("highlight", 0, 0, {
+        target: id,
+        markup,
+        look: { line: settings.color, lineWidth: settings.width, strokeOpacity: settings.opacity },
+      });
   });
 }
 
@@ -112,7 +129,7 @@ export function fillInk(canvas: CanvasDocument, item: Item, settings: InkSetting
   if (item.type !== "drawing" || !appearance.closed) return;
   inkAction(canvas, () =>
     canvas.patchLook(item.id, {
-      fill: settings.color,
+      fill: settings.fill,
       gradient: settings.gradient,
       gradientAngle: settings.gradientAngle,
     })
@@ -140,7 +157,7 @@ export function paintInk(canvas: CanvasDocument, items: Item[], settings: InkSet
       )
       .forEach((item) =>
         canvas.patchLook(item.id, {
-          fill: settings.color,
+          fill: settings.fill,
           gradient: settings.gradient,
           gradientAngle: settings.gradientAngle,
         })

@@ -1,5 +1,5 @@
 import { isId } from "../document/ids";
-import { STENCILS, type Item, type Stencil } from "../document/types";
+import { isFrame, STENCILS, type Item, type Stencil } from "../document/types";
 import type { Draft } from "./draft";
 import { LanguageError } from "./lexer";
 import type { Attribute } from "./syntax";
@@ -49,12 +49,17 @@ function word(item: Item, text: string, { draft, line }: Describing) {
 
 const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
   ...FIELD_DESCRIBERS,
+  scaleContents: (item, attribute, { line }) => {
+    if (!isFrame(item))
+      throw new LanguageError("Only a frame or group scales its contents on resize.", line);
+    if (attribute.value) item.scaleContents = true;
+    else delete item.scaleContents;
+  },
   markup: (item, attribute, { line }) => {
-    if (item.type === "highlight" && !attribute.value)
-      throw new LanguageError("Highlights always belong to markup.", line);
     if (item.type !== "drawing" && item.type !== "highlight")
       throw new LanguageError("Only drawings and highlights belong to markup.", line);
     item.markup = attribute.value;
+    if (attribute.value) delete item.layer;
   },
   ink: (item, attribute, { line }) => {
     if (item.type !== "drawing") throw new LanguageError("Only a drawing has ink geometry.", line);

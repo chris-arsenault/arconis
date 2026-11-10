@@ -3,6 +3,7 @@ import { authoredLook } from "../document/appearance";
 import { transformObjects, type SelectionTransform } from "../document/transform";
 import { LOCAL, isBox, isFrame, type Item } from "../document/types";
 import { RateLimitedWrite } from "./rateLimitedWrite";
+import { panelResizeChanges } from "../document/panelResize";
 
 /** How often a selection-frame gesture writes to the document, and so reaches peers. */
 const TRANSFORM_WRITE_MS = 100;
@@ -39,6 +40,14 @@ export class TransformSession {
     const values = transformObjects(items, transform, (item) =>
       authoredLook(item, document.namedStyle(item.style))
     );
+    const resized = transform.scaleX !== 1 || transform.scaleY !== 1;
+    const paint = resized
+      ? panelResizeChanges(
+          items,
+          items.map((item) => ({ ...item, ...values.get(item.id)! })),
+          (item) => authoredLook(item, document.namedStyle(item.style))
+        )
+      : [];
     document.doc.transact(() => {
       items.forEach((item) => {
         const { rotation, gradientAngle, ...geometry } = values.get(item.id)!;
@@ -47,6 +56,7 @@ export class TransformSession {
         if (isBox(item) && !isFrame(item) && transform.angle)
           document.patchLook(item.id, { rotation });
       });
+      paint.forEach(({ id, look }) => document.patchLook(id, look));
     }, LOCAL);
   }
 

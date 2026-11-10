@@ -48,7 +48,7 @@ interface EndpointPlan {
 
 /** Resolve geometry before a topology command mutates anything. New anchors are still drafts. */
 function planEndpoint(editor: EditorController, item: Item): EndpointPlan | null {
-  if (!canConnect(item, editor.document.get(item.inside) ?? undefined)) return null;
+  if (!canConnect(item)) return null;
   if (!isLine(item)) return { item, insert: false };
   const { document, graph } = editor;
   const existing = anchorOf(document.list(), item.id);

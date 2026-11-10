@@ -79,7 +79,7 @@ it("organises a shared canvas in layers, with hiding local to each person", asyn
 
   // Markup tools draw into markup whatever layer is chosen.
   await a.locator('[data-testid="layer"] .layer-name', { hasText: "Layer 2" }).click();
-  await a.getByRole("button", { name: "Draw (P)", exact: true }).click();
+  await a.getByRole("button", { name: "Markup (M)", exact: true }).click();
   await stroke(a, [200, 600], [420, 640]);
   await expect
     .poll(async () => (await exported(b)).objects.filter((item) => item.markup).length)

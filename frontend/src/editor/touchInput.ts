@@ -48,7 +48,7 @@ export function bindTouchInput(
   const pen = (event: PointerEvent) => {
     if (!onEmptyCanvas(event)) return;
     penTool = editor.tool;
-    editor.setTool("draw");
+    editor.setTool(editor.drawing.destination);
   };
   // On the window, capturing, so the choice of tool lands before the canvas's own listeners.
   window.addEventListener(

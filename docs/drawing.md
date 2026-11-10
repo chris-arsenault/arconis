@@ -1,128 +1,113 @@
 # Drawing and markup
 
-Markup is shared, editable notation above the workspace. A Drawing is a workspace object that
-holds editable ink. Use markup for annotations and promote a sketch when it should move and
-connect as part of the diagram.
+Choose **Draw (P)** to paint editable ink into the selected content layer. Choose **Markup (M)**
+to annotate above every content layer. Both tools have the same brushes and controls; switching
+between them changes the destination and keeps the current brush. The panel names that destination.
 
-## Choose an instrument
+Use **Layers** to choose the content layer for Draw. Markup belongs to its own annotation plane.
+The drag radial's **Mode** arc also offers Draw and Markup, followed by the shared drawing tools.
+Workspace connection points, connected-copy controls and resize handles stay hidden while painting.
 
-Press **P** or choose **Draw** in the left rail. Each instrument has an icon and guidance for its
-gesture. The panel shows the settings that apply to that instrument.
+![Drawing controls and selected gradient ink](images/drawing.png)
 
-The drag radial's **Mode** arc switches to drawing as well. While drawing, workspace connection
-points, connected-copy controls and resize handles stay hidden. Lassoed ink retains its own
-transform handles.
+## Choose a brush
 
-![Drawing palette, lassoed gradient shape and direction handle](images/drawing.png)
+| Tool               | Use                                                                  |
+| ------------------ | -------------------------------------------------------------------- |
+| Freehand           | Drag a pen stroke.                                                   |
+| Highlight          | Choose Marker, Shaped highlight or an attached Object outline.       |
+| Vector             | Choose a geometric path, then drag its bounds or endpoints.          |
+| Select ink         | Drag around whole paths; Shift adds to the selection.                |
+| Erase whole stroke | Remove every whole stroke touched by a click or sweep.               |
+| Erase segment      | Cut away parts of paths while keeping the surviving pieces editable. |
+| Fill path          | Click a closed path to apply Fill and gradient settings.             |
+| Pick color         | Sample Stroke or Fill and return to the previous creation brush.     |
 
-| Instrument       | Use                                                                       |
-| ---------------- | ------------------------------------------------------------------------- |
-| Pen              | Draw opaque freehand strokes or shapes.                                   |
-| Highlighter      | Draw translucent strokes over text and objects.                           |
-| Highlight object | Click a workspace object to toggle an attached outline.                   |
-| Lasso            | Select whole ink strokes and shapes for editing.                          |
-| Eraser           | Remove every whole stroke touched by a click or sweep.                    |
-| Precision eraser | Cut away the parts of strokes crossed by the eraser.                      |
-| Fill             | Click a closed path to apply the current ink color and gradient settings. |
-| Eyedropper       | Pick a drawing or object's color into the current ink color.              |
+Freehand, Highlight and Vector remember independent colors, widths, opacity and geometry.
+Highlight remembers its last subtool. Switching brushes, presets or zoom never changes the
+Draw/Markup destination.
 
-Pen and Highlighter remember separate colors and widths. Choose a width preset or enter a
-finer value in **Width**. Use a swatch, a recent color or the color picker. Open **Saved brushes**
-to see a stroke preview, instrument, shape and width for each brush. Click its preview to use
-it, or its **Save** button to replace it with the current settings. Brush preferences and saved
-brushes are stored in your browser.
+**Stroke** paints the outline and **Fill** paints closed interiors. Each offers no paint,
+swatches, recent colors and a color picker. Choose a width preset or enter **Stroke width**.
+**Opacity** applies to the next mark. The preview shows the brush's paint and geometry.
 
-## Draw quick shapes
+Open **Saved brushes** to recall a brush or replace a slot with the current settings. Brushes
+and presets are local browser preferences; the paths themselves are shared document content.
 
-Choose a **Stroke shape**, then draw with Pen or Highlighter:
+## Draw shapes and outlines
+
+Choose **Vector**, or **Highlight → Shaped highlight**, then choose geometry:
 
 | Geometry                       | Gesture                                                                |
 | ------------------------------ | ---------------------------------------------------------------------- |
-| Freehand                       | Drag the stroke.                                                       |
 | Line, Arrow, Double arrow      | Drag from the starting end toward the finishing end.                   |
-| Box, Circle                    | Drag across opposite corners of the shape's bounds.                    |
+| Rectangle, Ellipse             | Drag across opposite corners.                                          |
 | Polygon                        | Click corners; click near the first corner or press Enter to close it. |
 | Bracket, Brace, Revision cloud | Drag across the bounds.                                                |
 
-Hold **Shift** to constrain a box or ellipse to equal sides, or a line or arrow to a fixed
-direction. **Escape** cancels an unfinished polygon. Completed gestures are shared and undoable.
+Hold Shift to constrain equal sides or a fixed direction. Escape cancels an unfinished polygon.
+Changing authoring tools or geometry also cancels unfinished gestures.
 
-## Highlight an object
+**Highlight → Object outline** attaches an outline to the clicked workspace object. It follows
+that object's movement, size and rotation. Click again in the same destination to remove it.
+Draw places the outline in the selected layer; Markup places it among annotations.
 
-Choose **Highlight object**, then click a note, shape, picture or Drawing. The outline follows
-its target when it moves, resizes or rotates, while leaving the target's appearance unchanged.
-Click the object again to remove the outline. Deleting the target removes its outline; Undo
-restores both.
+## Select, edit and transfer ink
 
-Freehand markup stays at the coordinates where you drew it. Use an attached outline when the
-annotation should follow an object.
+**Select ink**, the erasers and **Fill path** operate on the current destination: annotations
+under Markup, or ink in the selected content layer under Draw. Hidden and locked ink stays out
+of these editing gestures. Ordinary selection can also reach content-layer ink.
 
-## Select, transform and erase ink
+After selecting paths, drag to move them or use the selection handles to scale and rotate them.
+Under **Selected ink**, paint edits apply immediately, are shared and undoable, and leave the
+next brush's defaults intact. For several paths the controls show the first path and apply edits
+to every selected path.
 
-1. Choose **Lasso** and drag around strokes or shapes. Hold **Shift** to add to the selection.
-2. Drag the selection to move it, or use its corner and top handles to scale and rotate it.
-3. Choose an ink color and **Apply ink color to strokes** in **Selected strokes**, or use Duplicate
-   and Delete as for other items. The color action appears only when ink strokes are selected.
+- **Move to content layer** puts selected annotations into the currently selected layer.
+- **Move to Markup** makes selected content ink into annotations.
 
-Ordinary workspace selection reaches the diagram beneath markup. Inside an open Drawing,
-Lasso and erasers work on that Drawing's contents. Outside it, they work on markup.
+These actions preserve ids, points and paint. They do not create a wrapper object. Disconnect
+ink used as a connector endpoint before moving it to Markup. Undo reverses a transfer.
 
-**Eraser** removes whole strokes, including when a fast sweep crosses between pointer samples.
-**Precision eraser** leaves the surviving pieces editable. Undo reverses a completed eraser gesture.
-**Delete all annotations**, under **Canvas annotations**, removes the canvas's annotations for
-everyone in one undoable operation, retaining workspace objects and promoted Drawings. This
-canvas-wide action is available outside an open Drawing; it is disabled when there are no annotations.
+## Group artwork with ordinary panels
 
-## Fill a closed path
+Ink is ordinary editable content. Use the existing **Group** command or a frame to keep strokes,
+shapes, text and pictures together. Move or connect the container as for other workspace content.
+There is no separate Drawing object or focused Drawing-editing mode.
 
-Open **Fill and gradient** in the palette. **Shape fill** sets the interior for newly drawn
-closed shapes; **No shape fill** leaves an outline. The pen's ink color controls the outline.
+In a frame or group's **Layout** properties, enable **Scale content on resize** to resize its
+held artwork with the container. It applies to nested content, ink points, shapes, text, pictures
+and internal routes. Paint and text scale too; pictures and vendor icons retain their proportions.
+With the property off, resizing keeps the ordinary panel behavior and leaves content sizes intact.
+The property defaults to off. Old Drawing holders open as ordinary frames with it enabled.
 
-For an existing shape, choose the ink color, select **Fill** and click inside the closed path.
-Alternatively, lasso it and choose **Fill selection**. These two actions use the current ink
-color for the interior. For a freehand loop, select it and use **Close or open selected path**
-to make it eligible for filling.
+Panels do not crop ink to their bounds. Container contents inherit the container's layer.
 
-Choose **Gradient color** for a two-color fill, or **Solid fill** to use one color. Set
-**Gradient angle**, or select a filled gradient path and drag its direction handle. Hold Shift
-while dragging to snap the direction. Moving or transforming a filled Drawing preserves its
-editable paint settings.
+## Fill and gradients
 
-## Promote markup into a Drawing
+Set **Fill** for a closed shape's interior, or **No fill** for an outline. Open **Fill gradient**
+to choose a second color and angle; **Solid fill** returns to one color.
 
-1. Lasso the strokes to keep together.
-2. Choose **Make Drawing**. Arconis creates a holder around the painted ink and opens it for editing.
-3. Add more strokes with the same palette, then choose **Finish Drawing** or press Escape.
-4. Select the Drawing to name, move, resize, rotate, connect or comment on it.
+For an existing shape, use **Fill path** or select ink and edit Fill directly. Select a freehand
+loop and choose **Close selected paths** to make it fillable. Select a gradient-filled path
+and drag its direction handle; Shift snaps the direction.
 
-Promotion preserves the paths and paint rather than flattening them into a picture. A Drawing
-moves with its contents and can sit inside a frame or slide. Its boundary clips the displayed ink;
-paths outside the boundary remain in the document.
+## Cursors, visibility and export
 
-**New Drawing** creates a blank Drawing near the center of the view and opens it for editing.
-Double-click an existing Drawing to edit it again. **Fit bounds to drawing** refits an upright
-boundary around all its painted contents, including wide strokes, and removes unused space.
+Freehand uses a pen cursor, Marker a marker, erasers an eraser, Select ink a lasso, Fill path a
+bucket and Pick color a pipette. Geometry and object targeting use a crosshair. Select keeps
+native manipulation cursors. Pan uses an open hand and a closed hand while dragging. Space
+temporarily borrows Pan, then restores the tool; the middle mouse button also pans temporarily.
 
-**Return to markup** releases the contents and removes the holder. Connectors attached to that
-holder are removed with it. Undo restores the Drawing and its relationships.
+- **Show annotations** changes only your view. Presentations' **Show markup** and Layers'
+  **Markup** eye control the same visibility. Other people retain their own settings.
+- **Delete all annotations** removes Markup for everyone in one undoable action. Content-layer
+  artwork remains. The button is disabled when there are no annotations.
+- **Include markup** independently controls document and PNG exports. Content-layer ink remains
+  included when annotations are omitted.
+- Saved copies retain the complete document. Layers' eyes control each person's visible content;
+  canvas files keep every layer.
 
-## Show, share and export
-
-- **Show annotations**, under **Canvas annotations**, changes only your view. Presentations use
-  the **Show markup** control, and the [layer browser](editing.md#layers) the eye on its
-  **Markup** row, for the same setting. Markup always draws above every layer and belongs to
-  none, whichever layer is chosen. It does not hide markup
-  from other participants or remove it from the document.
-- **Include markup** controls document and PNG exports independently of what you currently see.
-  A clean PNG excludes markup from its pixels and embedded editable copy.
-- Promoted Drawings remain workspace content when markup is hidden, cleared or excluded from export.
-- Local persistence and account saves retain the complete document, including markup.
-
-See [files and pictures](files.md) for export scope and [assistants and MCP](agents.md) for
-authoring the same paths through the canvas language.
-
-## Limitations
-
-Fill operates on one closed path; it does not discover regions formed by crossing separate
-strokes. Lasso selects whole paths, and precision erasing edits stroke geometry rather than
-pixels. Dense collections of long paths can make editing and export noticeably slower.
+Fill works on one closed path rather than discovering regions between separate strokes. Lasso
+selects whole paths, and erasing edits vector geometry. Dense collections of long paths can still
+make editing and export slower.

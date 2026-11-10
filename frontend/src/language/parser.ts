@@ -251,7 +251,8 @@ function linkAhead(cursor: Cursor) {
 /** An item. At an end of a line, a comma separates it from the next end. */
 function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
   const line = cursor.token.line;
-  const type = cursor.next().text as ItemType;
+  const sourceType = cursor.next().text;
+  const type = (sourceType === "sketch" ? "frame" : sourceType) as ItemType;
   const statement: ItemStatement = { kind: "item", type, line, attributes: [] };
   // A stencil's name is the id of anything but a node, and of a node when a name follows it.
   const word = cursor.token.text;
@@ -262,7 +263,16 @@ function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
     statement.id = cursor.next().text;
   names(cursor, statement);
   statement.attributes = attributes(cursor, inLink || linkAhead(cursor));
+  legacyPanel(statement, sourceType);
   return statement;
+}
+
+function legacyPanel(statement: ItemStatement, sourceType: string) {
+  if (sourceType === "sketch")
+    statement.attributes.unshift(
+      { kind: "scaleContents", value: true },
+      { kind: "look", look: { fill: "none", title: "top" }, cleared: [] }
+    );
 }
 
 function arrangement(cursor: Cursor): ArrangeStatement {

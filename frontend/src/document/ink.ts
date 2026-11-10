@@ -15,13 +15,11 @@ export const INK_KINDS: InkKind[] = [
 ];
 
 /** Annotation membership is explicit; existing drawings stay workspace content. */
-export const isMarkup = (item: Item) => item.markup === true || item.type === "highlight";
+export const isMarkup = (item: Item) => item.markup ?? item.type === "highlight";
 
-/** Drawing surfaces hold editable ink; annotations remain outside workspace containment. */
-export function drawingIssue(item: Item, holder: Item | undefined) {
+/** Annotations remain outside workspace containment. */
+export function drawingIssue(item: Item) {
   if (isMarkup(item) && item.inside) return "Markup belongs directly on the canvas; use in none.";
-  if (holder?.type === "sketch" && item.type !== "drawing")
-    return "A Drawing contains drawing paths, not workspace objects.";
   if (item.type === "highlight" && !item.target) return "A highlight needs target <object id>.";
   return null;
 }
@@ -66,8 +64,9 @@ export function highlighted(
 ): Item {
   const target = item.target ? targets.get(item.target) : undefined;
   if (item.type !== "highlight" || !target || !isBox(target)) return item;
-  const duplicate = seen.has(target.id);
-  seen.add(target.id);
+  const key = `${target.id}:${outlinePlane(item)}`;
+  const duplicate = seen.has(key);
+  seen.add(key);
   const padding = 5 * (target.look.scale ?? 1);
   return {
     ...item,
@@ -77,6 +76,10 @@ export function highlighted(
     height: target.height + padding * 2,
     look: highlightLook(item, target, named, duplicate),
   };
+}
+
+function outlinePlane(item: Item) {
+  return isMarkup(item) ? "markup" : item.layer || item.inside || "base";
 }
 
 function highlightLook(item: Item, target: Item, named: Look, duplicate: boolean): Look {

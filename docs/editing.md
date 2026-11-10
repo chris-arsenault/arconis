@@ -1,12 +1,12 @@
 # Using the canvas
 
 Use the left rail to place objects and choose tools. Select an object to edit its properties on
-the right. The same room holds diagrams, notes, topic trees, pictures, Drawings and slides.
+the right. The same room holds diagrams, notes, topic trees, pictures, ink and slides.
 
 For a first walkthrough, start with [your first shared canvas](getting-started.md).
 
-The rail has five task areas: **Add** for shapes and icon libraries, **Draw** for ink and
-annotations, **Layers** for organising the canvas in layers, **Explore** for saved views, topic
+The rail has six task areas: **Add** for shapes and icon libraries, **Draw** for ink on the chosen
+content layer, **Markup** for annotations, **Layers** for organising the canvas, **Explore** for saved views, topic
 outlines, tags and history, and **Slides** for building and presenting decks. Select, Pan and Connect stay above these areas. **Hide panel**
 leaves the tools and task buttons available while giving the canvas more space. On phones, the
 panel starts hidden; choosing a task opens it over the canvas. On phones and tablets, choosing a
@@ -102,10 +102,10 @@ The browser's own menu never appears over the canvas. Tab and arrows navigate th
 Escape closes it and preserves the selection.
 
 The canvas ring's south-west wedge, **Mode**, switches what the pointer does. Choose it, or rest
-a held right button on it, and a small arc of **Select**, **Add**, **Draw** and **Connect** opens
+a held right button on it, and a small arc of **Select**, **Add**, **Draw**, **Markup** and **Connect** opens
 beside it, with the current mode outlined. The ring's own wedges stay as they are. Release a held
-button on a mode, or click one, to switch: Select, Draw and Connect change the tool and close the
-ring; Add shows shapes in the ring for the next canvas click. **Select all** is in the canvas
+button on a mode, or click one, to switch: Select and Connect change the tool; Draw and Markup
+choose the destination and open the same drawing-tool arc. Add shows shapes in the ring for the next canvas click. **Select all** is in the canvas
 menu and on its shortcut. Escape cancels an unfinished radial choice.
 
 The ring on an object reads like a compass, so a stroke can be learned once:
@@ -179,8 +179,10 @@ hold nothing. Place a smaller
 object inside a larger one, or drag an existing object onto it, to give it that holder.
 Drag an object out to release it. Moving a holder moves its contents.
 
-Ordinary container resizing leaves its children at their stored positions. A Drawing's resize
-transforms its ink, and a frame with an active arrangement reflows its members.
+Container resizing normally leaves children at their stored positions. For a frame or group,
+enable **Scale content on resize** in Properties to scale held ink, shapes, text, pictures and
+paint together. Nested content scales once. Pictures and vendor icons keep their proportions.
+A frame with an active arrangement also reflows its members.
 
 ## Layers
 
@@ -255,12 +257,11 @@ the route.
 after moving obstacles when you need a new route. Language-authored shared fan-outs use a
 junction where several lines share one trunk.
 
-Workspace Drawings can be connected as objects; their internal paths and markup are independent
-ink, outside connector topology.
+Workspace ink and panels can be connected as objects. Markup stays outside connector topology.
 
 ## Topics and depth
 
-Any workspace object can serve as a topic, including a frame, a Drawing or a line.
+Any workspace object can serve as a topic, including a frame, an ink path or a line.
 
 - **Tab** adds a branch from the selected topic; **Alt Enter** adds a sibling. A branch is a
   compact topic in its parent's style, one line tall, that grows as its text wraps.
@@ -439,15 +440,15 @@ Saved views are shared document data, while following one changes only your view
 
 ## Other workflows
 
-| Task                                                                  | Guide                                       |
-| --------------------------------------------------------------------- | ------------------------------------------- |
-| Pen, highlighter, shapes, lasso, erasing, fills and editable Drawings | [Drawing and markup](drawing.md)            |
-| Markdown, code, equations and box typography                          | [Text and formatting](text.md)              |
-| Decks, templates and presenting                                       | [Slides and presentations](slides.md)       |
-| Room links, passwords, presence and offline work                      | [Rooms and collaboration](collaboration.md) |
-| Account names and saved workspaces                                    | [Accounts](accounts.md)                     |
-| Documents, PNGs, import and pictures                                  | [Files and pictures](files.md)              |
-| Assistant connections and agent editing                               | [Assistants and MCP](agents.md)             |
+| Task                                               | Guide                                       |
+| -------------------------------------------------- | ------------------------------------------- |
+| Pen, highlighter, shapes, lasso, erasing and fills | [Drawing and markup](drawing.md)            |
+| Markdown, code, equations and box typography       | [Text and formatting](text.md)              |
+| Decks, templates and presenting                    | [Slides and presentations](slides.md)       |
+| Room links, passwords, presence and offline work   | [Rooms and collaboration](collaboration.md) |
+| Account names and saved workspaces                 | [Accounts](accounts.md)                     |
+| Documents, PNGs, import and pictures               | [Files and pictures](files.md)              |
+| Assistant connections and agent editing            | [Assistants and MCP](agents.md)             |
 
 ## Commands and shortcuts
 
@@ -462,46 +463,47 @@ Ctrl/Command means Ctrl on Windows/Linux or Command on macOS. Canvas shortcuts a
 text field is not consuming the key; [text editing](text.md#text-editing-shortcuts) and
 [presenting](slides.md#present) have their own controls.
 
-| Keys                                    | Action                                                              |
-| --------------------------------------- | ------------------------------------------------------------------- |
-| V                                       | Select                                                              |
-| H / hold Space                          | Pan                                                                 |
-| C                                       | Connector: click two objects                                        |
-| N / T / R / E / D / F / P               | Note / text / rectangle / ellipse / decision / frame / draw         |
-| Ctrl/Command K                          | Command palette and shortcut sheet                                  |
-| Delete / Backspace                      | Remove the selection                                                |
-| Ctrl/Command Z                          | Undo your own document edit                                         |
-| Ctrl/Command Shift Z / Ctrl/Command Y   | Redo                                                                |
-| Ctrl/Command C / X                      | Copy / cut the selection as canvas language                         |
-| Ctrl/Command V / Ctrl/Command Shift V   | Paste under the pointer / paste in place                            |
-| Ctrl/Command D                          | Duplicate                                                           |
-| Ctrl/Command Alt C / Ctrl/Command Alt V | Copy style / paste style                                            |
-| Ctrl/Command Shift I                    | Invert selection                                                    |
-| Ctrl/Command A                          | Select everything but locked objects                                |
-| Ctrl/Command G / Ctrl/Command Shift G   | Group / ungroup                                                     |
-| ] / [                                   | Bring to front / send to back                                       |
-| Enter                                   | Edit the selected object's text                                     |
-| Tab / Alt Enter                         | Add a branch / sibling (Alt Enter mid-text splits the topic)        |
-| Arrows                                  | Walk the tree, or select the nearest object that way                |
-| Alt Up / Alt Down                       | Swap a topic with the sibling before / after it                     |
-| Shift Tab                               | Promote a topic to its parent's level                               |
-| Ctrl/Command Delete                     | Delete a topic, keeping its branches and contents                   |
-| Ctrl/Command Alt Arrow                  | Grow a connected copy in that direction                             |
-| Ctrl/Command Arrow                      | Nudge by a grid step; with Shift, by ten                            |
-| 1 to 9                                  | Show that many levels of the selected tree                          |
-| Shift N                                 | Capture notes                                                       |
-| Shift C                                 | Open the selected object's comments                                 |
-| K (hold)                                | Point with the laser                                                |
-| /                                       | Say something beside your cursor                                    |
-| .                                       | Focus on the selection, or leave focus                              |
-| Ctrl/Command Shift L                    | Lock / unlock                                                       |
-| Ctrl/Command Shift H                    | Hide                                                                |
-| Ctrl/Command .                          | Collapse / expand                                                   |
-| Ctrl/Command Enter                      | Make a task, mark it done, then clear it                            |
-| Z / Shift Z                             | Zoom into the selection / back out                                  |
-| Ctrl/Command + / Ctrl/Command -         | Zoom in / out                                                       |
-| Shift 0 / Shift 1 / Shift 2             | Zoom to 100% / fit canvas / fit selection                           |
-| Ctrl/Command [ / Ctrl/Command ]         | Back to the previous view / forward again                           |
-| Ctrl/Command F                          | Find on canvas                                                      |
-| Ctrl/Command Shift F                    | Filter by tag, marker, task or editor                               |
-| Escape                                  | Finish text editing, leave Drawing editing, or leave a presentation |
+| Keys                                    | Action                                                         |
+| --------------------------------------- | -------------------------------------------------------------- |
+| V                                       | Select                                                         |
+| H / hold Space                          | Pan                                                            |
+| P / M                                   | Draw on the current content layer / Markup annotations         |
+| C                                       | Connector: click two objects                                   |
+| N / T / R / E / D / F                   | Note / text / rectangle / ellipse / decision / frame           |
+| Ctrl/Command K                          | Command palette and shortcut sheet                             |
+| Delete / Backspace                      | Remove the selection                                           |
+| Ctrl/Command Z                          | Undo your own document edit                                    |
+| Ctrl/Command Shift Z / Ctrl/Command Y   | Redo                                                           |
+| Ctrl/Command C / X                      | Copy / cut the selection as canvas language                    |
+| Ctrl/Command V / Ctrl/Command Shift V   | Paste under the pointer / paste in place                       |
+| Ctrl/Command D                          | Duplicate                                                      |
+| Ctrl/Command Alt C / Ctrl/Command Alt V | Copy style / paste style                                       |
+| Ctrl/Command Shift I                    | Invert selection                                               |
+| Ctrl/Command A                          | Select everything but locked objects                           |
+| Ctrl/Command G / Ctrl/Command Shift G   | Group / ungroup                                                |
+| ] / [                                   | Bring to front / send to back                                  |
+| Enter                                   | Edit the selected object's text                                |
+| Tab / Alt Enter                         | Add a branch / sibling (Alt Enter mid-text splits the topic)   |
+| Arrows                                  | Walk the tree, or select the nearest object that way           |
+| Alt Up / Alt Down                       | Swap a topic with the sibling before / after it                |
+| Shift Tab                               | Promote a topic to its parent's level                          |
+| Ctrl/Command Delete                     | Delete a topic, keeping its branches and contents              |
+| Ctrl/Command Alt Arrow                  | Grow a connected copy in that direction                        |
+| Ctrl/Command Arrow                      | Nudge by a grid step; with Shift, by ten                       |
+| 1 to 9                                  | Show that many levels of the selected tree                     |
+| Shift N                                 | Capture notes                                                  |
+| Shift C                                 | Open the selected object's comments                            |
+| K (hold)                                | Point with the laser                                           |
+| /                                       | Say something beside your cursor                               |
+| .                                       | Focus on the selection, or leave focus                         |
+| Ctrl/Command Shift L                    | Lock / unlock                                                  |
+| Ctrl/Command Shift H                    | Hide                                                           |
+| Ctrl/Command .                          | Collapse / expand                                              |
+| Ctrl/Command Enter                      | Make a task, mark it done, then clear it                       |
+| Z / Shift Z                             | Zoom into the selection / back out                             |
+| Ctrl/Command + / Ctrl/Command -         | Zoom in / out                                                  |
+| Shift 0 / Shift 1 / Shift 2             | Zoom to 100% / fit canvas / fit selection                      |
+| Ctrl/Command [ / Ctrl/Command ]         | Back to the previous view / forward again                      |
+| Ctrl/Command F                          | Find on canvas                                                 |
+| Ctrl/Command Shift F                    | Filter by tag, marker, task or editor                          |
+| Escape                                  | Finish text editing, return to Select, or leave a presentation |

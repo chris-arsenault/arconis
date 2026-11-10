@@ -30,6 +30,7 @@ export const DRAWING_WORDS = new Set([
   "edited",
   "property",
   "in-layer",
+  "scale-contents",
 ]);
 
 /** The statements of the canvas language, as parsed. */
@@ -60,6 +61,7 @@ export type Attribute =
   | { kind: "deck"; deck: string; slide?: number }
   | { kind: "free" }
   | { kind: "markup"; value: boolean }
+  | { kind: "scaleContents"; value: boolean }
   | { kind: "ink"; ink: InkKind }
   | { kind: "target"; ref: string }
   | { kind: "flag"; flag: Flag; value: boolean }
