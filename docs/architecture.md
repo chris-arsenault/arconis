@@ -314,6 +314,10 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   the canvas alone, in the same place in the tree so the editor lives on, `components/Presenter.tsx`
   masks everything outside the slide and takes the pointer, and slides project with no outline or
   label. The presentation skips templates and draws their copies at full strength.
+  `editor/deckExport.ts` projects the canvas that way for one synchronous pass, copies each
+  slide's box from the draw pane as an SVG holding only the cells that reach into it, and
+  `files/deckPage.ts` writes those into one HTML document with the shared text styles,
+  gradients and a script to move through the slides.
 - **Help.** Help is per-viewer interface state, never document data. A control carries its own
   help as `data-hint` (its name) and `data-hint-detail` (one sentence), and each command carries
   `help` in the command table. `components/ContextHelp.tsx` follows hover, focus and touch-hold and

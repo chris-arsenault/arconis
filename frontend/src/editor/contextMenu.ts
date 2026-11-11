@@ -51,6 +51,8 @@ const MARKER: Submenu = {
 };
 const TAGS_AND_STATUS: MenuSlot[] = ["fields.tag", "fields.task", MARKER];
 const VISIBILITY = ["fields.lock", "fields.collapse", "fields.jump", "fields.opening"];
+/** Commands a menu lists even where they cannot run yet, greyed out, so the menu keeps its shape. */
+const ALWAYS_LISTED = new Set(["export.deckHtml"]);
 
 /** Groups by intent: text, structure, tags and status, arrangement, visibility, clipboard, view. */
 const MENUS: Record<MenuContext, MenuSlot[][]> = {
@@ -59,6 +61,7 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
     ["edit.pasteHere", "select.all"],
     ["view.fit", "view.find", "view.filter"],
     ["view.grid", "view.references"],
+    ["export.deckHtml"],
     ["fields.unlockAll"],
   ],
   object: [
@@ -96,7 +99,7 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
     ["edit.delete"],
   ],
   slide: [
-    ["structure.present", "edit.text", "comments.open"],
+    ["structure.present", "export.deckHtml", "edit.text", "comments.open"],
     TAGS_AND_STATUS,
     ["arrange.front", "arrange.back"],
     ["fields.lock"],
@@ -255,7 +258,9 @@ interface EntryLabel {
 }
 export type MenuEntry = EntryLabel &
   (
-    | { kind: "command" | "ring" | "more" | "back" }
+    | { kind: "ring" | "more" | "back" }
+    /** A disabled command is listed but cannot run yet, such as a deck export with no slides. */
+    | { kind: "command"; disabled: boolean }
     | { kind: "mode"; mode: RingMode; current: boolean }
     | { kind: "submenu"; submenu: MenuEntry[] }
   );
@@ -302,9 +307,11 @@ function entryFor(id: string, context: CommandContext): MenuEntry | null {
       : null;
   }
   const command = findCommand(id);
-  if (!isAvailable(command, context)) return null;
+  const disabled = !isAvailable(command, context);
+  if (disabled && !ALWAYS_LISTED.has(id)) return null;
   const label = typeof command.label === "string" ? command.label : command.label(context);
-  return { kind: "command", id, label, help: command.help, short: RING_LABELS[id] ?? label };
+  const short = RING_LABELS[id] ?? label;
+  return { kind: "command", id, label, help: command.help, short, disabled };
 }
 
 function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {

@@ -25,6 +25,7 @@ import type { SavedCopy } from "../account/workspaceFile";
 import { Settings } from "./Settings";
 import { Feedback } from "./Feedback";
 import { ReusableSections } from "./ReusableSections";
+import { DeckExportItem } from "./DeckExports";
 
 interface Props {
   session: RoomSession;
@@ -321,6 +322,7 @@ function FileMenuItems({
         />
         Include markup
       </label>
+      <DeckExportItem editor={props.editor} run={run} />
     </>
   );
 }

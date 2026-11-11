@@ -1,4 +1,4 @@
-import type { Cell, Graph } from "@maxgraph/core";
+import type { Cell, CellState, Graph } from "@maxgraph/core";
 import { worldBounds } from "../document/relations";
 import type { Item } from "../document/types";
 import { exportItems } from "../document/exportItems";
@@ -68,17 +68,32 @@ function cloneDrawPane(graph: Graph, cells: Set<Cell>) {
   return pane;
 }
 
-/** Renders at the export's scale, then returns the view to where the person left it. */
-function renderSvg(graph: Graph, cells: Cell[], box: WorldBox) {
+/** Whether a drawn cell reaches into a picture of this size, by its shape or its label. */
+function reaches(state: CellState, width: number, height: number) {
+  return [state, state.shape?.boundingBox, state.text?.boundingBox].some(
+    (box) =>
+      box && box.x < width && box.y < height && box.x + box.width > 0 && box.y + box.height > 0
+  );
+}
+
+/**
+ * Renders at the export's scale, then returns the view to where the person left it. A cropped
+ * render is exactly the box, and carries only the cells that reach into it.
+ */
+function renderSvg(graph: Graph, cells: Cell[], box: WorldBox, crop = false) {
   const { view } = graph;
   const { scale: viewScale, translate } = view;
   const [viewX, viewY] = [translate.x, translate.y];
   const scale = exportScale(box.width, box.height);
-  const margin = MARGIN_PIXELS / scale;
+  const margin = crop ? 0 : MARGIN_PIXELS / scale;
   const width = Math.ceil((box.width + margin * 2) * scale);
   const height = Math.ceil((box.height + margin * 2) * scale);
   view.scaleAndTranslate(scale, margin - box.x, margin - box.y);
-  const pane = cloneDrawPane(graph, new Set(cells));
+  const inside = (cell: Cell) => {
+    const state = view.getState(cell);
+    return state !== null && reaches(state, width, height);
+  };
+  const pane = cloneDrawPane(graph, new Set(crop ? cells.filter(inside) : cells));
   const defs = graph.view.getDrawPane()?.closest("svg")?.querySelectorAll(":scope > defs");
   defs?.forEach((definition) => pane.prepend(definition.cloneNode(true)));
   view.scaleAndTranslate(viewScale, viewX, viewY);
@@ -97,8 +112,21 @@ function readDataUrl(blob: Blob) {
   });
 }
 
-/** An SVG drawn as an image cannot load anything else, so pictures go inline. */
-async function inlinePictures(pane: Element) {
+/**
+ * One box of the canvas as a drawn pane of exactly its size, without markup. It is made at once,
+ * so the canvas can be drawn differently for only as long as the call takes.
+ */
+export function renderRegion(graph: Graph, box: WorldBox) {
+  exportMarkup(graph, false);
+  try {
+    return renderSvg(graph, shownCells(graph, new Set()), box, true);
+  } finally {
+    exportMarkup(graph, null);
+  }
+}
+
+/** An exported picture cannot load anything else, so pictures go inline. */
+export async function inlinePictures(pane: Element) {
   const attributes = ["href", "xlink:href"];
   for (const image of pane.querySelectorAll("image")) {
     for (const attribute of attributes) {

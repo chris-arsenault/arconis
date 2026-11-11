@@ -81,6 +81,33 @@ describe("the command ring", () => {
   });
 });
 
+describe("a command the menu always lists", () => {
+  const deckExport = (context: CommandContext) =>
+    menuGroups(context)
+      .flat()
+      .find((entry) => entry.id === "export.deckHtml");
+
+  it("stays in the canvas menu without slides, disabled, and is enabled once there is one", () => {
+    const document = new CanvasDocument();
+    expect(deckExport(context([], document))).toMatchObject({ kind: "command", disabled: true });
+    document.doc.transact(
+      () => writeStatements(document, parse("slide s deck pitch 1"), { author: "" }),
+      LOCAL
+    );
+    expect(deckExport(context([], document))).toMatchObject({ kind: "command", disabled: false });
+    // A slide's own menu offers it beside Present.
+    const slide = menuGroups(context([document.get("s")!], document))[0].map((entry) => entry.id);
+    expect(slide.slice(0, 2)).toEqual(["structure.present", "export.deckHtml"]);
+  });
+
+  it("leaves out other commands that do not apply", () => {
+    const document = new CanvasDocument();
+    const canvas = menuGroups(context([], document)).flat();
+    expect(canvas.map((entry) => entry.id)).not.toContain("fields.unlockAll");
+    expect(canvas.filter((entry) => entry.kind === "command" && entry.disabled)).toHaveLength(1);
+  });
+});
+
 describe("the ring's modes", () => {
   it("keeps Mode west and the menu south-west on every ring, in every mode", () => {
     const document = new CanvasDocument();

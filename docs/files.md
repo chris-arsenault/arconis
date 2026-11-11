@@ -3,14 +3,15 @@
 Arconis keeps a local room copy automatically. The header's **File** menu exports portable files
 and imports them; account saving creates a saved workspace. These paths serve different tasks.
 
-| Path               | Contents and scope                                                                                                 | Reopen with                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| Browser local copy | The room retained on this browser/device.                                                                          | The same room in that browser.                                                  |
-| Export document    | The whole canvas as editable `.arconis` text, regardless of selection.                                             | Import document.                                                                |
-| Export PNG         | A picture of selected items, or the whole canvas with no selection, plus an embedded editable copy of those items. | An image viewer, or Import document in Arconis.                                 |
-| Export SVG         | A vector picture of the selection or visible canvas, with canvas text in its description.                          | An SVG viewer or vector editor; use `.arconis` or PNG for direct canvas import. |
-| Save to my account | A saved copy of the room, kept updated after the first save, with five recent successful versions.                 | **Your canvases** on any signed-in device.                                      |
-| My layouts         | A named private selection with pictures and internal references.                                                   | **My layouts**, then **Insert** in any room.                                    |
+| Path                | Contents and scope                                                                                                 | Reopen with                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Browser local copy  | The room retained on this browser/device.                                                                          | The same room in that browser.                                                  |
+| Export document     | The whole canvas as editable `.arconis` text, regardless of selection.                                             | Import document.                                                                |
+| Export PNG          | A picture of selected items, or the whole canvas with no selection, plus an embedded editable copy of those items. | An image viewer, or Import document in Arconis.                                 |
+| Export SVG          | A vector picture of the selection or visible canvas, with canvas text in its description.                          | An SVG viewer or vector editor; use `.arconis` or PNG for direct canvas import. |
+| Export deck as HTML | A deck's slides as one self-contained page, without markup or speaker notes.                                       | Any web browser; it does not import back into a canvas.                         |
+| Save to my account  | A saved copy of the room, kept updated after the first save, with five recent successful versions.                 | **Your canvases** on any signed-in device.                                      |
+| My layouts          | A named private selection with pictures and internal references.                                                   | **My layouts**, then **Insert** in any room.                                    |
 
 ## Export an editable document
 
@@ -55,6 +56,8 @@ objects' text and associated document data, rather than acting as a flattened-on
 the clipboard for a chat or a document. **Export canvas as SVG** (or **Export selection as SVG**)
 downloads a vector picture with canvas text in its description. SVG is not accepted by
 **Import document**; keep an `.arconis` file or Arconis-exported PNG to reopen the content directly.
+A deck of slides exports as one HTML file to share; see
+[Slides and presentations](slides.md#export-a-deck-to-share).
 **Copy tree as Markdown** copies the selected tree as an indented list, which pastes back as a tree.
 **Export tree as CSV** downloads the same tree with one column for each level, so a spreadsheet
 shows the nesting. **Copy canvas as Mermaid**, or **Copy selection as Mermaid**, copies the boxes,

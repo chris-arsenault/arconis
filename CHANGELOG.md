@@ -4,6 +4,14 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Deck export
+
+- Added **Export deck as HTML** to the File menu, the right-click menu and the command palette,
+  and **Export** beside each deck in the Slides panel. A room with several decks asks which to
+  export. A deck downloads as one HTML file that shows its slides in order in any
+  browser, with keys, buttons and swipes to move through them and a print layout of one slide
+  to a page.
+
 ### Diagrams from other tools, and canvas aids
 
 - Added pasting and importing of Mermaid, D2, PlantUML and draw.io diagrams and OPML or text

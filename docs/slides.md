@@ -79,8 +79,29 @@ uses the selected canvas items, not the presentation's current viewport. Selecti
 does not select the content inside its viewport: slides hold nothing. Select the content itself,
 or a frame or group holding it, to include it in a picture export.
 
-PDF and PowerPoint deck exports are not currently available. Present within Arconis or export
-canvas content as pictures or an editable document.
+## Export a deck to share
+
+Choose **Export deck as HTML** in the header's **File** menu, in the right-click menu on empty
+canvas or on a slide, or in the command palette. A room with several decks asks which one to
+export, starting on the selected slide's deck. **Export** beside a deck in the Slides panel
+exports that deck directly. The menu entries are greyed out until the room has a slide. It
+downloads one HTML file holding every slide of the deck in order. Send the file
+through chat, email or a shared drive; whoever opens it sees the deck in their browser without
+Arconis, an account or a connection.
+
+Each slide is drawn as the presentation shows it: slide outlines are gone and template content
+is at full strength. Text stays text, so it is sharp at any size and can be selected and
+searched. Markup, speaker notes and layers you have hidden are left out. The file is a copy
+from the moment of export; export again after the deck changes.
+
+| In the exported file            | Action                                   |
+| ------------------------------- | ---------------------------------------- |
+| Right / Page Down / Space / `›` | Go to the following slide.               |
+| Left / Page Up / `‹`            | Go to the preceding slide.               |
+| Home / End                      | Go to the first or last slide.           |
+| F / Full screen                 | Toggle browser full screen.              |
+| Swipe left or right             | Move between slides on a touch screen.   |
+| The browser's Print             | One slide to a page, to print or as PDF. |
 
 See [files and pictures](files.md) for PNG and editable export, and [assistants and MCP](agents.md)
 for creating slides through the canvas language.

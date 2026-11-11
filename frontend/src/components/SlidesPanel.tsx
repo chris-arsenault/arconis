@@ -1,4 +1,5 @@
-import { Play, Plus } from "lucide-react";
+import { Download, Play, Plus } from "lucide-react";
+import { exportDeck } from "../editor/deckExport";
 import type { EditorController } from "../editor/controller";
 import type { Item } from "../document/types";
 import { decks, isTemplate, type Deck } from "../document/slides";
@@ -31,6 +32,7 @@ export function SlidesPanel({ editor }: Readonly<{ editor: EditorController }>) 
         <Decks
           all={all}
           onPresent={(deck) => editor.presenter.start(deck)}
+          onExport={(deck) => void exportDeck(editor, deck)}
           onGo={(id) => goToSlide(editor, id)}
         />
       ) : (
@@ -52,8 +54,14 @@ function slideEntry(slide: Item) {
 function Decks({
   all,
   onPresent,
+  onExport,
   onGo,
-}: Readonly<{ all: Deck[]; onPresent: (deck: string) => void; onGo: (id: string) => void }>) {
+}: Readonly<{
+  all: Deck[];
+  onPresent: (deck: string) => void;
+  onExport: (deck: string) => void;
+  onGo: (id: string) => void;
+}>) {
   return (
     <div className="rail-list">
       {all.map(({ deck, slides }) => (
@@ -68,6 +76,15 @@ function Decks({
               onClick={() => onPresent(deck)}
             >
               <Play size={13} /> Present
+            </button>
+            <button
+              className="rail-action deck-present"
+              data-hint={`Export ${deck} as HTML`}
+              aria-label={`Export ${deck} as HTML`}
+              data-hint-detail="Download this deck as one file that opens in any browser and shows its slides in order."
+              onClick={() => onExport(deck)}
+            >
+              <Download size={13} /> Export
             </button>
           </div>
           {slides.map((slide) => (

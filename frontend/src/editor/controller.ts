@@ -251,7 +251,7 @@ export class EditorController {
     try {
       const bright = brightSet(this.document.list(), this.focus, this.filter);
       const { graph, document, presenter, layers } = this;
-      projectDocument(graph, document, presenter.active, bright, force, layers.hidden);
+      projectDocument(graph, document, presenter.staged, bright, force, layers.hidden);
     } finally {
       this.projecting = false;
     }

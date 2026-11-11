@@ -150,14 +150,17 @@ function Wedge({
 /** One command in the menu, with its shortcut. */
 function MenuItem({ editor, entry }: Readonly<{ editor: EditorController; entry: MenuEntry }>) {
   const shortcut = findCommand(entry.id).shortcuts?.[0];
+  const disabled = entry.kind === "command" && entry.disabled;
   return (
     <li role="none">
       <button
         type="button"
         role="menuitem"
+        aria-disabled={disabled}
         data-hint={entry.label}
         data-hint-detail={entry.help}
         onClick={() => {
+          if (disabled) return;
           closeMenu(editor);
           runCommand(editor, entry.id);
         }}

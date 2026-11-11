@@ -26,11 +26,29 @@ export class Presenter {
   private slideId = "";
   /** Where the shown slide sat, to fall back to a neighbour when it is removed. */
   private position = 0;
+  private exporting = false;
 
   constructor(private readonly stage: Stage) {}
 
   get active() {
     return this.deck !== null;
+  }
+
+  /** True while the canvas is drawn as a presentation draws it: presenting, or being exported. */
+  get staged() {
+    return this.active || this.exporting;
+  }
+
+  /** Draws the canvas as a presentation shows it while `work` runs, without presenting. */
+  asPresented<T>(work: () => T): T {
+    this.exporting = true;
+    this.stage.project();
+    try {
+      return work();
+    } finally {
+      this.exporting = false;
+      this.stage.project();
+    }
   }
 
   slides() {

@@ -4,6 +4,7 @@ import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import { CommandPalette } from "./CommandPalette";
 import { PasteAs } from "./PasteAs";
+import { DeckChooser } from "./DeckExports";
 import { CaptureBox } from "./CaptureBox";
 import { PresenceOverlays } from "./Presence";
 import { ContextMenu } from "./ContextMenu";
@@ -240,6 +241,7 @@ function EditingOverlays({
       <Announcer editor={editor} />
       {editor.ui.palette && <CommandPalette editor={editor} />}
       {editor.ui.pasteAs && <PasteAs editor={editor} />}
+      {editor.ui.deckExport && <DeckChooser editor={editor} />}
       {editor.ui.capture && <CaptureBox editor={editor} />}
       <PresenceOverlays editor={editor} session={session} />
       {editor.ui.menu && <ContextMenu editor={editor} />}

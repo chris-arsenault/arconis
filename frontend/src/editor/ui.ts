@@ -18,6 +18,8 @@ export interface EditorUi {
   filter: boolean;
   /** Pasted text waiting to be made into notes, a tree or a text block, at a world point. */
   pasteAs: { text: string; at: { x: number; y: number } } | null;
+  /** Whether the dialog asking which deck to export is open. */
+  deckExport: boolean;
   /** A run of capturing notes, stacking from a point. */
   capture: { at: { x: number; y: number }; ids: string[] } | null;
   /** The participant whose view this view follows, by awareness client id. */
@@ -52,6 +54,7 @@ export function initialUi(): EditorUi {
     find: false,
     filter: false,
     pasteAs: null,
+    deckExport: false,
     capture: null,
     following: null,
     lasering: false,

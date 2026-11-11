@@ -4,6 +4,7 @@ import { downloadFile } from "../files/download";
 import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { renderPng, renderSvgFile } from "./pngExport";
 import { treeRootOf } from "./outline";
+import { chooseDeckExport, exportableDecks } from "./deckExport";
 import { pictureScope } from "./layerView";
 import { diagramAsMermaid, treeAsCsv } from "../interchange/exports";
 
@@ -80,6 +81,15 @@ function copyMermaid({ editor, items, selected }: CommandContext) {
 }
 
 export const EXPORT_COMMANDS: Command[] = [
+  {
+    id: "export.deckHtml",
+    label: "Export deck as HTML",
+    help: "Download a deck's slides as one file that opens in any browser, without markup or speaker notes. It needs a slide to export.",
+    group: "edit",
+    keywords: ["slides", "presentation", "share", "web page", "download", "slideshow"],
+    when: ({ items }) => exportableDecks(items).length > 0,
+    run: ({ editor }) => chooseDeckExport(editor),
+  },
   {
     id: "export.copyPng",
     label: ({ selected }) => (selected.length ? "Copy selection as PNG" : "Copy canvas as PNG"),

@@ -2334,6 +2334,28 @@ input.outline-name {
 .file-menu-list button:hover {
   background: var(--hover);
 }
+/* A command that is listed but cannot run yet: greyed, and unmoved by the pointer. */
+.context-menu button[aria-disabled="true"],
+.context-menu button[aria-disabled="true"]:hover,
+.file-menu-list button[aria-disabled="true"],
+.file-menu-list button[aria-disabled="true"]:hover {
+  background: transparent;
+  color: #a9afbf;
+  cursor: default;
+}
+.deck-choices {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.deck-choices button {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
 .file-menu-list .export-markup {
   margin: 4px 0 0;
   padding: 8px 10px 4px;
