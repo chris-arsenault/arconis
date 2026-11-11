@@ -2,16 +2,19 @@ import { InternalEvent, type CellState, type RubberBandHandler } from "@maxgraph
 import type { EditorController } from "./controller";
 import { closeMenu, openMenu } from "./ui";
 import { commandContext } from "./registry";
-import { isUnderlay } from "./templates";
+import { isPassive } from "./templates";
 import { chooseRingEntry, opensRing, ringEntries, type MenuEntry } from "./contextMenu";
 
-/** The object under a pointer, including its label and indicators, excluding template underlays. */
+/**
+ * The object under a pointer, including its label and indicators. Template underlays and items
+ * in locked layers are passed over, so the pointer reaches what is beneath them.
+ */
 export function cellAt(editor: EditorController, event: MouseEvent) {
   const owner = metadataOwner(editor, event.target);
   if (owner) return owner;
   if (event.target instanceof Node) {
     for (const [cell, state] of editor.graph.view.states)
-      if (!isUnderlay(cell) && state.text?.node?.contains(event.target)) return cell;
+      if (!isPassive(cell) && state.text?.node?.contains(event.target)) return cell;
   }
   const bounds = editor.element.getBoundingClientRect();
   const x = event.clientX - bounds.left + editor.element.scrollLeft;
@@ -23,7 +26,7 @@ export function cellAt(editor: EditorController, event: MouseEvent) {
     true,
     true,
     (state: CellState) =>
-      isUnderlay(state.cell) || editor.document.get(state.cell.id ?? "")?.type === "highlight"
+      isPassive(state.cell) || editor.document.get(state.cell.id ?? "")?.type === "highlight"
   );
 }
 
@@ -31,7 +34,7 @@ function metadataOwner(editor: EditorController, target: EventTarget | null) {
   if (!(target instanceof Element)) return null;
   const id = target.closest<HTMLElement>(".object-metadata")?.dataset.objectId;
   const cell = id ? editor.graph.getDataModel().getCell(id) : null;
-  return cell && !isUnderlay(cell) ? cell : null;
+  return cell && !isPassive(cell) ? cell : null;
 }
 
 /**

@@ -16,6 +16,15 @@ All notable user-visible changes are recorded here.
   where the pointer was moved.
 - Added **Q** to keep a placing tool in hand, so several objects of one kind go down in a row.
 
+### Layer locks and room defaults
+
+- Added a lock on each layer. A locked layer's objects ignore the pointer for everyone, so clicks
+  reach what is beneath; anyone can unlock it.
+- Added a default layer: everyone's new objects go into it when they enter the room, until they
+  choose another.
+- Added an opening view: one jump point can be where the room opens for everyone who enters
+  without a link to another object.
+
 ### Clocks
 
 - Added a clock object from **Shapes**: the time of day, a stopwatch or a countdown timer that

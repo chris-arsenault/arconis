@@ -90,13 +90,22 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
       id: cursor.ref("a layer's id"),
       name: KEEP_TEXT,
       place: { relation: "keep" },
+      locked: null,
+      makeDefault: false,
       line,
     };
     if (cursor.kindIs("string")) statement.name = { kind: "set", value: cursor.next().text };
     for (const relation of ["above", "below"] as const)
       if (cursor.word(relation)) statement.place = { relation, ref: cursor.ref("a layer's id") };
+    if (cursor.word("locked")) statement.locked = !cursor.word("off");
+    statement.makeDefault = cursor.word("default");
     return statement;
   },
+  opening: (cursor, line) => ({
+    kind: "opening",
+    ref: cursor.word("none") ? "" : cursor.ref("the id of the object the room opens on"),
+    line,
+  }),
   merge: (cursor, line) => {
     const from = cursor.ref("a layer's id");
     cursor.keyword("into");

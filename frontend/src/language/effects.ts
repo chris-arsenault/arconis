@@ -67,6 +67,10 @@ const EFFECTS: Effects = {
     kind: "metadata",
     reason: "Deleting a layer removes its items as a consequence, as deleting a holder does.",
   }),
+  opening: (statement) =>
+    statement.ref
+      ? { kind: "items", targets: [statement.ref], children: [] }
+      : { kind: "metadata", reason: "The room's opening view retains last-write-wins semantics." },
   discussion: () => ({
     kind: "conversation",
     reason: "Imported discussions preserve their contents.",

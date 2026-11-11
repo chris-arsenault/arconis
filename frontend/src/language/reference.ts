@@ -166,12 +166,15 @@ Frames and groups accept scale-contents (or scale-contents off). Editing an exis
 
 ## Layers
 
-  layer <id> ["name"] [above <id> | below <id>]
+  layer <id> ["name"] [above <id> | below <id>] [locked | locked off] [default]
   <item or line> in-layer <id>
   merge <id> into <id>
   delete layer <id>
 
-Content layers stack the workspace in named collections, bottom to top, beneath markup; slides sit beneath every layer. A new layer goes on top unless placed above or below another, and restating an existing layer renames or moves it. The base layer, id base and named Workspace until renamed, always exists and holds items that name no layer. in-layer <id> puts a top-level item or line in a layer, on top of what is already there in stacking order; in-layer base returns it. What a frame, group or other holder holds is in the holder's layer, so in-layer on a held item is refused: move the holder, or the item out of it, which keeps the layer it was in. merge a into b moves a's items onto the top of b and removes a. delete layer a removes a with everything in it. The base layer cannot be merged away or deleted. Each person hides layers and picks the layer for new objects in their own browser; reads always include every layer.
+Content layers stack the workspace in named collections, bottom to top, beneath markup; slides sit beneath every layer. A new layer goes on top unless placed above or below another, and restating an existing layer renames or moves it. The base layer, id base and named Workspace until renamed, always exists and holds items that name no layer. in-layer <id> puts a top-level item or line in a layer, on top of what is already there in stacking order; in-layer base returns it. What a frame, group or other holder holds is in the holder's layer, so in-layer on a held item is refused: move the holder, or the item out of it, which keeps the layer it was in. merge a into b moves a's items onto the top of b and removes a. delete layer a removes a with everything in it. The base layer cannot be merged away or deleted. Each person hides layers and picks the layer for new objects in their own browser; reads always include every layer. locked makes the pointer pass over everything in the layer, for everyone in the browser, until locked off; it guards against accidents only, and your writes still change a locked layer's items. default makes the layer the one each person's new objects go into when they enter the room, until they pick another; layer base default returns that to the base layer. A locked layer cannot be the default, so unlock it or name another default first.
+
+  opening <id>        the item the room opens on for everyone who enters without a link to another; it is marked as a jump point
+  opening none        the room opens at the origin again
 
   layer notes "Review notes"
   note n1 "Check the retry policy" in-layer notes right of api

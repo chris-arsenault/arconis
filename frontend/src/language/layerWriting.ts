@@ -1,8 +1,11 @@
 import { isId } from "../document/ids";
 import {
+  defaultProblem,
   layerProblem,
+  lockProblem,
   planCreate,
   planDelete,
+  planLock,
   planMerge,
   planMove,
   planRename,
@@ -65,9 +68,29 @@ function apply(draft: Draft, plan: LayerPlan) {
 }
 
 type LayerStatement = Extract<Statement, { kind: "layer" | "merge" | "dropLayer" }>;
+export type RoomStatement = LayerStatement | Extract<Statement, { kind: "opening" }>;
 
-export function writeLayer(draft: Draft, statement: LayerStatement, importing: boolean) {
-  if (statement.kind === "layer") declareLayer(draft, statement, importing);
+/**
+ * `opening <id>` names the object the room opens on and marks it as a jump point, so it is
+ * listed with the others; `opening none` returns the room to opening at the origin.
+ */
+function setOpening(
+  draft: Draft,
+  { ref, line }: Extract<Statement, { kind: "opening" }>,
+  importing: boolean
+) {
+  // A file opened into a room leaves the opening view that room already chose.
+  if (importing && draft.document.opening()) return;
+  const item = draft.items.get(ref);
+  if (ref && !item)
+    throw new LanguageError(`There is no item "${ref}" for the room to open on.`, line);
+  if (item) item.jump = true;
+  draft.opening = ref;
+}
+
+export function writeLayer(draft: Draft, statement: RoomStatement, importing: boolean) {
+  if (statement.kind === "opening") setOpening(draft, statement, importing);
+  else if (statement.kind === "layer") declareLayer(draft, statement, importing);
   else if (statement.kind === "merge") mergeLayer(draft, statement);
   else {
     const problem = layerProblem(draftLayers(draft), "delete", statement.id);
@@ -96,12 +119,32 @@ function declareLayer(
   if (importing && draft.document.layers.has(id)) return;
   const at = placeAmong(draft, statement);
   const layers = draftLayers(draft);
-  if (!layers.some((layer) => layer.id === id)) {
+  if (!layers.some((layer) => layer.id === id))
     apply(draft, planCreate(layers, id, name.kind === "set" ? name.value : id, at));
-    return;
+  else {
+    if (name.kind === "set") apply(draft, planRename(layers, id, name.value));
+    if (at !== undefined) apply(draft, planMove(draftLayers(draft), id, at));
   }
-  if (name.kind === "set") apply(draft, planRename(layers, id, name.value));
-  if (at !== undefined) apply(draft, planMove(draftLayers(draft), id, at));
+  settleLayer(draft, statement, importing);
+}
+
+/** A layer's `locked` and `default` words; a locked layer is never the default. */
+function settleLayer(
+  draft: Draft,
+  { id, locked, makeDefault, line }: Extract<LayerStatement, { kind: "layer" }>,
+  importing: boolean
+) {
+  const fail = (problem: string) => {
+    if (problem) throw new LanguageError(problem, line);
+  };
+  // A file opened into a room leaves the default that room already chose.
+  const adopts = makeDefault && !(importing && draft.currentDefaultLayer() !== BASE_LAYER);
+  if (adopts) draft.defaultLayer = id;
+  if (locked !== null) {
+    if (locked) fail(lockProblem(draftLayers(draft), id, draft.currentDefaultLayer()));
+    apply(draft, planLock(draftLayers(draft), id, locked));
+  }
+  if (adopts) fail(defaultProblem(draftLayers(draft), id));
 }
 
 function mergeLayer(

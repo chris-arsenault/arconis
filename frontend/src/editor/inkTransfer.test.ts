@@ -8,7 +8,7 @@ import { changeInkStyle } from "./inkStyle";
 
 it("moves markup into a layer and back without changing points, paint or ids, with Undo", () => {
   const canvas = new CanvasDocument();
-  canvas.layers.set("earth", { name: "Earth", order: 1 });
+  canvas.layers.set("earth", { name: "Earth", order: 1, locked: false });
   canvas.create("drawing", 0, 0, {
     id: "land",
     markup: true,
@@ -84,7 +84,7 @@ it("recolors ink without changing a selected workspace object", () => {
 
 it("keeps attached outlines independent in Draw and Markup and transfers their style and target", () => {
   const canvas = new CanvasDocument();
-  canvas.layers.set("earth", { name: "Earth", order: 1 });
+  canvas.layers.set("earth", { name: "Earth", order: 1, locked: false });
   canvas.activeLayer = "earth";
   canvas.create("node", 100, 100, { id: "earth" });
   const settings = new DrawingPreferences().settings;

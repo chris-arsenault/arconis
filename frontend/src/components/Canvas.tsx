@@ -4,11 +4,12 @@ import { EditorController } from "../editor/controller";
 import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "./useCollaborativeText";
 import { notifyPictures, setPictureSource } from "../editor/pictureSource";
-import { addBranch, jumpTo } from "../editor/topics";
+import { addBranch } from "../editor/topics";
 import { splitAtCaret } from "../editor/structureCommands";
 import { bindPresence, itemInHash, peerStates, type PeerState } from "../editor/presence";
 import { bindLaser } from "../editor/laserInput";
 import { bindClocks } from "../editor/clockTicker";
+import { openRoomView } from "../editor/openingView";
 import { addTaskAfter, taskListOf } from "../editor/stencils";
 import { labelHistory } from "../editor/history";
 import { bindTouchInput } from "../editor/touchInput";
@@ -20,32 +21,6 @@ import { markdownKey } from "../text/sourceKeys";
 import { fitText } from "../editor/textLayout";
 import { positionTextEditor } from "../editor/textEditorPosition";
 import { editSource } from "../editor/commands";
-
-/** How long a deep link waits for its item to arrive from peers before giving up. */
-const DEEP_LINK_WAIT_MS = 30000;
-
-/** Flies to the item a link names once it is in the document, selecting and ringing it. */
-function openDeepLink(editor: EditorController, hash: string) {
-  const id = itemInHash(hash);
-  if (!id) return () => undefined;
-  let done = false;
-  const attempt = () => {
-    if (done || !editor.document.get(id)) return;
-    done = true;
-    jumpTo(editor, id);
-    editor.ui.pulse = id;
-    editor.emit();
-    stop();
-  };
-  const stop = () => {
-    editor.document.doc.off("update", attempt);
-    clearTimeout(timer);
-  };
-  const timer = setTimeout(stop, DEEP_LINK_WAIT_MS);
-  editor.document.doc.on("update", attempt);
-  attempt();
-  return stop;
-}
 
 export function Canvas({
   session,
@@ -77,7 +52,7 @@ export function Canvas({
     const unbindPresence = bindPresence(editor, session);
     const unbindLaser = bindLaser(editor, session);
     const stopClocks = bindClocks(editor);
-    const stopDeepLink = openDeepLink(editor, location.hash);
+    const stopDeepLink = openRoomView(editor, itemInHash(location.hash) ?? "");
     const stopLabels = labelHistory(session.document);
     const touch = new AbortController();
     bindTouchInput(editor, session, touch.signal);

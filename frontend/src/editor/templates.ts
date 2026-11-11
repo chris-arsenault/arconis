@@ -27,6 +27,12 @@ export function isUnderlay(cell: Cell) {
   return (cell.getStyle() as Record<string, unknown>).underlay === true;
 }
 
+/** True for a cell the pointer leaves alone: a template's underlay, or an item in a locked layer. */
+export function isPassive(cell: Cell) {
+  const style = cell.getStyle() as Record<string, unknown>;
+  return style.underlay === true || style.layerLocked === true;
+}
+
 function underlay(items: Item[], template: Item, slide: Item): Item[] {
   const held = framed(items, template);
   const ids = new Set(held.map((item) => item.id));

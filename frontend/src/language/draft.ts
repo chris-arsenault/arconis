@@ -44,6 +44,9 @@ export class Draft {
   readonly layers = new Map<string, LayerRecord>();
   readonly layered: { id: string; line: number }[] = [];
   title: string | null = null;
+  /** The room's default layer and opening object as this write sets them; null leaves them. */
+  defaultLayer: string | null = null;
+  opening: string | null = null;
   calibrationChange: { kind: "keep" } | { kind: "set"; value: Calibration | null } = {
     kind: "keep",
   };
@@ -58,6 +61,11 @@ export class Draft {
     document.styles.forEach((look, name) => this.styles.set(name, look));
     document.layers.forEach((record, id) => this.layers.set(id, { ...record }));
     this.order = document.nextOrder();
+  }
+
+  /** The default layer as this write leaves it. */
+  currentDefaultLayer() {
+    return this.defaultLayer ?? this.document.defaultLayer();
   }
 
   nextOrder() {
@@ -196,10 +204,12 @@ export class Draft {
     const { document } = this;
     const changed: string[] = [];
     if (this.title !== null) document.rename(this.title);
+    if (this.opening !== null) document.setOpening(this.opening);
     if (this.calibrationChange.kind === "set")
       document.setCalibration(this.calibrationChange.value);
     this.changedStyles.forEach((look, name) => document.setStyle(name, look));
     commitLayerRecords(this);
+    if (this.defaultLayer !== null) document.setDefaultLayer(this.defaultLayer);
     this.removed.forEach((id) => {
       if (this.original.has(id)) document.items.delete(id);
     });
@@ -228,7 +238,11 @@ function commitLayerRecords(draft: Draft) {
   for (const id of [...layers.keys()]) if (!draft.layers.has(id)) layers.delete(id);
   draft.layers.forEach((record, id) => {
     const before = layers.get(id);
-    if (before?.name !== record.name || before.order !== record.order) layers.set(id, record);
+    const same =
+      before?.name === record.name &&
+      before.order === record.order &&
+      (before.locked === true) === record.locked;
+    if (!same) layers.set(id, record);
   });
 }
 

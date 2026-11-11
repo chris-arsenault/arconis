@@ -1,18 +1,20 @@
 import { Cell, Geometry, Graph, Point, type CellStyle } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { isBox, isLink, type Item, type Look } from "../document/types";
-import { collapsedHeight, objectStyle, underlayStyle } from "./styles";
+import { collapsedHeight, lockedLayerStyle, objectStyle, underlayStyle } from "./styles";
 import { offsetPoints } from "../document/geometry";
 import { visibleItems } from "../document/relations";
-import { underlays } from "./templates";
+import { isPassive, underlays } from "./templates";
 import { highlighted } from "../document/ink";
-import { hiddenByLayers, layeredStack } from "../document/layers";
+import { hiddenByLayers, layeredStack, lockedByLayers } from "../document/layers";
 import { effectiveAppearance } from "../document/appearance";
 
 /** How the document is drawn: as a presentation or not, with these ids drawn as underlays. */
 interface Drawing {
   presenting: boolean;
   underlaid: Set<string>;
+  /** The ids in locked layers, which the pointer passes over. */
+  layerLocked: Set<string>;
   /** The ids that stay bright while focusing; null when nothing is focused. */
   bright: Set<string> | null;
 }
@@ -40,6 +42,7 @@ function projectionInputs(
     drawing.presenting,
     drawing.bright?.has(item.id) ?? true,
     drawing.underlaid.has(item.id),
+    drawing.layerLocked.has(item.id),
   ];
 }
 
@@ -98,6 +101,8 @@ export function projectDocument(
   const drawing: Drawing = {
     presenting,
     underlaid: new Set(underlaid.map((item) => item.id)),
+    // A presentation shows a locked layer as any other; nothing is edited there anyway.
+    layerLocked: lockedByLayers(items, layers),
     bright,
   };
   const parent = graph.getDefaultParent();
@@ -126,6 +131,9 @@ export function projectDocument(
   } finally {
     model.endUpdate();
   }
+  // What someone locked a layer over is no longer this person's to move.
+  const passive = graph.getSelectionCells().filter(isPassive);
+  if (passive.length) graph.removeSelectionCells(passive);
 }
 
 function applyStacking(graph: Graph, visible: Map<string, Item>) {
@@ -171,7 +179,8 @@ function updateCell(
 function cellStyle(item: Item, document: CanvasDocument, drawing: Drawing) {
   const dimmed = drawing.bright !== null && !drawing.bright.has(item.id);
   const own = objectStyle(item, document.namedStyle(item.style), drawing.presenting, dimmed);
-  return drawing.underlaid.has(item.id) ? underlayStyle(own, drawing.presenting) : own;
+  if (drawing.underlaid.has(item.id)) return underlayStyle(own, drawing.presenting);
+  return drawing.layerLocked.has(item.id) ? lockedLayerStyle(own) : own;
 }
 
 /** A box's geometry within its holder; a collapsed frame is drawn as its title bar alone. */

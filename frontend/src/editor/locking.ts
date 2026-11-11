@@ -1,9 +1,11 @@
 import type { Cell, Graph } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
+import { isPassive } from "./templates";
 
 /**
  * Locked items keep out of the way of pointer edits: a marquee passes over them and Select all
- * leaves them out, so only a direct click selects one, which is how it gets unlocked.
+ * leaves them out, so only a direct click selects one, which is how it gets unlocked. An item in
+ * a locked layer is never selected at all, whatever asks for it; its layer is unlocked instead.
  */
 export function configureLocking(graph: Graph, document: CanvasDocument) {
   const selectRegion = graph.selectRegion.bind(graph);
@@ -13,6 +15,11 @@ export function configureLocking(graph: Graph, document: CanvasDocument) {
     if (free.length !== cells.length) graph.setSelectionCells(free);
     return free;
   };
+  const selection = graph.getSelectionModel();
+  const setCells = selection.setCells.bind(selection);
+  selection.setCells = (cells) => setCells(cells.filter((cell) => !isPassive(cell)));
+  const addCells = selection.addCells.bind(selection);
+  selection.addCells = (cells) => addCells(cells.filter((cell) => !isPassive(cell)));
 }
 
 /** Selects everything drawn at the top level except locked items. */

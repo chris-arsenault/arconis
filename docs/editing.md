@@ -314,6 +314,14 @@ none; [Markup's bar](drawing.md#markup) shows and hides them.
   **Rename**, to rename it.
 - Drag a layer onto another to put it above that layer, or use **Move up** and **Move down**.
 - The eye button hides or shows a layer in your view only. Other people keep their own view.
+- The padlock locks a layer for everyone. Its objects then ignore the pointer: they cannot be
+  selected, moved or edited by hand, and a click on one reaches whatever is beneath it. Anyone
+  can unlock the layer again. The lock guards against accidents; assistants and imported files
+  can still change a locked layer's objects.
+- **Make default** sets the layer everyone's new objects go into when they enter the room, shown
+  by **default** on its row. Each person can choose another layer for themselves afterwards.
+  A locked layer cannot be the default or receive new objects, so the default layer cannot be
+  locked until another layer is made the default.
 - **Merge down** moves the chosen layer's objects into the layer beneath, keeping how they stack,
   and removes the layer. **Delete** removes the layer and its objects for everyone. Undo restores
   either. Workspace stays; it cannot be merged away or deleted.
@@ -585,6 +593,12 @@ open **Navigate** in the right dock and choose **Mark selection** under **Jump p
 **Jump points** lists the marked objects by name. Click one to fly to it and select it. The
 button beside its name removes it from the list and leaves the object alone. The list follows
 the objects: renaming one renames its entry, and deleting one removes it.
+
+One jump point can be where the room opens. Choose the house button beside its name, or **Open
+the room here** in the menu or the command palette, and everyone who enters the room starts with
+that object in view; choose it again to stop. A link to a particular object still opens on that
+object, and a room with no opening view opens at the origin. Removing the jump point, or its
+object, returns the room to the origin.
 
 Jump points are shared with the room and travel with a file, while flying to one changes only
 your viewport. Use [slides](slides.md) for bounded presentation regions.

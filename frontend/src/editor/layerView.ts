@@ -1,5 +1,5 @@
 import type { CanvasDocument } from "../document/canvasDocument";
-import { BASE_LAYER, hiddenByLayers } from "../document/layers";
+import { hiddenByLayers } from "../document/layers";
 
 /**
  * What a picture export covers: the selection, or with layers hidden, everything this person sees.
@@ -29,10 +29,9 @@ export class LayerView {
     return this.hiddenIds;
   }
 
-  /** The layer new objects go into; a layer someone deleted falls back to the base layer. */
+  /** The layer new objects go into: this person's choice, or the room's default until they make one. */
   get active() {
-    const id = this.document.activeLayer;
-    return this.document.layers.has(id) || id === BASE_LAYER ? id : BASE_LAYER;
+    return this.document.activeLayer;
   }
 
   isHidden(id: string) {

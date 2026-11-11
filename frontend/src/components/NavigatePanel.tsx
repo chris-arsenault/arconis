@@ -1,5 +1,6 @@
 import type { EditorController } from "../editor/controller";
-import { X } from "lucide-react";
+import { House, X } from "lucide-react";
+import { setOpeningView } from "../editor/openingView";
 import { typeLabel } from "../document/types";
 import { changeFields } from "../editor/commands";
 import { jumpTo } from "../editor/topics";
@@ -55,6 +56,7 @@ function JumpPoints({
   sections,
 }: Readonly<{ editor: EditorController; sections: Sections }>) {
   const points = editor.document.list().filter((item) => item.jump);
+  const opening = editor.document.opening();
   const selected = editor.selected().filter((item) => !item.jump);
   const mark = (ids: string[], jump: boolean) => changeFields(editor.document, ids, { jump });
   return (
@@ -95,6 +97,16 @@ function JumpPoints({
                 onClick={() => jumpTo(editor, item.id)}
               >
                 {name}
+              </button>
+              <button
+                className="rail-action jump-opening"
+                aria-label={`Open the room at ${name}`}
+                aria-pressed={item.id === opening}
+                data-hint={item.id === opening ? "The room opens here" : "Open the room here"}
+                data-hint-detail="Start everyone's view on this object when they enter the room; choose it again to stop."
+                onClick={() => setOpeningView(editor.document, item.id === opening ? "" : item.id)}
+              >
+                <House size={13} />
               </button>
               <button
                 className="rail-action"

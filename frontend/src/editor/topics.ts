@@ -1,7 +1,7 @@
 import type { Cell, Graph, SelectionHandler } from "@maxgraph/core";
 import { canHoldWorkspace, canConnect } from "../document/capabilities";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { isUnderlay } from "./templates";
+import { isPassive } from "./templates";
 import {
   alignOffsets,
   anchorOf,
@@ -315,11 +315,12 @@ export function distributeSelection(editor: EditorController, axis: Axis) {
  * object onto one larger than itself nests it; anything else leaves it where it was dropped.
  */
 export function configureComposition(graph: Graph, document: CanvasDocument) {
-  // A template's underlay can neither be picked nor hold anything: the slide beneath it can.
+  // A template's underlay and a locked layer's item can neither be picked nor hold anything:
+  // what is beneath them can.
   const selectable = graph.isCellSelectable.bind(graph);
-  graph.isCellSelectable = (cell) => !isUnderlay(cell) && selectable(cell);
+  graph.isCellSelectable = (cell) => !isPassive(cell) && selectable(cell);
   graph.isValidDropTarget = (target: Cell, cells?: Cell[]) => {
-    if (!target.isVertex() || !target.geometry || isUnderlay(target)) return false;
+    if (!target.isVertex() || !target.geometry || isPassive(target)) return false;
     const item = document.get(target.id ?? "");
     if (item && !canHoldWorkspace(item)) return false;
     if ((cells ?? []).some((cell) => document.get(cell.id ?? "")?.markup)) return false;

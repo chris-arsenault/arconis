@@ -1098,6 +1098,25 @@ details[open] > summary::before {
 .layer-row[data-active="true"] {
   background: var(--pressed);
 }
+.layer-lock[aria-pressed="false"],
+.jump-opening[aria-pressed="false"] {
+  opacity: 0.45;
+}
+.jump-opening[aria-pressed="true"] {
+  color: var(--purple);
+}
+.layer-lock[aria-pressed="true"] {
+  color: var(--purple);
+}
+.layer-default {
+  flex: none;
+  margin-right: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-soft);
+  font-size: 10px;
+}
 .layer-row[data-active="true"] .layer-name {
   color: var(--pressed-text);
   font-weight: 600;
@@ -1413,6 +1432,11 @@ details[open] > summary::before {
     linear-gradient(to bottom, var(--canvas-grid-minor) 1px, transparent 1px);
   outline: none;
   touch-action: none;
+}
+/* What a locked layer holds lets the pointer through to what is beneath it. */
+.canvas-surface .layer-locked,
+.canvas-surface .layer-locked * {
+  pointer-events: none !important;
 }
 .canvas-surface.grid-off {
   background-image: none;

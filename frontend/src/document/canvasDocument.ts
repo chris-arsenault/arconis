@@ -32,11 +32,8 @@ export class CanvasDocument {
    * the item's last editor; empty names nobody, as on the relay, where sessions stamp their own.
    */
   author = "";
-  /**
-   * The layer this participant's new top-level objects go into. Local, like `author`; an agent's
-   * writes name their layer instead.
-   */
-  activeLayer = BASE_LAYER;
+  /** The layer this participant chose for new objects, or "" while they follow the room's default. */
+  private chosenLayer = "";
   private unstamped = 0;
   private listed: Item[] | null = null;
   private snapshots = new Map<string, Item>();
@@ -114,8 +111,11 @@ export class CanvasDocument {
       look: {},
       ...extras,
     };
-    const active = this.layers.has(this.activeLayer) ? this.activeLayer : "";
-    if (active && !("layer" in extras) && !item.inside && inLayers(item)) item.layer = active;
+    const active = this.activeLayer;
+    // Contributing settles the layer, so a default changed later does not move this person.
+    this.chosenLayer = active;
+    if (active !== BASE_LAYER && !("layer" in extras) && !item.inside && inLayers(item))
+      item.layer = active;
     return item;
   }
 
@@ -323,6 +323,47 @@ export class CanvasDocument {
 
   calibration() {
     return readCalibration(this.meta.get("scale"));
+  }
+
+  /**
+   * The layer this participant's new top-level objects go into: the one they chose, or the
+   * room's default until they choose. Local, like `author`; an agent's writes name their layer
+   * instead. A layer that was deleted or locked gives way to the default.
+   */
+  get activeLayer() {
+    const chosen = this.layerList().find((layer) => layer.id === this.chosenLayer);
+    return chosen && !chosen.locked ? chosen.id : this.defaultLayer();
+  }
+  set activeLayer(id: string) {
+    this.chosenLayer = id;
+  }
+
+  /** The layer everyone's new objects go into on entering the room; the base layer unless set. */
+  defaultLayer() {
+    const id = this.meta.get("defaultLayer") ?? BASE_LAYER;
+    const layer = this.layerList().find((candidate) => candidate.id === id);
+    return layer && !layer.locked ? id : BASE_LAYER;
+  }
+  setDefaultLayer(id: string) {
+    this.doc.transact(() => {
+      if (id === BASE_LAYER) this.meta.delete("defaultLayer");
+      else this.meta.set("defaultLayer", id);
+    }, LOCAL);
+  }
+
+  /**
+   * The object the room opens on, or "" when it opens at the origin. It is one of the jump
+   * points, so removing that mark, or the object, returns the room to the origin.
+   */
+  opening() {
+    const id = this.meta.get("opening") ?? "";
+    return this.items.get(id)?.get("jump") === true ? id : "";
+  }
+  setOpening(id: string) {
+    this.doc.transact(() => {
+      if (id) this.meta.set("opening", id);
+      else this.meta.delete("opening");
+    }, LOCAL);
   }
 
   setCalibration(value: Calibration | null) {

@@ -52,6 +52,13 @@ setting it, automatic from named identities, and references from inline declarat
   `CanvasDocument.patch` keeps the layer of an item leaving its holders. `editor/layerView.ts`
   holds each person's hidden layers and active layer, which `CanvasDocument.build` applies to new
   top-level objects; picture exports cover only what that person sees.
+  A layer record's `locked` is shared. The projection marks what a locked layer holds, and the
+  renderer and stylesheet take the pointer off those cells, so clicks reach what is beneath; the
+  selection model refuses them, and the language still writes them.
+- **Room defaults.** The `meta` map names the room's default layer and its opening object.
+  A person's active layer is the default until they choose one or add an object, and a locked
+  layer is never the default. `editor/openingView.ts` takes a newcomer's view to the opening
+  object, a jump point, as the room's content first arrives, unless their link names another.
 - **Lines.** A line names the items at its ends and any ports where it attaches. A line with a missing
   end stays in Yjs, hidden from the graph, so out-of-order updates can complete it.
 - **Holders.** `inside` relates contents to their holder while preserving world coordinates.

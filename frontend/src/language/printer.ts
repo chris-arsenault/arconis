@@ -273,16 +273,25 @@ export function styleStatements(document: CanvasDocument, used?: Set<string>) {
  * Layer declarations bottom to top. Each new layer goes on top when read back, so only the base
  * layer, which always exists, says where it sits; it is left out while it is plain and lowest.
  */
-export function layerStatements(layers: Layer[], used?: Set<string>) {
+export function layerStatements(layers: Layer[], used?: Set<string>, defaultLayer = BASE_LAYER) {
   const lines: string[] = [];
   layers.forEach((layer, index) => {
     if (used && !used.has(layer.id)) return;
-    if (layer.id === BASE_LAYER && index === 0 && layer.name === BASE_LAYER_NAME) return;
-    const words = ["layer", layer.id, quote(layer.name)];
-    if (layer.id === BASE_LAYER && index > 0) words.push("above", layers[index - 1].id);
-    lines.push(words.join(" "));
+    const words = layerWordsOf(layer, layers[index - 1]?.id ?? "");
+    if (layer.id === defaultLayer && layer.id !== BASE_LAYER) words.push("default");
+    // The base layer needs no line while it is plain: lowest, unnamed and unlocked.
+    if (layer.id !== BASE_LAYER || words.length > 3 || layer.name !== BASE_LAYER_NAME)
+      lines.push(words.join(" "));
   });
   return lines;
+}
+
+/** A layer's declaration: its name, the base layer's place when it is not lowest, and its lock. */
+function layerWordsOf(layer: Layer, below: string) {
+  const words = ["layer", layer.id, quote(layer.name)];
+  if (layer.id === BASE_LAYER && below) words.push("above", below);
+  if (layer.locked) words.push("locked");
+  return words;
 }
 
 /** Items in stacking order, nested by what holds them, with their links after. */
@@ -326,8 +335,12 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   if (whole && calibration) lines.push(scaleStatement(calibration));
   lines.push(...styleStatements(document, whole ? undefined : used));
   const layersUsed = new Set(chosen.filter((item) => !item.inside).map((item) => item.layer));
-  lines.push(...layerStatements(layers, whole ? undefined : layersUsed));
+  // The room's own settings, its default layer and opening view, travel only with the whole canvas.
+  const defaultLayer = whole ? document.defaultLayer() : BASE_LAYER;
+  lines.push(...layerStatements(layers, whole ? undefined : layersUsed, defaultLayer));
   printTree(chosen, lines);
+  // After the items, so the object it names has been declared when the file is read.
+  if (whole && document.opening()) lines.push(`opening ${document.opening()}`);
   lines.push(...discussionStatements(listComments(document).filter((c) => ids.has(c.on))));
   for (const picture of options.data)
     lines.push(`data ${picture.hash} ${picture.type} ${quote(picture.data)}`);

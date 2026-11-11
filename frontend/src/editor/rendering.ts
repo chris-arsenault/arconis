@@ -113,6 +113,21 @@ function labelVariables(style: Record<string, unknown>) {
   return parts.join(";");
 }
 
+/**
+ * An item in a locked layer lets every click through to what is beneath it. maxGraph's own
+ * pointerEvents style only gives up a shape's transparent parts, so its drawn nodes are marked
+ * and the stylesheet takes the pointer off them, the label over the shape included.
+ */
+function markLockedLayers(renderer: Graph["cellRenderer"]) {
+  const redraw = renderer.redraw.bind(renderer);
+  renderer.redraw = (state, force, rendering) => {
+    redraw(state, force, rendering);
+    const locked = (state.style as Record<string, unknown>).layerLocked === true;
+    state.shape?.node?.classList.toggle("layer-locked", locked);
+    state.text?.node?.classList.toggle("layer-locked", locked);
+  };
+}
+
 /** `marks` surrounds a label with signs, such as that an object holds more than is drawn. */
 export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
   HandleConfig.fillColor = "#f4f2fd";
@@ -176,6 +191,7 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
     shape.useSvgBoundingBox = false;
     return shape;
   };
+  markLockedLayers(renderer);
   const createLabel = renderer.createLabel.bind(renderer);
   // Labels lay out in screen pixels. maxGraph would lay them out in world units and scale the
   // result, and browsers cannot lay out text in the tiny world units of a deep zoom.

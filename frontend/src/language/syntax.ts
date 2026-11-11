@@ -184,7 +184,13 @@ export type Statement =
       id: string;
       name: TextEdit;
       place: { relation: "above" | "below"; ref: string } | { relation: "keep" };
+      /** Whether to lock or unlock the layer, or null to leave it as it is. */
+      locked: boolean | null;
+      /** Whether this makes the layer the one new objects go into by default. */
+      makeDefault: boolean;
     } & Located)
+  /** The object the room opens on; an empty ref clears it. */
+  | ({ kind: "opening"; ref: string } & Located)
   | ({ kind: "merge"; from: string; into: string } & Located)
   | ({ kind: "dropLayer"; id: string } & Located);
 

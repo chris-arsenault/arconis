@@ -4,7 +4,7 @@ import { branchPlacement } from "../document/relations";
 import { layoutTree } from "../document/treeLayout";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
 import { placeInDeck, resolveHolder, slideArea } from "./slideWriting";
-import { checkLayers, writeLayer } from "./layerWriting";
+import { checkLayers, writeLayer, type RoomStatement } from "./layerWriting";
 import { declareStyle, describeItem, givenSize, matchSizes } from "./describe";
 import { routeLineAround } from "../document/routeLine";
 import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
@@ -78,6 +78,7 @@ const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } 
   layer: (writer, statement) => writer.layer(statement),
   merge: (writer, statement) => writer.layer(statement),
   dropLayer: (writer, statement) => writer.layer(statement),
+  opening: (writer, statement) => writer.layer(statement),
 };
 
 /** Applies statements of the canvas language to a document, all of them or none. */
@@ -138,7 +139,7 @@ class Writer {
     return { ...draft.commit(), pictures: this.pictures };
   }
 
-  layer(statement: Extract<Statement, { kind: "layer" | "merge" | "dropLayer" }>) {
+  layer(statement: RoomStatement) {
     writeLayer(this.draft, statement, Boolean(this.options.importing));
   }
 

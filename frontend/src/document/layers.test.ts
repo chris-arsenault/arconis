@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { CanvasDocument } from "./canvasDocument";
 import { LOCAL } from "./types";
-import { BASE_LAYER, hiddenByLayers, layeredStack, layerOf, byIds } from "./layers";
+import { BASE_LAYER, hiddenByLayers, layeredStack, layerOf, lockedByLayers, byIds } from "./layers";
 import { layerCommands } from "./layerCommands";
 import { importDocument } from "../files/canvasFile";
 import { parse } from "../language/parser";
@@ -25,7 +25,9 @@ const stack = (document: CanvasDocument) =>
 describe("layers", () => {
   it("opens a canvas without layers as one base layer, stacked as before", () => {
     const document = canvas('node a "A"\nnode b "B"\nslide s "S" deck d at 0,0');
-    expect(document.layerList()).toEqual([{ id: BASE_LAYER, name: "Workspace", order: 0 }]);
+    expect(document.layerList()).toEqual([
+      { id: BASE_LAYER, name: "Workspace", order: 0, locked: false },
+    ]);
     // Slides sit beneath everything, as they always were created.
     expect(stack(document)).toEqual(["s", "a", "b"]);
   });
@@ -192,5 +194,134 @@ describe("layers in the canvas language", () => {
     importDocument(room, copied);
     expect(room.layerList().find((layer) => layer.id === "notes")!.name).toBe("Mine");
     expect(room.list()[0].layer).toBe("notes");
+  });
+});
+
+describe("layer locks and the room's defaults", () => {
+  it("locks a layer for everyone, covering what its items hold and nothing else", () => {
+    const document = canvas(`
+      layer plan "Plan"
+      frame room "Room" in-layer plan { node desk "Desk" }
+      node loose "Loose"
+      drawing mark markup points 0,0 10,10`);
+    expect(lockedByLayers(document.list(), document.layerList()).size).toBe(0);
+    expect(layerCommands.lock(document, "plan", true)).toBe("");
+    expect(document.layerList().find((layer) => layer.id === "plan")!.locked).toBe(true);
+    const held = [...lockedByLayers(document.list(), document.layerList())];
+    held.sort((a, b) => a.localeCompare(b));
+    expect(held).toEqual(["desk", "room"]);
+    // Renaming and moving a locked layer keep it locked.
+    layerCommands.rename(document, "plan", "Floor plan");
+    layerCommands.move(document, "plan", 0);
+    expect(document.layerList()[0]).toMatchObject({ id: "plan", name: "Floor plan", locked: true });
+    document.undo.undo();
+    document.undo.undo();
+    document.undo.undo();
+    expect(document.layerList().find((layer) => layer.id === "plan")!.locked).toBe(false);
+  });
+
+  it("starts each person on the room's default layer until they choose or contribute", () => {
+    const document = canvas('layer ideas "Ideas"\nlayer plan "Plan"');
+    expect(document.activeLayer).toBe(BASE_LAYER);
+    expect(layerCommands.makeDefault(document, "ideas")).toBe("");
+    expect(document.defaultLayer()).toBe("ideas");
+    expect(document.activeLayer).toBe("ideas");
+    // Someone who has not contributed follows a change of default.
+    layerCommands.makeDefault(document, "plan");
+    expect(document.activeLayer).toBe("plan");
+    // Contributing settles their layer, so a later change does not move them.
+    const made = document.create("node", 0, 0);
+    expect(document.get(made)!.layer).toBe("plan");
+    layerCommands.makeDefault(document, "ideas");
+    expect(document.activeLayer).toBe("plan");
+    // Their own choice stands the same way.
+    document.activeLayer = BASE_LAYER;
+    expect(document.activeLayer).toBe(BASE_LAYER);
+    // Deleting the default returns newcomers to the base layer.
+    layerCommands.delete(document, "ideas");
+    expect(document.defaultLayer()).toBe(BASE_LAYER);
+  });
+
+  it("never leaves new objects going into a locked layer", () => {
+    const document = canvas('layer ideas "Ideas"\nlayer plan "Plan"');
+    layerCommands.makeDefault(document, "ideas");
+    // The default cannot be locked, and a locked layer cannot become the default.
+    expect(layerCommands.lock(document, "ideas", true)).toContain("default");
+    expect(document.layerList().find((layer) => layer.id === "ideas")!.locked).toBe(false);
+    layerCommands.lock(document, "plan", true);
+    expect(layerCommands.makeDefault(document, "plan")).toContain("locked");
+    expect(document.defaultLayer()).toBe("ideas");
+    // A person working in a layer someone then locks falls back to the default.
+    layerCommands.lock(document, "plan", false);
+    document.activeLayer = "plan";
+    layerCommands.lock(document, "plan", true);
+    expect(document.activeLayer).toBe("ideas");
+    expect(document.get(document.create("node", 0, 0))!.layer).toBe("ideas");
+  });
+
+  it("names the jump point a room opens on, until the mark or the object is gone", () => {
+    const document = canvas('node start "Start here" jump\nnode other "Other"');
+    expect(document.opening()).toBe("");
+    document.setOpening("start");
+    expect(document.opening()).toBe("start");
+    // The opening view is one of the jump points: without the mark the room opens at the origin.
+    document.patch("start", { jump: false });
+    expect(document.opening()).toBe("");
+    document.patch("start", { jump: true });
+    expect(document.opening()).toBe("start");
+    document.items.delete("start");
+    expect(document.opening()).toBe("");
+  });
+});
+
+describe("layer locks and the room's defaults in the canvas language", () => {
+  it("writes and round-trips locked layers, the default layer and the opening view", () => {
+    const document = canvas(`
+      layer plan "Plan" locked
+      layer ideas "Ideas" default
+      node start "Start here" in-layer ideas
+      opening start`);
+    expect(document.layerList().find((layer) => layer.id === "plan")!.locked).toBe(true);
+    expect(document.defaultLayer()).toBe("ideas");
+    expect(document.opening()).toBe("start");
+    // The opening object is listed with the jump points.
+    expect(document.get("start")!.jump).toBe(true);
+    const text = printCanvas(document);
+    expect(text).toContain('layer plan "Plan" locked');
+    expect(text).toContain('layer ideas "Ideas" default');
+    expect(text.trimEnd().endsWith("opening start")).toBe(true);
+    const copy = new CanvasDocument();
+    importDocument(copy, text);
+    expect(copy.layerList()).toEqual(document.layerList());
+    expect(copy.defaultLayer()).toBe("ideas");
+    expect(copy.opening()).toBe("start");
+
+    // A selection copied out carries neither of the room's own settings.
+    expect(printCanvas(document, { ids: ["start"] })).not.toContain("default");
+    expect(printCanvas(document, { ids: ["start"] })).not.toContain("opening");
+
+    write(document, "layer plan locked off\nlayer base default\nopening none");
+    expect(document.layerList().find((layer) => layer.id === "plan")!.locked).toBe(false);
+    expect(document.defaultLayer()).toBe(BASE_LAYER);
+    expect(document.opening()).toBe("");
+    // The language still edits a locked layer's items: the lock guards the pointer only.
+    write(document, 'layer plan locked\nnode desk "Desk" in-layer plan\nedit desk "Standing desk"');
+    expect(document.get("desk")!.name).toBe("Standing desk");
+  });
+
+  it("refuses a locked default, an unknown opening object, and keeps a room's own settings on import", () => {
+    const document = canvas('layer ideas "Ideas" default\nnode here "Here"\nopening here');
+    expect(() => write(document, "layer ideas locked")).toThrow(/default/);
+    expect(() => write(document, 'layer plan "Plan" locked default')).toThrow(/default/);
+    expect(() => write(document, "opening nowhere")).toThrow(/no item "nowhere"/);
+    expect(document.layerList().some((layer) => layer.id === "plan")).toBe(false);
+    // A file opened into this room adds its content but not its default layer or opening view.
+    importDocument(
+      document,
+      'arconis 1\nlayer theirs "Theirs" default\nnode there "There"\nopening there'
+    );
+    expect(document.get("there")).not.toBeNull();
+    expect(document.defaultLayer()).toBe("ideas");
+    expect(document.opening()).toBe("here");
   });
 });

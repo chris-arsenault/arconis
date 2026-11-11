@@ -49,6 +49,7 @@ const STATEMENT_WORDS = new Set([
   "around",
   "off",
   "default",
+  "opening",
 ]);
 
 const WORD_SETS: { has(word: string): boolean }[] = [

@@ -29,8 +29,8 @@ function emptyPlan(): LayerPlan {
 
 /** Numbers layers 0, 1, 2 bottom to top in the given order, recording only what changes. */
 function renumber(plan: LayerPlan, layers: Layer[]) {
-  layers.forEach(({ id, name, order }, index) => {
-    if (order !== index || plan.set.has(id)) plan.set.set(id, { name, order: index });
+  layers.forEach(({ id, name, order, locked }, index) => {
+    if (order !== index || plan.set.has(id)) plan.set.set(id, { name, order: index, locked });
   });
 }
 
@@ -38,8 +38,8 @@ function renumber(plan: LayerPlan, layers: Layer[]) {
 export function planCreate(layers: Layer[], id: string, name: string, at = layers.length) {
   const plan = emptyPlan();
   const next = [...layers];
-  next.splice(at, 0, { id, name, order: -1 });
-  plan.set.set(id, { name, order: at });
+  next.splice(at, 0, { id, name, order: -1, locked: false });
+  plan.set.set(id, { name, order: at, locked: false });
   renumber(plan, next);
   return plan;
 }
@@ -47,8 +47,33 @@ export function planCreate(layers: Layer[], id: string, name: string, at = layer
 export function planRename(layers: Layer[], id: string, name: string) {
   const plan = emptyPlan();
   const layer = layers.find((l) => l.id === id);
-  if (layer) plan.set.set(id, { name, order: layer.order });
+  if (layer) plan.set.set(id, { name, order: layer.order, locked: layer.locked });
   return plan;
+}
+
+/** Locks or unlocks a layer for everyone. */
+export function planLock(layers: Layer[], id: string, locked: boolean) {
+  const plan = emptyPlan();
+  const layer = layers.find((l) => l.id === id);
+  if (layer && layer.locked !== locked)
+    plan.set.set(id, { name: layer.name, order: layer.order, locked });
+  return plan;
+}
+
+/** Why a layer cannot be locked, or nothing when it can: newcomers must be able to add to the default. */
+export function lockProblem(layers: Layer[], id: string, defaultLayer: string) {
+  const layer = layers.find((l) => l.id === id);
+  if (!layer) return `There is no layer "${id}".`;
+  if (id === defaultLayer)
+    return `"${layer.name}" is the layer new objects go into by default; make another layer the default before locking it.`;
+  return "";
+}
+
+/** Why a layer cannot be the default, or nothing when it can. */
+export function defaultProblem(layers: Layer[], id: string) {
+  const layer = layers.find((l) => l.id === id);
+  if (!layer) return `There is no layer "${id}".`;
+  return layer.locked ? `"${layer.name}" is locked; unlock it before making it the default.` : "";
 }
 
 /** Moves a layer to `index`, counted bottom to top. */
@@ -153,6 +178,22 @@ export const layerCommands = {
   },
   move(document: CanvasDocument, id: string, index: number) {
     step(document, planMove(document.layerList(), id, index));
+  },
+  /** Locks or unlocks a layer; returns why it could not, or nothing when it did. */
+  lock(document: CanvasDocument, id: string, locked: boolean) {
+    const layers = document.layerList();
+    const problem = locked ? lockProblem(layers, id, document.defaultLayer()) : "";
+    if (!problem) step(document, planLock(layers, id, locked));
+    return problem;
+  },
+  /** Makes a layer the one everyone's new objects go into on entering the room. */
+  makeDefault(document: CanvasDocument, id: string) {
+    const problem = defaultProblem(document.layerList(), id);
+    if (problem) return problem;
+    document.undo.stopCapturing();
+    document.setDefaultLayer(id);
+    document.undo.stopCapturing();
+    return "";
   },
   moveItems(document: CanvasDocument, ids: string[], to: string) {
     const { plan, refused } = planMoveItems(document.list(), ids, to, counter(document));

@@ -15,6 +15,11 @@ export interface LayerRecord {
   name: string;
   /** Stacking position among layers, bottom to top; ties break by id. */
   order: number;
+  /**
+   * Whether the pointer passes over what the layer holds, for everyone. A guard against
+   * accidents: anyone may unlock it, and the canvas language still edits its items.
+   */
+  locked: boolean;
 }
 
 export interface Layer extends LayerRecord {
@@ -22,7 +27,7 @@ export interface Layer extends LayerRecord {
 }
 
 /** Records peers write in an unknown shape are ignored, as items are. */
-function isRecord(value: unknown): value is LayerRecord {
+function isRecord(value: unknown): value is Pick<LayerRecord, "name" | "order"> {
   const record = value as Partial<LayerRecord> | null;
   return typeof record?.name === "string" && typeof record.order === "number";
 }
@@ -30,11 +35,29 @@ function isRecord(value: unknown): value is LayerRecord {
 /** Every layer bottom to top, the base layer included. */
 export function orderedLayers(records: Iterable<[string, unknown]>): Layer[] {
   const layers = new Map<string, Layer>([
-    [BASE_LAYER, { id: BASE_LAYER, name: BASE_LAYER_NAME, order: 0 }],
+    [BASE_LAYER, { id: BASE_LAYER, name: BASE_LAYER_NAME, order: 0, locked: false }],
   ]);
-  for (const [id, record] of records)
-    if (isRecord(record)) layers.set(id, { id, name: record.name, order: record.order });
+  for (const [id, record] of records) {
+    if (!isRecord(record)) continue;
+    const locked = (record as Partial<LayerRecord>).locked === true;
+    layers.set(id, { id, name: record.name, order: record.order, locked });
+  }
   return [...layers.values()].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+}
+
+/**
+ * The items a locked layer keeps the pointer off: its items and what they hold. Markup and
+ * slides belong to no layer, so no lock reaches them.
+ */
+export function lockedByLayers(items: Item[], layers: Layer[]) {
+  const locked = new Set(layers.filter((layer) => layer.locked).map((layer) => layer.id));
+  if (!locked.size) return new Set<string>();
+  const byId = byIds(items);
+  const rank = rankOf(layers);
+  const held = items.filter(
+    (item) => inLayers(item) && locked.has(layers[rank(layerOf(item, byId))].id)
+  );
+  return new Set(held.map((item) => item.id));
 }
 
 /** Markup sits above every layer and slides beneath them all; neither belongs to one. */

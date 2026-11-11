@@ -331,6 +331,26 @@ export function underlayStyle(style: CellStyle, presenting: boolean): CellStyle 
   return underlay;
 }
 
+/**
+ * An item in a locked layer is drawn as itself and kept out of the pointer's reach: clicks pass
+ * to what is beneath, and it takes no handles, edits or connections.
+ */
+export function lockedLayerStyle(style: CellStyle): CellStyle {
+  const locked: Style = {
+    ...style,
+    layerLocked: true,
+    pointerEvents: false,
+    movable: false,
+    resizable: false,
+    rotatable: false,
+    editable: false,
+    connectable: false,
+    deletable: false,
+    bendable: false,
+  };
+  return locked;
+}
+
 /** Peers write items, so an image only ever comes from a local icon key resolved here. */
 function applyIcon(item: Item, style: Style, look: Look) {
   if (isLockedIcon(item)) Object.assign(style, { aspect: "fixed", rotatable: false });

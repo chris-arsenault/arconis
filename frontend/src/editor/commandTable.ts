@@ -30,6 +30,7 @@ import { EXPORT_COMMANDS } from "./exportCommands";
 import { showRelate } from "./ui";
 import { KEEP_TOOL_COMMAND } from "./stickyTool";
 import { CLOCK_COMMANDS } from "./clocks";
+import { OPENING_COMMAND } from "./openingView";
 
 /** The commands, in the order menus and the palette list them within each group. */
 
@@ -389,6 +390,7 @@ export const COMMANDS = [
   ...EDIT,
   ...STYLE_COMMANDS,
   ...FIELD_COMMANDS,
+  OPENING_COMMAND,
   ...ARRANGE,
   ...STRUCTURE,
   ...STRUCTURE_KEYS,

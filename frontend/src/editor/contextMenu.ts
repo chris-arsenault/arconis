@@ -50,7 +50,7 @@ const MARKER: Submenu = {
   ids: [...MARKERS.map((marker) => `fields.marker.${marker}`), "fields.marker.none"],
 };
 const TAGS_AND_STATUS: MenuSlot[] = ["fields.tag", "fields.task", MARKER];
-const VISIBILITY = ["fields.lock", "fields.collapse", "fields.jump"];
+const VISIBILITY = ["fields.lock", "fields.collapse", "fields.jump", "fields.opening"];
 
 /** Groups by intent: text, structure, tags and status, arrangement, visibility, clipboard, view. */
 const MENUS: Record<MenuContext, MenuSlot[][]> = {

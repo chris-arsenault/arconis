@@ -5,6 +5,9 @@ import {
   Combine,
   Eye,
   EyeOff,
+  Flag,
+  Lock,
+  LockOpen,
   Pencil,
   Plus,
   Trash2,
@@ -94,26 +97,81 @@ function LayerList({
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => drop(event, layer)}
           >
-            <VisibilityButton
-              name={layer.name}
-              hidden={editor.layers.isHidden(layer.id)}
-              onToggle={() => editor.layers.setHidden(layer.id, !editor.layers.isHidden(layer.id))}
-            />
-            <button
-              className="rail-entry layer-name"
-              aria-pressed={layer.id === active}
-              data-hint={`Draw into ${layer.name}`}
-              data-hint-detail="Make this the layer new objects go into; double-click to rename it."
-              onClick={() => editor.layers.setActive(layer.id)}
-              onDoubleClick={() => setRenaming(layer.id)}
-            >
-              {layer.name}
-            </button>
+            <LayerControls editor={editor} layer={layer} onRename={() => setRenaming(layer.id)} />
             <span className="rail-count">{layerRoots(items, layer.id).length}</span>
           </li>
         )
       )}
     </ul>
+  );
+}
+
+/** A layer row's own controls: its eye, its lock, its name and whether it is the room's default. */
+function LayerControls({
+  editor,
+  layer,
+  onRename,
+}: Readonly<{ editor: EditorController; layer: Layer; onRename: () => void }>) {
+  const { document } = editor;
+  /** Says why a layer action was refused; nothing when it went through. */
+  const notify = (problem: string) => {
+    if (problem) editor.room?.setNotice(problem);
+  };
+  return (
+    <>
+      <VisibilityButton
+        name={layer.name}
+        hidden={editor.layers.isHidden(layer.id)}
+        onToggle={() => editor.layers.setHidden(layer.id, !editor.layers.isHidden(layer.id))}
+      />
+      <LockButton
+        layer={layer}
+        onToggle={() => notify(layerCommands.lock(document, layer.id, !layer.locked))}
+      />
+      <button
+        className="rail-entry layer-name"
+        aria-pressed={layer.id === editor.layers.active}
+        data-hint={`Draw into ${layer.name}`}
+        data-hint-detail="Make this the layer new objects go into; double-click to rename it."
+        onClick={() => {
+          if (layer.locked) notify(`"${layer.name}" is locked; unlock it to add to it.`);
+          else editor.layers.setActive(layer.id);
+        }}
+        onDoubleClick={onRename}
+      >
+        {layer.name}
+      </button>
+      {layer.id === document.defaultLayer() && (
+        <span
+          className="layer-default"
+          data-testid="default-layer"
+          data-hint-detail="Everyone's new objects go into this layer when they enter the room."
+        >
+          default
+        </span>
+      )}
+    </>
+  );
+}
+
+/** Makes the chosen layer the one everyone starts in. */
+function DefaultLayerAction({
+  editor,
+  current,
+}: Readonly<{ editor: EditorController; current: Layer }>) {
+  const { document } = editor;
+  return (
+    <LayerAction
+      label={`Make ${current.name} the default layer`}
+      detail="Everyone's new objects go into this layer when they enter the room, until they choose another."
+      disabled={document.defaultLayer() === current.id}
+      onClick={() => {
+        const problem = layerCommands.makeDefault(document, current.id);
+        if (problem) editor.room?.setNotice(problem);
+      }}
+    >
+      <Flag size={13} />
+    </LayerAction>
   );
 }
 
@@ -161,6 +219,7 @@ function LayerToolbar({
       >
         <ArrowDown size={14} />
       </LayerAction>
+      <DefaultLayerAction editor={editor} current={current} />
       <LayerAction
         label={`Merge ${current.name} down`}
         detail="Move the chosen layer's objects into the layer beneath, keeping how they stack."
@@ -248,6 +307,23 @@ function VisibilityButton({
       onClick={onToggle}
     >
       {hidden ? <EyeOff size={13} /> : <Eye size={13} />}
+    </button>
+  );
+}
+
+/** Locks a layer for everyone, so the pointer passes over what it holds; anyone may unlock it. */
+function LockButton({ layer, onToggle }: Readonly<{ layer: Layer; onToggle: () => void }>) {
+  const label = `${layer.locked ? "Unlock" : "Lock"} ${layer.name}`;
+  return (
+    <button
+      className="rail-action layer-lock"
+      aria-label={label}
+      aria-pressed={layer.locked}
+      data-hint={label}
+      data-hint-detail="A locked layer's objects ignore the pointer for everyone, so clicks reach what is beneath."
+      onClick={onToggle}
+    >
+      {layer.locked ? <Lock size={13} /> : <LockOpen size={13} />}
     </button>
   );
 }
