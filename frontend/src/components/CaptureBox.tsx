@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Network, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { captureNote, captureToTree } from "../editor/capture";
+import { placedFactor } from "../editor/creationScale";
 import { endCapture } from "../editor/ui";
 
 /**
@@ -17,7 +18,8 @@ export function CaptureBox({ editor }: Readonly<{ editor: EditorController }>) {
   const add = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    capture.ids.push(captureNote(editor.document, capture, trimmed, editor.graph.view.scale));
+    const factor = placedFactor(editor, capture.at);
+    capture.ids.push(captureNote(editor.document, capture, trimmed, factor));
     setText("");
     editor.emit();
   };

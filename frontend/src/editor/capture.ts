@@ -18,18 +18,18 @@ export function captureNote(
   document: CanvasDocument,
   capture: Capture,
   text: string,
-  scale: number
+  factor: number
 ) {
-  const size = creationSize("note", scale);
+  const size = creationSize("note", factor);
   const last = capture.ids
     .map((id) => document.get(id))
     .filter((item) => item !== null)
     .at(-1);
-  const y = last ? last.y + last.height + STACK_GAP / scale : capture.at.y;
+  const y = last ? last.y + last.height + STACK_GAP * factor : capture.at.y;
   return document.create("note", capture.at.x, y, {
     name: text,
     ...size,
-    ...creationValues("note", scale),
+    ...creationValues("note", factor),
   });
 }
 

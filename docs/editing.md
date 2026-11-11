@@ -138,8 +138,13 @@ pointer during the peek and the release lands where it points, at the zoom you h
 **Shift 1** and **Shift 2** go to normal zoom, fit the canvas and fit the selection. Every jump, from
 fitting to following a link or a found match, is remembered: **Ctrl/Command [** returns to the
 view before it and **Ctrl/Command ]** goes forward again. When the view holds none of the
-canvas, a **Back to content** button appears. New objects created at deep zoom have an
-appropriate scale for that view.
+canvas, a **Back to content** button appears.
+
+A new object takes the scale of the object it is placed closest to among those in view, so it
+matches its neighbours whatever the zoom; inside a frame or other holder it takes the holder's.
+A topic, connected copy or line grown from an object takes that object's scale. With nothing
+in view, or when the nearest object's scale would make the new one far too large or small for
+the window, the object is sized for the current zoom instead.
 
 At distant zoom, details too small to read can disappear from the view. Zoom in or select an
 object to see it again. Objects outside the window are also skipped while drawing the view;

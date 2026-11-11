@@ -3,7 +3,7 @@ import { effectiveAppearance } from "../document/appearance";
 import { isMarkup } from "../document/ink";
 import { cutInk } from "../document/inkErase";
 import { pathsTouch } from "../document/inkHit";
-import { creationValues } from "./zoom";
+import { creationOffset, creationValues } from "./zoom";
 import {
   isBox,
   LOCAL,
@@ -47,7 +47,7 @@ export function addInk(
   const { shape, color, width } = settings;
   const closed = ["rectangle", "ellipse", "polygon", "cloud"].includes(shape);
   const look: Look = {
-    ...creationValues("drawing", viewScale).look,
+    ...creationValues("drawing", creationOffset(viewScale)).look,
     line: color,
     lineWidth: width,
     path: shape === "brace" ? "curved" : "diagonal",

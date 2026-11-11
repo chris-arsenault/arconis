@@ -20,7 +20,8 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
-import { creationOffset, observeGraphViewport, worldPointOf, zoomAt } from "./zoom";
+import { observeGraphViewport, worldPointOf, zoomAt } from "./zoom";
+import { placedFactor, windowCentre } from "./creationScale";
 import { keepsTool } from "./stickyTool";
 import { configureCulling } from "./culling";
 import { SelectionReferences } from "./relate";
@@ -292,16 +293,14 @@ export class EditorController {
     icon = this.armedIcon,
     screen = this.armedScreen
   ) {
-    const view = this.graph.view;
-    const centerX = this.element.clientWidth / 2 / view.scale - view.translate.x;
-    const centerY = this.element.clientHeight / 2 / view.scale - view.translate.y;
-    const size = creationOffset(view.scale);
+    const centre = windowCentre(this);
+    const size = placedFactor(this, at);
     const offset = (this.document.items.size % 6) * 16 * size;
     const { type } = shapeItem(shape);
-    const fields = newItemFields(shape, view.scale, icon, screen, this.slideValues(type));
+    const fields = newItemFields(shape, size, icon, screen, this.slideValues(type));
     const position = at ?? {
-      x: centerX + (offset - 80) * size,
-      y: centerY + (offset - 45) * size,
+      x: centre.x + (offset - 80) * size,
+      y: centre.y + (offset - 45) * size,
       anchor: "corner",
     };
     const left = position.x - (position.anchor === "center" ? fields.width / 2 : 0);

@@ -1,6 +1,6 @@
 import { STENCILS, typeLabel, type Item, type ItemType, type Stencil } from "../document/types";
 import type { ScreenSize } from "../document/screens";
-import { creationOffset, creationSize, creationValues } from "./zoom";
+import { creationSize, creationValues } from "./zoom";
 import { defaultFields } from "./styleClipboard";
 import { newClockFields } from "./clocks";
 
@@ -45,33 +45,32 @@ function shapeFields(shape: Shape): Partial<Item> {
 }
 
 /**
- * The world size of a new item at this zoom, or of a screen when one is chosen, or a slide's deck
- * size when the deck already has one.
+ * The world size of a new item made `factor` times its defaults, or of a screen when one is
+ * chosen, or a slide's deck size when the deck already has one.
  */
 function newItemSize(
   shape: Shape,
-  scale: number,
+  factor: number,
   screen: ScreenSize | null,
   given: Partial<Pick<Item, "width" | "height">> = {}
 ) {
   if (given.width && given.height) return { width: given.width, height: given.height };
   const { type, stencil } = shapeItem(shape);
-  if (!screen) return creationSize(type, scale, stencil);
-  const factor = creationOffset(scale);
+  if (!screen) return creationSize(type, factor, stencil);
   return { width: screen.width * factor, height: screen.height * factor };
 }
 
-/** Creation combines this person's defaults with zoom sizing, keeping both appearance policies. */
+/** Creation combines this person's defaults with the scale it is made at, keeping both policies. */
 export function newItemFields(
   shape: Shape,
-  scale: number,
+  factor: number,
   icon: { key: string; title: string } | null,
   screen: ScreenSize | null,
   slide: Partial<Item>
 ) {
   const { type, stencil } = shapeItem(shape);
   const defaults = defaultFields(type, stencil);
-  const sizing = creationValues(type, scale, stencil);
+  const sizing = creationValues(type, factor, stencil);
   const extra = shapeFields(shape);
   return {
     name: screen?.name ?? icon?.title ?? defaultName(shape),
@@ -81,7 +80,7 @@ export function newItemFields(
     ...extra,
     look: { ...defaults.look, ...extra.look, ...sizing.look },
     ...slide,
-    ...newItemSize(shape, scale, screen, slide),
+    ...newItemSize(shape, factor, screen, slide),
     ...(icon ? { icon: icon.key } : {}),
   };
 }

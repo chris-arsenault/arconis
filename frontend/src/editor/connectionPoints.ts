@@ -9,7 +9,8 @@ import {
 } from "@maxgraph/core";
 import type { CanvasDocument } from "../document/canvasDocument";
 import type { Port } from "../document/types";
-import { creationValues } from "./zoom";
+import { creationOffset, creationValues } from "./zoom";
+import { scaleOf } from "./creationScale";
 
 const POINT_IMAGE = new ImageBox("/connection-point.svg", 11, 11);
 const POINT_COLOR = "#2f7de1";
@@ -79,8 +80,9 @@ export function configureConnectionPoints(graph: Graph, document: CanvasDocument
     connection.isConnecting() ? markerColor(event, state, valid) : "none";
   connection.connect = (source, target) => {
     if (!source?.id || !target?.id || source === target) return;
+    const from = document.get(source.id);
     document.create("line", 0, 0, {
-      ...creationValues("line", graph.view.scale),
+      ...creationValues("line", from ? scaleOf(from) : creationOffset(graph.view.scale)),
       from: source.id,
       to: target.id,
       fromPort: portOf(connection.sourceConstraint),

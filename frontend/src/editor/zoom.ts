@@ -108,24 +108,26 @@ function creationFactor(scale: number) {
   return 2 ** -Math.round(Math.log2(scale));
 }
 
+/** How many times its defaults a new object is at this zoom, when nothing nearby sets its scale. */
 export function creationOffset(scale: number) {
   return creationFactor(scale);
 }
 
-/** The world size of a new item at this zoom. */
-export function creationSize(type: ItemType, scale: number, stencil?: Stencil) {
-  const factor = creationFactor(scale);
+/**
+ * The world size of a new item made `factor` times its defaults. The factor comes from the
+ * object it is placed beside or grown from (`editor/creationScale.ts`), or from the zoom.
+ */
+export function creationSize(type: ItemType, factor: number, stencil?: Stencil) {
   const [width, height] = defaultSize(type, stencil);
   return { width: width * factor, height: height * factor };
 }
 
-/** Size and scale for an item created at this zoom. Empty near 100%. */
-export function creationValues(type: ItemType, scale: number, stencil?: Stencil): Partial<Item> {
-  const factor = creationFactor(scale);
+/** Size and scale for an item made `factor` times its defaults. Empty at 1. */
+export function creationValues(type: ItemType, factor: number, stencil?: Stencil): Partial<Item> {
   if (factor === 1) return {};
   const look = { scale: factor };
   if (!isBox({ type })) return { look };
-  return { ...creationSize(type, scale, stencil), look };
+  return { ...creationSize(type, factor, stencil), look };
 }
 
 /** Applies the parts of the view that follow zoom: the snapping grid and its visible lines. */

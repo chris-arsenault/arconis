@@ -101,15 +101,23 @@ it("changes a mixed selection atomically with one local undo step", () => {
   canvas.destroy();
 });
 
-it("uses the same defaults and zoom policy for rail and context creation while preserving placement", () => {
+it("uses the same defaults and scale policy for rail and context creation while preserving placement", () => {
   const canvas = new CanvasDocument();
   const source = canvas.create("note", 4000, 0, { look: { fill: "#123456", bold: true } });
   setDefaultLook(canvas, canvas.get(source)!);
-  const holder = canvas.create("frame", 100, 100, { width: 3000, height: 3000 });
+  // Both notes land in this frame, and take its scale rather than the zoom's.
+  const holder = canvas.create("frame", 100, 100, {
+    width: 3000,
+    height: 3000,
+    look: { scale: 4 },
+  });
   const editor = {
     document: canvas,
     element: { clientWidth: 1200, clientHeight: 800 },
-    graph: { view: { scale: 0.25, translate: { x: 0, y: 0 } } },
+    graph: {
+      view: { scale: 0.5, translate: { x: 0, y: 0 }, getState: () => ({}) },
+      getDataModel: () => ({ getCell: (id: string) => ({ id }) }),
+    },
     armedIcon: { key: "lucide:Server", title: "Armed icon" },
     armedScreen: { name: "Armed screen", width: 500, height: 300 },
     ui: initialUi(),

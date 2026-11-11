@@ -10,6 +10,7 @@ import { connectedClone } from "../editor/treeEdits";
 import type { Direction } from "../editor/walking";
 import { isBox, type Item } from "../document/types";
 import { creationValues } from "../editor/zoom";
+import { scaleOf } from "../editor/creationScale";
 
 /** How far a dot must be dragged before the copy goes where the pointer is, in pixels. */
 const DRAG_SLOP = 6;
@@ -18,7 +19,7 @@ const SIDES: Direction[] = ["up", "right", "down", "left"];
 /** Places a connected copy where a dragged dot was released, centred under the pointer. */
 function placementAt(editor: EditorController, item: Item, event: PointerEvent) {
   const at = editor.worldPoint(event);
-  const sizing = creationValues(item.type, editor.graph.view.scale, item.stencil);
+  const sizing = creationValues(item.type, scaleOf(item), item.stencil);
   return {
     ...sizing,
     x: at.x - (sizing.width ?? item.width) / 2,

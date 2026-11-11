@@ -288,6 +288,11 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
 - `editor/zoom.ts` holds the reciprocal zoom range, anchor-preserving view transforms, stroke
   precision and creation sizing. Navigation uses the view API rather than maxGraph's rounded zoom
   helper. Window resizing preserves the center; changing panels preserves content position.
+  `editor/creationScale.ts` chooses the factor a new object is sized by: the scale of the
+  closest drawn object in the window, or of the object it grows from, and the zoom's own factor
+  where there is none or it is far out of proportion with the window.
+- `editor/reselect.ts` keeps a plain click on an already selected item from moving the selection
+  to its holder, which maxGraph does by default.
 - `document/units.ts` converts world distances through an optional shared calibration. The `scale`
   metadata value stores the world reference, represented distance and unit together. The canvas
   language and complete files preserve it; calibration changes never transform item geometry.

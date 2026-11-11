@@ -4,6 +4,13 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Sizing and selection
+
+- New objects take the scale of the closest object in view, or of the object they grow from,
+  so they match their neighbours at any zoom. The zoom sizes them only where nothing is near.
+- Fixed double-clicking a note inside a frame, which opened its text but moved the selection
+  to the frame.
+
 ### Deck export
 
 - Added **Export deck as HTML** to the File menu, the right-click menu and the command palette,

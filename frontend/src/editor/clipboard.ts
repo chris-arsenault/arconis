@@ -7,6 +7,7 @@ import { writeStatements } from "../language/writer";
 import type { EditorController } from "./controller";
 import { pasteStatements, type PasteForm } from "./pasteAs";
 import { creationSize } from "./zoom";
+import { placedFactor } from "./creationScale";
 import { fitText } from "./textLayout";
 import { foreignStatements, type ForeignFormat } from "../interchange";
 
@@ -154,7 +155,7 @@ export function pastePlainText(editor: EditorController, text: string, form: Pas
   const [selected] = editor.selected();
   const under = form === "tree" && selected && isBox(selected) ? selected.id : "";
   const statements = parse(pasteStatements(text, form, under).join("\n"));
-  const scale = editor.graph.view.scale;
+  const factor = placedFactor(editor, at);
   document.undo.stopCapturing();
   let created: string[] = [];
   document.doc.transact(() => {
@@ -162,8 +163,8 @@ export function pastePlainText(editor: EditorController, text: string, form: Pas
     const boxes = created.map((id) => document.get(id)).filter((item) => item !== null);
     for (const item of boxes) {
       if (!isBox(item) || item.onLine) continue;
-      // New objects take the size they would have been drawn at this zoom.
-      const size = creationSize(item.type, scale, item.stencil);
+      // New objects take the size they would have been placed at here.
+      const size = creationSize(item.type, factor, item.stencil);
       if (item.type === "text") document.patch(item.id, { width: size.width * 2 });
       else document.patch(item.id, size);
     }

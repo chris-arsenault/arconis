@@ -20,6 +20,7 @@ import { layoutTree } from "../document/treeLayout";
 import type { EditorController } from "./controller";
 import { fittingView, flyToView } from "./views";
 import { creationSize, creationValues } from "./zoom";
+import { scaleOf } from "./creationScale";
 import { configureEqualGaps } from "./equalGaps";
 
 const ANCHOR_PIXELS = 14;
@@ -91,10 +92,10 @@ const BRANCH_HEIGHT = 48;
 
 function branchSize(editor: EditorController, parent: Item) {
   if (!branchCopiesParent(parent)) {
-    const node = creationSize("node", editor.graph.view.scale);
+    const node = creationSize("node", scaleOf(parent));
     return { width: node.width, height: (BRANCH_HEIGHT * node.width) / BRANCH_WIDTH };
   }
-  const scale = parent.look?.scale ?? 1;
+  const scale = scaleOf(parent);
   return {
     width: Math.min(parent.width, BRANCH_WIDTH * scale),
     height: Math.min(parent.height, BRANCH_HEIGHT * scale),
@@ -104,7 +105,7 @@ function branchSize(editor: EditorController, parent: Item) {
 /** A new topic beside or under `parent`, looking like it when that suits a topic. */
 function topicFor(editor: EditorController, parent: Item, x: number, y: number) {
   const { width, height } = branchSize(editor, parent);
-  const created = creationValues("node", editor.graph.view.scale);
+  const created = creationValues("node", scaleOf(parent));
   const fields: Partial<Item> = branchCopiesParent(parent)
     ? {
         stencil: parent.stencil,
@@ -120,7 +121,7 @@ function topicFor(editor: EditorController, parent: Item, x: number, y: number) 
 export function addBranch(editor: EditorController, sibling = false) {
   const [selected] = editor.selected();
   if (!selected) return "";
-  const { document, graph } = editor;
+  const { document } = editor;
   const items = document.list();
   const endpoint = sibling ? null : planEndpoint(editor, selected);
   const parent = sibling ? document.get(branchParent(items, selected.id)) : endpoint?.item;
@@ -136,7 +137,7 @@ export function addBranch(editor: EditorController, sibling = false) {
       document.build("branch", 0, 0, {
         from: parent.id,
         to: node.id,
-        ...creationValues("branch", graph.view.scale),
+        ...creationValues("branch", scaleOf(parent)),
         fromPort: [placed.towardLeft ? 0 : 1, 0.5],
         toPort: [placed.towardLeft ? 1 : 0, 0.5],
       })
@@ -189,7 +190,7 @@ function link(editor: EditorController, a: Item, b: Item, type: "line" | "refere
       document.build(type, 0, 0, {
         from: from.item.id,
         to: to.item.id,
-        ...creationValues(type, editor.graph.view.scale),
+        ...creationValues(type, scaleOf(a)),
       })
     );
   }, LOCAL);

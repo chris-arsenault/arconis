@@ -5,6 +5,8 @@ import { bindDrawingInput } from "./drawingInput";
 import { commandContext, commandForKey, runCommand } from "./registry";
 import { isInputTarget, showComments, showRelate } from "./ui";
 import { bindPointerButtons, cellAt, configureButtons } from "./pointerButtons";
+import { keepSelectionOnReclick } from "./reselect";
+import { scaleOf } from "./creationScale";
 import { configureCentredResize, configureCreateTarget } from "./createTarget";
 import { nextInStack } from "./selectBy";
 import { changeFields } from "./commands";
@@ -254,6 +256,7 @@ export function bindCanvasInput(editor: EditorController) {
   configureButtons(editor.band);
   bindPointerButtons(editor, abort.signal);
   configureCreateTarget(editor.graph, editor.document);
+  keepSelectionOnReclick(editor.graph);
   configureCentredResize();
   return () => abort.abort();
 }
@@ -284,7 +287,7 @@ function connectClick(editor: EditorController, source: string, target: string) 
   editor.document.create("line", 0, 0, {
     from: source,
     to: target,
-    ...creationValues("line", editor.graph.view.scale),
+    ...creationValues("line", scaleOf(editor.document.get(source)!)),
   });
   editor.setTool("select");
   return "";
