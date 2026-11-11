@@ -49,14 +49,39 @@ Include markup.
 An Arconis PNG contains source as well as pixels. Its editable copy includes the exported
 objects' text and associated document data, rather than acting as a flattened-only image.
 
-## Copy a picture, export an SVG, copy a tree
+## Copy a picture, export an SVG, copy a tree or a diagram
 
 **Copy canvas as PNG**, or **Copy selection as PNG** with something selected, puts a picture on
 the clipboard for a chat or a document. **Export canvas as SVG** (or **Export selection as SVG**)
 downloads a vector picture with canvas text in its description. SVG is not accepted by
 **Import document**; keep an `.arconis` file or Arconis-exported PNG to reopen the content directly.
-**Copy tree as Markdown** copies the selected tree as an indented list, which pastes back as a tree. All three
+**Copy tree as Markdown** copies the selected tree as an indented list, which pastes back as a tree.
+**Export tree as CSV** downloads the same tree with one column for each level, so a spreadsheet
+shows the nesting. **Copy canvas as Mermaid**, or **Copy selection as Mermaid**, copies the boxes,
+the frames and groups that hold them and the lines among them as a Mermaid flowchart. All five
 are in the command palette.
+
+## Import diagrams and outlines from other tools
+
+**Import document** also reads what other tools write, and pasting the same text onto the canvas
+offers it as a diagram or outline. Either way the result is ordinary Arconis objects, added as
+one undoable change.
+
+| Source   | Recognised by                                        | Becomes                                                                                        |
+| -------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Mermaid  | Its opening line, or a `.mmd` file                   | Flowcharts, state, class and entity diagrams; a mind map becomes a tree                        |
+| D2       | A `.d2` file, or pasted keys and arrowed connections | Shapes, containers and connections                                                             |
+| PlantUML | `@startuml` or `@startmindmap`, or a `.puml` file    | Component, deployment, use case, class, state and sequence diagrams; a mind map becomes a tree |
+| draw.io  | Its XML, in a `.drawio` or `.xml` file               | Every page's boxes, containers and lines where the file placed them                            |
+| OPML     | Its XML, in an `.opml` file                          | A topic tree                                                                                   |
+| Outline  | A `.txt` or `.md` file with headings or indentation  | A topic tree                                                                                   |
+
+Boxes keep their text, their shape where Arconis has the same one, and their fill, line and text
+colours. Lines keep their labels, arrowheads and dashes. A container becomes a frame holding its
+contents. Mermaid, D2 and PlantUML carry no positions, so their diagrams are laid out in ranks
+along their lines, in the direction the source asks for. A sequence diagram becomes its
+participants joined by numbered messages. Other styling, icons and notes stay behind, and a
+diagram kind with no boxes and lines, such as a Gantt chart, is reported and adds nothing.
 
 ## Import into a room
 

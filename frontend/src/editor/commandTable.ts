@@ -28,6 +28,7 @@ import { POINTER_COMMANDS } from "./pointerCommands";
 import { STENCIL_COMMANDS } from "./stencilCommands";
 import { EXPORT_COMMANDS } from "./exportCommands";
 import { showRelate } from "./ui";
+import { STICKY_KEY, keepsTool, setKeepsTool } from "./stickyTool";
 
 /** The commands, in the order menus and the palette list them within each group. */
 
@@ -93,6 +94,23 @@ const TOOLS: Command[] = [
     "m",
     ["annotate", "annotation", "highlighter"]
   ),
+  {
+    id: "tool.keep",
+    label: ({ editor }) =>
+      keepsTool(editor) ? "Stop keeping the tool in hand" : "Keep the tool in hand",
+    help: "Leave a placing tool armed after each object, to place several in a row. Escape puts it away.",
+    group: "tools",
+    keywords: ["sticky", "lock tool", "repeat", "stamp", "several"],
+    shortcuts: [{ key: STICKY_KEY }],
+    run: ({ editor }) => {
+      setKeepsTool(editor, !keepsTool(editor));
+      editor.room?.setNotice(
+        keepsTool(editor)
+          ? "Tools stay in hand after placing. Press Q or Escape to stop."
+          : "Tools return to Select after placing."
+      );
+    },
+  },
 ];
 
 const CREATE: Command[] = [

@@ -13,6 +13,7 @@ import type { EditorController } from "../editor/controller";
 import { downloadFile } from "../files/download";
 import { renderPng } from "../editor/pngExport";
 import { pictureScope } from "../editor/layerView";
+import { IMPORT_ACCEPT, importForeignFile } from "../editor/importFile";
 import { RoomControls } from "./RoomControls";
 import { ChangePassword } from "./PasswordGate";
 import { AccountButton } from "./AccountControls";
@@ -164,8 +165,9 @@ type FileProps = Readonly<Pick<Props, "session" | "editor" | "onMessage">>;
 
 async function loadFile({ session, editor, onMessage }: FileProps, file: File) {
   try {
-    const count = await session.files.import(file);
-    onMessage(`Imported ${count} objects.`);
+    // A diagram or outline from another tool becomes objects; anything else is a canvas file.
+    const foreign = editor ? await importForeignFile(editor, session, file) : null;
+    onMessage(foreign ?? `Imported ${await session.files.import(file)} objects.`);
     editor?.fit();
   } catch (error) {
     fileFailure(error, onMessage);
@@ -302,7 +304,7 @@ function FileMenuItems({
       <button
         role="menuitem"
         onClick={onImport}
-        data-hint-detail="Add the objects from a canvas file or Arconis PNG to this canvas."
+        data-hint-detail="Add a canvas file, an Arconis PNG, or a Mermaid, D2, PlantUML, draw.io or OPML file to this canvas."
       >
         <Upload size={15} /> Import document
       </button>
@@ -391,7 +393,7 @@ function DocumentActions(props: FileProps) {
         className="visually-hidden"
         type="file"
         tabIndex={-1}
-        accept=".arconis,application/json,.png,image/png"
+        accept={IMPORT_ACCEPT}
         aria-label="Import file"
         onChange={(event) => {
           const file = event.target.files?.[0];

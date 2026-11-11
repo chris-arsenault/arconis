@@ -5,6 +5,7 @@ import { stackAt } from "../editor/selectBy";
 import { gapsBetween } from "../editor/measure";
 import { formatDistance } from "../document/units";
 import { previewBoxes, type PreviewBox } from "../editor/preview";
+import { EqualGaps } from "./EqualGaps";
 
 const noPresence = { subscribe: () => () => {}, snapshot: () => 0 };
 
@@ -64,7 +65,10 @@ export function Measure({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-/** Native handle previews are graph-local until release; report their live dimensions in units. */
+/**
+ * Native handle previews are graph-local until release; report their live dimensions in units,
+ * and mark the gaps a move is holding equal.
+ */
 export function ResizeFeedback({ editor }: Readonly<{ editor: EditorController }>) {
   const [box, setBox] = useState<PreviewBox | null>(null);
   useEffect(() => {
@@ -76,12 +80,16 @@ export function ResizeFeedback({ editor }: Readonly<{ editor: EditorController }
     editor.graph.addMouseListener(listener);
     return () => editor.graph.removeMouseListener(listener);
   }, [editor]);
-  if (!box) return null;
   const label = (value: number) =>
     formatDistance(value * editor.grid.factor, editor.grid.unit, true);
   return (
-    <output className="resize-readout" aria-label="Live object size">
-      {label(box.width)} × {label(box.height)}
-    </output>
+    <>
+      <EqualGaps editor={editor} />
+      {box && (
+        <output className="resize-readout" aria-label="Live object size">
+          {label(box.width)} × {label(box.height)}
+        </output>
+      )}
+    </>
   );
 }

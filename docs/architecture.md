@@ -197,9 +197,10 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
 - `editor/pointerButtons.ts` owns the middle and right buttons at the pointer-event level, so
   maxGraph only ever sees the left: the middle button pans, and the right button opens
   `editor/ui.ts`'s menu state, which `components/ContextMenu.tsx` draws as a ring and a list
-  from `editor/contextMenu.ts`, itself read from the command table. A right drag past the dead
-  zone picks a wedge by angle; a wedge that opens a sub-ring does so on a rest or a stroke out
-  through it, recentred on the pointer with Back opposite. Every ring keeps Mode west and the
+  from `editor/contextMenu.ts`, itself read from the command table. The press shows nothing: a
+  hold or a drag past the dead zone opens the ring, and a plain click opens the list on release.
+  A drag picks a wedge by angle; a wedge that opens a sub-ring does so on a rest or a stroke out
+  through it, in place, with Back where that wedge was. Every ring keeps Mode west and the
   menu south-west, and the mode's own ring wins over what was pressed. Comments open through `showComments` into
   `components/CommentModal.tsx`, anchored to the cell's state above the object. Swapping kinds,
   swapping positions and the line and frame verbs live in `editor/swap.ts`; the task list, a
@@ -229,6 +230,20 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   grammar, and `document/relations.ts` rewrites copied references for both duplication and layouts.
   Picture identity changes during file import/export update typed picture fields, preserving
   authored titles, labels, comments, properties and URLs.
+- `interchange/` translates other tools' text into the canvas language and back. Each reader
+  (`mermaid.ts` with `mermaidFlow.ts` and `mermaidKinds.ts`, `d2.ts`, `plantuml.ts`, `drawio.ts`,
+  `outline.ts`) reduces its format to the boxes, containers and lines of `diagram.ts`, or to an
+  outline; `layout.ts` ranks a diagram whose source gave no positions, and `statements.ts` writes
+  it as statements with ids the language can read. The result is pasted through the same file
+  importer as copied language, from the paste choice (`components/PasteAs.tsx`) or
+  `editor/importFile.ts`. `exports.ts` writes a diagram as a Mermaid flowchart and a tree as CSV.
+  The readers use no DOM, so they run wherever the language does.
+- `document/crossings.ts` decides where straight lines hop over one another, and
+  `editor/lineJumps.ts` draws connectors with those hops, recomputing them after each view
+  validation. `document/equalGaps.ts` finds the shift that spaces a moving box equally with its
+  neighbours; `editor/equalGaps.ts` applies it to native moves after the alignment guide, and
+  `components/EqualGaps.tsx` marks the gaps. `editor/peek.ts` holds the overview peek and
+  `editor/stickyTool.ts` whether a placing tool stays in hand.
 - `editor/commandTable.ts` is the one table of commands, each with a label, a group, its
   shortcuts and the rule for when it applies to the selection. `editor/registry.ts` reads it for
   key dispatch (`editor/input.ts`), the property panel's relationship actions, the ring and

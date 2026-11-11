@@ -13,6 +13,7 @@ import {
 import { placePictureFile } from "./pictureInput";
 import { LanguageError } from "../language/lexer";
 import { isInputTarget } from "./ui";
+import { foreignFormat } from "../interchange";
 
 /** A paste in place is asked for by its key just before the browser's paste event arrives. */
 const IN_PLACE_WINDOW_MS = 1000;
@@ -30,7 +31,7 @@ function firstImage(files: Iterable<File> | ArrayLike<File> | undefined) {
 
 /**
  * Pastes whatever text arrived: canvas language becomes objects, one line becomes a text block,
- * and several lines ask how they should be pasted.
+ * and several lines, or a diagram written for another tool, ask how they should be pasted.
  */
 export async function pasteText(
   editor: EditorController,
@@ -49,7 +50,8 @@ export async function pasteText(
     }
   }
   const at = "at" in place ? place.at : pastePoint(editor);
-  if (text.trim().includes("\n")) {
+  // Several lines, or another tool's diagram even on one line, ask what they should become.
+  if (text.trim().includes("\n") || foreignFormat(text)) {
     editor.ui.pasteAs = { text, at };
     editor.emit();
   } else pastePlainText(editor, text, "text", at);

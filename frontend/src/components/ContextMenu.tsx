@@ -258,12 +258,13 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
     const y = menu.ring ? centre.y : Math.max(8, Math.min(menu.at.y, area.height - box.height - 8));
     Object.assign(ref.current.style, { left: `${x}px`, top: `${y}px` });
   });
+  // The menu starts on its first command. The ring takes focus as a whole, so no wedge looks
+  // chosen before the pointer or the arrow keys reach one.
   useEffect(() => {
-    ref.current
-      ?.querySelector<HTMLElement>(
-        ".ring-wedge:not(.empty), .context-menu [role=menuitem]:not([aria-disabled=true])"
-      )
-      ?.focus();
+    const first = ref.current?.querySelector<HTMLElement>(
+      ".context-menu [role=menuitem]:not([aria-disabled=true])"
+    );
+    (first ?? ref.current)?.focus({ preventScroll: true });
   }, [menu?.ring, menu?.subRing]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -294,6 +295,7 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
   return (
     <div
       ref={ref}
+      tabIndex={-1}
       className={menu.ring ? "menu-anchor" : "menu-anchor menu-only"}
       data-testid="context-menu"
     >

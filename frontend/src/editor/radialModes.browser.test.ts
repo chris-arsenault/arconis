@@ -5,7 +5,7 @@ import { add, browser, errors, exported, open, row } from "./browserHarness";
 
 const ring = (page: Page) => page.getByTestId("command-ring");
 
-/** The centre of the ring as it is drawn now; it moves to the pointer when a sub-ring opens. */
+/** The centre of the ring as it is drawn now; a sub-ring opens in the same place. */
 async function ringCentre(page: Page) {
   const box = (await ring(page).boundingBox())!;
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -25,24 +25,25 @@ const at = (centre: { x: number; y: number }, degrees: number, radius = 84) => (
   y: centre.y - radius * Math.cos((degrees * Math.PI) / 180),
 });
 const WEST = 270;
-/** Where each mode sits in the Mode ring: Back is east, and straight on west is Select. */
-const MODES = { Markup: 0, Connect: 180, Add: 225, Select: 270, Draw: 315 };
+/** Where each mode sits in the Mode ring: Back is west, where Mode was. */
+const MODES = { Draw: 0, Markup: 45, Connect: 180, Add: 225, Select: 315 };
 const mode = (page: Page, name: keyof typeof MODES) =>
   ring(page).getByRole("menuitemradio", { name, exact: true });
+const item = (page: Page, name: string) => ring(page).getByRole("menuitem", { name, exact: true });
 
-/** Rests a held right button on a wedge until the ring it opens appears around the pointer. */
+/** Brings a held right button from the centre to rest on a wedge, where it stays. */
 async function restOn(page: Page, centre: { x: number; y: number }, degrees: number) {
+  await page.mouse.move(centre.x, centre.y, { steps: 2 });
   const wedge = at(centre, degrees);
   await page.mouse.move(wedge.x, wedge.y, { steps: 4 });
-  await expect.poll(async () => (await ringCentre(page)).x).toBeCloseTo(wedge.x, 0);
-  return ringCentre(page);
 }
 
 /** One stroke from a press point: west onto Mode, then toward a mode, and release. */
 async function chooseMode(page: Page, name: keyof typeof MODES, x: number, y: number) {
-  const modes = await restOn(page, await heldRing(page, x, y), WEST);
+  const centre = await heldRing(page, x, y);
+  await restOn(page, centre, WEST);
   await mode(page, name).waitFor();
-  const wedge = at(modes, MODES[name]);
+  const wedge = at(centre, MODES[name]);
   await page.mouse.move(wedge.x, wedge.y, { steps: 4 });
   await page.mouse.up({ button: "right" });
   await expect.poll(() => ring(page).count()).toBe(0);
@@ -67,20 +68,26 @@ it("switches mode in one stroke from any ring, with nothing further to choose", 
   await page.mouse.move(at(centre, 225).x, at(centre, 225).y, { steps: 4 });
   expect(await ring(page).locator(".ring-wedge.active").getAttribute("aria-label")).toBe("More…");
 
-  // Resting on Mode opens the modes around the pointer, the current one marked.
-  const modes = await restOn(page, centre, WEST);
+  // Resting on Mode opens the modes where the ring was, the current one marked, and Back under
+  // the pointer waits until the pointer has left it.
+  await restOn(page, centre, WEST);
+  await mode(page, "Select").waitFor();
   expect(await mode(page, "Select").getAttribute("aria-checked")).toBe("true");
   expect(await ring(page).getByRole("menuitemradio").count()).toBe(5);
-  expect(await ring(page).getByRole("menuitem", { name: "Add note here" }).count()).toBe(0);
+  expect(await item(page, "Add note here").count()).toBe(0);
+  expect(await ringCentre(page)).toEqual(centre);
+  await page.waitForTimeout(400);
+  expect(await item(page, "Back").count()).toBe(1);
   await page.screenshot({ path: "test-results/radial-modes.png" });
 
-  // Reversing the stroke onto Back returns to the ring it came from.
-  const back = await restOn(page, modes, 90);
-  await ring(page).getByRole("menuitem", { name: "Add note here", exact: true }).waitFor();
+  // Leaving Back and resting on it again returns to the ring it came from.
+  await restOn(page, centre, WEST);
+  await item(page, "Add note here").waitFor();
 
-  // Out through Mode again and on to Add: the last shape placed is armed, and the ring is gone.
-  const again = await restOn(page, back, WEST);
-  await page.mouse.move(at(again, MODES.Add).x, at(again, MODES.Add).y, { steps: 4 });
+  // Onto Mode again and on to Add: the last shape placed is armed, and the ring is gone.
+  await restOn(page, centre, WEST);
+  await mode(page, "Add").waitFor();
+  await page.mouse.move(at(centre, MODES.Add).x, at(centre, MODES.Add).y, { steps: 4 });
   await page.mouse.up({ button: "right" });
   await expect.poll(() => ring(page).count()).toBe(0);
   expect(await tool()).toBe("note");
@@ -104,9 +111,8 @@ it("switches mode in one stroke from any ring, with nothing further to choose", 
   const beyond = at(object, WEST, 132);
   await page.mouse.move(beyond.x, beyond.y, { steps: 2 });
   await mode(page, "Connect").waitFor();
-  const strokedModes = await ringCentre(page);
-  expect(strokedModes.x).toBeCloseTo(beyond.x, 0);
-  const connect = at(strokedModes, MODES.Connect);
+  expect(await ringCentre(page)).toEqual(object);
+  const connect = at(object, MODES.Connect);
   await page.mouse.move(connect.x, connect.y, { steps: 4 });
   await page.mouse.up({ button: "right" });
   await expect.poll(() => ring(page).count()).toBe(0);
@@ -121,7 +127,7 @@ it("switches mode in one stroke from any ring, with nothing further to choose", 
   const to = saved.find((item) => item.name === "Target")!;
   expect(saved.find((item) => item.type === "line")).toMatchObject({ from: from.id, to: to.id });
 
-  // Straight on through Mode is Select, from any mode.
+  // Select is beside Mode, from any mode.
   await chooseMode(page, "Select", bounds.x + 700, bounds.y + 600);
   expect(await tool()).toBe("select");
   expect(errors).toEqual([]);
@@ -160,17 +166,16 @@ it("switches to drawing from the radial and hides workspace handles while preser
   expect(saved.filter((item) => item.type === "drawing")).toHaveLength(1);
 
   // In Draw the ring holds the drawing tools, even over an object: east opens the vector shapes
-  // around the pointer, Back opposite, and north-east of those is the arrow.
+  // in place, Back where Vector was, and north-east of those is the arrow.
   const object = (await row(page, "Keep still").boundingBox())!;
   const tools = await heldRing(page, object.x + object.width / 2, object.y + object.height / 2);
   expect(await ring(page).getByRole("menuitem", { name: "Freehand", exact: true }).count()).toBe(1);
   expect(await ring(page).getByRole("menuitem", { name: "Delete", exact: true }).count()).toBe(0);
-  const vector = await restOn(page, tools, 90);
-  await ring(page).getByRole("menuitem", { name: "Draw arrow", exact: true }).waitFor();
-  await page.mouse.move(at(vector, WEST).x, at(vector, WEST).y, { steps: 4 });
-  expect(await ring(page).locator(".ring-wedge.active").getAttribute("aria-label")).toBe("Back");
-  await page.mouse.move(vector.x, vector.y, { steps: 2 });
-  await page.mouse.move(at(vector, 45).x, at(vector, 45).y, { steps: 4 });
+  await restOn(page, tools, 90);
+  await item(page, "Draw arrow").waitFor();
+  expect(await item(page, "Back").count()).toBe(1);
+  expect(await ringCentre(page)).toEqual(tools);
+  await page.mouse.move(at(tools, 45).x, at(tools, 45).y, { steps: 4 });
   await page.mouse.up({ button: "right" });
   await expect.poll(() => ring(page).count()).toBe(0);
   expect(

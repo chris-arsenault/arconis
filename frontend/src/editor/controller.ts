@@ -20,8 +20,8 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
-import { creationOffset, observeGraphViewport, zoomAt } from "./zoom";
-import { worldPointOf } from "./zoom";
+import { creationOffset, observeGraphViewport, worldPointOf, zoomAt } from "./zoom";
+import { keepsTool } from "./stickyTool";
 import { configureCulling } from "./culling";
 import { SelectionReferences } from "./relate";
 import { LabelMarks } from "./marks";
@@ -311,7 +311,7 @@ export class EditorController {
       inside: containerAt(this.document, position.x, position.y, fields),
     });
     this.select(id);
-    this.setTool("select");
+    if (!at || !keepsTool(this)) this.setTool("select");
     return id;
   }
 

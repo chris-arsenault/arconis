@@ -36,9 +36,9 @@ function metadataOwner(editor: EditorController, target: EventTarget | null) {
 
 /**
  * The standard mapping: the left button selects, moves and marquees; the middle button drags the
- * view; a right click opens the context menu, and holding or dragging the right button brings the
- * command ring, where dragging into a visible wedge chooses it. maxGraph never sees the middle
- * or right button.
+ * view; a right click opens the context menu when it is released, and holding or dragging the
+ * right button brings the command ring instead, where dragging into a visible wedge chooses it.
+ * maxGraph never sees the middle or right button.
  */
 
 /** How far the right button moves before a press becomes a stroke, in pixels. */
@@ -128,10 +128,10 @@ function selectUnderPointer(editor: EditorController, event: PointerEvent) {
 }
 
 /**
- * Ends a right-button gesture. A stroke, once dragged, either chooses the wedge it ends on or
- * cancels; a button held still and released in the centre leaves the menu for a click.
+ * Ends a held right-button gesture: it chooses the wedge it ends on, and anywhere else closes
+ * the ring.
  */
-function releaseRing(editor: EditorController, dragged: boolean, stroke: Stroke) {
+function releaseRing(editor: EditorController, stroke: Stroke) {
   const menu = editor.ui.menu;
   if (!menu?.ring) return;
   const wedge = menu.wedge;
@@ -142,14 +142,7 @@ function releaseRing(editor: EditorController, dragged: boolean, stroke: Stroke)
     return;
   }
   // Released where a ring just opened under the pointer: that ring stays for a click.
-  if (stroke.fresh) return;
-  if (dragged) {
-    closeMenu(editor);
-    return;
-  }
-  // Held still and released on the centre: the ring folds away and the menu stays for a click.
-  Object.assign(menu, { ring: false, wedge: null });
-  editor.emit();
+  if (!stroke.fresh) closeMenu(editor);
 }
 
 /** What one held stroke remembers between pointer moves. */
@@ -181,26 +174,25 @@ function strokePoint(editor: EditorController, at: { x: number; y: number }) {
 }
 
 /**
- * Moves a held stroke into the ring a wedge opens, or back out of it, and centres that ring on
- * the pointer so the stroke carries on from its neutral centre. A ring held in from the canvas
- * edge can open with a wedge already under the pointer; that wedge waits until the pointer leaves.
+ * Moves a held stroke into the ring a wedge opens, or back out of it. The new ring takes the old
+ * one's place, so the pointer is already over the wedge that leads the other way; that wedge
+ * waits until the pointer leaves it.
  */
 function enterRing(editor: EditorController, stroke: Stroke, entry: MenuEntry, wedge: number) {
-  const menu = editor.ui.menu;
   if (stroke.dwell) clearTimeout(stroke.dwell);
   stroke.dwell = null;
-  if (!menu?.ring) return;
-  menu.at = { ...stroke.at };
+  if (!editor.ui.menu?.ring) return;
   chooseRingEntry(editor, entry, wedge);
-  stroke.skip = strokePoint(editor, stroke.at).toward;
-  stroke.within = true;
+  const point = strokePoint(editor, stroke.at);
+  stroke.skip = point.toward;
+  stroke.within = point.distance <= RING_OUTER;
   stroke.fresh = true;
 }
 
 /**
  * Follows a held pointer over the ring. The wedge under it lights; a wedge that opens another
- * ring does so when the pointer rests on it or strokes out through it, so two levels are one
- * continuous stroke.
+ * ring does so in place when the pointer rests on it or strokes out through it, so two levels
+ * are one continuous stroke.
  */
 function trackRing(editor: EditorController, stroke: Stroke) {
   const menu = editor.ui.menu!;
@@ -235,7 +227,7 @@ function advanceStroke(editor: EditorController, stroke: Stroke) {
   const through = outside && stroke.within ? point.toward : null;
   const wedge = waiting ? null : point.wedge;
   stroke.within = point.distance <= RING_OUTER;
-  if (wedge !== null || outside) stroke.fresh = false;
+  if (wedge !== null || !stroke.within) stroke.fresh = false;
   return { wedge, through };
 }
 
@@ -247,36 +239,27 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent, onEn
   selectUnderPointer(editor, event);
   const bounds = element.getBoundingClientRect();
   const at = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
-  openMenu(editor, {
-    at,
-    world: editor.worldPoint(event),
-    wedge: null,
-    subRing: null,
-    ring: false,
-  });
+  const world = editor.worldPoint(event);
+  const open = (ring: boolean) => openMenu(editor, { at, world, wedge: null, subRing: null, ring });
   element.setPointerCapture(event.pointerId);
-  // A click is the menu alone; resting or moving the held button brings the ring around it.
+  // Nothing shows on the press. Resting or moving the held button brings the ring; a plain
+  // click brings the menu when it is released.
+  let held = false;
   const showRing = () => {
-    const menu = editor.ui.menu;
-    if (menu && !menu.ring) {
-      menu.ring = true;
-      editor.emit();
-    }
+    if (held) return;
+    held = true;
+    open(true);
+    // A ring held in from the canvas edge opens with a wedge under the pointer, which waits.
+    stroke.skip = strokePoint(editor, stroke.at).toward;
   };
   const hold = setTimeout(showRing, RING_HOLD_MS);
-  let dragged = false;
   const stroke: Stroke = { at, within: true, dwell: null, skip: null, fresh: false };
   const move = (moveEvent: PointerEvent) => {
-    const menu = editor.ui.menu;
-    if (!menu) return;
     const dx = moveEvent.clientX - event.clientX;
     const dy = moveEvent.clientY - event.clientY;
-    if (Math.hypot(dx, dy) >= DEAD_ZONE) {
-      dragged = true;
-      showRing();
-    }
+    if (Math.hypot(dx, dy) >= DEAD_ZONE) showRing();
     stroke.at = { x: moveEvent.clientX - bounds.left, y: moveEvent.clientY - bounds.top };
-    if (menu.ring) trackRing(editor, stroke);
+    if (editor.ui.menu?.ring) trackRing(editor, stroke);
   };
   const finish = (finishEvent: PointerEvent) => {
     clearTimeout(hold);
@@ -290,7 +273,8 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent, onEn
       closeMenu(editor);
       return;
     }
-    releaseRing(editor, dragged, stroke);
+    if (held) releaseRing(editor, stroke);
+    else open(false);
   };
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", finish);

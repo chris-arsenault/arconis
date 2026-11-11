@@ -83,3 +83,67 @@ it("copies the selection as canvas language and pastes it at the pointer or in p
   expect(errors).toEqual([]);
   await context.close();
 });
+
+it("pastes and imports other tools' diagrams and outlines as editable objects", async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const page = await open(context, createRoomId());
+  const canvas = page.getByTestId("canvas");
+  await canvas.hover({ position: { x: 700, y: 500 } });
+
+  // A pasted Mermaid flowchart is offered first as the diagram it describes.
+  await pasteText(page, "flowchart LR\n  A[Plan] -->|then| B{Ready?}\n  B --> C[(Store)]");
+  const offer = page.getByRole("button", { name: "Mermaid diagram", exact: true });
+  await offer.waitFor();
+  expect(await offer.evaluate((button) => button === document.activeElement)).toBe(true);
+  await offer.click();
+  await row(page, "Ready?").waitFor();
+  const pasted = (await exported(page)).objects;
+  const plan = pasted.find((item) => item.name === "Plan")!;
+  const ready = pasted.find((item) => item.name === "Ready?")!;
+  expect(ready.stencil).toBe("decision");
+  expect(pasted.find((item) => item.name === "Store")?.stencil).toBe("database");
+  expect(
+    pasted.find((item) => item.type === "line" && item.from === plan.id && item.to === ready.id)
+      ?.name
+  ).toBe("then");
+  expect(plan.x).toBeLessThan(ready.x);
+  // One undo takes the whole diagram back out.
+  await canvas.press("ControlOrMeta+z");
+  await expect.poll(() => objectCount(page)).toBe(0);
+
+  // The same text can still be kept as plain text.
+  await pasteText(page, "flowchart LR\n  A --> B");
+  await page.getByRole("button", { name: "One text block", exact: true }).click();
+  await expect.poll(() => objectCount(page)).toBe(1);
+
+  // Import reads a D2 file by its name and an OPML outline by its content.
+  await page.getByLabel("Import file").setInputFiles({
+    name: "services.d2",
+    mimeType: "text/plain",
+    buffer: Buffer.from("web: Web app\nweb -> queue: enqueues\nqueue.shape: cylinder"),
+  });
+  await row(page, "Web app").waitFor();
+  await page.getByLabel("Import file").setInputFiles({
+    name: "trip.opml",
+    mimeType: "text/xml",
+    buffer: Buffer.from(
+      '<opml version="2.0"><body><outline text="Trip"><outline text="Pack"/><outline text="Book"/></outline></body></opml>'
+    ),
+  });
+  await row(page, "Pack").waitFor();
+  const imported = (await exported(page)).objects;
+  expect(imported.find((item) => item.name === "queue")?.stencil).toBe("database");
+  expect(imported.some((item) => item.type === "line" && item.name === "enqueues")).toBe(true);
+  expect(imported.filter((item) => item.type === "branch")).toHaveLength(2);
+
+  // Text that is not a diagram this reads says so and adds nothing.
+  await page.getByLabel("Import file").setInputFiles({
+    name: "plan.mmd",
+    mimeType: "text/plain",
+    buffer: Buffer.from("gantt\n  title Plan"),
+  });
+  await page.getByText(/Only Mermaid flowcharts/).waitFor();
+  expect((await exported(page)).objects).toHaveLength(imported.length);
+  expect(errors).toEqual([]);
+  await context.close();
+});

@@ -202,8 +202,8 @@ const MODE_RINGS: Partial<Record<RingMode, Slot[]>> = {
  * north, skipping the Back wedge; a null leaves a wedge empty to hold the others in place.
  */
 export const SUB_RINGS: Record<string, Slot[]> = {
-  // Back is east, so the modes fan around west: straight on is Select.
-  [MODES]: ["mode.Markup", null, null, "mode.Connect", "mode.Add", "mode.Select", "mode.Draw"],
+  // Back is west, where Mode was, so the modes fan out from it: Select is the nearest, above.
+  [MODES]: ["mode.Draw", "mode.Markup", null, null, "mode.Connect", "mode.Add", "mode.Select"],
   "ring.vector": [
     "draw.shape.line",
     "draw.shape.arrow",
@@ -212,8 +212,8 @@ export const SUB_RINGS: Record<string, Slot[]> = {
     "draw.shape.ellipse",
     "draw.shape.polygon",
   ],
-  // Back is north, so the erasers sit around south.
-  "ring.erasers": [null, null, "draw.precision", "draw.eraser"],
+  // Back is south, where Erase was, so the erasers sit either side of it.
+  "ring.erasers": [null, null, null, "draw.precision", "draw.eraser"],
   "ring.stencils": ["tool.decision", "tool.service", "tool.database", "tool.cloud", "tool.person"],
   "ring.colour": [
     "colour.0",
@@ -332,7 +332,7 @@ export function menuGroups(context: CommandContext): MenuEntry[][] {
 /**
  * The ring's eight wedges in order; a wedge that does not apply is left empty rather than
  * shifted. The mode's own ring wins over what was pressed, and a sub-ring keeps its Back wedge
- * opposite the wedge that opened it.
+ * where the wedge that opened it was.
  */
 export function ringEntries(
   context: CommandContext,

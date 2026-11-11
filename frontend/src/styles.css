@@ -2145,6 +2145,9 @@ input.outline-name {
   gap: 6px;
   transform: translate(-50%, -50%);
 }
+.menu-anchor:focus {
+  outline: none;
+}
 /* A click's menu hangs from the pointer, as menus do; the ring, when it comes, centres on it. */
 .menu-anchor.menu-only {
   transform: none;

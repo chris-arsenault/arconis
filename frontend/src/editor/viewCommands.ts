@@ -7,6 +7,7 @@ import { helpZone } from "../help/zone";
 import { zoomIntoSelection, zoomOutOfSelection } from "./topics";
 import { fittingView, flyToView } from "./views";
 import { ZOOM_STEP } from "./zoom";
+import { PEEK_KEY } from "./peek";
 
 /** Commands over this person's view: the palette, zoom, the grid and references. */
 
@@ -102,6 +103,17 @@ export const VIEW_COMMANDS: Command[] = [
     keywords: ["zoom to selection"],
     when: ({ selected }) => selected.length > 0,
     run: ({ editor, selected }) => fitSelection(editor, selected),
+  },
+  {
+    id: "view.peek",
+    label: "Peek at the whole canvas (hold)",
+    help: "While held, zoom out to everything; release to return, or point somewhere first to land there.",
+    group: "view",
+    shortcuts: [{ key: PEEK_KEY }],
+    native: true,
+    keywords: ["overview", "zoom out", "bird's eye", "navigate"],
+    when: ({ items }) => items.length > 0,
+    run: () => undefined,
   },
   {
     id: "view.actualSize",

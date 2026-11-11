@@ -46,7 +46,7 @@ function notesStatements(lines: OutlineLine[]) {
  * Statements for a tree. Under a selected topic, every top-level line branches from it; otherwise
  * the first line is the root and deeper lines branch from the nearest shallower one above them.
  */
-function treeStatements(lines: OutlineLine[], under: string) {
+export function treeStatements(lines: OutlineLine[], under = "") {
   const statements: string[] = [];
   const parents: string[] = [];
   let root = under;

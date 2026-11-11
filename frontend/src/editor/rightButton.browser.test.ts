@@ -3,9 +3,10 @@ import type { Page } from "playwright";
 import { add, browser, errors, objectCount, open, row } from "./browserHarness";
 
 /**
- * Every way a right-button gesture can end. A click opens the menu; a still hold shows the ring
- * and leaves the menu; a stroke chooses the wedge it ends on or cancels; and the browser's own
- * menu never appears for a gesture that began on the canvas, wherever it is released.
+ * Every way a right-button gesture can end. A click opens the menu on release and nothing before
+ * it; a hold shows the ring and never the menu; a stroke chooses the wedge it ends on or cancels;
+ * and the browser's own menu never appears for a gesture that began on the canvas, wherever it is
+ * released.
  */
 
 const ring = (page: Page) => page.getByTestId("command-ring");
@@ -62,8 +63,10 @@ it("ends every right-button gesture the same way, and never with an unasked menu
     const canvas = (await page.getByTestId("canvas").boundingBox())!;
     const empty = { x: canvas.x + 300, y: canvas.y + 600 };
 
-    // A click: the menu alone, which stays for a choice.
-    await page.mouse.click(empty.x, empty.y, { button: "right" });
+    // A click: nothing on the press, then the menu alone on release, which stays for a choice.
+    await press(page, empty.x, empty.y);
+    expect(await menu(page).count()).toBe(0);
+    await page.mouse.up({ button: "right" });
     await menu(page).waitFor();
     await page.waitForTimeout(400);
     expect(await ring(page).count()).toBe(0);
@@ -71,13 +74,12 @@ it("ends every right-button gesture the same way, and never with an unasked menu
     await page.keyboard.press("Escape");
     await nothingOpen(page);
 
-    // A still hold: the ring while held, then the menu once released in the centre.
+    // A still hold: the ring alone while held, no wedge marked, and nothing once released.
     await press(page, empty.x, empty.y);
     await ring(page).waitFor();
+    expect(await page.getByRole("menu", { name: "Canvas menu" }).count()).toBe(0);
+    expect(await ring(page).locator(".ring-wedge:focus, .ring-wedge.active").count()).toBe(0);
     await page.mouse.up({ button: "right" });
-    await expect.poll(() => ring(page).count()).toBe(0);
-    await page.getByRole("menu", { name: "Canvas menu" }).waitFor();
-    await page.keyboard.press("Escape");
     await nothingOpen(page);
 
     // A drag off the ring cancels: no ring, no menu.

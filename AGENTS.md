@@ -56,6 +56,7 @@ sticky notes and freehand drawing in one shared document.
 | ----------------------------- | -------------------------------------------------------------------------------------------- |
 | `frontend/src/document/`      | Canonical items, shared policies, semantic appearance, Y.Text, undo, geometry and actions    |
 | `frontend/src/files/`         | Portable canvas/picture import-export orchestration, codecs and browser downloads            |
+| `frontend/src/interchange/`   | Readers and writers for other tools' diagrams and outlines, through the canvas language      |
 | `frontend/src/assets/icons/`  | Shared icon catalog, rendering and bundled vendor data                                       |
 | `frontend/src/language/`      | The canvas language: parser, writer, printer, reference and agent sessions                   |
 | `frontend/src/editor/`        | maxGraph projection, mutation capture, input, rendering and drag previews                    |

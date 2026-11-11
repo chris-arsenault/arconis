@@ -76,9 +76,9 @@ export interface MenuState {
   wedge: number | null;
   /** The sub-ring open in place of the ring, by the entry that opened it. */
   subRing: string | null;
-  /** The sub-ring's Back wedge, opposite the wedge that opened it; null when nothing did. */
+  /** The sub-ring's Back wedge, in place of the wedge that opened it; null when nothing did. */
   back: number | null;
-  /** Whether the ring shows: a held or dragged right button brings it; a click leaves the menu. */
+  /** Whether the ring shows: a held or dragged right button brings it; a click brings the menu. */
   ring: boolean;
 }
 
@@ -125,16 +125,12 @@ export function closeMenu(editor: EditorController) {
 }
 
 /**
- * Opens a sub-ring in place of the ring. Opened from a wedge, its Back sits opposite that wedge,
- * so reversing the stroke returns; opened from elsewhere, it has no ring to go back to.
+ * Opens a sub-ring in place of the ring. Opened from a wedge, that wedge becomes its Back, so the
+ * same spot leads in and out; opened from elsewhere, it has no ring to go back to.
  */
 export function openSubRing(editor: EditorController, id: string, from: number | null = null) {
   if (!editor.ui.menu) return;
-  Object.assign(editor.ui.menu, {
-    subRing: id,
-    back: from === null ? null : (from + 4) % 8,
-    wedge: null,
-  });
+  Object.assign(editor.ui.menu, { subRing: id, back: from, wedge: null });
   editor.emit();
 }
 

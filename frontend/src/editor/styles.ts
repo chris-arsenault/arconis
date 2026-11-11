@@ -8,6 +8,7 @@ import { pictureImage } from "./pictureSource";
 import { LABEL_BADGE, LABEL_PROPERTIES, LABEL_SUBTITLE } from "./rendering";
 import { TEXT_FONTS } from "../text/typography";
 import "./inkShape";
+import { LINE_SHAPE } from "./lineJumps";
 import { isMarkup } from "../document/ink";
 
 /**
@@ -83,7 +84,7 @@ const TYPE_STYLES: Partial<Record<Item["type"], Style>> = {
     rotatable: false,
   },
   line: {
-    shape: "connector",
+    shape: LINE_SHAPE,
     edgeStyle: "orthogonalEdgeStyle",
     rounded: true,
     labelBackgroundColor: "#f7f8fc",

@@ -13,6 +13,8 @@ import { relateTo } from "./topics";
 import { bindMarkdownLinks } from "./links";
 import { bindInteractionCursors } from "./interactionCursors";
 import { TemporaryPan } from "./temporaryPan";
+import { bindPeek } from "./peek";
+import { keepsTool, setKeepsTool } from "./stickyTool";
 
 /** Enter and Space belong to a keyboard-focused control; other shortcuts still apply. */
 function activatesControl(target: EventTarget | null, key: string) {
@@ -50,6 +52,7 @@ function keyboard(editor: EditorController, event: KeyboardEvent, pan: Temporary
     pan.start();
     return;
   }
+  if (event.key === "Escape") setKeepsTool(editor, false);
   const command = commandForKey(event, commandContext(editor));
   if (!command || (event.key === "Tab" && !onCanvas(editor, event))) return;
   event.preventDefault();
@@ -86,6 +89,11 @@ function bindStackCycling(editor: EditorController, options: { signal: AbortSign
   );
 }
 
+/** A placed note or text opens for typing, unless its tool stays in hand to place the next one. */
+function opensText(editor: EditorController, shape: Shape) {
+  return (shape === "note" || shape === "text") && !keepsTool(editor);
+}
+
 function bindPointerTools(editor: EditorController, options: { signal: AbortSignal }) {
   let pendingEdit = "";
   bindStackCycling(editor, options);
@@ -105,7 +113,7 @@ function bindPointerTools(editor: EditorController, options: { signal: AbortSign
         const shape = editor.tool as Shape;
         const point = editor.graph.getPointForEvent(event);
         const id = editor.add(shape, { x: point.x, y: point.y, anchor: "corner" });
-        if (shape === "note" || shape === "text") pendingEdit = id;
+        if (opensText(editor, shape)) pendingEdit = id;
       }
     },
     { ...options, capture: true }
@@ -182,6 +190,7 @@ export function bindCanvasInput(editor: EditorController) {
   editor.measurement.bind(abort.signal);
   bindGridGesture(editor, abort.signal);
   bindPointerTools(editor, options);
+  bindPeek(editor, options);
   window.addEventListener(
     "click",
     (event) => {

@@ -8,6 +8,7 @@ import type { EditorController } from "./controller";
 import { pasteStatements, type PasteForm } from "./pasteAs";
 import { creationSize } from "./zoom";
 import { fitText } from "./textLayout";
+import { foreignStatements, type ForeignFormat } from "../interchange";
 
 /**
  * The clipboard carries the canvas language, the same text files hold and agents read, so a
@@ -130,6 +131,21 @@ export async function pasteLanguage(
   });
   selectCreated(editor, created);
   return created;
+}
+
+/**
+ * Pastes a diagram or outline written for another tool as native objects, centred on a point.
+ * Throws what the format's reader says when the text cannot become objects.
+ */
+export async function pasteForeign(
+  editor: EditorController,
+  session: RoomSession,
+  text: string,
+  format: ForeignFormat,
+  at: Point
+) {
+  const statements = await foreignStatements(text, format);
+  return pasteLanguage(editor, session, statements, { at });
 }
 
 /** Writes plain text as objects in the chosen form, centred on a point, as one undo step. */

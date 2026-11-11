@@ -150,8 +150,8 @@ it("keeps right-click and radial menus exclusive, pans with middle drag, and ope
   await deleteWithRing(page, "Other");
   await expect.poll(() => objectCount(page)).toBe(2);
 
-  // Holding the button on empty canvas brings the ring; releasing in its centre leaves the menu,
-  // which lists canvas commands, and Escape closes it.
+  // Holding the button on empty canvas brings the ring, and releasing without a choice closes it.
+  // A click brings the menu, which lists canvas commands, and Escape closes it.
   await page.mouse.move(bounds.x + 40, bounds.y + 40);
   await page.mouse.down({ button: "right" });
   await page.getByTestId("command-ring").waitFor();
@@ -160,7 +160,8 @@ it("keeps right-click and radial menus exclusive, pans with middle drag, and ope
   expect(ringBox.x).toBeGreaterThanOrEqual(bounds.x);
   expect(ringBox.y).toBeGreaterThanOrEqual(bounds.y);
   await page.mouse.up({ button: "right" });
-  await expect.poll(() => page.getByTestId("command-ring").count()).toBe(0);
+  await expect.poll(() => page.getByTestId("context-menu").count()).toBe(0);
+  await page.mouse.click(bounds.x + 40, bounds.y + 40, { button: "right" });
   await page.getByRole("menuitem", { name: "Add note here", exact: true }).last().waitFor();
   await canvas.press("Escape");
   await expect.poll(() => page.getByTestId("context-menu").count()).toBe(0);

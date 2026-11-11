@@ -4,6 +4,18 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Diagrams from other tools, and canvas aids
+
+- Added pasting and importing of Mermaid, D2, PlantUML and draw.io diagrams and OPML or text
+  outlines as ordinary editable objects. Pasted text is offered as its diagram beside the
+  plain-text choices; **Import document** reads the files.
+- Added **Copy canvas as Mermaid** and **Export tree as CSV**.
+- Connectors hop where they cross, so a crossing reads differently from a junction.
+- A dragged object snaps to equal spacing with its neighbours, with each equal gap marked.
+- Added an overview peek: hold **O** to see the whole canvas and release to return, or to land
+  where the pointer was moved.
+- Added **Q** to keep a placing tool in hand, so several objects of one kind go down in a row.
+
 ### A simpler canvas
 
 - Replaced saved views with jump points: mark any object, and **Navigate** lists it for everyone
@@ -121,8 +133,9 @@ All notable user-visible changes are recorded here.
 - Gave every radial one layout: Mode west and the menu south-west on the canvas, objects, lines
   and slides and in every mode. One stroke west then toward Select, Add, Draw, Markup or Connect
   switches mode with nothing further to choose; Draw, Markup and Add then show their own tools in
-  the ring. Wedges that open another ring do so on a rest or a stroke through them, around the
-  pointer, with Back opposite and no ring more than two levels deep. Shape, Capture, Straighten
+  the ring. Wedges that open another ring do so in place on a rest or a stroke through them,
+  with Back where the wedge was and no ring more than two levels deep. The menu opens only when
+  a right click is released; a held button shows the ring alone. Shape, Capture, Straighten
   and Copy link moved from the ring to the menu and toolbar. Drawing hides workspace connection
   and resize widgets while retaining transform handles for lassoed ink.
 - Attached object indicators directly to the painted edge, centered so lone badges stay close to

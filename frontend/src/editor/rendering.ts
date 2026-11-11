@@ -13,6 +13,7 @@ import {
   type TooltipHandler,
 } from "@maxgraph/core";
 import { labelIsLegible } from "./culling";
+import { configureLineJumps } from "./lineJumps";
 import type { Marks } from "./marks";
 import { escapeText, renderMarkdown } from "../text/markdown";
 
@@ -103,6 +104,7 @@ export function configureRendering(graph: Graph, marks: (cell: Cell) => Marks) {
   // HTML labels are the only maxGraph mode that wraps text. Labels come from peers,
   // so every label is escaped before it reaches the DOM.
   graph.setHtmlLabels(true);
+  configureLineJumps(graph);
   // Hovering an object shows its properties, one per line, as plain text.
   graph.setTooltips(true);
   const tooltips = graph.getPlugin<TooltipHandler>("TooltipHandler");

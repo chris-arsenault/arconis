@@ -103,24 +103,24 @@ describe("the ring's modes", () => {
       }
   });
 
-  it("offers the five modes one stroke from Mode, Back east, with the current one marked", () => {
+  it("offers the five modes one stroke from Mode, Back in its place, the current one marked", () => {
     const { document } = notes(0);
     const base = inTool(context([], document), "draw");
-    const modes = ringEntries(base, "ring.mode", 2);
+    const modes = ringEntries(base, "ring.mode", MODE_WEDGE);
     expect(ids(modes)).toEqual([
+      "mode.Draw",
       "mode.Markup",
       null,
-      "ring.back",
       null,
       "mode.Connect",
       "mode.Add",
+      "ring.back",
       "mode.Select",
-      "mode.Draw",
     ]);
     expect(modes.filter((entry) => entry?.kind === "mode" && entry.current)).toHaveLength(1);
-    expect(modes[7]).toMatchObject({ kind: "mode", mode: "Draw", current: true });
+    expect(modes[0]).toMatchObject({ kind: "mode", mode: "Draw", current: true });
     // A shape waiting to be placed is the Add mode.
-    const adding = ringEntries(inTool(base, "database"), "ring.mode", 2);
+    const adding = ringEntries(inTool(base, "database"), "ring.mode", MODE_WEDGE);
     expect(adding[5]).toMatchObject({ mode: "Add", current: true });
   });
 
@@ -146,11 +146,11 @@ describe("the ring's modes", () => {
 });
 
 describe("the ring's sub-rings", () => {
-  it("puts Back opposite the wedge that opened a sub-ring, and none without one", () => {
+  it("puts Back where the wedge that opened a sub-ring was, and none without one", () => {
     const { document, items } = notes(1);
     const base = context(items, document);
-    const colours = ringEntries(base, "ring.colour", 5);
-    expect(colours[5]).toMatchObject({ id: "ring.back", kind: "back" });
+    const colours = ringEntries(base, "ring.colour", 1);
+    expect(colours[1]).toMatchObject({ id: "ring.back", kind: "back" });
     expect(colours.filter((entry) => entry?.id.startsWith("colour."))).toHaveLength(6);
     const shapes = ringEntries(base, "ring.shape", null);
     expect(shapes.every((entry) => entry?.kind === "command")).toBe(true);

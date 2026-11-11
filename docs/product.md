@@ -70,8 +70,10 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 - Continue editing offline, restore the browser's local copy and merge when collaboration returns.
 - Create password rooms with browser encryption, or rooms that use no relay connection.
 - Export editable documents or selection/whole-canvas PNGs carrying an editable copy; import them
-  into another room with pictures and references. Export vector pictures as SVG and topic outlines
-  as Markdown through the command palette.
+  into another room with pictures and references. Export vector pictures as SVG, topic outlines
+  as Markdown or CSV and diagrams as Mermaid through the command palette.
+- Paste or import Mermaid, D2, PlantUML and draw.io diagrams and OPML or text outlines as
+  ordinary editable objects.
 - Use optional Ahara accounts for verified sign-in, display names and saved workspaces across devices.
   All saved copies are sealed under their room keys; the guest room workflow stays unchanged.
 - Find local and private account copies in **Your canvases**, with separate open and removal actions.

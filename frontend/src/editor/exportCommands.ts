@@ -5,8 +5,9 @@ import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { renderPng, renderSvgFile } from "./pngExport";
 import { treeRootOf } from "./outline";
 import { pictureScope } from "./layerView";
+import { diagramAsMermaid, treeAsCsv } from "../interchange/exports";
 
-/** Taking work out: a PNG to the clipboard, an SVG file, a tree as Markdown. */
+/** Taking work out: a PNG to the clipboard, an SVG file, a tree as Markdown or CSV, a diagram as Mermaid. */
 
 /** A tree as an indented Markdown list, the form outlines paste back as a tree. */
 export function treeAsMarkdown(items: Item[], rootId: string) {
@@ -68,6 +69,16 @@ async function exportSvg({ editor, selected }: CommandContext) {
   downloadFile(editor.document, svg, "image/svg+xml", "svg");
 }
 
+function copyMermaid({ editor, items, selected }: CommandContext) {
+  const text = diagramAsMermaid(items, selected.length ? editor.selectionClosure() : []);
+  if (!text) {
+    editor.room?.setNotice("There are no boxes here to write as a diagram.");
+    return;
+  }
+  void navigator.clipboard?.writeText(text).catch(() => undefined);
+  editor.room?.setNotice("Diagram copied as Mermaid.");
+}
+
 export const EXPORT_COMMANDS: Command[] = [
   {
     id: "export.copyPng",
@@ -99,5 +110,30 @@ export const EXPORT_COMMANDS: Command[] = [
       void navigator.clipboard?.writeText(text).catch(() => undefined);
       editor.room?.setNotice("Tree copied as a Markdown list.");
     },
+  },
+  {
+    id: "export.csv",
+    label: "Export tree as CSV",
+    help: "Download this topic's whole tree as a CSV file with one column for each level.",
+    group: "edit",
+    keywords: ["spreadsheet", "outline", "hierarchy", "download"],
+    when: heads,
+    run: ({ editor, items, selected }) =>
+      downloadFile(
+        editor.document,
+        treeAsCsv(items, treeRootOf(items, selected[0].id)),
+        "text/csv",
+        "csv"
+      ),
+  },
+  {
+    id: "export.mermaid",
+    label: ({ selected }) =>
+      selected.length ? "Copy selection as Mermaid" : "Copy canvas as Mermaid",
+    help: "Copy the selection, or the whole canvas, to the clipboard as a Mermaid flowchart.",
+    group: "edit",
+    keywords: ["diagram", "flowchart", "text", "markdown"],
+    when: (context) => inRoom(context) && context.items.length > 0,
+    run: copyMermaid,
   },
 ];

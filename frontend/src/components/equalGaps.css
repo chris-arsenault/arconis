@@ -1,0 +1,27 @@
+.equal-gaps {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.equal-gaps svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.equal-gaps line {
+  stroke: #d6336c;
+  stroke-width: 1.5;
+}
+.equal-gap-label {
+  position: absolute;
+  transform: translate(-50%, -140%);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #d6336c;
+  color: white;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}

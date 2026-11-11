@@ -72,6 +72,8 @@ keeps your text and screenshot choice so you can retry.
 ## Place and name objects
 
 Open **Shapes**. Click a stencil, then click the canvas, or drag the stencil directly onto it.
+Select returns after each object. Press **Q** to keep the tool in hand instead, so each click
+places another of the same kind without opening its text; **Q** again or Escape ends it.
 Basics include notes, free text, rectangles, ellipses, decisions and frames. Architecture stencils
 include services, databases, clouds and people. Every library, including Screens and cloud
 providers, opens and closes from its header and remembers that choice on this device. Search
@@ -130,6 +132,8 @@ Use the bottom view controls to zoom or fit the canvas; click the multiplier to 
 such as `0.5` or `2`. The normal view is `1×`, centered in a reciprocal range from `2⁻²⁰` to
 `2²⁰`. Four button or shortcut steps double or halve magnification. Wheel zoom keeps the
 point beneath the pointer; buttons and typed values keep the viewport center.
+Hold **O** to peek at the whole canvas. Releasing it returns to the view you had; move the
+pointer during the peek and the release lands where it points, at the zoom you had.
 **Z** zooms into the selection; **Shift Z** returns toward the previous scale. **Shift 0**,
 **Shift 1** and **Shift 2** go to normal zoom, fit the canvas and fit the selection. Every jump, from
 fitting to following a link or a found match, is remembered: **Ctrl/Command [** returns to the
@@ -152,10 +156,10 @@ For distances and grid intervals in concrete units, see [scale and measurement](
 
 ## Right button: ring and menu
 
-A right click opens the menu at the pointer. Holding the right button, or moving it, brings a
-ring of eight commands around the press point, replacing the menu; drag past a short dead
-zone toward a wedge and release to stroke it without looking. A drag released anywhere but a
-wedge cancels; holding still and releasing in the centre keeps the menu. The ring and the menu change with what was pressed: an object, a line, a slide or
+A right click opens the menu at the pointer when the button is released. Holding the right
+button, or moving it, brings a ring of eight commands around the press point instead; drag past
+a short dead zone toward a wedge and release to stroke it without looking. Released anywhere but
+a wedge, the ring closes and no menu follows. The ring and the menu change with what was pressed: an object, a line, a slide or
 empty canvas. A right click on an unselected object selects it; one on a member of a selection
 keeps the selection. Empty-space right-click opens canvas actions even when an object was selected.
 The browser's own menu never appears over the canvas. Tab and arrows navigate the open menu;
@@ -166,16 +170,16 @@ Every ring keeps two wedges in the same place, whatever was pressed and whatever
 what was pressed, or to the mode when it has tools of its own.
 
 **Mode** switches what the pointer does. Stroke west onto it and a ring of **Select**, **Add**,
-**Draw**, **Markup** and **Connect** opens around the pointer, with the current mode outlined;
-carry on toward one and release. That is the whole switch: straight on is Select, Draw and
+**Draw**, **Markup** and **Connect** takes the ring's place, with the current mode outlined;
+carry on toward one and release. That is the whole switch: Select is the next wedge up, Draw and
 Markup return to the tool each last used, and Add arms the shape last placed. In Draw, Markup
 and Add the ring then holds that mode's tools wherever it is pressed, so changing tool is one
 more stroke and never a required step.
 
 A wedge with a rim on its outer edge opens another ring: Mode, Colour, and in Draw the
 vector shapes and erasers. It opens when a held pointer rests on it or strokes
-out through it, centred on the pointer, and when clicked. **Back** sits opposite the wedge that
-opened it, so reversing the stroke returns. No ring opens a third. Escape cancels an unfinished
+out through it, and when clicked. The new ring takes the old one's place, and **Back** takes the
+place of the wedge that opened it, so the same spot leads in and out. No ring opens a third. Escape cancels an unfinished
 choice.
 
 The ring on an object reads like a compass, so a stroke can be learned once:
@@ -324,8 +328,10 @@ Select several objects and choose **Group** or press Ctrl/Command G to wrap them
 contains and connected relationships; Undo restores the document edit.
 
 Use **Align** with multiple boxes to align edges or centers. Distribution controls become
-available with enough objects to establish gaps. Drag guides help with placement. With one
-object selected, hold **Alt** and hover another to read the distances between them.
+available with enough objects to establish gaps. While you drag, guides line up edges and
+centers. An object that nears equal spacing with its neighbours in a row or column snaps there,
+and each of the equal gaps is marked with its size. With one object selected, hold **Alt** and
+hover another to read the distances between them.
 
 ### Docked frames and task lists
 
@@ -359,6 +365,9 @@ Connect workspace objects in any of three ways:
 Select a connector to set **Line type** to Cornered, Diagonal or Curved, and choose its start
 and end arrowheads. Drag either endpoint to reattach it. Drag its segments or points to adjust
 the route.
+
+Where two cornered or diagonal connectors cross, the flatter one hops over the other, so a
+crossing reads differently from a junction. Curved connectors cross plainly.
 
 **Route around items** computes a route around objects and labels between its ends. Rerun it
 after moving obstacles when you need a new route. Language-authored shared fan-outs use a
@@ -441,6 +450,10 @@ another room, a file or a chat, and paste any canvas language back onto a canvas
 - Pasted plain text of one line becomes a text block. Several lines ask what they should become:
   one note per line, a topic tree read from indentation, or one text block. With an object
   selected, the tree branches from it; indented text suggests a tree, other text suggests notes.
+- Text written for another tool is offered first as the objects it describes, beside the same
+  plain-text choices: a Mermaid flowchart, state, class or entity diagram or mind map, a D2
+  diagram, a PlantUML diagram or mind map, a draw.io diagram, or an OPML outline. See
+  [diagrams and outlines from other tools](files.md#import-diagrams-and-outlines-from-other-tools).
 - A pasted picture lands under the pointer, as before.
 
 ## Property panel
@@ -610,6 +623,8 @@ text field is not consuming the key; [text editing](text.md#text-editing-shortcu
 | Shift N                                 | Capture notes                                                  |
 | Shift C                                 | Open the selected object's comments                            |
 | K (hold)                                | Point with the laser                                           |
+| O (hold)                                | Peek at the whole canvas                                       |
+| Q                                       | Keep the tool in hand, or stop keeping it                      |
 | .                                       | Focus on the selection, or leave focus                         |
 | Ctrl/Command Shift L                    | Lock / unlock                                                  |
 | Ctrl/Command .                          | Collapse / expand                                              |

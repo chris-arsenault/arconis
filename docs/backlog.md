@@ -16,13 +16,9 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 ## Canvas
 
 - Crop pictures in place, as the one geometry edit pictures need beyond resizing.
-- Draw jumps where connectors cross, and let a connector carry a label at each end.
-- Show equal-gap indicators among three or more objects while dragging, beside the distance
-  labels the smart guides already give.
-- Add a hold-Z peek that zooms out while held and lands where the key is released, and a minimap
-  after it, hidden until asked for.
+- Let a connector carry a label at each end.
+- Add a minimap, hidden until asked for.
 - Insert space by dragging empty canvas, pushing everything beyond the drag apart.
-- Let a tool stay in hand with Q, so several objects of one kind place in a row.
 - Add a focus mode that hides the chrome with a persistent way back.
 - Let a person disable single-key shortcuts for assistive technology, and give pictures and icons
   alternative text that agents also read.
@@ -40,10 +36,8 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 
 ## Interchange
 
-- Paste or import Mermaid, D2, PlantUML and draw.io diagrams as native, editable items, offered
-  through the same choice pasted text already gets.
-- Import OPML and indented outlines as topic trees.
-- Export a diagram as Mermaid and a topic tree as CSV that keeps its hierarchy.
+- Read PlantUML activity diagrams as native items.
+- Carry icons and notes across when importing a diagram.
 
 ## Sheet view
 

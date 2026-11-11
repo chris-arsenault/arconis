@@ -20,6 +20,7 @@ import { layoutTree } from "../document/treeLayout";
 import type { EditorController } from "./controller";
 import { fittingView, flyToView } from "./views";
 import { creationSize, creationValues } from "./zoom";
+import { configureEqualGaps } from "./equalGaps";
 
 const ANCHOR_PIXELS = 14;
 /** How much of the window an object fills after zooming into it. */
@@ -357,7 +358,9 @@ export function configureComposition(graph: Graph, document: CanvasDocument) {
     }
   };
   const handler = graph.getPlugin<SelectionHandler>("SelectionHandler");
-  if (handler) handler.guidesEnabled = true;
+  if (!handler) return;
+  handler.guidesEnabled = true;
+  configureEqualGaps(graph, handler);
 }
 
 function followerCells(graph: Graph, items: Item[], moved: Set<Cell>) {
