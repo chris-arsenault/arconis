@@ -9,6 +9,7 @@ import {
   MoveUpRight,
   Ruler,
   PanelTop,
+  Timer,
   Server,
   Square,
   StickyNote,
@@ -93,6 +94,7 @@ export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [
       stencil("ellipse", "Ellipse", Circle),
       stencil("decision", "Decision", Diamond),
       stencil("frame", "Frame", PanelTop),
+      stencil("clock", "Clock", Timer),
     ],
   },
   {

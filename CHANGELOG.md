@@ -16,6 +16,12 @@ All notable user-visible changes are recorded here.
   where the pointer was moved.
 - Added **Q** to keep a placing tool in hand, so several objects of one kind go down in a row.
 
+### Clocks
+
+- Added a clock object from **Shapes**: the time of day, a stopwatch or a countdown timer that
+  everyone in the room sees running, with Start, Pause and Reset and three looks. Files and
+  assistants write it as `clock time`, `clock stopwatch` or `clock timer <seconds>` on a node.
+
 ### Measurement in its place
 
 - Moved **Measure** into the left rail's tools. Its length now reads at the middle of the

@@ -24,6 +24,7 @@ export const BLANK: Omit<Item, "id" | "type"> = {
   picture: null,
   arrange: { how: "free" },
   tidy: DEFAULT_TIDY,
+  clock: null,
   scaleContents: false,
   deck: "",
   slide: 1,

@@ -1,4 +1,5 @@
 import { isId } from "../document/ids";
+import { started } from "../document/clock";
 import { isFrame, STENCILS, type Item, type Stencil } from "../document/types";
 import type { Draft } from "./draft";
 import { LanguageError } from "./lexer";
@@ -54,6 +55,11 @@ const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
   ...FIELD_DESCRIBERS,
   tidy: (item, attribute) => {
     item.tidy = attribute.options;
+  },
+  clock: (item, attribute, { line }) => {
+    if (item.type !== "node") throw new LanguageError("Only a node shows a clock.", line);
+    const { clock, running } = attribute;
+    item.clock = clock && running ? started(clock, Date.now()) : clock;
   },
   scaleContents: (item, attribute, { line }) => {
     if (!isFrame(item))

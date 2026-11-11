@@ -16,6 +16,7 @@ import { labelIsLegible } from "./culling";
 import { configureLineJumps } from "./lineJumps";
 import type { Marks } from "./marks";
 import { escapeText, renderMarkdown } from "../text/markdown";
+import { clockText, isFinished, readClock } from "../document/clock";
 
 // maxGraph treats anything but http and data addresses as relative, which would prefix a picture's
 // object URL with the site's address and leave it unable to load.
@@ -44,6 +45,22 @@ const escapeLabel = (value: unknown) =>
 export const LABEL_SUBTITLE = "labelSubtitle";
 export const LABEL_BADGE = "labelBadge";
 export const LABEL_PROPERTIES = "labelProperties";
+/** A node's clock, as JSON; the label shows its reading above the name. */
+export const LABEL_CLOCK = "labelClock";
+
+/**
+ * A clock's reading as it is now. `editor/clockTicker.ts` keeps the text current through the id
+ * in `data-clock`, without the label being rebuilt each second.
+ */
+function clockLabel(cell: Cell, style: Record<string, unknown>) {
+  const raw = style[LABEL_CLOCK];
+  const clock = typeof raw === "string" ? readClock(JSON.parse(raw)) : null;
+  if (!clock) return "";
+  const now = Date.now();
+  const done = isFinished(clock, now) ? " clock-done" : "";
+  const id = escapeLabel(cell.id ?? "");
+  return `<div class="canvas-clock${done}" data-clock="${id}">${clockText(clock, now)}</div>`;
+}
 
 /** The item's properties as the style carries them, or none. */
 export function propertiesOf(style: Record<string, unknown>): Record<string, string> {
@@ -74,7 +91,8 @@ function composeLabel(cell: Cell, marks: Marks, content: string) {
     /▸\d+/,
     (count) => `<span data-mark="collapsed" style="cursor:pointer">${count}</span>`
   );
-  const body = [escapeLabel(marks.before), name, after].filter(Boolean).join(" ");
+  const words = [escapeLabel(marks.before), name, after].filter(Boolean).join(" ");
+  const body = clockLabel(cell, style) + words;
   if (!body) return "";
   const css = labelVariables(style);
   // A title is as wide as its item and ends in an ellipsis rather than running past it.

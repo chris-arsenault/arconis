@@ -62,6 +62,7 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
     ["fields.unlockAll"],
   ],
   object: [
+    ["clock.toggle", "clock.reset"],
     ["edit.text", "edit.fitText", "comments.open"],
     [
       "structure.branch",

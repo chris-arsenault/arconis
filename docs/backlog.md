@@ -51,8 +51,8 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 ## Plans
 
 - Place a PDF's pages on the canvas as locked underlays to calibrate, measure and draw over.
-- Leave a measurement on the drawing as a dimension line that follows the points it measures and
-  reads in the display unit.
+- Turn a measurement into a line on the canvas from the Measure tool: a dimension line that
+  follows the points it measures and reads in the display unit.
 - Show the area of a closed path in the drawing's units.
 
 ## Drawing
@@ -72,10 +72,15 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 
 ## Facilitation
 
-- Add voting and timers, when group activities are designed. The canvas comes first. Both are
-  presence state like the laser, and a vote's result can be written to a marker or property.
-- Investigate Foundry VTT's live drawing and presence tools, such as a long press to ping a spot
-  for everyone, and bring over the ones that suit a shared canvas.
+- Add voting, when group activities are designed. The canvas comes first. A vote is presence
+  state like the laser, and its result can be written to a marker or property.
+- Ping a spot for everyone with a long press on the canvas, drawn in the pinger's colour. A ping
+  outside a person's view shows as an arrow at the edge of their window pointing toward it. On
+  touch, where a long press opens the ring, ping is a wedge of that ring.
+- Call everyone to a spot with Shift and a long press. Each person sees the banner **Bring
+  everyone to me** shows and chooses whether to go. The laser stays on K beside the ping.
+- Show a measurement in progress to everyone in the room, in the measurer's colour, as cursors
+  and the laser are shown.
 
 ## Review
 

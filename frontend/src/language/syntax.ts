@@ -10,6 +10,7 @@ import type {
   TaskState,
 } from "../document/types";
 import type { TreeLayoutOptions } from "../document/treeLayout";
+import type { Clock } from "../document/clock";
 import type { Calibration } from "../document/units";
 
 /**
@@ -25,6 +26,7 @@ export const DRAWING_WORDS = new Set([
   "collapsed",
   "jump",
   "tidy",
+  "clock",
   "numbered",
   "tags",
   "marker",
@@ -85,6 +87,8 @@ export type Attribute =
   | { kind: "flag"; flag: Flag; value: boolean }
   /** How a topic's tree is tidied, remembered by the topic. */
   | { kind: "tidy"; options: TreeLayoutOptions }
+  /** A clock for a node to show, or null to remove it; `running` starts it as it is written. */
+  | { kind: "clock"; clock: Clock | null; running: boolean }
   /** An empty list clears the tags. */
   | { kind: "tags"; tags: string[] }
   | { kind: "marker"; marker: Marker | "none" }

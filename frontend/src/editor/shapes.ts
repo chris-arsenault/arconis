@@ -2,9 +2,10 @@ import { STENCILS, typeLabel, type Item, type ItemType, type Stencil } from "../
 import type { ScreenSize } from "../document/screens";
 import { creationOffset, creationSize, creationValues } from "./zoom";
 import { defaultFields } from "./styleClipboard";
+import { newClockFields } from "./clocks";
 
 /** What a click on the canvas makes: a node of a stencil, or an item of another type. */
-export type Shape = Stencil | "note" | "text" | "frame" | "slide";
+export type Shape = Stencil | "note" | "text" | "frame" | "slide" | "clock";
 export type Tool = Shape | "select" | "pan" | "draw" | "markup" | "connect" | "measure";
 
 /** The shapes the Add ring places; the last one chosen is what the Add mode returns to. */
@@ -29,11 +30,18 @@ export const ringShape = (tool: Tool): Shape | null =>
 export function shapeItem(shape: Shape): { type: ItemType; stencil: Stencil } {
   if ((STENCILS as readonly string[]).includes(shape))
     return { type: "node", stencil: shape as Stencil };
+  // A clock is a node that shows one.
+  if (shape === "clock") return { type: "node", stencil: "rectangle" };
   return { type: shape as ItemType, stencil: "rectangle" };
 }
 
 function defaultName(shape: Shape) {
   return shape === "note" ? "Your idea here" : typeLabel(shapeItem(shape));
+}
+
+/** What a shape adds to the item beyond its type: a clock's count and digits. */
+function shapeFields(shape: Shape): Partial<Item> {
+  return shape === "clock" ? newClockFields() : {};
 }
 
 /**
@@ -64,12 +72,14 @@ export function newItemFields(
   const { type, stencil } = shapeItem(shape);
   const defaults = defaultFields(type, stencil);
   const sizing = creationValues(type, scale, stencil);
+  const extra = shapeFields(shape);
   return {
     name: screen?.name ?? icon?.title ?? defaultName(shape),
     stencil,
     ...defaults,
     ...sizing,
-    look: { ...defaults.look, ...sizing.look },
+    ...extra,
+    look: { ...defaults.look, ...extra.look, ...sizing.look },
     ...slide,
     ...newItemSize(shape, scale, screen, slide),
     ...(icon ? { icon: icon.key } : {}),

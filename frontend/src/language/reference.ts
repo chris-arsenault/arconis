@@ -60,7 +60,7 @@ Types:
 - frame: a container with a title. group: a light dashed container.
 - band: a highlight behind items, spanning across frames: band <id> "name" / "subtitle" over a, b, c. It is sized to cover them once everything is placed.
 - text: free text. note: a sticky note. picture: an image people added (agents do not add pictures).
-Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up. For an id that is also an attribute word (ink, target, markup, workspace, locked, collapsed, jump, tidy, numbered, tags, marker, task, link, property or edited), follow the id with a quoted name, which may be empty; canonical files do this automatically.
+Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up. For an id that is also an attribute word (ink, target, markup, workspace, locked, collapsed, jump, tidy, clock, numbered, tags, marker, task, link, property or edited), follow the id with a quoted name, which may be empty; canonical files do this automatically.
 The name and subtitle are both optional: node r2 / "Amazon Aurora" has only a subtitle. Write \\n in text for a line break.
 
 Example:
@@ -127,6 +127,7 @@ Any item or line takes these among its attributes, whatever its type; canonical 
 - collapsed: an item that holds or heads others shows without them; a frame shrinks to its title bar, a topic keeps its node, and a count badge says how many are folded away. Shared with everyone. collapsed off expands.
 - jump: a jump point, listed by name in the Navigate panel so anyone can fly to it; mark the few objects people will want to return to. jump off removes it.
 - numbered: a topic's branches show tiered numbers, 1, 1.1, 1.2, in the order they sit, so a person or an agent can say "change 2.3". numbered off removes them.
+- clock time, clock stopwatch or clock timer <seconds>: a node shows the time of day, counts up, or counts down to zero, above its name; only nodes take it. Add running to start it as you write it: node t "Break" clock timer 300 running. Restating the clock without running stops and resets it. Each person's browser does the counting, so readings agree to within the difference between their clocks, and the time of day shows in each reader's own time zone. A file also carries elapsed <seconds> for what a stopped clock has counted and started <milliseconds> for when a running one began. clock none removes it.
 - tags a, b, c: free categorical words of letters, digits, _ and -. Restating tags replaces the list; tags none clears it.
 - marker star|circle|square|triangle|diamond|hexagon: a small shape badge whose meaning the room decides; marker none removes it.
 - task open|done: a checkbox in the label; a holder or topic over tasks shows how many are done. task none removes it.

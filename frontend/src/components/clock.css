@@ -1,0 +1,86 @@
+.clock-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.clock-kinds {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.clock-kinds label {
+  position: relative;
+  flex: 1;
+  cursor: pointer;
+  text-align: center;
+}
+.clock-kinds input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+}
+.clock-kinds span {
+  display: block;
+  padding: 6px 4px;
+  color: var(--text-soft);
+}
+.clock-kinds input:checked + span {
+  background: var(--purple-soft, #efecfb);
+  color: var(--purple);
+  font-weight: 650;
+}
+.clock-kinds input:focus-visible + span {
+  outline: 2px solid var(--purple);
+  outline-offset: -2px;
+}
+.clock-controls > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-soft);
+}
+.clock-controls > label input {
+  width: 96px;
+  padding: 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.clock-controls input[aria-invalid="true"] {
+  outline: 2px solid #d6336c;
+}
+.clock-actions,
+.clock-looks {
+  display: flex;
+  gap: 6px;
+}
+.clock-actions button,
+.clock-looks button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px;
+}
+.clock-look {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.clock-look-light {
+  background: #ffffff;
+  color: #1f2433;
+}
+.clock-look-dark {
+  background: #1f2433;
+  color: #ffffff;
+}
+.clock-look-accent {
+  background: #7560cb;
+  color: #ffffff;
+}

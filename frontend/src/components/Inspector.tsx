@@ -34,6 +34,7 @@ import {
 } from "../editor/commands";
 import { addTags, removeTag, roomTags, sharedTags } from "../editor/tags";
 import { RailSection } from "./RailSection";
+import { ClockControls } from "./ClockControls";
 import { useRailSections } from "./useRailSections";
 import { TagEditor } from "./TagEditor";
 import { alignSelection, distributeSelection } from "../editor/topics";
@@ -75,6 +76,7 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       <InspectorHeader editor={editor} selected={selected} />
       <PrimaryControls key={selectionKey} {...props} />
       {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
+      {single && <ClockControls editor={editor} item={item} />}
       <LayerField editor={editor} selected={selected} />
       <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
       <LayoutSection key={`layout ${selectionKey}`} {...props} />

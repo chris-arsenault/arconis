@@ -1,4 +1,5 @@
 import type { EditorController } from "./controller";
+import type { CommandDefinition } from "./registry";
 
 /**
  * Keeping a tool in hand: while it is on, placing an object leaves its tool armed, so several of
@@ -22,3 +23,21 @@ export function setKeepsTool(editor: EditorController, keep: boolean) {
   editor.element.dataset.keepsTool = String(keep);
   editor.emit();
 }
+
+export const KEEP_TOOL_COMMAND: CommandDefinition = {
+  id: "tool.keep",
+  label: ({ editor }) =>
+    keepsTool(editor) ? "Stop keeping the tool in hand" : "Keep the tool in hand",
+  help: "Leave a placing tool armed after each object, to place several in a row. Escape puts it away.",
+  group: "tools",
+  keywords: ["sticky", "lock tool", "repeat", "stamp", "several"],
+  shortcuts: [{ key: STICKY_KEY }],
+  run: ({ editor }) => {
+    setKeepsTool(editor, !keepsTool(editor));
+    editor.room?.setNotice(
+      keepsTool(editor)
+        ? "Tools stay in hand after placing. Press Q or Escape to stop."
+        : "Tools return to Select after placing."
+    );
+  },
+};

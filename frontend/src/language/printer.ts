@@ -17,6 +17,7 @@ import { exportItems } from "../document/exportItems";
 import { selectedItems } from "../document/relations";
 import { renamePictures } from "../document/pictures";
 import { isWebLink } from "./fields";
+import type { Clock } from "../document/clock";
 import type { Calibration } from "../document/units";
 
 /**
@@ -55,11 +56,21 @@ function tidyWords(tidy: TreeLayoutOptions) {
   return words;
 }
 
+/** A node's clock: its kind, a timer's length, and what it has counted and when it started. */
+function clockWords(clock: Clock | null) {
+  if (!clock) return [];
+  const words = ["clock", clock.kind];
+  if (clock.kind === "timer") words.push(String(clock.duration));
+  if (clock.elapsed) words.push("elapsed", String(clock.elapsed));
+  if (clock.started) words.push("started", String(clock.started));
+  return words;
+}
+
 /** Shared item fields in their canonical printed order. */
 function fieldWords(item: Item) {
   const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
   if (item.scaleContents) parts.push("scale-contents");
-  parts.push(...tidyWords(item.tidy));
+  parts.push(...tidyWords(item.tidy), ...clockWords(item.clock));
   if (item.tags.length) parts.push("tags", item.tags.join(", "));
   if (item.marker !== "none") parts.push("marker", item.marker);
   if (item.task !== "none") parts.push("task", item.task);

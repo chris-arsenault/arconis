@@ -5,7 +5,7 @@ import { isLockedIcon } from "../document/geometry";
 import { iconImage, loadIconFor } from "../assets/icons/catalog";
 import { isPictureHash, isPictureType } from "../document/pictures";
 import { pictureImage } from "./pictureSource";
-import { LABEL_BADGE, LABEL_PROPERTIES, LABEL_SUBTITLE } from "./rendering";
+import { LABEL_BADGE, LABEL_CLOCK, LABEL_PROPERTIES, LABEL_SUBTITLE } from "./rendering";
 import { TEXT_FONTS } from "../text/typography";
 import "./inkShape";
 import { LINE_SHAPE } from "./lineJumps";
@@ -231,6 +231,7 @@ function applyPorts(item: Item, style: Style) {
 /** What the label draws besides the name: a subtitle under it, a badge before it, its properties. */
 function applyLabel(item: Item, style: Style, look: Look) {
   if (item.subtitle) style[LABEL_SUBTITLE] = item.subtitle;
+  if (item.clock) style[LABEL_CLOCK] = JSON.stringify(item.clock);
   if (item.properties) style[LABEL_PROPERTIES] = JSON.stringify(item.properties);
   if (!look.badge) return;
   const badge = iconImage(look.badge);

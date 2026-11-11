@@ -74,7 +74,7 @@ keeps your text and screenshot choice so you can retry.
 Open **Shapes**. Click a stencil, then click the canvas, or drag the stencil directly onto it.
 Select returns after each object. Press **Q** to keep the tool in hand instead, so each click
 places another of the same kind without opening its text; **Q** again or Escape ends it.
-Basics include notes, free text, rectangles, ellipses, decisions and frames. Architecture stencils
+Basics include notes, free text, rectangles, ellipses, decisions, frames and clocks. Architecture stencils
 include services, databases, clouds and people. Every library, including Screens and cloud
 providers, opens and closes from its header and remembers that choice on this device. Search
 finds items across libraries even when they are closed. Create slides from **Slides** in the
@@ -557,6 +557,24 @@ connect like other objects.
 Vendor icons retain their colors and proportions, scale evenly and remain unrotated. Generic
 icons can offer an icon-color control. Pictures are added by pasting or dropping image files;
 see [files and pictures](files.md#add-and-move-pictures).
+
+## Clocks, stopwatches and timers
+
+Choose **Clock** in **Shapes** and click the canvas to place a timer. It is an ordinary object:
+move it, resize it, name it, copy it or put it on a slide. Select it to set it up in the property
+panel:
+
+- **Clock** shows the time of day, **Stopwatch** counts up, and **Timer** counts down from its
+  **Length**, typed as `5:00`, `1:30:00` or plain seconds.
+- **Start** runs a stopwatch or timer for everyone in the room and **Pause** holds it. **Reset**
+  returns it to its beginning. A timer that reaches zero stops there and turns red; **Start**
+  begins it again. The same actions are in the right-click menu and the command palette.
+- **Light**, **Dark** and **Accent** set its look. They are ordinary fill, line and text colours,
+  so **Appearance** changes them further, and the text size sets the size of the digits.
+
+The canvas shares only what kind of clock it is and when it was started. Each person's browser
+does the counting, so two people's readings agree to within the difference between their
+computers' clocks, and the time of day shows in each person's own time zone.
 
 ## Jump points
 

@@ -8,6 +8,7 @@ import { canHoldAnything } from "./capabilities";
 import { BASE_LAYER, inLayers, layerOf, orderedLayers, type LayerRecord } from "./layers";
 import { BLANK } from "./itemDefaults";
 import { readArrangement } from "./arrangement";
+import { readClock } from "./clock";
 import { isCalibration, readCalibration, type Calibration } from "./units";
 export { BLANK } from "./itemDefaults";
 
@@ -183,6 +184,7 @@ export class CanvasDocument {
       id,
       markup: stored.markup ?? stored.type === "highlight",
       arrange: readArrangement(stored.arrange),
+      clock: readClock(stored.clock),
     } as Item;
   }
 

@@ -5,6 +5,7 @@ import { INK_KINDS } from "../document/ink";
 import { FLAGS, MARKERS, TASK_STATES, type Flag } from "../document/types";
 import { DEFAULT_TIDY, TREE_DIRECTIONS, type TreeLayoutOptions } from "../document/treeLayout";
 import { isId } from "../document/ids";
+import { CLOCK_KINDS, readClock } from "../document/clock";
 import { DEFAULT_GAP } from "../document/layout";
 
 /** Parsing of the attributes that follow an item, a line or a style. */
@@ -67,6 +68,23 @@ function flag(flag: Flag) {
     return { kind: "flag", flag, value: on };
   };
 }
+/**
+ * `clock time`, `clock stopwatch` or `clock timer <seconds>`, then optionally what it has counted
+ * (`elapsed <seconds>`) and that it is going (`started <milliseconds>`, or `running` for now);
+ * `clock none` removes it.
+ */
+function clockAttribute(cursor: Cursor): Attribute {
+  if (cursor.word("none")) return { kind: "clock", clock: null, running: false };
+  const kind = CLOCK_KINDS.find((candidate) => cursor.word(candidate));
+  if (!kind) return cursor.fail(`After clock, write ${CLOCK_KINDS.join(", ")} or none.`);
+  const duration = kind === "timer" ? cursor.number("the timer's length in seconds") : 0;
+  const elapsed = cursor.word("elapsed") ? cursor.number("the seconds already counted") : 0;
+  const started = cursor.word("started") ? cursor.number("when it started, in milliseconds") : 0;
+  const clock = readClock({ kind, duration, elapsed, started });
+  if (!clock) return cursor.fail("A clock's numbers are zero or more.");
+  return { kind: "clock", clock, running: cursor.word("running") };
+}
+
 /**
  * The words after `tidy`: a direction, `compact` and `sorted`, in any order; null when there are
  * none. `left of` and `right of` place an item, so a direction followed by `of` is left alone.
@@ -160,6 +178,7 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
       return cursor.fail(`After tidy, write ${TREE_DIRECTIONS.join("|")}, compact or sorted.`);
     return { kind: "tidy", options };
   },
+  clock: clockAttribute,
   target: (cursor) => ({ kind: "target", ref: cursor.ref() }),
   // Not bare `layer`: canvases already use that word as a style's name.
   "in-layer": (cursor) => ({ kind: "layer", ref: cursor.ref("a layer's id") }),

@@ -8,6 +8,7 @@ import { addBranch, jumpTo } from "../editor/topics";
 import { splitAtCaret } from "../editor/structureCommands";
 import { bindPresence, itemInHash, peerStates, type PeerState } from "../editor/presence";
 import { bindLaser } from "../editor/laserInput";
+import { bindClocks } from "../editor/clockTicker";
 import { addTaskAfter, taskListOf } from "../editor/stencils";
 import { labelHistory } from "../editor/history";
 import { bindTouchInput } from "../editor/touchInput";
@@ -75,6 +76,7 @@ export function Canvas({
     const unbindClipboard = bindClipboardInput(editor, session);
     const unbindPresence = bindPresence(editor, session);
     const unbindLaser = bindLaser(editor, session);
+    const stopClocks = bindClocks(editor);
     const stopDeepLink = openDeepLink(editor, location.hash);
     const stopLabels = labelHistory(session.document);
     const touch = new AbortController();
@@ -88,6 +90,7 @@ export function Canvas({
       unbindClipboard();
       unbindPresence();
       unbindLaser();
+      stopClocks();
       stopDeepLink();
       element.removeEventListener("mousemove", updateCursor);
       element.removeEventListener("mouseleave", leave);

@@ -238,6 +238,10 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   importer as copied language, from the paste choice (`components/PasteAs.tsx`) or
   `editor/importFile.ts`. `exports.ts` writes a diagram as a Mermaid flowchart and a tree as CSV.
   The readers use no DOM, so they run wherever the language does.
+- `document/clock.ts` holds a node's clock: its kind, a timer's length and when it started. The
+  label draws its reading (`editor/rendering.ts`) and `editor/clockTicker.ts` keeps the drawn text
+  current in each browser, so a running clock writes and sends nothing as time passes.
+  `editor/clocks.ts` holds the commands and looks, and `components/ClockControls.tsx` the panel.
 - `document/crossings.ts` decides where straight lines hop over one another, and
   `editor/lineJumps.ts` draws connectors with those hops, recomputing them after each view
   validation. `document/equalGaps.ts` finds the shift that spaces a moving box equally with its

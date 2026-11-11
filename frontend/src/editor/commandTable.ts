@@ -28,7 +28,8 @@ import { POINTER_COMMANDS } from "./pointerCommands";
 import { STENCIL_COMMANDS } from "./stencilCommands";
 import { EXPORT_COMMANDS } from "./exportCommands";
 import { showRelate } from "./ui";
-import { STICKY_KEY, keepsTool, setKeepsTool } from "./stickyTool";
+import { KEEP_TOOL_COMMAND } from "./stickyTool";
+import { CLOCK_COMMANDS } from "./clocks";
 
 /** The commands, in the order menus and the palette list them within each group. */
 
@@ -94,23 +95,7 @@ const TOOLS: Command[] = [
     "m",
     ["annotate", "annotation", "highlighter"]
   ),
-  {
-    id: "tool.keep",
-    label: ({ editor }) =>
-      keepsTool(editor) ? "Stop keeping the tool in hand" : "Keep the tool in hand",
-    help: "Leave a placing tool armed after each object, to place several in a row. Escape puts it away.",
-    group: "tools",
-    keywords: ["sticky", "lock tool", "repeat", "stamp", "several"],
-    shortcuts: [{ key: STICKY_KEY }],
-    run: ({ editor }) => {
-      setKeepsTool(editor, !keepsTool(editor));
-      editor.room?.setNotice(
-        keepsTool(editor)
-          ? "Tools stay in hand after placing. Press Q or Escape to stop."
-          : "Tools return to Select after placing."
-      );
-    },
-  },
+  KEEP_TOOL_COMMAND,
 ];
 
 const CREATE: Command[] = [
@@ -120,6 +105,12 @@ const CREATE: Command[] = [
   place("ellipse", "Ellipse", "an ellipse", "e", ["circle"]),
   place("decision", "Decision", "a diamond for a decision in a flow", "d", ["diamond"]),
   place("frame", "Frame", "a frame that holds the objects dropped into it", "f", ["container"]),
+  place("clock", "Clock", "a clock, stopwatch or countdown timer everyone sees", undefined, [
+    "timer",
+    "stopwatch",
+    "countdown",
+    "time",
+  ]),
   place("slide", "Slide", "a slide, an area of the canvas you can present in a deck", undefined, [
     "deck",
   ]),
@@ -409,4 +400,5 @@ export const COMMANDS = [
   ...POINTER_COMMANDS,
   ...STENCIL_COMMANDS,
   ...EXPORT_COMMANDS,
+  ...CLOCK_COMMANDS,
 ].map(completeCommand);

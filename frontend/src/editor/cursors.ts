@@ -59,4 +59,5 @@ export const TOOL_CURSORS: Record<Exclude<Tool, "draw" | "markup">, CursorName> 
   person: "crosshair",
   icon: "crosshair",
   junction: "crosshair",
+  clock: "crosshair",
 };

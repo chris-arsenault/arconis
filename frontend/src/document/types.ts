@@ -4,6 +4,7 @@
  * cells to draw.
  */
 import type { TreeLayoutOptions } from "./treeLayout";
+import type { Clock } from "./clock";
 
 export type ItemType =
   | "node"
@@ -189,6 +190,8 @@ export interface Item {
   arrange: Arrangement;
   /** For a topic that heads a tree: how Tidy lays its branches out. */
   tidy: TreeLayoutOptions;
+  /** A clock, stopwatch or timer shown in a node's label, or null when it shows none. */
+  clock: Clock | null;
   /** Scale held content, including its paint and text, when this panel is resized. */
   scaleContents: boolean;
   /** For slides: the deck this slide belongs to, and its number in that deck. */
@@ -299,6 +302,7 @@ const TYPE_LABELS: Record<ItemType, string> = {
 };
 
 /** What a person calls this item when it has no name. */
-export function typeLabel(item: Pick<Item, "type" | "stencil">) {
+export function typeLabel(item: Pick<Item, "type" | "stencil"> & Partial<Pick<Item, "clock">>) {
+  if (item.clock) return "Clock";
   return item.type === "node" ? STENCIL_LABELS[item.stencil] : TYPE_LABELS[item.type];
 }
