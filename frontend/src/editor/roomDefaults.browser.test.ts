@@ -15,9 +15,12 @@ async function centre(page: Page, fill: string) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-/** Whether a shape's middle is inside the canvas's window. */
+/**
+ * Whether a shape's middle is inside the canvas's window. A shape outside it is left in the page,
+ * hidden, with the place it was last drawn, so only one that is displayed counts.
+ */
 async function inView(page: Page, fill: string) {
-  if ((await shape(page, fill).count()) === 0) return false;
+  if (!(await shape(page, fill).isVisible())) return false;
   const canvas = (await page.getByTestId("canvas").boundingBox())!;
   const box = await shape(page, fill).boundingBox();
   if (!box) return false;
