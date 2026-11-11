@@ -12,7 +12,8 @@ interface NumericProps {
   rules: NumericRules;
   /** The field's help sentence, for a field without a `<label>` to carry it. */
   detail: string;
-  unit?: string;
+  /** The unit typed values are read in; empty for a plain number. */
+  unit: string;
 }
 
 function parseNumber(source: string, options: NumericProps) {

@@ -48,6 +48,7 @@ export function TextProperties({
               detail="Set the text size for the selected objects; arrow keys step it by 1."
               value={common(drawn.map((style) => style.textSize)) ?? "mixed"}
               onCommit={(textSize) => change({ textSize })}
+              unit=""
             />
           </label>
           <label>
@@ -237,6 +238,7 @@ function NumericLook({
         rules={TEXT_SPACING[property]}
         value={typeof value === "number" ? value : "mixed"}
         onCommit={(number) => change({ [property]: number })}
+        unit=""
       />
     </label>
   );

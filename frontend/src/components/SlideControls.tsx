@@ -87,6 +87,7 @@ export function SlideControls({
             rules={SLIDE_NUMBER}
             detail="Set where this slide comes in its deck's presenting order."
             onCommit={onNumber}
+            unit=""
           />
         </label>
       </div>

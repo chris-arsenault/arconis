@@ -175,6 +175,7 @@ function LineControls({ drawn, appearances, change }: StyleProps) {
           value={mixedWidth ? "mixed" : drawn.lineWidth * drawn.scale}
           rules={LINE_WIDTH_NUMBER}
           onChange={(value) => change({ lineWidth: value / drawn.scale })}
+          unit=""
         />
       </div>
     </Section>
@@ -191,14 +192,15 @@ function NumberField({
   value,
   onChange,
   rules,
-  unit = "",
+  unit,
 }: Readonly<{
   prefix: string;
   label: string;
   value: NumericValue;
   onChange: (value: number) => void;
   rules: NumericRules;
-  unit?: string;
+  /** The unit typed values are read in; empty for a plain number. */
+  unit: string;
 }>) {
   return (
     <label
@@ -264,6 +266,7 @@ export function GeometryControls({
             value={rotation}
             rules={GEOMETRY_NUMBER}
             onChange={onRotate}
+            unit=""
           />
         )}
       </div>
