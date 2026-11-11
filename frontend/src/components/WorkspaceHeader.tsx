@@ -302,6 +302,7 @@ function FileMenuItems({
       >
         <ImageDown size={15} /> Export PNG
       </button>
+      <DeckExportItem editor={props.editor} run={run} />
       <button
         role="menuitem"
         onClick={onImport}
@@ -322,7 +323,6 @@ function FileMenuItems({
         />
         Include markup
       </label>
-      <DeckExportItem editor={props.editor} run={run} />
     </>
   );
 }

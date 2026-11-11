@@ -11,8 +11,8 @@ import {
 import { presentedSlides } from "../document/slides";
 
 /**
- * The File menu's deck export. It is always listed, and unavailable until the room has a slide. A
- * deck never carries markup, so it sits apart from the markup choice.
+ * The File menu's deck export, with the other exports. It is always listed, and unavailable until
+ * the room has a slide. A deck never carries markup, whatever the menu's markup choice.
  */
 export function DeckExportItem({
   editor,

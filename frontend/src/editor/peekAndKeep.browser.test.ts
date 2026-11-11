@@ -73,14 +73,14 @@ node far "Far" at 6000,4000 size 160,90 fill ${FAR}`),
   // Holding O shows everything.
   await page.keyboard.down("o");
   await expect.poll(() => inView(page, FAR)).toBe(true);
-  expect(await inView(page, NEAR)).toBe(true);
+  await expect.poll(() => inView(page, NEAR)).toBe(true);
   expect(await zoom(page)).not.toBe(close);
 
   // Releasing without pointing anywhere returns to the view held before.
   await page.keyboard.up("o");
   await expect.poll(() => zoom(page)).toBe(close);
   await expect.poll(() => inView(page, FAR)).toBe(false);
-  expect(await inView(page, NEAR)).toBe(true);
+  await expect.poll(() => inView(page, NEAR)).toBe(true);
 
   // Pointing at Far during the peek lands there at the same zoom.
   await page.keyboard.down("o");
