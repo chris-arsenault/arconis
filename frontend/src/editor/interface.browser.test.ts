@@ -327,13 +327,13 @@ it("tags from the ring, filters from the rail's tags, and grows compact branches
   expect(branch.type).toBe("note");
   expect(branch.height).toBeLessThan(root.height / 2);
 
-  // The ring's west wedge tags the object where it is.
+  // The ring's north-west wedge tags the object where it is.
   await canvas(page).click({ position: emptySpot });
   const box = (await row(page, "Strategy").boundingBox())!;
   const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
   await page.mouse.move(x, y);
   await page.mouse.down({ button: "right" });
-  await page.mouse.move(x - 60, y, { steps: 6 });
+  await page.mouse.move(x - 45, y - 45, { steps: 6 });
   await page.mouse.up({ button: "right" });
   const tagField = page.getByRole("dialog", { name: "Tags" }).getByLabel("Add a tag");
   await tagField.fill("growth");
