@@ -9,7 +9,7 @@ Help in the app. For a drawing with real distances, see [scale and measurement](
 
 ## Workspace controls
 
-The left rail has the tools **Select**, **Pan**, **Connect** and **Markup**, and two panels:
+The left rail has the tools **Select**, **Pan**, **Connect**, **Markup** and **Measure**, and two panels:
 **Shapes** for stencils and icon libraries, and **Draw** for ink in the active layer. Markup opens
 its own bar over the canvas and leaves the panel as it was. **Hide panel** leaves the tools and
 panel buttons available while giving the canvas more space.
@@ -231,8 +231,9 @@ Use a scale when the size of objects should mean something: a room plan in metre
 layout in millimetres, or a custom drawing in your own units. Leave the canvas uncalibrated
 for diagrams whose box sizes are just for readability.
 
-The scale bar above the bottom controls shows a distance at the current zoom. Click it to open
-**Scale and units**. Paper, Electronics, Product, House, Site and Geography presets assign a
+The scale bar at the end of the bottom view controls shows a distance at the current zoom.
+**Settings** in the header holds **Scale and units**. Paper, Electronics, Product, House, Site
+and Geography presets assign a
 distance to the reference line of 100 canvas units, shown at `1×` in the settings. For example,
 House makes that line represent 1 m. Custom accepts any positive distance and a unit label.
 The bar chooses readable intervals and changes units as you zoom; calibration itself stays fixed.
@@ -256,15 +257,18 @@ preference: switching metres to feet converts the values without changing the ca
 Uncalibrated documents use canvas units (`u`). Paper units describe the drawing, not the physical
 size of pixels on your monitor; geographical distances describe a flat drawing.
 
-Choose **Measure distance** beside the bar, or in the command palette. Drag between two points,
-or click a start and end point. The readout shows total distance and horizontal and vertical
-components. It stays constant as you pan or zoom. Enter places an endpoint, arrows move it,
+Choose **Measure** among the tools in the left rail, or **Measure distance** in the command
+palette. Drag between two points, or click a start and end point. The length reads at the middle
+of the line, with its horizontal and vertical components beneath it when the line slants. It
+stays constant as you pan or zoom. Enter places an endpoint, arrows move it,
 and Shift with an arrow takes a larger step. Shift while pointing constrains an axis; Alt bypasses
 snapping. Escape clears a measurement, then exits. Measurements are temporary and do not create
 objects or document Undo steps.
 
-For a known distance in a drawing, measure it, enter its real distance and unit, then choose
-**Calibrate this distance**. Geometry fields and live resize feedback use the same conversion.
+For a known distance in a drawing, measure it, click the length on the line and type what it
+really is, such as `3 m`; Enter calibrates the canvas from that line and Escape cancels. A bare
+number takes the canvas's current unit. Geometry fields and live resize feedback use the same
+conversion.
 Geometry fields accept compatible unit suffixes, such as `240 cm` while displaying metres.
 Text and other style values keep their existing meaning.
 

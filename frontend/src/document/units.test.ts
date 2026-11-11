@@ -1,7 +1,7 @@
 import * as Y from "yjs";
 import { describe, expect, it } from "vitest";
 import { CanvasDocument } from "./canvasDocument";
-import { distanceFactor, formatDistance, scaleBar, unitExpression } from "./units";
+import { distanceFactor, formatDistance, readLength, scaleBar, unitExpression } from "./units";
 import { parse } from "../language/parser";
 import { printCanvas } from "../language/printer";
 import { writeStatements } from "../language/writer";
@@ -55,5 +55,13 @@ describe("calibrated distances", () => {
     session.undoLast();
     expect(document.calibration()).toBeNull();
     session.destroy();
+  });
+
+  it("reads a typed length with or without its unit", () => {
+    expect(readLength("3", "m")).toEqual({ distance: 3, unit: "m" });
+    expect(readLength(" 2.5 ft ", "m")).toEqual({ distance: 2.5, unit: "ft" });
+    expect(readLength("240cm", "m")).toEqual({ distance: 240, unit: "cm" });
+    expect(readLength("12 paces", "m")).toEqual({ distance: 12, unit: "paces" });
+    for (const wrong of ["", "m", "0", "0 m", "1.2.3 m"]) expect(readLength(wrong, "m")).toBeNull();
   });
 });

@@ -14,7 +14,10 @@ const TOOL_NAMES: Record<string, string> = {
   pan: "Pan",
   connect: "Connect",
   markup: "Markup",
+  measure: "Measure",
 };
+/** Tools that place nothing, so choosing one leaves the panel as it was. */
+const NOT_PLACING = ["select", "pan", "connect", "markup", "measure", "draw", "slide"];
 const PANELS = [
   { id: "add", label: "Shapes", icon: Shapes, hint: "Shapes" },
   { id: "draw", label: "Draw", icon: Pencil, hint: "Draw (P)" },
@@ -36,7 +39,7 @@ function usePanel(editor: EditorController, layout: RailLayout) {
   }, [compact, editor.tool, onExpand]);
   if (state.tool !== editor.tool) {
     let panel = state.panel;
-    const placing = !["select", "pan", "connect", "markup", "draw", "slide"].includes(editor.tool);
+    const placing = !NOT_PLACING.includes(editor.tool);
     if (editor.tool === "draw") panel = "draw";
     else if (placing) panel = "add";
     const opens = placing || editor.tool === "draw";
@@ -55,7 +58,7 @@ function usePanel(editor: EditorController, layout: RailLayout) {
   return { panel: state.panel, expanded, choose, toggle };
 }
 
-/** Select, Pan, Connect and Markup stay above every panel: each works whatever the panel shows. */
+/** Select, Pan, Connect, Markup and Measure stay above every panel: each works whatever it shows. */
 function ToolRow({ editor }: Readonly<{ editor: EditorController }>) {
   const annotations = editor.document.list().filter(isMarkup).length;
   return (

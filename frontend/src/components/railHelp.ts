@@ -11,6 +11,8 @@ export const TOOL_DETAILS: Record<string, string> = {
   pan: "Drag to move your view around the canvas without changing anything.",
   connect: "Click one object, then another, to join them with a connector.",
   markup: "Annotate over the canvas with temporary marks that stay out of the layers.",
+  measure:
+    "Click or drag between two points to read the distance; click the length to calibrate from it.",
 };
 
 export const PANEL_DETAILS: Record<Panel, string> = {

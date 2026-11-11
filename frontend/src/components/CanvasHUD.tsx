@@ -17,7 +17,7 @@ import { showFind } from "../editor/ui";
 import { shortcutLabel } from "../editor/shortcuts";
 import { anythingInView } from "../editor/views";
 import { FindBar } from "./FindBar";
-import { ScaleControls } from "./ScaleControls";
+import { ScaleBar } from "./ScaleControls";
 import "./discovery.css";
 
 /** A precise magnification, applied on Enter or when the field is left. */
@@ -152,6 +152,8 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
       >
         <Waypoints size={17} />
       </button>
+      <span className="zoom-divider" />
+      <ScaleBar editor={editor} />
     </div>
   );
 }
@@ -200,7 +202,6 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
         </button>
       </div>
       <ViewControls editor={editor} />
-      <ScaleControls editor={editor} />
       <button
         className="help-button"
         data-help-id="palette"

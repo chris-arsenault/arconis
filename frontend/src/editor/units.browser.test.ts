@@ -20,11 +20,11 @@ it("shares calibration, converts geometry and preserves physical measurements th
   await add(page, "Rectangle (R)", "Measured room", 300, 250);
   const before = (await exported(page)).objects;
   const peer = await open(b, room);
-  await page.getByRole("button", { name: "Scale and units", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByLabel("Scale preset", { exact: true }).selectOption("House");
   await expect.poll(() => page.getByTestId("scale-distance").textContent()).toBe("1 m");
   await expect.poll(() => peer.getByTestId("scale-distance").textContent()).toBe("1 m");
-  await page.getByRole("button", { name: "Close scale settings", exact: true }).click();
+  await page.getByRole("button", { name: "Close settings", exact: true }).click();
   expect((await exported(page)).objects).toEqual(before);
   await row(page, "Measured room").click();
   await expect
@@ -39,24 +39,37 @@ it("shares calibration, converts geometry and preserves physical measurements th
   await expect
     .poll(() => peer.getByLabel("Object width", { exact: true }).inputValue())
     .toBe("2.4");
-  await page.getByRole("button", { name: "Scale and units", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByLabel("Display unit", { exact: true }).selectOption("mm");
-  await page.getByRole("button", { name: "Close scale settings", exact: true }).click();
+  await page.getByRole("button", { name: "Close settings", exact: true }).click();
   expect(await page.getByLabel("Object width", { exact: true }).inputValue()).toBe("2400");
   expect(await peer.getByLabel("Object width", { exact: true }).inputValue()).toBe("2.4");
   await page.getByRole("button", { name: "Measure distance", exact: true }).click();
-  await drag(page, 100, 520, 100, 0);
+  await drag(page, 600, 520, 100, 0);
   await expect
     .poll(() => page.getByLabel("Measured distance", { exact: true }).textContent())
     .toBe("1 m");
   await zoom(page, 2);
   expect(await page.getByLabel("Measured distance", { exact: true }).textContent()).toBe("1 m");
-  await page.getByLabel("Known distance", { exact: true }).fill("3");
-  await page.getByRole("button", { name: "Calibrate this distance", exact: true }).click();
+  // The length sits at the middle of the measured line, not in a panel of its own.
+  const line = (await page.locator(".distance-overlay line").boundingBox())!;
+  const length = (await page.getByLabel("Measured distance", { exact: true }).boundingBox())!;
+  expect(Math.abs(length.x + length.width / 2 - (line.x + line.width / 2))).toBeLessThan(2);
+  expect(Math.abs(length.y + length.height / 2 - (line.y + line.height / 2))).toBeLessThan(2);
+  // Clicking the length and typing the real one calibrates the canvas from this line.
+  await page.getByLabel("Measured distance", { exact: true }).click();
+  const real = page.getByLabel("Real length of the measured line", { exact: true });
+  await real.fill("nonsense");
+  await real.press("Enter");
+  expect(await real.getAttribute("aria-invalid")).toBe("true");
+  await real.fill("3");
+  await real.press("Enter");
   await expect
     .poll(() => page.getByLabel("Measured distance", { exact: true }).textContent())
     .toBe("3 m");
-  await page.getByRole("button", { name: "Done measuring", exact: true }).click();
+  await page.screenshot({ path: "test-results/measure-line.png" });
+  await page.getByRole("button", { name: "Select (V)", exact: true }).click();
+  expect(await page.locator(".distance-overlay").count()).toBe(0);
   const saved = await exported(page);
   expect(saved.text).toContain('scale 100 represents 3 "m"');
   expect(saved.objects.find((item) => item.name === "Measured room")!.width).toBe(240);
@@ -69,14 +82,14 @@ it("shares calibration, converts geometry and preserves physical measurements th
 it("uses a fixed electronics pitch, keeps keyboard measurements stable and undoes calibration", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
-  await page.getByRole("button", { name: "Scale and units", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByLabel("Scale preset", { exact: true }).selectOption("Electronics");
   await page.getByLabel("Fixed grid distance", { exact: true }).fill("2.54");
   await page.getByRole("button", { name: "Set fixed grid", exact: true }).click();
   await expect
-    .poll(() => page.getByLabel("Scale and units settings").textContent())
-    .toContain("Grid: 2.54 mm");
-  await page.getByRole("button", { name: "Close scale settings", exact: true }).click();
+    .poll(() => page.getByTestId("grid-spacing").textContent())
+    .toBe("Grid spacing: 2.54 mm");
+  await page.getByRole("button", { name: "Close settings", exact: true }).click();
   await page.getByRole("button", { name: "Measure distance", exact: true }).click();
   await page.getByTestId("canvas").focus();
   await page.keyboard.press("Enter");
@@ -88,8 +101,10 @@ it("uses a fixed electronics pitch, keeps keyboard measurements stable and undoe
   expect(measured).not.toBe("0 mm");
   await zoom(page, 0.5);
   expect(await page.getByLabel("Measured distance", { exact: true }).textContent()).toBe(measured);
-  await page.getByRole("button", { name: "Done measuring", exact: true }).focus();
-  await page.keyboard.press("Enter");
+  // Escape clears the measurement, then puts the tool away.
+  await page.getByTestId("canvas").focus();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
   await expect
     .poll(() =>
       page

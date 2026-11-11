@@ -68,9 +68,10 @@ exports. [Files and pictures](files.md) explains import, export and storage choi
 Hold Space and drag to pan. Use the zoom controls at the bottom to zoom in, zoom out or fit the
 canvas; `1×` is the normal view. Your view is independent of other participants' views.
 
-For a drawing with real distances, click the scale bar above those controls to open **Scale and
-units**. Choose a preset or enter a custom distance and unit. Choose **Measure distance** beside
-the bar and drag between two points. The scale bar and grid adapt as you zoom, while the
+For a drawing with real distances, open **Settings** in the header and, under **Scale and
+units**, choose a preset or enter a custom distance and unit. Choose **Measure** among the tools
+and drag between two points; the length reads on the line. The scale bar beside the zoom
+controls and the grid adapt as you zoom, while the
 measured distance keeps its meaning. [Scale and measurement](editing.md#scale-units-and-measurement)
 explains calibration and unit-aware geometry fields.
 

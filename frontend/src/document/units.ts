@@ -104,6 +104,20 @@ export function formatDistance(value: number, unit: string, adaptive = false) {
   return `${Number(distance.toPrecision(6))} ${display}`;
 }
 
+/**
+ * A typed length such as "3", "3 m" or "2.5ft" as its number and unit; a bare number takes
+ * `unit`. Null when it is not a positive length with a usable unit label.
+ */
+export function readLength(text: string, unit: string) {
+  const source = text.trim();
+  let end = 0;
+  while (end < source.length && "0123456789.".includes(source[end])) end += 1;
+  const distance = Number(source.slice(0, end));
+  const label = source.slice(end).trim() || unit;
+  if (end === 0 || !Number.isFinite(distance) || distance <= 0) return null;
+  return validUnitLabel(label) ? { distance, unit: label } : null;
+}
+
 /** A suffix converts explicit units; arithmetic is evaluated by the caller in the display unit. */
 export function unitExpression(source: string, displayUnit: string) {
   const token = /(\d*\.?\d+)(e[+-]?\d+)?\s*([a-zµ]+)?/iy;

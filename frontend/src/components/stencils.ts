@@ -7,6 +7,7 @@ import {
   Highlighter,
   MousePointer2,
   MoveUpRight,
+  Ruler,
   PanelTop,
   Server,
   Square,
@@ -79,6 +80,7 @@ export const TOOLS: ToolEntry[] = [
   toolEntry("pan", "Pan", Hand, "Space"),
   toolEntry("connect", "Connector: click two objects", MoveUpRight),
   toolEntry("markup", "Markup", Highlighter),
+  toolEntry("measure", "Measure distance", Ruler),
 ];
 
 export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [

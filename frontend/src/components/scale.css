@@ -1,31 +1,14 @@
-.scale-controls {
-  position: absolute;
-  bottom: 78px;
-  left: 20px;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.scale-bar,
-.scale-measure {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  padding: 8px;
-}
-.scale-bar {
+/* The scale readout among the view controls: a round distance over the line it spans. */
+.canvas-zoom > .scale-bar {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 5px;
-  font-size: 11px;
-}
-.scale-label {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  padding: 0 8px 0 4px;
+  font-size: 10px;
+  text-align: left;
+  color: #838ba1;
 }
 .scale-line,
 .scale-reference {
@@ -33,7 +16,7 @@
   display: block;
   border: solid currentColor;
   border-width: 0 1px 1px;
-  height: 6px;
+  height: 5px;
   min-width: 0;
 }
 .scale-line::after {
@@ -41,44 +24,35 @@
   position: absolute;
   left: 50%;
   bottom: 0;
-  height: 4px;
+  height: 3px;
   border-left: 1px solid currentColor;
 }
 .scale-reference {
   width: 100px;
-  margin: 8px 0 12px;
+  margin: 6px 0 8px;
 }
-.scale-measure[aria-pressed="true"] {
-  color: var(--purple);
-}
+
+/* The Scale and units section of Settings. */
 .scale-settings {
-  position: absolute;
-  bottom: 52px;
-  left: 0;
-  width: min(310px, calc(100vw - 56px));
-  max-height: calc(100dvh - 250px);
-  overflow: auto;
-  padding: 14px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  box-shadow: 0 5px 20px #0002;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  font-size: 12px;
+  margin-bottom: 24px;
 }
-.scale-settings header,
-.scale-values {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.scale-settings p {
+  margin: 0;
 }
-.scale-settings label {
+.scale-settings label,
+.scale-settings form {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  color: var(--text-soft);
+}
+.scale-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .scale-settings input,
 .scale-settings select {
@@ -87,15 +61,12 @@
   padding: 7px;
 }
 .scale-settings button {
-  padding: 7px;
+  flex: none;
+  align-self: flex-start;
+  padding: 7px 10px;
 }
-.scale-settings p {
-  margin: 0;
-}
-.scale-settings small {
-  line-height: 1.5;
-  color: var(--text-soft);
-}
+
+/* The Measure tool's line, with its length at the middle. */
 .distance-overlay {
   position: absolute;
   inset: 0;
@@ -118,24 +89,46 @@
   stroke: var(--purple);
   stroke-width: 1.5;
 }
-.distance-result {
+.distance-label {
   position: absolute;
-  top: 12px;
-  left: 20px;
-  max-width: calc(100% - 40px);
-  pointer-events: auto;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  border-radius: 8px;
-  padding: 8px;
+  transform: translate(-50%, -50%);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 2px;
+  pointer-events: auto;
 }
-.distance-result input {
-  width: 80px;
+.distance-length {
+  padding: 2px 8px;
+  border: none;
+  border-radius: 4px;
+  background: var(--purple);
+  color: white;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+button.distance-length:disabled {
+  opacity: 1;
+  cursor: default;
+}
+input.distance-length {
+  width: 90px;
+  text-align: center;
+  outline: 2px solid white;
+}
+input.distance-length[aria-invalid="true"] {
+  outline-color: #d6336c;
+}
+.distance-parts {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text-soft);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .resize-readout {
   position: absolute;
@@ -150,17 +143,8 @@
   background: var(--panel);
   font-size: 12px;
 }
-.canvas-area:has(.name-prompt) .distance-result {
-  top: 72px;
-}
 @media (max-width: 650px) {
-  .scale-controls {
-    left: 8px;
-    bottom: 72px;
-  }
-  .distance-result {
-    top: 104px;
-    left: 8px;
-    max-width: calc(100% - 16px);
+  .canvas-zoom > .scale-bar {
+    display: none;
   }
 }

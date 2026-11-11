@@ -16,6 +16,13 @@ All notable user-visible changes are recorded here.
   where the pointer was moved.
 - Added **Q** to keep a placing tool in hand, so several objects of one kind go down in a row.
 
+### Measurement in its place
+
+- Moved **Measure** into the left rail's tools. Its length now reads at the middle of the
+  measured line; click it and type the real length to calibrate the canvas.
+- Moved **Scale and units**, with grid spacing, into **Settings**, and the scale bar into the
+  bottom view controls. Removed the measurement panel and the scale controls above Undo.
+
 ### A simpler canvas
 
 - Replaced saved views with jump points: mark any object, and **Navigate** lists it for everyone

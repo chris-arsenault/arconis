@@ -1,27 +1,24 @@
 import { useState } from "react";
 import type { EditorController } from "../editor/controller";
-import { formatDistance, isCalibration, LENGTH_UNITS } from "../document/units";
+import { formatDistance, readLength } from "../document/units";
 
+/**
+ * The Measure tool's line, with its length at the middle of the line. Clicking the length of a
+ * finished measurement lets a person type what it really is, which calibrates the canvas.
+ */
 export function DistanceMeasure({ editor }: Readonly<{ editor: EditorController }>) {
   const measurement = editor.measurement.value;
-  if (editor.tool !== "measure") return null;
-  if (!measurement)
-    return (
-      <div className="distance-result" role="status">
-        Click or drag between points. Enter places points; arrows move the endpoint. Alt bypasses
-        snapping. Escape exits.
-      </div>
-    );
+  if (editor.tool !== "measure" || !measurement) return null;
   const { start, end } = measurement;
   const { scale, translate } = editor.graph.view;
   const screen = (point: { x: number; y: number }) => ({
     x: (point.x + translate.x) * scale,
     y: (point.y + translate.y) * scale,
   });
-  const a = screen(start),
-    b = screen(end);
-  const dx = end.x - start.x,
-    dy = end.y - start.y;
+  const a = screen(start);
+  const b = screen(end);
+  const dx = Math.abs(end.x - start.x);
+  const dy = Math.abs(end.y - start.y);
   const distance = Math.hypot(dx, dy);
   const label = (value: number) =>
     formatDistance(value * editor.grid.factor, editor.grid.unit, true);
@@ -32,76 +29,94 @@ export function DistanceMeasure({ editor }: Readonly<{ editor: EditorController 
         <circle cx={a.x} cy={a.y} r="4" />
         <circle cx={b.x} cy={b.y} r="4" />
       </svg>
-      <div className="distance-result">
-        <output aria-label="Measured distance">{label(distance)}</output>
-        <span>
-          ΔX {label(Math.abs(dx))} · ΔY {label(Math.abs(dy))}
-        </span>
-        {measurement.complete && distance > 0 && (
-          <CalibrateDistance editor={editor} distance={distance} />
+      <div
+        className="distance-label"
+        ref={(element) => {
+          if (!element) return;
+          element.style.left = `${(a.x + b.x) / 2}px`;
+          element.style.top = `${(a.y + b.y) / 2}px`;
+        }}
+      >
+        <MeasuredLength
+          key={`${start.x},${start.y},${end.x},${end.y}`}
+          editor={editor}
+          distance={distance}
+          text={label(distance)}
+          calibrates={measurement.complete && distance > 0}
+        />
+        {/* A slanted line also reads as how far it runs across and down. */}
+        {dx > 0 && dy > 0 && (
+          <span className="distance-parts">
+            ΔX {label(dx)} · ΔY {label(dy)}
+          </span>
         )}
-        <button
-          data-hint-detail="Remove these temporary endpoints and measure another distance."
-          onClick={() => editor.measurement.clear()}
-        >
-          Clear measurement
-        </button>
-        <button
-          data-hint-detail="Return to selecting and editing objects."
-          onClick={() => editor.setTool("select")}
-        >
-          Done measuring
-        </button>
       </div>
     </div>
   );
 }
 
-function CalibrateDistance({
-  editor,
-  distance,
-}: Readonly<{ editor: EditorController; distance: number }>) {
-  const [known, setKnown] = useState("");
-  const [unit, setUnit] = useState(editor.document.calibration()?.unit ?? "m");
+interface LengthProps {
+  editor: EditorController;
+  /** The line's length in canvas units, and as it reads in the display unit. */
+  distance: number;
+  text: string;
+  /** Whether the measurement is finished, so its length can be typed over. */
+  calibrates: boolean;
+}
+
+/** The length as a number people can read, and click to type the real one. */
+function MeasuredLength({ editor, distance, text, calibrates }: Readonly<LengthProps>) {
+  const [typing, setTyping] = useState<string | null>(null);
   const [error, setError] = useState("");
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        const calibration = { world: distance, distance: Number(known), unit: unit.trim() };
-        if (!isCalibration(calibration)) {
-          setError("Enter a positive distance and unit.");
-          return;
-        }
-        editor.document.undo.stopCapturing();
-        editor.document.setCalibration(calibration);
-        editor.document.undo.stopCapturing();
-        setError("");
-      }}
-    >
-      <input
-        aria-label="Known distance"
-        data-hint-detail="Enter the real distance between the two measured points."
-        placeholder="Distance"
-        value={known}
-        onChange={(event) => setKnown(event.target.value)}
-      />
-      <input
-        aria-label="Known distance unit"
-        data-hint-detail="The unit of the known distance, such as mm, m or ft."
-        list="measure-units"
-        value={unit}
-        onChange={(event) => setUnit(event.target.value)}
-      />
-      <datalist id="measure-units">
-        {Object.keys(LENGTH_UNITS).map((key) => (
-          <option key={key} value={key} />
-        ))}
-      </datalist>
-      <button data-hint-detail="Set the shared canvas calibration from these endpoints and their known distance.">
-        Calibrate this distance
+  if (typing === null)
+    return (
+      <button
+        className="distance-length"
+        aria-label="Measured distance"
+        data-hint="Type the real length"
+        data-hint-detail="Type what this line really measures, such as 3 m, to calibrate the whole canvas from it."
+        disabled={!calibrates}
+        onClick={() => setTyping(text)}
+      >
+        {text}
       </button>
-      {error && <span role="alert">{error}</span>}
-    </form>
+    );
+  const apply = () => {
+    const length = readLength(typing, editor.document.calibration()?.unit ?? "m");
+    if (!length) {
+      setError("Type a length such as 3 m.");
+      return;
+    }
+    editor.document.undo.stopCapturing();
+    editor.document.setCalibration({ world: distance, ...length });
+    editor.document.undo.stopCapturing();
+    setTyping(null);
+  };
+  return (
+    <>
+      <input
+        ref={(input) => input?.focus()}
+        className="distance-length"
+        aria-label="Real length of the measured line"
+        data-hint-detail="Type a length such as 3 m and press Enter to calibrate; Escape cancels."
+        aria-invalid={error ? true : undefined}
+        value={typing}
+        onChange={(event) => {
+          setTyping(event.target.value);
+          setError("");
+        }}
+        onBlur={() => setTyping(null)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") apply();
+          if (event.key === "Escape") setTyping(null);
+          event.stopPropagation();
+        }}
+      />
+      {error && (
+        <span className="distance-parts" role="alert">
+          {error}
+        </span>
+      )}
+    </>
   );
 }

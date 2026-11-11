@@ -207,7 +207,8 @@ it("shows a compact property panel only for a selection, with controls that appl
   // Selected ink keeps the paint controls of the brush that made it.
   expect(await panel.getByLabel("Stroke width", { exact: true }).count()).toBe(1);
   expect(await panel.getByLabel("Line width", { exact: true }).count()).toBe(0);
-  await canvas(page).click({ position: { x: 600, y: 600 } });
+  // An empty spot clear of the objects above and the view controls below.
+  await canvas(page).click({ position: { x: 800, y: 300 } });
   await expect.poll(() => panel.count()).toBe(0);
   expect(errors).toEqual([]);
   await context.close();

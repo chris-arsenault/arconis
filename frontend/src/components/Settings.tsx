@@ -3,6 +3,7 @@ import { Settings as SettingsIcon, Tags, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { displayPreferences, type IndicatorVisibility } from "../editor/displayPreferences";
 import { HelpZoneToggle } from "./HelpZone";
+import { ScaleSettings } from "./ScaleControls";
 import "./settings.css";
 
 const VISIBILITY: { value: IndicatorVisibility; label: string; detail: string }[] = [
@@ -37,7 +38,7 @@ export function Settings({ editor }: Readonly<{ editor: EditorController }>) {
         aria-label="Settings"
         aria-haspopup="dialog"
         data-hint="Settings"
-        data-hint-detail="Choose which indicators, markup and grid appear in your view."
+        data-hint-detail="Choose what appears in your view, and set the canvas's scale, units and grid spacing."
         onClick={() => setOpen(true)}
       >
         <SettingsIcon size={17} />
@@ -83,30 +84,8 @@ function SettingsDialog({
         </button>
       </header>
       <div className="settings-content">
-        <h3>Canvas display</h3>
-        <p>Changes apply to your view on this device.</p>
-        <div className="settings-toggles">
-          <label data-hint-detail="Show or hide the markup drawn over the canvas, in your view only.">
-            <input
-              type="checkbox"
-              checked={editor.drawing.visible}
-              onChange={() => editor.drawing.toggle()}
-            />
-            Show markup
-          </label>
-          <label data-hint-detail="Show a grid in your view; while it shows, moved objects snap to it.">
-            <input
-              type="checkbox"
-              checked={editor.grid.visible}
-              onChange={() => {
-                editor.grid.toggle();
-                editor.emit();
-              }}
-            />
-            Show grid and snap
-          </label>
-          <HelpZoneToggle />
-        </div>
+        <DisplaySettings editor={editor} />
+        <ScaleSettings editor={editor} />
         <h3>Object indicators</h3>
         <p>
           Comments, tags, markers, relationships, tasks and locks show together. Selected shows them
@@ -120,6 +99,38 @@ function SettingsDialog({
         </button>
       </footer>
     </dialog>
+  );
+}
+
+/** What shows in this person's view of the canvas. */
+function DisplaySettings({ editor }: Readonly<{ editor: EditorController }>) {
+  return (
+    <>
+      <h3>Canvas display</h3>
+      <p>Changes apply to your view on this device.</p>
+      <div className="settings-toggles">
+        <label data-hint-detail="Show or hide the markup drawn over the canvas, in your view only.">
+          <input
+            type="checkbox"
+            checked={editor.drawing.visible}
+            onChange={() => editor.drawing.toggle()}
+          />
+          Show markup
+        </label>
+        <label data-hint-detail="Show a grid in your view; while it shows, moved objects snap to it.">
+          <input
+            type="checkbox"
+            checked={editor.grid.visible}
+            onChange={() => {
+              editor.grid.toggle();
+              editor.emit();
+            }}
+          />
+          Show grid and snap
+        </label>
+        <HelpZoneToggle />
+      </div>
+    </>
   );
 }
 
