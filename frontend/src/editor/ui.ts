@@ -25,8 +25,6 @@ export interface EditorUi {
   /** Whether the laser key is held, and this person's own trail while it fades. */
   lasering: boolean;
   laser: { x: number; y: number; at: number }[];
-  /** Whether the cursor chat line is open. */
-  chat: boolean;
   /** Calls to follow this person has dismissed, by the time they were made. */
   dismissedSpotlights: number[];
   /** An item to ring briefly, after a deep link or a find. */
@@ -58,7 +56,6 @@ export function initialUi(): EditorUi {
     following: null,
     lasering: false,
     laser: [],
-    chat: false,
     dismissedSpotlights: [],
     pulse: null,
     menu: null,

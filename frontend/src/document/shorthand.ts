@@ -4,12 +4,12 @@ import { MARKERS, type Item, type Marker } from "./types";
 
 /**
  * Shorthand typed into a label that becomes fields when the edit finishes: `#tag` adds a tag,
- * `[]` and `[x]` at the start make a task, `:p1` or `:q3` set a marker. The words leave the
+ * `[]` and `[x]` at the start make a task, `:star` or `:circle` set a marker. The words leave the
  * label, so what agents write explicitly and what people type quickly end up the same.
  */
 
 const TAG = /(^|\s)#([A-Za-z_][A-Za-z0-9_-]*)(?=\s|$)/g;
-const MARKER = /(^|\s):(p[1-5]|q[0-4])(?=\s|$)/g;
+const MARKER = new RegExp(String.raw`(^|\s):(${MARKERS.join("|")})(?=\s|$)`, "g");
 const TASK = /^\[( ?|x|X)\]\s*/;
 
 export interface Absorbed {
@@ -28,7 +28,7 @@ export function absorbShorthand(name: string, current: Pick<Item, "tags">): Abso
   });
   if (tags.length !== current.tags.length) fields.tags = tags;
   text = text.replaceAll(MARKER, (_match, space: string, marker: string) => {
-    if ((MARKERS as readonly string[]).includes(marker)) fields.marker = marker as Marker;
+    fields.marker = marker as Marker;
     return space ? " " : "";
   });
   const task = TASK.exec(text);

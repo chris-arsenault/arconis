@@ -98,7 +98,7 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
     expect(
       await call("write", {
         statements: `
-      sketch s "Agent Drawing" at 200,100 size 350,250 {
+      frame s "Agent Drawing" at 200,100 size 350,250 scale-contents {
         drawing p ink rectangle points 230,130 480,130 480,280 230,280 230,130 closed fill #ff0000 gradient #0000ff gradient-angle 0
       }
       drawing annotation markup points 10,10 80,80 line #00aa00
@@ -152,17 +152,17 @@ it("uses general panel scaling through MCP and rejects connected markup transiti
     await call("open_room", { room });
     expect(
       await call("write", {
-        statements: `sketch s at 0,0 size 100,100 {
+        statements: `frame s at 0,0 size 100,100 scale-contents {
       drawing p points 10,10 90,90 closed fill #ff0000 gradient #0000ff gradient-angle 20
     }
-    drawing legacy points 300,300 400,400
+    drawing stroke points 300,300 400,400
     note n "Human note" at 500,300
-    legacy -> n as wire`,
+    stroke -> n as wire`,
       })
     ).toContain("Done");
     await expect.poll(async () => (await exported(peer)).objects.length).toBe(5);
     const original = (await exported(page)).text;
-    expect(await call("write", { statements: "edit legacy markup" })).toContain(
+    expect(await call("write", { statements: "edit stroke markup" })).toContain(
       "Remove connector wire"
     );
     expect((await exported(peer)).text).toBe(original);

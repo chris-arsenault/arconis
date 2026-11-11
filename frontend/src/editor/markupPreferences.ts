@@ -1,17 +1,26 @@
 import { z } from "zod";
 import type { InkSettings } from "./inkCommands";
-import type { DrawingTool } from "./drawingTools";
+import type { DrawingCursor } from "./drawingTools";
 import { DEFAULT_BRUSH } from "./drawingPreferences";
 
 export const MARKUP_PREFERENCES_KEY = "arconis-markup-tools";
 
-export type MarkupTool = "pen" | "marker" | "arrow" | "box" | "outline" | "eraser" | "select";
+export type MarkupTool =
+  | "pen"
+  | "marker"
+  | "arrow"
+  | "box"
+  | "bracket"
+  | "brace"
+  | "cloud"
+  | "outline"
+  | "eraser"
+  | "select";
 export type MarkupSize = "small" | "medium" | "large";
 interface MarkupToolSpec {
   label: string;
   hint: string;
-  /** The drawing tool whose gesture, cursor and ink this markup tool reuses. */
-  tool: DrawingTool;
+  cursor: DrawingCursor;
   mode: InkSettings["mode"];
   shape: InkSettings["shape"];
   /** Stroke width for each size; tools without paint have none. */
@@ -20,12 +29,17 @@ interface MarkupToolSpec {
 }
 const PEN_WIDTHS = { small: 2, medium: 4, large: 8 };
 
-/** Markup is a short fixed set: enough to point at a diagram, nothing to compose artwork with. */
+/** A review shape dragged across its bounds, in Markup's one colour and size. */
+function reviewShape(label: string, hint: string, shape: InkSettings["shape"]): MarkupToolSpec {
+  return { label, hint, cursor: "crosshair", mode: "pen", shape, widths: PEN_WIDTHS, opacity: 100 };
+}
+
+/** Markup is a fixed set of review marks: enough to point at a diagram, not to compose artwork. */
 export const MARKUP_TOOLS = {
   pen: {
     label: "Pen",
     hint: "Drag to write or sketch over the canvas.",
-    tool: "freehand",
+    cursor: "pen",
     mode: "pen",
     shape: "freehand",
     widths: PEN_WIDTHS,
@@ -34,34 +48,21 @@ export const MARKUP_TOOLS = {
   marker: {
     label: "Marker",
     hint: "Drag to highlight with translucent ink.",
-    tool: "marker",
+    cursor: "marker",
     mode: "highlighter",
     shape: "freehand",
     widths: { small: 12, medium: 24, large: 36 },
     opacity: 30,
   },
-  arrow: {
-    label: "Arrow",
-    hint: "Drag from where the arrow starts to what it points at.",
-    tool: "vector",
-    mode: "pen",
-    shape: "arrow",
-    widths: PEN_WIDTHS,
-    opacity: 100,
-  },
-  box: {
-    label: "Box",
-    hint: "Drag across an area to frame it.",
-    tool: "vector",
-    mode: "pen",
-    shape: "rectangle",
-    widths: PEN_WIDTHS,
-    opacity: 100,
-  },
+  arrow: reviewShape("Arrow", "Drag from where the arrow starts to what it points at.", "arrow"),
+  box: reviewShape("Box", "Drag across an area to frame it.", "rectangle"),
+  bracket: reviewShape("Bracket", "Drag across what the bracket should span.", "bracket"),
+  brace: reviewShape("Brace", "Drag across what the brace should span.", "brace"),
+  cloud: reviewShape("Revision cloud", "Drag across an area to cloud it for revision.", "cloud"),
   outline: {
     label: "Outline object",
     hint: "Click an object to toggle an outline that follows it.",
-    tool: "outline",
+    cursor: "target",
     mode: "highlight",
     shape: "freehand",
     widths: PEN_WIDTHS,
@@ -70,7 +71,7 @@ export const MARKUP_TOOLS = {
   eraser: {
     label: "Erase",
     hint: "Click or sweep across annotations to remove them.",
-    tool: "eraser",
+    cursor: "eraser",
     mode: "eraser",
     shape: "freehand",
     widths: { small: 8, medium: 16, large: 32 },
@@ -79,7 +80,7 @@ export const MARKUP_TOOLS = {
   select: {
     label: "Select annotations",
     hint: "Drag around annotations to move, restyle or keep them. Hold Shift to add.",
-    tool: "lasso",
+    cursor: "lasso",
     mode: "lasso",
     shape: "freehand",
     widths: null,
@@ -136,9 +137,8 @@ export class MarkupPreferences {
     };
   }
 
-  /** The drawing tool this markup tool behaves as, for cursors and gestures. */
-  get drawingTool(): DrawingTool {
-    return MARKUP_TOOLS[this.tool].tool;
+  get cursor(): DrawingCursor {
+    return MARKUP_TOOLS[this.tool].cursor;
   }
 
   serialize() {

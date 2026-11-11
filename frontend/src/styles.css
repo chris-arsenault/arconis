@@ -361,6 +361,19 @@ h1 em {
   flex-wrap: wrap;
   gap: 4px;
 }
+.tidy-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  flex-basis: 100%;
+  font-size: 11px;
+}
+.tidy-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 /* Tags as chips, with the room's other tags offered below. */
 .tag-editor {
   display: flex;
@@ -609,6 +622,16 @@ dialog.password-gate {
 .welcome-local {
   width: 100%;
   margin-top: 8px;
+}
+.welcome-options summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.welcome-options p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-soft);
 }
 .divider {
   text-align: center;
@@ -1724,22 +1747,6 @@ details[open] > summary::before {
   background: var(--line);
   margin: 0 4px;
 }
-.hidden-objects {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--panel);
-  color: var(--text-soft);
-  font-size: 11px;
-  box-shadow: 0 3px 12px #35324c06;
-  z-index: 3;
-}
 .field-toggles {
   display: flex;
   flex-wrap: wrap;
@@ -2349,21 +2356,6 @@ input.outline-name {
   pointer-events: none;
   z-index: 4;
   opacity: 0.85;
-}
-.cursor-chat {
-  position: absolute;
-  z-index: 6;
-  width: 200px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-}
-.peer-cursor .peer-chat {
-  display: block;
-  margin-top: 2px;
-  background: white;
-  color: #283249;
-  border-color: currentColor;
 }
 .following-pill,
 .spotlight-banner {
@@ -3241,10 +3233,6 @@ input.outline-name {
 .find-matches li > button:first-child {
   flex: 1;
   min-width: 0;
-}
-.find-matches .find-reveal {
-  width: auto;
-  flex: none;
 }
 .recent-rooms button span {
   overflow: hidden;

@@ -12,7 +12,7 @@ import { showComments, showFilter } from "../editor/ui";
 import {
   displayPreferences,
   indicatorVisible,
-  type DisplayPreferences,
+  type IndicatorVisibility,
 } from "../editor/displayPreferences";
 import { ObjectMetadataLayer } from "./ObjectMetadataLayer";
 import "./objectMetadata.css";
@@ -112,22 +112,12 @@ function MetadataItem({
   references: number;
   tasks: DetailCounts["tasks"];
   dimmed: boolean;
-  preferences: DisplayPreferences;
+  preferences: IndicatorVisibility;
 }>) {
   const cell = editor.graph.getDataModel().getCell(item.id);
   const selected = cell !== null && editor.graph.isCellSelected(cell);
   const counts = useMemo(() => ({ comments, references, tasks }), [comments, references, tasks]);
-  const visible = useMemo(
-    () => ({
-      comments: indicatorVisible(preferences.comments, selected),
-      tags: indicatorVisible(preferences.tags, selected),
-      markers: indicatorVisible(preferences.markers, selected),
-      relationships: indicatorVisible(preferences.relationships, selected),
-      status: indicatorVisible(preferences.status, selected),
-    }),
-    [preferences, selected]
-  );
-  if (!hasVisibleMetadata(item, counts, visible)) return null;
+  if (!indicatorVisible(preferences, selected) || !hasMetadata(item, counts)) return null;
   const bounds = metadataBounds(editor, item);
   if (!bounds) return null;
   return (
@@ -139,26 +129,18 @@ function MetadataItem({
       label={`Details on ${item.name || typeLabel(item)}`}
       bounds={bounds}
     >
-      <MetadataBadges
-        editor={editor}
-        item={item}
-        counts={counts}
-        visible={visible}
-        selected={selected}
-      />
+      <MetadataBadges editor={editor} item={item} counts={counts} selected={selected} />
     </ObjectMetadataLayer>
   );
 }
 
-type Visible = Record<keyof DisplayPreferences, boolean>;
-
-function hasVisibleMetadata(item: Item, counts: DetailCounts, visible: Visible) {
+function hasMetadata(item: Item, counts: DetailCounts) {
   return [
-    visible.comments && counts.comments,
-    visible.relationships && counts.references,
-    visible.markers && item.marker !== "none",
-    visible.tags && item.tags.length,
-    visible.status && (item.task !== "none" || item.locked || counts.tasks),
+    counts.comments,
+    counts.references,
+    item.marker !== "none",
+    item.tags.length,
+    item.task !== "none" || item.locked || counts.tasks,
   ].some(Boolean);
 }
 
@@ -166,32 +148,26 @@ function MetadataBadges({
   editor,
   item,
   counts,
-  visible,
   selected,
 }: Readonly<{
   editor: EditorController;
   item: Item;
   counts: DetailCounts;
-  visible: Visible;
   selected: boolean;
 }>) {
   return (
     <>
-      {visible.status && <StateBadges item={item} />}
-      {visible.markers && item.marker !== "none" && <MarkerBadge editor={editor} item={item} />}
-      {visible.tags && <TagBadge editor={editor} item={item} selected={selected} />}
-      {visible.relationships && (
-        <RelationshipBadge
-          editor={editor}
-          item={item}
-          count={counts.references}
-          selected={selected}
-        />
-      )}
-      {visible.status && <TaskSummary count={counts.tasks} />}
-      {visible.comments && (
-        <CommentBadge editor={editor} item={item} count={counts.comments} selected={selected} />
-      )}
+      <StateBadges item={item} />
+      {item.marker !== "none" && <MarkerBadge editor={editor} item={item} />}
+      <TagBadge editor={editor} item={item} selected={selected} />
+      <RelationshipBadge
+        editor={editor}
+        item={item}
+        count={counts.references}
+        selected={selected}
+      />
+      <TaskSummary count={counts.tasks} />
+      <CommentBadge editor={editor} item={item} count={counts.comments} selected={selected} />
     </>
   );
 }

@@ -5,6 +5,9 @@ You can work as a guest, and local editing continues while collaboration is unav
 
 ## Choose a room
 
+**Create a room** is the welcome screen's one action. **Room options** beneath it holds the two
+other kinds of room.
+
 | Choice on the welcome screen | Sharing                                              | Copy on this device           |
 | ---------------------------- | ---------------------------------------------------- | ----------------------------- |
 | Create a room                | Anyone with the room link or code can join and edit. | Retained in this browser.     |
@@ -45,9 +48,8 @@ everyone to me** shows the others a banner with your name; each decides whether 
 let it pass. Nothing moves anyone's view without their choice.
 
 Hold **K** to point with a laser: a trail in your colour follows your pointer on everyone's
-screen and fades when you let go. Press **/** to say something beside your cursor; the words
-show under your name until you press Escape or send an empty line. Lasers and cursor chat are
-presence, not document edits: nothing is saved and Undo never sees them.
+screen and fades when you let go. The laser is presence, not a document edit: nothing is saved
+and Undo never sees it. To write something down, add a [comment](editing.md#comments).
 
 **Copy a link to this object**, in the command palette with an object selected, copies a room
 link that opens at that object, selected and ringed. Each object's **Last edited by** in the
@@ -55,13 +57,13 @@ property panel names who changed it most recently.
 
 ## Understand what is shared
 
-Object edits, relationships, comments, slides, named styles, saved views, scale calibration and
+Object edits, relationships, comments, slides, named styles, jump points, scale calibration and
 markup are shared.
 Names, cursors and dashed drag previews show who is present and what they are moving.
 
 Your viewport, selection, display units, grid settings, hidden layers, drawing preferences,
-markup visibility and active presentation stay local. A shared saved view lets each person navigate to the same place without
-moving everyone else there.
+markup visibility and active presentation stay local. A shared jump point lets each person fly
+to the same object without moving everyone else there.
 
 Text appears locally as you type and is shared when you finish the edit. Leave its source/tools,
 press Escape, or press Ctrl/Command Enter. Escape retains the edit. Collective scale and rotation

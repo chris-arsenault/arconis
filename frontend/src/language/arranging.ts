@@ -3,7 +3,6 @@ import type { Draft } from "./draft";
 import { DEFAULT_GAP, paddingOf, union, type Box } from "../document/layout";
 import { slots, arrangedLayout } from "../document/arrangement";
 import type { Attribute } from "./syntax";
-import { hiddenIds } from "../document/relations";
 
 /** Arranging and fitting items within a draft. */
 
@@ -40,12 +39,10 @@ function within(inner: Box, outer: Box) {
  * Puts every arranged frame's members back in arrangement, innermost frames first, with members
  * created in this write after the rest in the order they were written.
  */
-/** Boxes a holder lays out: what it holds, other than bands and hidden items. */
+/** Boxes a holder lays out: what it holds, other than bands. */
 function laidOut(draft: Draft, holder: Item) {
-  const hidden = hiddenIds([...draft.items.values()]);
   return [...draft.items.values()].filter(
-    (other) =>
-      other.inside === holder.id && isBox(other) && other.type !== "band" && !hidden.has(other.id)
+    (other) => other.inside === holder.id && isBox(other) && other.type !== "band"
   );
 }
 

@@ -3,6 +3,8 @@
  * them, and agents read and change them: one representation, which the editor turns into maxGraph
  * cells to draw.
  */
+import type { TreeLayoutOptions } from "./treeLayout";
+
 export type ItemType =
   | "node"
   | "card"
@@ -142,13 +144,13 @@ export interface PictureRef {
 /** Null is the empty picture placeholder before a person chooses an image. */
 export type PictureContent = PictureRef | null;
 
-/** A small badge on any item: priority 1 (highest) to 5, or progress in quarters 0 to 4. */
-export const MARKERS = ["p1", "p2", "p3", "p4", "p5", "q0", "q1", "q2", "q3", "q4"] as const;
+/** A small shape badge on any item. A shape means whatever the room decides it means. */
+export const MARKERS = ["star", "circle", "square", "triangle", "diamond", "hexagon"] as const;
 export type Marker = (typeof MARKERS)[number];
 export const TASK_STATES = ["open", "done"] as const;
 export type TaskState = (typeof TASK_STATES)[number];
 /** Flags every item carries. */
-export const FLAGS = ["locked", "hidden", "collapsed", "numbered"] as const;
+export const FLAGS = ["locked", "collapsed", "jump", "numbered"] as const;
 export type Flag = (typeof FLAGS)[number];
 
 export interface Item {
@@ -185,6 +187,8 @@ export interface Item {
   picture: PictureContent;
   /** For frames and groups that keep their contents arranged. */
   arrange: Arrangement;
+  /** For a topic that heads a tree: how Tidy lays its branches out. */
+  tidy: TreeLayoutOptions;
   /** Scale held content, including its paint and text, when this panel is resized. */
   scaleContents: boolean;
   /** For slides: the deck this slide belongs to, and its number in that deck. */
@@ -207,10 +211,10 @@ export interface Item {
    */
   /** Pointer edits leave it alone until someone unlocks it; agents may still change it. */
   locked: boolean;
-  /** Not drawn, routed around, exported as a picture or counted by layout; its holder and lines stay. */
-  hidden: boolean;
   /** What it holds or heads is not drawn; a frame shrinks to its title bar. Shared with everyone. */
   collapsed: boolean;
+  /** A jump point: Navigate lists it by name so anyone can fly to it. Shared with everyone. */
+  jump: boolean;
   /** Its branches show tiered numbers, 1, 1.1, 1.2, so people and agents can name them. */
   numbered: boolean;
   /** Free categorical words, each an id-like word. */
@@ -218,18 +222,17 @@ export interface Item {
   marker: Marker | "none";
   /** A checkbox in the label; holders and topics over tasks show how many are done. */
   task: TaskState | "none";
-  /** A web address, or the id of an item, slide or saved view to fly to. */
+  /** A web address, or the id of an item or slide to fly to. */
   link: string;
   /** Who last changed the item, in their own words, and when in milliseconds. */
   editedBy: string;
   editedAt: number;
-  /** Named values an item carries, such as owner or ticket, shown on hover and in labels as {key}. */
+  /** Named values an item carries, such as owner or ticket, shown on hover. */
   properties: Record<string, string>;
 }
 
+/** A place the window can show: where its centre is and how far it is zoomed. */
 export interface View {
-  id: string;
-  name: string;
   center: { x: number; y: number };
   zoom: number;
 }

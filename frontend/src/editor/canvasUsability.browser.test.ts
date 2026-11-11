@@ -1,15 +1,8 @@
 import { expect, it } from "vitest";
-import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { add, browser, errors, exported, objectCount, open, row } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1500, height: 1000 } };
-
-async function command(page: Page, label: string) {
-  await page.getByTestId("canvas").press("ControlOrMeta+k");
-  await page.getByLabel("Search commands", { exact: true }).fill(label);
-  await page.getByRole("option").filter({ hasText: label }).getByRole("button").click();
-}
 
 it("keeps container titles draggable when a child's copy handle would cover them", async () => {
   const context = await browser.newContext(VIEWPORT);
@@ -68,58 +61,7 @@ it("undoes a connected-copy drag in one step for both peers", async () => {
   await second.close();
 });
 
-it("keeps pointer-resized table columns aligned through edits, Undo and peers", async () => {
-  const first = await browser.newContext(VIEWPORT);
-  const second = await browser.newContext(VIEWPORT);
-  const room = createRoomId();
-  const page = await open(first, room);
-  await command(page, "Insert a table");
-  await page.getByRole("button", { name: "Fit canvas", exact: true }).click();
-  const peer = await open(second, room);
-  await row(page, /^Column 1$/).click();
-  await row(page, /^Column 1$/).click();
-  const header = (await exported(page)).objects.find((item) => item.name === "Column 1")!;
-  await row(page, /^Column 1$/).click();
-  const handles = page.getByTestId("canvas").locator('rect[fill="#f4f2fd"]');
-  const boxes = await handles.evaluateAll((nodes) =>
-    nodes.map((node) => {
-      const box = node.getBoundingClientRect();
-      return { x: box.x, y: box.y, width: box.width, height: box.height };
-    })
-  );
-  const right = Math.max(...boxes.map((box) => box.x));
-  const side = boxes.filter((box) => Math.abs(box.x - right) < 1).sort((a, b) => a.y - b.y)[1];
-  expect(side).toBeDefined();
-  await page.mouse.move(side.x + side.width / 2, side.y + side.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(side.x + side.width / 2 + 80, side.y + side.height / 2, { steps: 12 });
-  await page.mouse.up();
-  const after = (await exported(page)).objects;
-  const firstColumn = after.filter((item) => item.inside === header.inside && item.x === header.x);
-  expect(firstColumn).toHaveLength(3);
-  expect(new Set(firstColumn.map((item) => item.width)).size).toBe(1);
-  expect(firstColumn[0].width).toBeGreaterThan(header.width);
-  await expect.poll(async () => (await exported(peer)).objects).toEqual(after);
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
-  expect((await exported(page)).objects.find((item) => item.id === header.id)!.width).toBe(
-    header.width
-  );
-  await row(page, /^Column 1$/).click();
-  await command(page, "Add a table column");
-  expect(
-    (await exported(page)).objects
-      .filter((item) => /^Column /.test(item.name))
-      .map((item) => item.name)
-  ).toEqual(["Column 1", "Column 2", "Column 3", "Column 4"]);
-  const tableTitle = (await row(page, /^Table/).boundingBox())!;
-  const columnTitle = (await row(page, /^Column 1$/).boundingBox())!;
-  expect(tableTitle.y + tableTitle.height).toBeLessThanOrEqual(columnTitle.y);
-  expect(errors).toEqual([]);
-  await first.close();
-  await second.close();
-});
-
-it("shows the first search match first and reveals only the requested hidden object", async () => {
+it("shows the first search match first", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await add(page, "Sticky note (N)", "Agenda first", 200, 250);
@@ -133,18 +75,6 @@ it("shows the first search match first and reveals only the requested hidden obj
   expect(await page.getByTestId("find-count").textContent()).toBe("1 of 2");
   expect(await page.getByLabel("Object text", { exact: true }).inputValue()).toBe("Agenda first");
   await input.press("Escape");
-  await page.getByTestId("canvas").focus();
-  await page.keyboard.press("ControlOrMeta+Shift+h");
-  await row(page, /^Agenda second$/).click();
-  await page.keyboard.press("ControlOrMeta+Shift+h");
-  await page.keyboard.press("ControlOrMeta+f");
-  await page
-    .getByRole("textbox", { name: "Find on canvas", exact: true })
-    .pressSequentially("Agenda");
-  await page.getByRole("button", { name: "Reveal Agenda first", exact: true }).click();
-  const objects = (await exported(page)).objects;
-  expect(objects.find((item) => item.name === "Agenda first")!.hidden).toBe(false);
-  expect(objects.find((item) => item.name === "Agenda second")!.hidden).toBe(true);
   expect(errors).toEqual([]);
   await context.close();
 });

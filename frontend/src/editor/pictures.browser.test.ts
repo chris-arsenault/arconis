@@ -101,6 +101,7 @@ it("keeps a device-only room's pictures off the network, through reload and file
   const page = await context.newPage();
   const uploads = uploadedPictures(page);
   await page.goto(baseUrl());
+  await page.getByText("Room options", { exact: true }).click();
   await page.getByRole("button", { name: "Work on this device only", exact: true }).click();
   await page.getByTestId("connection-status").filter({ hasText: "On this device only" }).waitFor();
   await pastePicture(page, "#d0d040");

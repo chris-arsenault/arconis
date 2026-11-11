@@ -1,15 +1,13 @@
 import type { InkSettings } from "../editor/inkCommands";
 import { BrushControls } from "./BrushControls";
 import {
-  DRAWING_FAMILIES,
+  DRAWING_CREATORS,
   DRAWING_SHAPES,
   DRAWING_TOOLS,
   DRAWING_UTILITIES,
   drawingToolOf,
-  type DrawingFamily,
   type DrawingTool,
 } from "../editor/drawingTools";
-import type { InkKind } from "../document/types";
 import { StrokePreview } from "./StrokePreview";
 import "./drawing.css";
 import {
@@ -19,25 +17,19 @@ import {
   ArrowLeftRight,
   Minus,
   Pentagon,
-  Brackets,
-  Braces,
-  Cloud,
   Eraser,
-  Highlighter,
   Lasso,
   PaintBucket,
   Pencil,
   PenTool,
   Pipette,
   Save,
-  ScanLine,
   Scissors,
   type LucideIcon,
 } from "lucide-react";
 
 export interface DrawingActions {
   tool: (tool: DrawingTool) => void;
-  family: (family: DrawingFamily) => void;
   target: (target: "color" | "fill") => void;
   change: (settings: Partial<InkSettings>) => void;
   favorite: (index: number, save: boolean) => void;
@@ -55,9 +47,6 @@ interface Props {
 }
 const TOOL_ICONS: Record<DrawingTool, LucideIcon> = {
   freehand: Pencil,
-  marker: Highlighter,
-  highlightShape: RectangleHorizontal,
-  outline: ScanLine,
   vector: PenTool,
   lasso: Lasso,
   eraser: Eraser,
@@ -65,26 +54,13 @@ const TOOL_ICONS: Record<DrawingTool, LucideIcon> = {
   fill: PaintBucket,
   eyedropper: Pipette,
 };
-const FAMILY_ICONS: Record<DrawingFamily, LucideIcon> = {
-  freehand: Pencil,
-  highlight: Highlighter,
-  vector: PenTool,
-};
-const FAMILY_HINTS: Record<DrawingFamily, string> = {
-  freehand: "Draw a freehand pen stroke.",
-  highlight: "Highlight with a marker, a translucent shape or an object outline.",
-  vector: "Construct lines, arrows and shapes.",
-};
-const SHAPE_ICONS: Record<Exclude<InkKind, "freehand">, LucideIcon> = {
+const SHAPE_ICONS: Record<string, LucideIcon> = {
   line: Minus,
   arrow: ArrowRight,
   "double-arrow": ArrowLeftRight,
   rectangle: RectangleHorizontal,
   ellipse: Circle,
   polygon: Pentagon,
-  bracket: Brackets,
-  brace: Braces,
-  cloud: Cloud,
 };
 
 /**
@@ -108,17 +84,7 @@ function ToolPalette({ props }: Readonly<{ props: Props }>) {
     <section className="drawing-block" aria-label="Tool">
       <h3>Tool</h3>
       <div className="drawing-palette" role="group" aria-label="Drawing tools">
-        {DRAWING_FAMILIES.map(({ id, label }) => (
-          <PaletteButton
-            key={id}
-            label={label}
-            hint={FAMILY_HINTS[id]}
-            Icon={FAMILY_ICONS[id]}
-            active={armed && spec.family === id}
-            choose={() => actions.family(id)}
-          />
-        ))}
-        {DRAWING_UTILITIES.map((id) => (
+        {[...DRAWING_CREATORS, ...DRAWING_UTILITIES].map((id) => (
           <PaletteButton
             key={id}
             label={DRAWING_TOOLS[id].label}
@@ -162,7 +128,6 @@ function PaletteButton({
 /** Settings that only one tool has sit directly beneath the palette. */
 function ToolOptions({ props }: Readonly<{ props: Props }>) {
   const { tool, actions, settings } = props;
-  const spec = DRAWING_TOOLS[tool];
   if (tool === "eyedropper")
     return (
       <div className="drawing-options tool-options" role="group" aria-label="Sample into">
@@ -183,40 +148,11 @@ function ToolOptions({ props }: Readonly<{ props: Props }>) {
         </button>
       </div>
     );
-  if (spec.family !== "highlight" && tool !== "vector") return null;
+  if (tool !== "vector") return null;
   return (
     <div className="tool-options">
-      {spec.family === "highlight" && (
-        <div className="drawing-instruments" role="group" aria-label="Highlight tools">
-          {(["marker", "highlightShape", "outline"] as DrawingTool[]).map((id) => (
-            <Instrument key={id} id={id} active={tool === id} choose={actions.tool} />
-          ))}
-        </div>
-      )}
-      {["vector", "highlightShape"].includes(tool) && (
-        <Geometry settings={settings} change={actions.change} />
-      )}
+      <Geometry settings={settings} change={actions.change} />
     </div>
-  );
-}
-
-function Instrument({
-  id,
-  active,
-  choose,
-}: Readonly<{ id: DrawingTool; active: boolean; choose: (tool: DrawingTool) => void }>) {
-  const spec = DRAWING_TOOLS[id];
-  const Icon = TOOL_ICONS[id];
-  return (
-    <button
-      aria-pressed={active}
-      data-hint={spec.label}
-      data-hint-detail={spec.hint}
-      onClick={() => choose(id)}
-    >
-      <Icon size={15} />
-      <span>{spec.label}</span>
-    </button>
   );
 }
 
@@ -250,7 +186,7 @@ function Geometry({
   );
 }
 
-const CLOSED_SHAPES = ["rectangle", "ellipse", "polygon", "cloud"];
+const CLOSED_SHAPES = ["rectangle", "ellipse", "polygon"];
 const noop = () => {};
 
 /**
@@ -265,8 +201,8 @@ function ToolPaint({ props }: Readonly<{ props: Props }>) {
     <section className="drawing-block" aria-label="Brush">
       {paints && (
         <>
-          <h3>{spec.family ? "Brush" : spec.label}</h3>
-          {spec.family && <StrokePreview settings={settings} />}
+          <h3>{spec.creates ? "Brush" : spec.label}</h3>
+          {spec.creates && <StrokePreview settings={settings} />}
           <BrushControls
             settings={settings}
             change={actions.change}

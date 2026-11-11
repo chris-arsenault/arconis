@@ -1,5 +1,5 @@
 import type { ItemType, Port } from "../document/types";
-import { TREE_DIRECTIONS, type TreeDirection } from "../document/treeLayout";
+import { TREE_DIRECTIONS } from "../document/treeLayout";
 import { tokenize, type ArrowText } from "./lexer";
 import { Cursor, describe } from "./cursor";
 import {
@@ -9,6 +9,7 @@ import {
   arrangeTail,
   attributes,
   isAttributeWord,
+  tidyOptions,
 } from "./attributes";
 import {
   SIDES,
@@ -43,7 +44,6 @@ const ITEM_TYPES = new Set<string>([
   "picture",
   "slide",
   "drawing",
-  "sketch",
   "highlight",
 ]);
 const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both: boolean }> = {
@@ -102,21 +102,6 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     cursor.keyword("into");
     return { kind: "merge", from, into: cursor.ref("a layer's id"), line };
   },
-  view: (cursor, line) => {
-    const identity = identityOf(cursor);
-    const name = cursor.expectString("the view's name");
-    cursor.keyword("center");
-    const [x, y] = cursor.point("the view's center");
-    cursor.keyword("zoom");
-    return {
-      kind: "view",
-      identity,
-      name,
-      center: { x, y },
-      zoom: cursor.number("the zoom"),
-      line,
-    };
-  },
   discussion: discussion,
   comment: (cursor, line) => {
     cursor.keyword("on");
@@ -141,22 +126,11 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
     line,
   }),
   tidy: (cursor, line) => {
-    const statement: Extract<Statement, { kind: "tidy" }> = {
-      kind: "tidy",
-      ref: cursor.ref(),
-      direction: "sides",
-      compact: false,
-      sorted: false,
-      line,
-    };
-    while (cursor.isWord()) {
-      const word = cursor.next().text;
-      if ((TREE_DIRECTIONS as string[]).includes(word)) statement.direction = word as TreeDirection;
-      else if (word === "compact") statement.compact = true;
-      else if (word === "sorted") statement.sorted = true;
-      else cursor.fail(`After tidy <id>, write ${TREE_DIRECTIONS.join("|")}, compact or sorted.`);
-    }
-    return statement;
+    const ref = cursor.ref();
+    const options = tidyOptions(cursor);
+    if (cursor.isWord())
+      cursor.fail(`After tidy <id>, write ${TREE_DIRECTIONS.join("|")}, compact or sorted.`);
+    return { kind: "tidy", ref, options, line };
   },
   data: (cursor, line) => {
     const hash = cursor.token.kind === "number" ? cursor.next().text : cursor.expectWord("a hash");
@@ -289,8 +263,7 @@ function linkAhead(cursor: Cursor) {
 /** An item. At an end of a line, a comma separates it from the next end. */
 function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
   const line = cursor.token.line;
-  const sourceType = cursor.next().text;
-  const type = (sourceType === "sketch" ? "frame" : sourceType) as ItemType;
+  const type = cursor.next().text as ItemType;
   const statement: ItemStatement = {
     kind: "item",
     type,
@@ -310,16 +283,7 @@ function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
     statement.identity = { kind: "named", id: cursor.next().text };
   names(cursor, statement);
   statement.attributes = attributes(cursor, inLink || linkAhead(cursor));
-  legacyPanel(statement, sourceType);
   return statement;
-}
-
-function legacyPanel(statement: ItemStatement, sourceType: string) {
-  if (sourceType === "sketch")
-    statement.attributes.unshift(
-      { kind: "scaleContents", value: true },
-      { kind: "look", look: { fill: "none", title: "top" }, cleared: [] }
-    );
 }
 
 function arrangement(cursor: Cursor): ArrangeStatement {

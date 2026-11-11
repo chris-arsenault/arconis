@@ -2,7 +2,7 @@ import type { CanvasDocument } from "../document/canvasDocument";
 import { writeComment, type CanvasComment } from "../document/comments";
 import { isId, newId } from "../document/ids";
 import { containedDescendants, removalClosure } from "../document/relations";
-import { isBox, type Item, type Look, type View } from "../document/types";
+import { isBox, type Item, type Look } from "../document/types";
 import { LanguageError } from "./lexer";
 import { footprint, type Box } from "../document/layout";
 import type { Extent } from "./placement";
@@ -37,7 +37,6 @@ export class Draft {
   /** Arrangements named in this write, which other statements may place things beside. */
   readonly virtual = new Map<string, Box>();
   readonly comments: CanvasComment[] = [];
-  readonly views: View[] = [];
   /** Nodes sitting on lines, whose lines are found once every line exists. */
   readonly anchors: { id: string; ref: string; line: number }[] = [];
   readonly highlights: { id: string; ref: string; line: number }[] = [];
@@ -215,7 +214,6 @@ export class Draft {
       changed.push(id);
     }
     this.comments.forEach((comment) => writeComment(document, comment));
-    this.views.forEach((view) => document.views.set(view.id, view));
     return {
       created: this.created.filter((id) => this.items.has(id)),
       changed,

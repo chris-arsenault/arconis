@@ -8,7 +8,6 @@ import {
   connected,
   inverted,
   nextInStack,
-  sameFill,
   sameStyle,
   sameType,
   siblings,
@@ -38,13 +37,11 @@ describe("selecting by what items share", () => {
   `);
   const items = document.list();
   const get = (id: string) => document.get(id)!;
-  const named = (style: string) => document.namedStyle(style);
 
-  it("finds the same kind, style and fill, leaving locked and hidden items alone", () => {
+  it("finds the same kind and style, leaving locked items alone", () => {
     expect(sorted(sameType(items, [get("a")]))).toEqual(["a", "c", "k", "k2"]);
     expect(sorted(sameType(items, [get("d")]))).toEqual([]);
     expect(sorted(sameStyle(items, [get("b")]))).toEqual(["b", "c"]);
-    expect(sorted(sameFill(items, [get("n")], named))).toEqual(["b", "c", "n"]);
   });
 
   it("finds children, siblings and what is connected", () => {

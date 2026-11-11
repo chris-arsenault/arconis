@@ -4,6 +4,27 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### A simpler canvas
+
+- Replaced saved views with jump points: mark any object, and **Navigate** lists it for everyone
+  in the room to fly to. Files and assistants carry the mark as `jump`.
+- Changed markers to six plain shapes (star, circle, square, triangle, diamond, hexagon) whose
+  meaning the room decides. Removed the priority and progress markers.
+- Made **Tidy branches** one command. A tree remembers its direction, compact spacing and sorting,
+  set under Relationships or with `tidy <id> down sorted`; removed the separate directional,
+  compact, sort and balance commands.
+- Moved the bracket, brace and revision cloud from Draw to Markup, and removed Draw's Highlight
+  tools; Markup keeps the marker and object outline.
+- Removed per-object Hide with its **N hidden** button and Reveal in find. Layers and Collapse put
+  objects out of view.
+- Removed **Gather into frame**, cursor chat, **Select same fill**, the table commands, the
+  **Screen size** property and `{name}` property placeholders in labels.
+- Combined the five indicator visibility settings into one.
+- Gave the welcome screen one **Create a room** action, with password and device-only rooms under
+  **Room options**.
+- Files written with the removed words (`hidden`, `view`, `sketch`, the earlier markers) are not
+  read, and rooms holding the earlier Drawing holders are not converted.
+
 ### Zoom, units and measurement
 
 - Unified zoom controls across a reciprocal `2⁻²⁰` to `2²⁰` range around `1×`, with multiplier

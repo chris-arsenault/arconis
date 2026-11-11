@@ -104,9 +104,6 @@ it("uses named appearance consistently for read, write and explicit overlap diag
     expect(session.read()).toContain("// other overlaps icon");
     expect(session.checkLayout({ items: ["icon"] })).toContain("Overlaps (1)");
     expect(session.write("edit icon at 1,0")).toContain("// icon overlaps other");
-    document.patch("other", { hidden: true });
-    expect(session.read({ items: ["icon"] })).not.toContain("// icon overlaps");
-    expect(session.checkLayout({ items: ["icon"] })).toContain("no overlaps");
   } finally {
     document.destroy();
   }

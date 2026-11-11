@@ -17,7 +17,6 @@ import {
   printItems,
   quote,
   styleStatements,
-  viewStatement,
   scaleStatement,
 } from "./printer";
 import type { Statement } from "./syntax";
@@ -56,14 +55,14 @@ export class LanguageSession {
     readonly author: string
   ) {
     this.baseline = this.snapshot();
-    const { items, meta, styles, views, comments, layers } = document;
-    this.undo = new Y.UndoManager([items, meta, styles, views, comments, layers], {
+    const { items, meta, styles, comments, layers } = document;
+    this.undo = new Y.UndoManager([items, meta, styles, comments, layers], {
       trackedOrigins: new Set([this.origin]),
       captureTimeout: 0,
     });
   }
 
-  /** Orientation: title, who is here, counts, bounds, styles, an outline, discussions and views. */
+  /** Orientation: title, who is here, counts, bounds, styles, an outline and discussions. */
   describe(present: string[] = []) {
     return this.call(() => {
       const items = this.document.list();
@@ -93,7 +92,6 @@ export class LanguageSession {
           "// Open discussions:",
           ...discussionStatements(this.threads(open.map((c) => c.id)))
         );
-      lines.push(...[...this.document.views.values()].map(viewStatement));
       return lines.join("\n");
     });
   }

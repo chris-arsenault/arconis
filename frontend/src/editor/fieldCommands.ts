@@ -3,13 +3,11 @@ import { holdsOthers } from "../document/relations";
 import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { showFilter, showTagger } from "./ui";
 import { changeFields } from "./commands";
-import { filterMatches, isEmptyFilter } from "./filter";
-import { gatherIntoFrame } from "./gather";
 import { MARKER_LABELS } from "./markerLabels";
 
 export { MARKER_LABELS } from "./markerLabels";
 
-/** Commands over the fields every item carries: lock, hide, collapse and task state. */
+/** Commands over the fields every item carries: lock, collapse and task state. */
 
 const some = ({ selected }: CommandContext) => selected.length > 0;
 const ids = ({ selected }: CommandContext) => selected.map((item) => item.id);
@@ -27,12 +25,6 @@ function taskLabel({ selected }: CommandContext) {
   return item.task === "open" ? "Mark done" : "Clear task";
 }
 
-/** The items a gather takes: the filter's matches, or the selection when nothing is filtered. */
-function gathered({ editor, items, selected }: CommandContext) {
-  if (isEmptyFilter(editor.filter)) return selected.map((item) => item.id);
-  return [...filterMatches(items, editor.filter)];
-}
-
 export const FIELD_COMMANDS: Command[] = [
   {
     id: "view.filter",
@@ -43,21 +35,6 @@ export const FIELD_COMMANDS: Command[] = [
     shortcuts: [{ key: "f", ctrl: true, shift: true }],
     keywords: ["dim", "tags", "markers", "tasks", "author"],
     run: ({ editor }) => showFilter(editor, !editor.ui.filter),
-  },
-  {
-    id: "structure.gather",
-    label: ({ editor }) =>
-      isEmptyFilter(editor.filter)
-        ? "Gather the selection into a frame"
-        : "Gather matches into a frame",
-    help: "Move the filter's matches, or the selection, into a new grid frame to the right of everything.",
-    group: "structure",
-    keywords: ["cluster", "sort", "collect"],
-    when: (context) => gathered(context).length > 0,
-    run: (context) => {
-      const id = gatherIntoFrame(context.editor.document, gathered(context));
-      if (id) context.editor.select(id);
-    },
   },
   {
     id: "fields.lock",
@@ -72,6 +49,19 @@ export const FIELD_COMMANDS: Command[] = [
     },
   },
   {
+    id: "fields.jump",
+    label: ({ selected }) =>
+      selected.every((item) => item.jump) ? "Remove jump point" : "Mark as jump point",
+    help: "List the selection under Jump points in Navigate, so anyone in the room can fly to it.",
+    group: "fields",
+    keywords: ["bookmark", "place", "landmark"],
+    when: some,
+    run: (context) => {
+      const jump = context.selected.every((item) => item.jump);
+      changeFields(context.editor.document, ids(context), { jump: !jump });
+    },
+  },
+  {
     id: "fields.unlockAll",
     label: ({ items }) => `Unlock all (${items.filter((item) => item.locked).length})`,
     help: "Release every locked object on the canvas at once.",
@@ -82,29 +72,6 @@ export const FIELD_COMMANDS: Command[] = [
         editor.document,
         items.filter((item) => item.locked).map((item) => item.id),
         { locked: false }
-      ),
-  },
-  {
-    id: "fields.hide",
-    label: "Hide",
-    help: "Take the selection off the canvas for everyone; it stays in the document.",
-    group: "fields",
-    shortcuts: [{ key: "h", ctrl: true, shift: true }],
-    when: ({ selected }) => selected.some((item) => !item.hidden),
-    run: (context) => changeFields(context.editor.document, ids(context), { hidden: true }),
-  },
-  {
-    id: "fields.showHidden",
-    label: ({ items }) => `Show ${items.filter((item) => item.hidden).length} hidden`,
-    help: "Bring every hidden object back onto the canvas for everyone.",
-    group: "fields",
-    keywords: ["unhide", "reveal"],
-    when: ({ items }) => items.some((item) => item.hidden),
-    run: ({ editor, items }) =>
-      changeFields(
-        editor.document,
-        items.filter((item) => item.hidden).map((item) => item.id),
-        { hidden: false }
       ),
   },
   {
@@ -135,18 +102,16 @@ export const FIELD_COMMANDS: Command[] = [
   ...MARKERS.map((marker): Command => ({
     id: `fields.marker.${marker}`,
     label: MARKER_LABELS[marker],
-    help: marker.startsWith("p")
-      ? "Badge the selection with this priority, replacing any marker it had."
-      : "Badge the selection with this progress quarter, replacing any marker it had.",
+    help: "Badge the selection with this shape, replacing any marker it had.",
     group: "fields",
-    keywords: ["marker", "priority", "progress"],
+    keywords: ["marker", "badge", "shape"],
     when: some,
     run: (context) => changeFields(context.editor.document, ids(context), { marker }),
   })),
   {
     id: "fields.marker.none",
     label: "No marker",
-    help: "Remove the priority or progress badge from the selection.",
+    help: "Remove the marker badge from the selection.",
     group: "fields",
     keywords: ["clear marker"],
     when: ({ selected }) => selected.some((item) => item.marker !== "none"),

@@ -69,8 +69,8 @@ Device-only copies recover into another device-only room.
 3. In any room, sign in to the same account, open **My layouts** and choose **Insert** beside it.
 
 Nested contents, internal links, discussions and pictures travel with the selection. Each insertion
-creates independent objects and one Undo removes it, leaving the destination's title, named styles
-and saved views intact. The library also provides rename and delete controls. Layouts are private
+creates independent objects and one Undo removes it, leaving the destination's title and named styles
+intact. The library also provides rename and delete controls. Layouts are private
 to the account. Arconis supplies no built-in templates.
 As with portable exports, saving a layout from a password room creates a readable copy outside
 that room's password protection.

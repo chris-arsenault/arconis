@@ -143,12 +143,10 @@ it("retains conversation/view semantics when the discussed item changes", () => 
       comment on b "New discussion"
       reply ${root} "Reply"
       resolve ${root}
-      view view1 "Review" center 10,20 zoom 1
       discussion on b { comment imported "Reviewer" at 1000 "Imported conversation" }
     `)
   ).toContain("Done");
   expect(document.get("b")?.name).toBe("Peer value");
-  expect(document.views.get("view1")).toMatchObject({ name: "Review" });
   expect(listComments(document).find((comment) => comment.id === root)?.resolved).toBe(true);
   expect(listComments(document)).toHaveLength(4);
 });

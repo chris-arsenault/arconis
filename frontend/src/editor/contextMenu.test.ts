@@ -130,7 +130,7 @@ describe("the ring's modes", () => {
       const base = context(selected, document);
       expect(ids(ringEntries(inTool(base, "draw"), null)).slice(0, 5)).toEqual([
         "draw.freehand",
-        "ring.highlight",
+        "draw.eyedropper",
         "ring.vector",
         "draw.lasso",
         "ring.erasers",
@@ -186,7 +186,7 @@ describe("the context menu", () => {
     expect(ids[0]).toEqual(["edit.text", "edit.fitText", "comments.open"]);
     expect(ids[1]).toContain("structure.relate");
     const marker = groups.flat().find((entry) => entry.label === "Marker");
-    expect(marker?.kind === "submenu" && marker.submenu).toHaveLength(10);
+    expect(marker?.kind === "submenu" && marker.submenu).toHaveLength(6);
     expect(groups.flat().map((entry) => entry.id)).toContain("fields.tag");
   });
 

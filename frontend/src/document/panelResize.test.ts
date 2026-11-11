@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import * as Y from "yjs";
 import { CanvasDocument } from "./canvasDocument";
 import { panelResizeChanges, resizedPanelContents } from "./panelResize";
 import { authoredLook } from "./appearance";
@@ -133,25 +132,4 @@ it("composes separate axis edits without distorting pictures or compounding pain
   const picture = sequential.find((item) => item.id === "picture")!;
   expect(picture.geometry.width / picture.geometry.height).toBeCloseTo(2);
   doc.destroy();
-});
-
-it("upgrades old room Drawing holders to ordinary scalable frames without replacing ids or ink", () => {
-  const old = new Y.Doc();
-  const record = new Y.Map<unknown>();
-  old.getMap("items").set("earth", record);
-  record.set("type", "sketch");
-  record.set("name", new Y.Text("Earth"));
-  record.set("look", new Y.Map());
-  const doc = new CanvasDocument();
-  Y.applyUpdate(doc.doc, Y.encodeStateAsUpdate(old));
-  expect(doc.get("earth")).toMatchObject({
-    id: "earth",
-    type: "frame",
-    name: "Earth",
-    scaleContents: true,
-    look: { fill: "none" },
-  });
-  expect(doc.items.get("earth")?.get("type")).toBe("frame");
-  doc.destroy();
-  old.destroy();
 });

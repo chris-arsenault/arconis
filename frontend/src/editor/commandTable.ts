@@ -344,7 +344,7 @@ const STRUCTURE: Command[] = [
   {
     id: "structure.tidy",
     label: "Tidy branches",
-    help: "Lay out the selected topic's tree, keeping each branch on the side it is on.",
+    help: "Lay out the selected topic's tree the way it remembers: its direction, spacing and order are set under Relationships.",
     group: "structure",
     keywords: ["layout", "tree"],
     when: (context) =>

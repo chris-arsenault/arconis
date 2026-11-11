@@ -18,10 +18,10 @@ items are the canvas language's items field for field ([ADR-0014](adr/0014-one-c
 type, a `Y.Text` name, a subtitle, its holder (`inside`), box, stacking order, a named style and a look
 in plain terms, and by type a stencil, icon, line ends and ports, points, a picture or a deck and slide
 number. Every item, lines included, also carries the fields in `language/fields.ts`: `locked`,
-`hidden`, `collapsed`, `tags`, `marker`, `task`, `link` and who last edited it. `CanvasDocument`
+`collapsed`, `jump`, `tags`, `marker`, `task`, `link` and who last edited it. `CanvasDocument`
 names its `author` as the editor on every write that changes an item, an agent session names
-itself after each write, and opening a file keeps the editors the file names. Named styles,
-views and comments sit in maps beside the items. Undo tracks local origins, so remote edits stay
+itself after each write, and opening a file keeps the editors the file names. Named styles
+and comments sit in maps beside the items. Undo tracks local origins, so remote edits stay
 independent of a participant's undo history. Records a peer writes in an unknown shape are ignored.
 
 Ordinary item state is complete: flags are booleans, tags and properties are collections, and
@@ -107,8 +107,9 @@ setting it, automatic from named identities, and references from inline declarat
   destination are local application state. Draw targets the current content layer and Markup
   targets annotations; they share the ink gestures and item model, and each keeps its own local
   preferences. `drawingTools.ts` supplies Draw's tool identity to the palette, commands and cursor
-  policy, and `drawingPreferences.ts` stores its independent brushes and migrates previous
-  preferences. `markupPreferences.ts` defines Markup's fixed tools, one colour and one size, and
+  policy, and `drawingPreferences.ts` stores its independent brushes.
+  `markupPreferences.ts` defines Markup's fixed tools, review shapes among them, one colour and
+  one size, and
   derives the ink settings a gesture paints with. Selected-path paint edits use `inkStyle.ts`
   without mutating either. The left rail (`LeftRail.tsx`) holds tools and the next thing made;
   the right dock (`RightDock.tsx`) holds the selection's properties and the document's panels.
@@ -126,8 +127,7 @@ setting it, automatic from named identities, and references from inline declarat
   `document/panelResize.ts` uses the shared transform policy for frames/groups with
   `scaleContents`, across graph geometry edits and `language/drawing.ts`. It scales descendants
   once, including ink, shapes, text and paint. Images and vendor icons retain their proportions.
-  `document/legacyDrawing.ts` converts old Drawing holders to ordinary scalable frames without
-  replacing their ids. Panels do not clip their contents.
+  Panels do not clip their contents.
   See the [drawing guide](drawing.md) for the user workflow.
 
 ## Canvas language
@@ -192,7 +192,7 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   the stacks for `components/HistoryPanel.tsx`; there is no history beyond the undo stack and
   each item's last editor. `editor/touchInput.ts` chooses a tool for fingers and pens on the
   window's capture phase, before the drawing gesture sees the press. Properties travel in the
-  cell style as JSON for tooltips and `{name}` placeholders (`editor/rendering.ts`). Exports in
+  cell style as JSON for tooltips (`editor/rendering.ts`). Exports in
   `editor/exportCommands.ts` reuse the PNG renderer's scene for SVG files.
 - `editor/pointerButtons.ts` owns the middle and right buttons at the pointer-event level, so
   maxGraph only ever sees the left: the middle button pans, and the right button opens
@@ -202,21 +202,23 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   through it, recentred on the pointer with Back opposite. Every ring keeps Mode west and the
   menu south-west, and the mode's own ring wins over what was pressed. Comments open through `showComments` into
   `components/CommentModal.tsx`, anchored to the cell's state above the object. Swapping kinds,
-  swapping positions and the line and frame verbs live in `editor/swap.ts`; stencils made of
-  ordinary items (tables of docked frames, task lists) in `editor/stencils.ts`; docked edges in
+  swapping positions and the line and frame verbs live in `editor/swap.ts`; the task list, a
+  stencil made of ordinary items, in `editor/stencils.ts`; docked edges in
   `document/docking.ts`, applied by mutation capture; and connectors ending in space create
   their target through `editor/createTarget.ts`, whose cell carries `cloneOf` for capture.
 - Trees are edited from the keyboard through `editor/walking.ts` (where an arrow goes),
   `editor/treeEdits.ts` (promote, reorder, insert a parent, delete keeping branches, connected
   copies, levels) and `editor/outline.ts` with `components/OutlinePanel.tsx`. Layout verbs live
-  in `document/treeLayout.ts` (direction, compact, sorted, balanced), `editor/graphLayout.ts`
-  (a layered flow through `@dagrejs/dagre`) and `editor/layoutCommands.ts`; the language's
-  `tidy` takes the same words. The writer sees the lines a write has declared but not yet
+  in `document/treeLayout.ts`, `editor/graphLayout.ts` (a layered flow through `@dagrejs/dagre`)
+  and `editor/layoutCommands.ts`. A tree's root carries how it is tidied in its `tidy` field
+  (direction, compact, sorted), which the one Tidy command, the property panel's tidy options
+  and the language's `tidy` statement all read and write. The writer sees the lines a write has declared but not yet
   settled when it places and tidies branches, so a tree written in one go lays out as written.
 - Views dim through `editor/highlighting.ts`: a focused item's closure (`focusClosure`) or the
   filter's matches (`editor/filter.ts`) stay bright, the rest draw faint. `document/shorthand.ts`
-  turns `#tag`, `[]` and `:p1` typed into a label into fields when the edit finishes, and
-  `editor/gather.ts` moves matching objects into a grid frame.
+  turns `#tag`, `[]` and `:star` typed into a label into fields when the edit finishes.
+- Jump points are items whose `jump` flag is set; `components/NavigatePanel.tsx` lists them and
+  flies to one through `editor/topics.ts`.
 - `editor/viewHistory.ts` records the view before each flight in `editor/views.ts`, so Back and
   Forward retrace jumps without recording themselves. `editor/find.ts` matches items by their
   words and comments in reading order; `components/FindBar.tsx` steps through them.
@@ -237,8 +239,8 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   commands with the same key. Command tables use UI transitions directly rather than importing
   them from the registry that consumes those tables.
 - `editor/projection.ts` applies the document to the graph behind a guard, so remote changes do not
-  feed back into Yjs. It projects `visibleItems`: hidden items, what collapsed items fold away and
-  lines into either stay in the document and out of the graph, and a collapsed frame is drawn at
+  feed back into Yjs. It projects `visibleItems`: what collapsed items fold away and
+  lines into it stay in the document and out of the graph, and a collapsed frame is drawn at
   its title bar's height while the document keeps its size. `editor/marks.ts` adds the fields'
   signs to labels, and `editor/styles.ts` makes locked items immovable.
 - `editor/graphChanges.ts` turns graph edits into Yjs transactions with a local origin. The resulting
@@ -348,7 +350,7 @@ reaching retired consumers.
   timing. Nothing authenticates who a keyholder is, and removing someone requires a new room, because
   changing the password does not change the key.
 - **Presence.** Names, cursors, native move and resize previews, each person's viewport, laser
-  trails, cursor chat and calls to follow travel on Yjs awareness (`editor/presence.ts`,
+  trails and calls to follow travel on Yjs awareness (`editor/presence.ts`,
   `editor/laserInput.ts`, `components/Presence.tsx`), adding no document history; the document
   changes on drop. Following flies through the view history's `travel`, so it records no jumps,
   and ends on the follower's own pointer, wheel or key. Presence coalesces to a bounded rate, and hidden

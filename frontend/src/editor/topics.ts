@@ -201,7 +201,7 @@ export function tidySelection(editor: EditorController) {
   if (!selected) return;
   const { document } = editor;
   const items = document.list();
-  const placed = layoutTree(items, selected.id);
+  const placed = layoutTree(items, selected.id, selected.tidy);
   document.undo.stopCapturing();
   document.doc.transact(() => {
     placed.forEach(({ x, y }, id) => {

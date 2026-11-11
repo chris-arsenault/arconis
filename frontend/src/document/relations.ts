@@ -71,12 +71,6 @@ function removedWith(item: Item, removed: Set<string>) {
   return related.some((id) => removed.has(id));
 }
 
-/** Hidden items with everything that goes with them: contents, anchors and lines touching them. */
-export function hiddenIds(items: Item[]) {
-  const hidden = items.filter((item) => item.hidden).map((item) => item.id);
-  return hidden.length ? removalClosure(items, hidden) : new Set<string>();
-}
-
 /** What one collapsed item folds away: what it holds, its branches, and lines into any of them. */
 export function foldedBy(items: Item[], id: string) {
   const inner = [...containedDescendants(items, id), ...branchDescendants(items, id)];
@@ -91,12 +85,11 @@ export function foldedIds(items: Item[]) {
   return folded;
 }
 
-/** Items that are drawn: neither hidden nor folded away, with lines whose both ends are drawn. */
+/** Items that are drawn: those no collapsed item folds away, with lines whose both ends are drawn. */
 export function visibleItems(items: Item[]) {
-  const hidden = hiddenIds(items);
   const folded = foldedIds(items);
-  if (!hidden.size && !folded.size) return items;
-  return items.filter((item) => !hidden.has(item.id) && !folded.has(item.id));
+  if (!folded.size) return items;
+  return items.filter((item) => !folded.has(item.id));
 }
 
 /**

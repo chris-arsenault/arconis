@@ -10,7 +10,7 @@ it("round trips shared markup, Drawing contents, highlights and gradient ink thr
     agent.write(`note n "Review" at 0,0
     highlight h target n line #ffaa00
     drawing m markup ink arrow points 10,10 90,80 stroke-opacity 35 arrow arrow
-    sketch s "Sketch" at 200,0 size 300,200 {
+    frame s "Sketch" at 200,0 size 300,200 scale-contents {
       drawing p ink polygon points 220,20 300,20 260,100 closed fill #ff0000 gradient #0000ff gradient-angle 45
     }`)
   ).toContain("Done");
@@ -35,7 +35,7 @@ it("promotes and releases existing ink through MCP language without moving its w
   const canvas = new CanvasDocument();
   const agent = new LanguageSession(canvas, "Artist");
   agent.write("drawing mark markup points 10,20 40,60");
-  expect(agent.write("sketch s at 0,0 size 100,100 { edit mark workspace }")).toContain("Done");
+  expect(agent.write("frame s at 0,0 size 100,100 { edit mark workspace }")).toContain("Done");
   expect(canvas.get("mark")).toMatchObject({
     inside: "s",
     markup: false,
@@ -56,7 +56,7 @@ it("promotes and releases existing ink through MCP language without moving its w
   const before = serializeDocument(canvas);
   expect(agent.write("mark -> s")).toContain("Nothing was changed");
   expect(serializeDocument(canvas)).toBe(before);
-  expect(agent.write("sketch ordinary { note child }")).toContain("Done");
+  expect(agent.write("frame ordinary scale-contents { note child }")).toContain("Done");
   expect(canvas.get("ordinary")).toMatchObject({ type: "frame", scaleContents: true });
   expect(canvas.get("child")?.inside).toBe("ordinary");
 });
@@ -108,7 +108,7 @@ it.each(["edit p markup"])(
 it("scales ordinary panel ink and placement together through agent edits and Undo", () => {
   const canvas = new CanvasDocument();
   const agent = new LanguageSession(canvas, "Artist");
-  agent.write(`sketch s at 0,0 size 100,100 {
+  agent.write(`frame s at 0,0 size 100,100 scale-contents {
     drawing p points 10,10 90,90 closed fill #ff0000 gradient #0000ff gradient-angle 20
   }`);
   const before = serializeDocument(canvas);
@@ -159,19 +159,5 @@ it("moves paths and outlines directly between Markup and a layer through agent w
   agent.undoLast();
   expect(canvas.get("h")).toMatchObject({ markup: false, layer: "art", target: "planet" });
   copy.destroy();
-  canvas.destroy();
-});
-
-it("preserves authored appearance when upgrading legacy sketch declarations", () => {
-  const canvas = new CanvasDocument();
-  const agent = new LanguageSession(canvas, "Artist");
-  expect(agent.write('sketch artwork "Art" fill #247dab title side scale-contents off')).toContain(
-    "Done"
-  );
-  expect(canvas.get("artwork")).toMatchObject({
-    type: "frame",
-    look: { fill: "#247dab", title: "side" },
-  });
-  expect(canvas.get("artwork")?.scaleContents).toBe(false);
   canvas.destroy();
 });

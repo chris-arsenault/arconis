@@ -71,6 +71,7 @@ const storedText = (page: Page) =>
 
 async function createRoom() {
   const a = await visit();
+  await a.page.getByText("Room options", { exact: true }).click();
   await a.page.getByRole("button", { name: "Create a password room", exact: true }).click();
   await a.page.getByLabel("Choose a password", { exact: true }).fill(PHRASE);
   await a.page.getByRole("button", { name: "Create room", exact: true }).click();
@@ -125,6 +126,7 @@ it("moves a picture in and out of a password room through a file", async () => {
 
 it("encrypts on the wire and on disk, and opens only with the password", async () => {
   const a = await visit();
+  await a.page.getByText("Room options", { exact: true }).click();
   await a.page.getByRole("button", { name: "Create a password room", exact: true }).click();
   await a.page.getByLabel("Choose a password", { exact: true }).fill(PHRASE);
   await a.page.getByRole("button", { name: "Create room", exact: true }).click();

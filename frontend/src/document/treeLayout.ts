@@ -2,17 +2,25 @@ import { branchChildren } from "./relations";
 import type { Item } from "./types";
 
 /**
- * Laying out a tree as a verb: to the right, to the left, down, or on both sides as its branches
- * already lie; spaced normally or compactly; in the order branches sit or sorted by name.
+ * How a tree is tidied, remembered by its root: to the right, to the left, down, on both sides as
+ * its branches already lie, or balanced with branches alternating sides; spaced normally or
+ * compactly; in the order branches sit or sorted by name.
  */
-export type TreeDirection = "sides" | "right" | "left" | "down";
-export const TREE_DIRECTIONS: TreeDirection[] = ["sides", "right", "left", "down"];
+export type TreeDirection = "sides" | "balanced" | "right" | "left" | "down";
+export const TREE_DIRECTIONS: TreeDirection[] = ["sides", "balanced", "right", "left", "down"];
 
 export interface TreeLayoutOptions {
   direction: TreeDirection;
   compact: boolean;
   sorted: boolean;
 }
+export const DEFAULT_TIDY: TreeLayoutOptions = {
+  direction: "sides",
+  compact: false,
+  sorted: false,
+};
+export const isDefaultTidy = ({ direction, compact, sorted }: TreeLayoutOptions) =>
+  direction === "sides" && !compact && !sorted;
 
 type Place = { x: number; y: number };
 
@@ -125,15 +133,11 @@ function layoutDown(
   return result;
 }
 
-/** New topic positions; by default each branch keeps its side, and the root always stays. */
-export function layoutTree(
-  items: Item[],
-  rootId: string,
-  options: Partial<TreeLayoutOptions> = {}
-) {
-  const { direction = "sides", compact = false, sorted = false } = options;
+/** New topic positions under a root, which always stays; a root's own way is its `tidy`. */
+export function layoutTree(items: Item[], rootId: string, options: TreeLayoutOptions) {
   const root = items.find((item) => item.id === rootId);
   if (!root) return new Map<string, Place>();
+  const { direction, compact, sorted } = options;
   const tree = treeOf(items, rootId, sorted);
   const factors = {
     level: compact ? LEVEL_GAP.compact : LEVEL_GAP.normal,
@@ -141,26 +145,13 @@ export function layoutTree(
   };
   if (direction === "down") return layoutDown(root, tree, factors);
   const centre = root.x + root.width / 2;
+  const branches = tree.get(rootId) ?? [];
   const sides: Record<Exclude<TreeDirection, "down">, (child: Item) => boolean> = {
     sides: (child) => child.x + child.width / 2 < centre,
+    // Branches alternate sides in the order they sit, so a lopsided map becomes balanced.
+    balanced: (child) => branches.indexOf(child) % 2 === 1,
     left: () => true,
     right: () => false,
   };
   return layoutBeside(root, tree, sides[direction], factors);
-}
-
-/** Sides for a root's branches that alternate, so a lopsided map becomes balanced. */
-export function balancedSides(items: Item[], rootId: string) {
-  const root = items.find((item) => item.id === rootId);
-  if (!root) return new Map<string, Place>();
-  const children = branchChildren(items, rootId);
-  const moves = new Map<string, Place>();
-  children.forEach((child, index) => {
-    const left = index % 2 === 1;
-    const x = left
-      ? root.x - root.width * LEVEL_GAP.normal - child.width
-      : root.x + root.width + root.width * LEVEL_GAP.normal;
-    moves.set(child.id, { x, y: child.y });
-  });
-  return moves;
 }

@@ -3,6 +3,7 @@ import type { Arrangement, Attribute, Edge } from "./syntax";
 import { lookAttribute, type LookDefinition } from "./look";
 import { INK_KINDS } from "../document/ink";
 import { FLAGS, MARKERS, TASK_STATES, type Flag } from "../document/types";
+import { DEFAULT_TIDY, TREE_DIRECTIONS, type TreeLayoutOptions } from "../document/treeLayout";
 import { isId } from "../document/ids";
 import { DEFAULT_GAP } from "../document/layout";
 
@@ -58,13 +59,31 @@ function picture(cursor: Cursor): Attribute {
   return { kind: "picture", hash, format, stored: cursor.word("stored") };
 }
 
-/** `locked`, `hidden` or `collapsed`, each turned off with `off`. */
+/** `locked`, `collapsed` or `numbered`, each turned off with `off`. */
 function flag(flag: Flag) {
   return (cursor: Cursor): Attribute => {
     const on = !cursor.word("off");
     cursor.word("on");
     return { kind: "flag", flag, value: on };
   };
+}
+/**
+ * The words after `tidy`: a direction, `compact` and `sorted`, in any order; null when there are
+ * none. `left of` and `right of` place an item, so a direction followed by `of` is left alone.
+ */
+export function tidyOptions(cursor: Cursor): TreeLayoutOptions | null {
+  const options = { ...DEFAULT_TIDY };
+  let given = false;
+  for (;;) {
+    const word = cursor.isWord() ? cursor.token.text : "";
+    const direction = TREE_DIRECTIONS.find((candidate) => candidate === word);
+    if (direction && !cursor.isWord("of", cursor.peek())) options.direction = direction;
+    else if (word === "compact") options.compact = true;
+    else if (word === "sorted") options.sorted = true;
+    else return given ? options : null;
+    cursor.next();
+    given = true;
+  }
 }
 
 /** `tags a, b, c`: words people choose, id-like so they stay bare; `tags none` clears them. */
@@ -134,6 +153,12 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
     const value = !cursor.word("off");
     cursor.word("on");
     return { kind: "scaleContents", value };
+  },
+  tidy: (cursor) => {
+    const options = tidyOptions(cursor);
+    if (!options)
+      return cursor.fail(`After tidy, write ${TREE_DIRECTIONS.join("|")}, compact or sorted.`);
+    return { kind: "tidy", options };
   },
   target: (cursor) => ({ kind: "target", ref: cursor.ref() }),
   // Not bare `layer`: canvases already use that word as a style's name.

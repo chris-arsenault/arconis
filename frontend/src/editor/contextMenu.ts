@@ -44,26 +44,13 @@ const DISTRIBUTE: Submenu = {
   help: "Choose an axis to space the selected objects evenly along.",
   ids: ["arrange.distribute.horizontal", "arrange.distribute.vertical"],
 };
-const TIDY: Submenu = {
-  label: "Tidy branches",
-  help: "Choose how to lay out the selected topic's tree.",
-  ids: [
-    "structure.tidy",
-    "structure.tidyRight",
-    "structure.tidyLeft",
-    "structure.tidyDown",
-    "structure.tidyCompact",
-    "structure.sort",
-    "structure.balance",
-  ],
-};
 const MARKER: Submenu = {
   label: "Marker",
-  help: "Choose a priority or progress badge for the selection.",
+  help: "Choose a shape badge for the selection; the room decides what each shape means.",
   ids: [...MARKERS.map((marker) => `fields.marker.${marker}`), "fields.marker.none"],
 };
 const TAGS_AND_STATUS: MenuSlot[] = ["fields.tag", "fields.task", MARKER];
-const VISIBILITY = ["fields.lock", "fields.hide", "fields.collapse"];
+const VISIBILITY = ["fields.lock", "fields.collapse", "fields.jump"];
 
 /** Groups by intent: text, structure, tags and status, arrangement, visibility, clipboard, view. */
 const MENUS: Record<MenuContext, MenuSlot[][]> = {
@@ -71,8 +58,8 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
     ["create.noteHere", "create.textHere", "create.frameHere", "create.capture"],
     ["edit.pasteHere", "select.all"],
     ["view.fit", "view.find", "view.filter"],
-    ["view.grid", "view.references", "view.save"],
-    ["fields.showHidden", "fields.unlockAll"],
+    ["view.grid", "view.references"],
+    ["fields.unlockAll"],
   ],
   object: [
     ["edit.text", "edit.fitText", "comments.open"],
@@ -89,7 +76,7 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
       "arrange.back",
       ALIGN,
       DISTRIBUTE,
-      TIDY,
+      "structure.tidy",
       "arrange.fitFrame",
       "edit.group",
       "edit.ungroup",
@@ -103,7 +90,7 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
     ["comments.open", "structure.relate"],
     TAGS_AND_STATUS,
     ["arrange.route", "line.reverse", "line.clearPoints", "arrange.front", "arrange.back"],
-    ["fields.lock", "fields.hide"],
+    ["fields.lock"],
     ["edit.copy", "edit.duplicate"],
     ["edit.delete"],
   ],
@@ -111,7 +98,7 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
     ["structure.present", "edit.text", "comments.open"],
     TAGS_AND_STATUS,
     ["arrange.front", "arrange.back"],
-    ["fields.lock", "fields.hide"],
+    ["fields.lock"],
     ["edit.cut", "edit.copy", "edit.duplicate"],
     ["view.zoomInto", "presence.copyLink"],
     ["edit.delete"],
@@ -181,12 +168,12 @@ const RINGS: Record<MenuContext, Slot[]> = {
 /**
  * What a mode with tools of its own shows wherever the button is pressed: the mode's tools, so
  * choosing a mode never has to be followed by choosing a tool. Draw and Markup keep the pen
- * north, the highlighter north-east, shapes east, selection south-east and the eraser south.
+ * north, shapes east, selection south-east and the eraser south.
  */
 const MODE_RINGS: Partial<Record<RingMode, Slot[]>> = {
   Draw: ring(
     "draw.freehand",
-    "ring.highlight",
+    "draw.eyedropper",
     "ring.vector",
     "draw.lasso",
     "ring.erasers",
@@ -217,7 +204,6 @@ const MODE_RINGS: Partial<Record<RingMode, Slot[]>> = {
 export const SUB_RINGS: Record<string, Slot[]> = {
   // Back is east, so the modes fan around west: straight on is Select.
   [MODES]: ["mode.Markup", null, null, "mode.Connect", "mode.Add", "mode.Select", "mode.Draw"],
-  "ring.highlight": ["draw.marker", "draw.highlightShape", "draw.outline"],
   "ring.vector": [
     "draw.shape.line",
     "draw.shape.arrow",
@@ -252,7 +238,6 @@ export const SUB_RINGS: Record<string, Slot[]> = {
 const SUB_RING_LABELS: Record<string, string> = {
   [MODES]: "Mode",
   "ring.stencils": "Stencils",
-  "ring.highlight": "Highlight",
   "ring.vector": "Vector",
   "ring.erasers": "Erase",
   "ring.colour": "Colour",
@@ -370,16 +355,10 @@ export function ringEntries(
 
 /** Wedges are narrow: these commands show a one-word name there, keeping their full label. */
 const RING_LABELS: Record<string, string> = {
-  ...Object.fromEntries(
-    DRAWING_SHAPES.flatMap(({ id, label }) => [
-      [`draw.shape.${id}`, label],
-      [`draw.highlight.${id}`, label],
-    ])
-  ),
+  ...Object.fromEntries(DRAWING_SHAPES.map(({ id, label }) => [`draw.shape.${id}`, label])),
   "draw.precision": "Segment",
   "draw.eraser": "Whole stroke",
-  "draw.outline": "Outline",
-  "draw.highlightShape": "Shaped",
+  "draw.eyedropper": "Pick color",
   "draw.lasso": "Lasso",
   "draw.fill": "Fill",
   "markup.pen": "Pen",

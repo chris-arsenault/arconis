@@ -18,7 +18,7 @@ export const PANEL_DETAILS: Record<Panel, string> = {
   draw: "Draw editable ink into the active layer, and choose the tool and brush.",
   layers: "Organize the canvas into layers you can add, reorder, merge and hide.",
   slides: "Frame parts of the canvas as slides and present them in order.",
-  navigate: "Go to saved views, browse the outline and tags, or review recent changes.",
+  navigate: "Go to jump points, browse the outline and tags, or review recent changes.",
 };
 
 export const PANEL_TOPICS: Record<Panel, string> = {

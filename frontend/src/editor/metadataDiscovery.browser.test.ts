@@ -22,7 +22,7 @@ it("keeps Find and filter reachable below the Properties control on a narrow can
   });
   try {
     const page = await open(context);
-    await add(page, "Sticky note (N)", "Mobile metadata #api :p1", 70, 300);
+    await add(page, "Sticky note (N)", "Mobile metadata #api :star", 70, 300);
     await page.getByRole("button", { name: "Close properties", exact: true }).click();
     const properties = page.getByRole("button", { name: "Object properties", exact: true });
     const find = page.getByRole("button", { name: "Find and filter", exact: true });
@@ -60,9 +60,9 @@ it("discovers tags and named markers, highlights locally and searches matching o
   try {
     const room = createRoomId();
     const page = await open(first, room);
-    await add(page, "Sticky note (N)", "Orders #api :p1", 250, 250);
-    await add(page, "Sticky note (N)", "Orders cache #apiary :q2", 550, 250);
-    await add(page, "Sticky note (N)", "Billing #api :q2", 250, 550);
+    await add(page, "Sticky note (N)", "Orders #api :star", 250, 250);
+    await add(page, "Sticky note (N)", "Orders cache #apiary :square", 550, 250);
+    await add(page, "Sticky note (N)", "Billing #api :square", 250, 550);
     await page.getByTestId("canvas").click({ position: { x: 850, y: 750 } });
     const before = (await exported(page)).objects;
     const peer = await open(second, room);
@@ -78,7 +78,7 @@ it("discovers tags and named markers, highlights locally and searches matching o
       await labelOpacity(page, /^Orders$/)
     );
     expect(await labelOpacity(peer, /^Orders cache$/)).toBe(await labelOpacity(peer, /^Orders$/));
-    await panel.getByRole("button", { name: "P1 Priority 1", exact: true }).click();
+    await panel.getByRole("button", { name: "★ Star", exact: true }).click();
     expect(await page.getByTestId("find-count").textContent()).toBe("1 match");
     await page.screenshot({ path: "test-results/metadata-discovery.png" });
     await panel.getByRole("button", { name: "Next match", exact: true }).click();
@@ -88,7 +88,7 @@ it("discovers tags and named markers, highlights locally and searches matching o
     const query = panel.getByRole("textbox", { name: "Find on canvas", exact: true });
     await query.fill("#api");
     expect(await page.getByTestId("find-count").textContent()).toBe("2 matches");
-    await query.fill("half done");
+    await query.fill("square");
     expect(await page.getByTestId("find-count").textContent()).toBe("2 matches");
     await query.press("Escape");
     await page.getByRole("button", { name: "Find and filter", exact: true }).waitFor();

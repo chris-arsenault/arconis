@@ -22,7 +22,7 @@ import {
   type InkSettings,
 } from "./inkCommands";
 import { DrawingPreferences, DRAWING_PREFERENCES_KEY } from "./drawingPreferences";
-import { isInkTool, type DrawingFamily, type DrawingTool, type InkTarget } from "./drawingTools";
+import { DRAWING_TOOLS, isInkTool, type DrawingTool, type InkTarget } from "./drawingTools";
 import {
   MarkupPreferences,
   MARKUP_PREFERENCES_KEY,
@@ -61,8 +61,11 @@ export class DrawingEditor {
   get settings() {
     return this.markup ? this.markupPreferences.settings : this.preferences.settings;
   }
-  get tool() {
-    return this.markup ? this.markupPreferences.drawingTool : this.preferences.tool;
+  /** The pointer's cursor for the armed tool, Markup's or Draw's. */
+  get cursor() {
+    return this.markup
+      ? this.markupPreferences.cursor
+      : DRAWING_TOOLS[this.preferences.tool].cursor;
   }
   /** The Draw brush, whichever tool is armed: what the Draw panel shows and edits. */
   get brush() {
@@ -143,11 +146,6 @@ export class DrawingEditor {
   activate(tool: DrawingTool) {
     this.gestureVersion++;
     this.preferences.choose(tool);
-    this.arm();
-  }
-  family(family: DrawingFamily) {
-    this.gestureVersion++;
-    this.preferences.family(family);
     this.arm();
   }
   /** Changing a brush is a decision to draw, so it arms Draw. */

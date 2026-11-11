@@ -5,10 +5,10 @@ import type { CommandDefinition as Command, CommandContext } from "./registry";
 import { showFind, showHelp, showPalette } from "./ui";
 import { helpZone } from "../help/zone";
 import { zoomIntoSelection, zoomOutOfSelection } from "./topics";
-import { fittingView, flyToView, saveCurrentView } from "./views";
+import { fittingView, flyToView } from "./views";
 import { ZOOM_STEP } from "./zoom";
 
-/** Commands over this person's view: the palette, zoom, the grid, references and saved views. */
+/** Commands over this person's view: the palette, zoom, the grid and references. */
 
 const one = ({ selected }: CommandContext) => selected.length === 1;
 /** How much of the window a fitted selection fills. */
@@ -158,13 +158,5 @@ export const VIEW_COMMANDS: Command[] = [
     help: "Show or hide all reference lines, not only the selection's, in your view only.",
     group: "view",
     run: ({ editor }) => editor.toggleReferences(),
-  },
-  {
-    id: "view.save",
-    label: "Save this view",
-    help: "Save the window's place and zoom as a named view everyone in the room can visit.",
-    group: "view",
-    keywords: ["bookmark", "place"],
-    run: ({ editor }) => saveCurrentView(editor, `View ${editor.document.views.size + 1}`),
   },
 ];

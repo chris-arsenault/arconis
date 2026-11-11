@@ -224,7 +224,8 @@ it("creates and saves a password room, then reopens it on another browser throug
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await page.goto(new URL(page.url()).origin);
-  await signIn(page, `locked-${EMAIL}`, "Create a password room");
+  await signIn(page, `locked-${EMAIL}`, "Create a room");
+  await page.getByText("Room options", { exact: true }).click();
   await page.getByRole("button", { name: "Create a password room", exact: true }).click();
   await page.getByLabel("Choose a password", { exact: true }).fill(PHRASE);
   await page.getByRole("button", { name: "Create room", exact: true }).click();

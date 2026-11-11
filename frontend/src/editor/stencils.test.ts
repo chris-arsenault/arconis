@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CanvasDocument } from "../document/canvasDocument";
 import { dockedFollowers } from "../document/docking";
-import { LOCAL, isFrame } from "../document/types";
+import { LOCAL } from "../document/types";
 import { parse } from "../language/parser";
 import { writeStatements } from "../language/writer";
 import { evaluateNumber } from "./arithmetic";
 import { gapsBetween } from "./measure";
-import { addTableColumn, addTableRow, addTaskAfter, insertTable, insertTaskList } from "./stencils";
+import { addTaskAfter, insertTaskList } from "./stencils";
 
 function canvas(text: string) {
   const document = new CanvasDocument();
@@ -44,57 +44,7 @@ describe("docked frames", () => {
   });
 });
 
-describe("tables and task lists", () => {
-  it("inserts a table of docked frames in a group and grows it by rows and columns", () => {
-    const document = new CanvasDocument();
-    const table = insertTable(document, { x: 100, y: 100 }, 3, 2);
-    const cells = () => document.list().filter((item) => item.inside === table && isFrame(item));
-    expect(cells()).toHaveLength(6);
-    expect(
-      cells()
-        .filter((cell) => cell.name)
-        .map((cell) => cell.name)
-    ).toEqual(["Column 1", "Column 2"]);
-    addTableRow(document, table);
-    expect(cells()).toHaveLength(8);
-    addTableColumn(document, table);
-    expect(cells()).toHaveLength(12);
-    expect(
-      cells()
-        .filter((cell) => cell.name)
-        .map((cell) => cell.name)
-    ).toEqual(["Column 1", "Column 2", "Column 3"]);
-    const group = document.get(table)!;
-    const right = Math.max(...cells().map((cell) => cell.x + cell.width));
-    const bottom = Math.max(...cells().map((cell) => cell.y + cell.height));
-    expect(group.x + group.width).toBe(right);
-    expect(group.y + group.height).toBe(bottom);
-  });
-
-  it("resizes a table boundary through every row and keeps added columns aligned", () => {
-    const document = new CanvasDocument();
-    const table = insertTable(document, { x: 100, y: 100 }, 3, 3);
-    const cells = () => document.list().filter((item) => item.inside === table && isFrame(item));
-    const header = cells().find((cell) => cell.name === "Column 1")!;
-    const after = { ...header, width: header.width + 60 };
-    const followers = dockedFollowers(document.list(), header, header, after);
-    document.patch(header.id, after);
-    followers.forEach((patch) => document.patch(patch.id, patch.values));
-    for (const cell of cells()) {
-      if (cell.x === 100) expect(cell.width).toBe(280);
-      if (cell.x === 380) expect(cell.width).toBe(160);
-    }
-    expect(cells().filter((cell) => cell.x === 380)).toHaveLength(3);
-    addTableRow(document, table);
-    addTableColumn(document, table);
-    expect(cells().filter((cell) => cell.x === 380)).toHaveLength(4);
-    expect(
-      cells()
-        .filter((cell) => cell.name)
-        .map((cell) => cell.name)
-    ).toEqual(["Column 1", "Column 2", "Column 3", "Column 4"]);
-  });
-
+describe("task lists", () => {
   it("inserts a task list whose next task slots in after the current one", () => {
     const document = new CanvasDocument();
     const list = insertTaskList(document, { x: 0, y: 0 });

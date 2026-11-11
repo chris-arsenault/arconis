@@ -35,9 +35,6 @@ const KIND_LABELS: Record<Kind, string> = {
 /** What choosing each drawing tool lets the pointer do, wherever the ink is going. */
 const DRAWING_HELP: Record<DrawingTool, string> = {
   freehand: "Drag on the canvas to draw a freehand ink stroke.",
-  marker: "Drag on the canvas to highlight freely with translucent ink.",
-  highlightShape: "Drag on the canvas to draw a translucent highlight in the chosen shape.",
-  outline: "Click an object to add or remove an outline that follows it.",
   vector: "Drag on the canvas to construct an ink shape; Shift constrains it.",
   lasso: "Drag around ink paths to select them whole.",
   eraser: "Click or sweep across ink to remove whole strokes.",
@@ -79,28 +76,16 @@ export const POINTER_COMMANDS: Command[] = [
     keywords: ["annotate", "annotation"],
     run: ({ editor }) => editor.drawing.chooseMarkup({ tool }),
   })),
-  ...DRAWING_SHAPES.flatMap(({ id, label }): Command[] => [
-    {
-      id: `draw.shape.${id}`,
-      label: `Draw ${label.toLowerCase()}`,
-      help: `Drag on the canvas to draw ${article(label.toLowerCase())} ${label.toLowerCase()} in ink.`,
-      group: "tools",
-      run: ({ editor }) => {
-        editor.drawing.activate("vector");
-        editor.drawing.update({ shape: id });
-      },
+  ...DRAWING_SHAPES.map(({ id, label }): Command => ({
+    id: `draw.shape.${id}`,
+    label: `Draw ${label.toLowerCase()}`,
+    help: `Drag on the canvas to draw ${article(label.toLowerCase())} ${label.toLowerCase()} in ink.`,
+    group: "tools",
+    run: ({ editor }) => {
+      editor.drawing.activate("vector");
+      editor.drawing.update({ shape: id });
     },
-    {
-      id: `draw.highlight.${id}`,
-      label: `Highlight ${label.toLowerCase()}`,
-      help: `Drag on the canvas to draw a translucent ${label.toLowerCase()} highlight.`,
-      group: "tools",
-      run: ({ editor }) => {
-        editor.drawing.activate("highlightShape");
-        editor.drawing.update({ shape: id });
-      },
-    },
-  ]),
+  })),
   {
     id: "create.noteHere",
     label: "Add note here",

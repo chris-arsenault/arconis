@@ -55,14 +55,6 @@ export function propertiesOf(style: Record<string, unknown>): Record<string, str
   }
 }
 
-/** `{owner}` in a label reads as the owner property's value; unknown names stay as written. */
-function fillPlaceholders(html: string, properties: Record<string, string>) {
-  if (!Object.keys(properties).length) return html;
-  return html.replaceAll(/\{([A-Za-z_][A-Za-z0-9_-]*)\}/g, (match, key: string) =>
-    key in properties ? escapeLabel(properties[key]) : match
-  );
-}
-
 /**
  * A label's markup: the name, bold over a subtitle when there is one, after a badge when there is
  * one, between its marks. Names, subtitles and a slide's deck come from peers and are escaped; a
@@ -72,7 +64,7 @@ function composeLabel(cell: Cell, marks: Marks, content: string) {
   const style = cell.getStyle() as Record<string, unknown>;
   const subtitle = typeof style[LABEL_SUBTITLE] === "string" ? style[LABEL_SUBTITLE] : "";
   const badge = typeof style[LABEL_BADGE] === "string" ? style[LABEL_BADGE] : "";
-  let name = fillPlaceholders(content, propertiesOf(style));
+  let name = content;
   if (subtitle)
     name = `<div style="font-weight:bold">${name}</div><span style="font-weight:normal;font-size:0.85em;opacity:0.85">${escapeLabel(subtitle)}</span>`;
   if (badge.startsWith("data:image/"))

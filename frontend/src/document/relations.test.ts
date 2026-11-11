@@ -16,7 +16,7 @@ import {
   renameItem,
   worldBounds,
 } from "./relations";
-import { layoutTree } from "./treeLayout";
+import { DEFAULT_TIDY, layoutTree } from "./treeLayout";
 import { BLANK } from "./canvasDocument";
 
 function box(id: string, x = 0, y = 0, extras: Partial<Item> = {}): Item {
@@ -70,7 +70,7 @@ describe("trees", () => {
   it("survives a cycle that concurrent edits created", () => {
     const items = [box("a"), box("b"), link("a", "b"), link("b", "a")];
     expect(branchDescendants(items, "a")).toEqual(["b"]);
-    expect(layoutTree(items, "a").has("a")).toBe(false);
+    expect(layoutTree(items, "a", DEFAULT_TIDY).has("a")).toBe(false);
   });
 
   it("ignores plain connectors and references when walking a tree", () => {
@@ -115,7 +115,7 @@ describe("tidying", () => {
   ];
 
   it("keeps the root still, each child on its side, and siblings apart", () => {
-    const placed = layoutTree(items, "root");
+    const placed = layoutTree(items, "root", DEFAULT_TIDY);
     expect(placed.has("root")).toBe(false);
     expect(placed.get("right1")!.x).toBeGreaterThan(600);
     expect(placed.get("left")!.x).toBeLessThan(500);
@@ -125,9 +125,9 @@ describe("tidying", () => {
 
   it("gives every peer the same layout, whatever order they hold objects in", () => {
     const reversed = [...items].reverse();
-    expect([...layoutTree(reversed, "root")].sort(([a], [b]) => a.localeCompare(b))).toEqual(
-      [...layoutTree(items, "root")].sort(([a], [b]) => a.localeCompare(b))
-    );
+    const laidOut = (order: Item[]) =>
+      [...layoutTree(order, "root", DEFAULT_TIDY)].sort(([a], [b]) => a.localeCompare(b));
+    expect(laidOut(reversed)).toEqual(laidOut(items));
   });
 });
 

@@ -27,12 +27,6 @@ const BY: { by: SelectBy; label: string; help: string; keywords: string[] }[] = 
     keywords: ["named style"],
   },
   {
-    by: "fill",
-    label: "Select same fill",
-    help: "Select every object drawn with one of the selection's fill colours.",
-    keywords: ["colour", "color"],
-  },
-  {
     by: "children",
     label: "Select children",
     help: "Select what the selection holds directly and its direct branches.",
@@ -60,11 +54,7 @@ export const SELECTION_COMMANDS: Command[] = [
     group: "select",
     keywords,
     when: some,
-    run: ({ editor, items, selected }) =>
-      selectIds(
-        editor,
-        SELECT_BY[by](items, selected, (style) => editor.document.namedStyle(style))
-      ),
+    run: ({ editor, items, selected }) => selectIds(editor, SELECT_BY[by](items, selected)),
   })),
   {
     id: "select.invert",

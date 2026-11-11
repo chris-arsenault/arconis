@@ -30,9 +30,7 @@ export function looksLikeLanguage(text: string) {
     return (
       statements.length > 0 &&
       statements.every((statement) =>
-        ["item", "link", "style", "arrange", "title", "view", "discussion", "data"].includes(
-          statement.kind
-        )
+        ["item", "link", "style", "arrange", "title", "discussion", "data"].includes(statement.kind)
       ) &&
       statements.some((statement) => ["item", "link", "arrange"].includes(statement.kind))
     );

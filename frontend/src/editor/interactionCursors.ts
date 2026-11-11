@@ -1,6 +1,5 @@
 import type { EditorController } from "./controller";
 import { CURSORS, TOOL_CURSORS, type CursorName } from "./cursors";
-import { DRAWING_TOOLS } from "./drawingTools";
 
 /** One policy covers editor modes, temporary pan and graph descendants which set their own cursor. */
 export function bindInteractionCursors(editor: EditorController, signal: AbortSignal) {
@@ -9,7 +8,7 @@ export function bindInteractionCursors(editor: EditorController, signal: AbortSi
     { when: () => panning, cursor: () => "grabbing" },
     { when: () => editor.presenter.active, cursor: () => "default" },
     { when: () => editor.ui.relating !== null, cursor: () => "target" },
-    { when: () => editor.drawing.active, cursor: () => DRAWING_TOOLS[editor.drawing.tool].cursor },
+    { when: () => editor.drawing.active, cursor: () => editor.drawing.cursor },
   ];
   const update = () => {
     const policy = policies.find(({ when }) => when());

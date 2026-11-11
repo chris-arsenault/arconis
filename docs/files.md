@@ -65,14 +65,14 @@ contents to the current room as one undoable operation; it does not replace the 
 fits the result. For a separate workspace, create another room before importing.
 
 Free item ids are retained; conflicting ids are replaced and internal references follow them.
-A file can also supply its canvas title, named styles, discussions, views and scale calibration.
+A file can also supply its canvas title, named styles, discussions and scale calibration.
 The title can rename the destination canvas, and a named style with the same name replaces that
 definition. Importing a full calibrated document can change how distances are interpreted
 throughout the destination without resizing existing objects. Use a new room to keep two
 drawings with different scales separate.
 
 In contrast, **My layouts** always inserts fresh object identities, materializes its appearance
-and leaves the destination's title, named styles and views intact. One Undo removes one insertion.
+and leaves the destination's title and named styles intact. One Undo removes one insertion.
 Account **History** recovers an older room copy into a separate room, rather than importing into
 the current room. See [accounts](accounts.md).
 

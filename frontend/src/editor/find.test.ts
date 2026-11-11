@@ -17,27 +17,27 @@ function canvas(text: string) {
 describe("find on canvas", () => {
   it("finds exact tags and markers and intersects words with highlighted metadata", () => {
     const document = canvas(`
-      note a "Orders" tags api marker p1 at 0,0
-      note b "Orders cache" tags apiary marker q2 at 300,0
-      note c "Billing" tags api marker q2 at 600,0
+      note a "Orders" tags api marker star at 0,0
+      note b "Orders cache" tags apiary marker square at 300,0
+      note c "Billing" tags api marker square at 600,0
     `);
     const items = document.list();
     expect(findMatches(items, [], "#api").map(({ item }) => item.id)).toEqual(["a", "c"]);
-    expect(findMatches(items, [], ":p1").map(({ item }) => item.id)).toEqual(["a"]);
-    expect(findMatches(items, [], "Priority 1")[0].where).toBe("marker");
-    expect(findMatches(items, [], "half done").map(({ item }) => item.id)).toEqual(["b", "c"]);
+    expect(findMatches(items, [], ":star").map(({ item }) => item.id)).toEqual(["a"]);
+    expect(findMatches(items, [], "Star")[0].where).toBe("marker");
+    expect(findMatches(items, [], "square").map(({ item }) => item.id)).toEqual(["b", "c"]);
     const filter = toggled(EMPTY_FILTER, "tags", "api");
     expect(findMatches(items, [], "Orders", filter).map(({ item }) => item.id)).toEqual(["a"]);
     expect(findMatches(items, [], "", filter).map(describeMatch)).toEqual(["Orders", "Billing"]);
   });
 
-  it("matches names, subtitles, tags, comments and ids, in reading order, marking hidden items", () => {
+  it("matches names, subtitles, tags, comments and ids, in reading order", () => {
     const document = canvas(`
       node low "Orders API" at 0,400
       node high "Billing" / "orders ledger" at 300,0
       node tagged "Other" tags orders at 0,0
       node far "Nothing" at 600,0
-      node ghost "Orders cache" hidden at 900,0
+      node ghost "Orders cache" at 900,0
     `);
     addComment(document, { on: "far", author: "A", text: "ask about orders" });
     const matches = findMatches(document.list(), listComments(document), "ORDERS");
@@ -55,9 +55,8 @@ describe("find on canvas", () => {
       "name",
       "name",
     ]);
-    expect(matches.find((match) => match.item.id === "ghost")?.hidden).toBe(true);
     expect(describeMatch(matches[1])).toBe("Billing (subtitle)");
-    expect(describeMatch(matches[3])).toBe("Orders cache (hidden)");
+    expect(describeMatch(matches[3])).toBe("Orders cache");
     expect(findMatches(document.list(), [], "far")[0].where).toBe("id");
     expect(findMatches(document.list(), [], "  ")).toEqual([]);
   });

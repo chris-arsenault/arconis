@@ -1,12 +1,11 @@
 import * as Y from "yjs";
-import { LOCAL, isLink, type Item, type ItemType, type Look, type View } from "./types";
+import { LOCAL, isLink, type Item, type ItemType, type Look } from "./types";
 import { compareStacking } from "./geometry";
 import { newId } from "./ids";
 import { CompletedActions } from "./actions";
 import { removalClosure } from "./relations";
 import { canHoldAnything } from "./capabilities";
 import { BASE_LAYER, inLayers, layerOf, orderedLayers, type LayerRecord } from "./layers";
-import { upgradeDrawingHolders } from "./legacyDrawing";
 import { BLANK } from "./itemDefaults";
 import { readArrangement } from "./arrangement";
 import { isCalibration, readCalibration, type Calibration } from "./units";
@@ -46,12 +45,11 @@ export class CanvasDocument {
   readonly meta = this.doc.getMap<string>("meta");
   /** Named looks that items refer to by name. */
   readonly styles = this.doc.getMap<Look>("styles");
-  readonly views = this.doc.getMap<View>("views");
   /** Content layers by id; see `document/layers.ts`. */
   readonly layers = this.doc.getMap<LayerRecord>("layers");
   /** A conversation, not an edit, so comments stay out of undo. */
   readonly comments = this.doc.getMap<string>("comments");
-  readonly undo = new Y.UndoManager([this.items, this.meta, this.styles, this.views, this.layers], {
+  readonly undo = new Y.UndoManager([this.items, this.meta, this.styles, this.layers], {
     trackedOrigins: new Set([LOCAL]),
     captureTimeout: 400,
   });
@@ -63,7 +61,6 @@ export class CanvasDocument {
         if (typeof id === "string") this.snapshots.delete(id);
         else event.changes.keys.forEach((_change, key) => this.snapshots.delete(key));
       }
-      upgradeDrawingHolders(this.items, events);
     });
     this.doc.on("beforeTransaction", () => {
       this.transacting = true;

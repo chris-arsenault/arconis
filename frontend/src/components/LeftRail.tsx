@@ -161,7 +161,6 @@ function drawingActions(editor: EditorController): DrawingActions {
   const drawing = editor.drawing;
   return {
     tool: (tool) => drawing.activate(tool),
-    family: (family) => drawing.family(family),
     target: (target) => {
       drawing.colorTarget = target;
       editor.emit();

@@ -9,7 +9,7 @@ import {
 } from "playwright";
 import { createServer, type ViteDevServer } from "vite";
 import { mkdir, readFile } from "node:fs/promises";
-import type { Item, View } from "../document/types";
+import type { Item } from "../document/types";
 import { CanvasDocument } from "../document/canvasDocument";
 import { importDocument } from "../files/canvasFile";
 import { startRelayFixture } from "../collaboration/relayFixture";
@@ -287,7 +287,6 @@ export async function selectDrawing(
 
 export async function exported(page: Page): Promise<{
   objects: Item[];
-  views: View[];
   /** The file as downloaded, for importing it again. */
   text: string;
 }> {
@@ -299,7 +298,7 @@ export async function exported(page: Page): Promise<{
   // An empty canvas keeps the file's ids, so journeys see the items as the room has them.
   const copy = new CanvasDocument();
   importDocument(copy, text);
-  const result = { objects: copy.list(), views: [...copy.views.values()], text };
+  const result = { objects: copy.list(), text };
   copy.destroy();
   return result;
 }

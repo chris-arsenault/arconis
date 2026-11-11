@@ -58,7 +58,7 @@ group they share, as a line drawn in the editor does.
 
 An assistant checks each substantial batch with `check_layout` before further inspection. It
 reports overlapping boxes, objects outside their holder, and estimated text overflow, without
-rendering. It excludes slide viewports, bands and hidden or folded content from overlap findings.
+rendering. It excludes slide viewports, bands and folded content from overlap findings.
 Reports are advisory: preserve intentional overlaps and human edits. Text estimates do not measure
 rendered Markdown, equations or font metrics.
 

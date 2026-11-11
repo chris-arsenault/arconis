@@ -4,7 +4,6 @@ import type { RingMode } from "./ringModes";
 export const SUB_RING_HELP: Record<string, string> = {
   "ring.mode": "Open a ring of editing modes: Select, Add, Draw, Markup and Connect.",
   "ring.stencils": "Open a ring of diagram shapes to place with the next click on the canvas.",
-  "ring.highlight": "Open a ring of translucent highlighters and the object outline.",
   "ring.vector": "Open a ring of shapes to construct in ink.",
   "ring.erasers": "Open a ring with the whole-stroke and segment erasers.",
   "ring.colour": "Open a ring of fill colours for the selection.",

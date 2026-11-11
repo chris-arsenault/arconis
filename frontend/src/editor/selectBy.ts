@@ -1,22 +1,21 @@
-import { effectiveAppearance } from "../document/appearance";
 import { compareStacking, pointInBox } from "../document/geometry";
 import { branchParent } from "../document/relations";
-import { isBox, isLink, type Item, type Look } from "../document/types";
+import { isBox, isLink, type Item } from "../document/types";
 import type { EditorController } from "./controller";
 
 /**
- * Selections by what items have in common, so restyling, aligning and gathering have something
+ * Selections by what items have in common, so restyling and aligning have something
  * to work on. Each takes the current selection and the canvas and returns the ids to select.
  */
 
-export type SelectBy = "type" | "style" | "fill" | "children" | "siblings" | "connected";
+export type SelectBy = "type" | "style" | "children" | "siblings" | "connected";
 
 function kind(item: Item) {
   return item.type === "node" ? `node ${item.stencil}` : item.type;
 }
 
 function drawn(items: Item[]) {
-  return items.filter((item) => !item.hidden && !item.locked);
+  return items.filter((item) => !item.locked);
 }
 
 /** Items of the same kinds as the selection: nodes by stencil, everything else by type. */
@@ -32,15 +31,6 @@ export function sameStyle(items: Item[], selected: Item[]) {
   const styles = new Set(selected.map((item) => item.style));
   return drawn(items)
     .filter((item) => styles.has(item.style))
-    .map((item) => item.id);
-}
-
-/** Items drawn with one of the selection's fill colours, by their effective look. */
-export function sameFill(items: Item[], selected: Item[], named: (style: string) => Look) {
-  const fill = (item: Item) => effectiveAppearance(item, named(item.style)).fill;
-  const fills = new Set(selected.filter(isBox).map(fill));
-  return drawn(items)
-    .filter((item) => isBox(item) && fills.has(fill(item)))
     .map((item) => item.id);
 }
 
@@ -85,10 +75,13 @@ export function inverted(items: Item[], selected: Item[]) {
     .map((item) => item.id);
 }
 
-export const SELECT_BY: Record<
-  SelectBy,
-  (items: Item[], selected: Item[], named: (style: string) => Look) => string[]
-> = { type: sameType, style: sameStyle, fill: sameFill, children, siblings, connected };
+export const SELECT_BY: Record<SelectBy, (items: Item[], selected: Item[]) => string[]> = {
+  type: sameType,
+  style: sameStyle,
+  children,
+  siblings,
+  connected,
+};
 
 /** Selects items by id, keeping only those the graph draws. */
 export function selectIds(editor: EditorController, ids: string[]) {
@@ -105,7 +98,7 @@ export function selectIds(editor: EditorController, ids: string[]) {
  */
 export function stackAt(items: Item[], point: { x: number; y: number }) {
   return items
-    .filter((item) => isBox(item) && !item.hidden && pointInBox(item, [point.x, point.y]))
+    .filter((item) => isBox(item) && pointInBox(item, [point.x, point.y]))
     .sort(compareStacking)
     .reverse();
 }

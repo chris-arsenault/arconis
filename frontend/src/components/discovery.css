@@ -15,10 +15,6 @@
   pointer-events: auto;
 }
 
-.canvas-discovery > .hidden-objects {
-  position: static;
-}
-
 .canvas-discovery-button {
   display: flex;
   align-items: center;

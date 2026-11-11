@@ -1,12 +1,11 @@
 import { isWebLink } from "../language/fields";
 import type { EditorController } from "./controller";
 import { goToSlide, jumpTo } from "./topics";
-import { flyToView } from "./views";
 import { canvasObjectId, isCanvasObjectUrl } from "../document/ids";
 
 /**
- * Follows an item's link: a web address opens in a new tab, and the id of an item, slide or saved
- * view flies there.
+ * Follows an item's link: a web address opens in a new tab, and the id of an item or slide
+ * flies there.
  */
 export function followLink(editor: EditorController, link: string) {
   if (isCanvasObjectUrl(link)) {
@@ -22,11 +21,6 @@ export function followLink(editor: EditorController, link: string) {
   }
   if (isWebLink(link)) {
     if (/^https?:/i.test(link)) window.open(link, "_blank", "noopener,noreferrer");
-    return;
-  }
-  const view = editor.document.views.get(link);
-  if (view) {
-    flyToView(editor.graph, editor.element, view);
     return;
   }
   followObject(editor, link);

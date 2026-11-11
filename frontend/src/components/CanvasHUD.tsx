@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  EyeOff,
   Grid3x3,
   Keyboard,
   Minus,
@@ -13,7 +12,6 @@ import {
 } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { zoomAt, zoomLabel, ZOOM_STEP } from "../editor/zoom";
-import { changeFields } from "../editor/commands";
 import { runCommand } from "../editor/registry";
 import { showFind } from "../editor/ui";
 import { shortcutLabel } from "../editor/shortcuts";
@@ -21,30 +19,6 @@ import { anythingInView } from "../editor/views";
 import { FindBar } from "./FindBar";
 import { ScaleControls } from "./ScaleControls";
 import "./discovery.css";
-
-/** Hidden items have nothing to click, so the one way back to them stays in view. */
-function HiddenObjects({ editor }: Readonly<{ editor: EditorController }>) {
-  const hidden = editor.document.list().filter((item) => item.hidden);
-  if (!hidden.length) return null;
-  const label = `Show ${hidden.length} hidden ${hidden.length === 1 ? "object" : "objects"}`;
-  return (
-    <button
-      className="hidden-objects"
-      aria-label={label}
-      data-hint={label}
-      data-hint-detail="Unhide every hidden object for everyone in the room."
-      onClick={() =>
-        changeFields(
-          editor.document,
-          hidden.map((item) => item.id),
-          { hidden: false }
-        )
-      }
-    >
-      <EyeOff size={14} /> {hidden.length} hidden
-    </button>
-  );
-}
 
 /** A precise magnification, applied on Enter or when the field is left. */
 function ZoomInput({
@@ -182,7 +156,7 @@ function ViewControls({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-/** The controls floating over the canvas: history, view, hidden objects, find and the palette. */
+/** The controls floating over the canvas: history, view, find and the palette. */
 export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
   return (
     <>
@@ -192,7 +166,6 @@ export function CanvasHUD({ editor }: Readonly<{ editor: EditorController }>) {
         data-help-id="find"
         data-help-topic="editing#find-on-canvas"
       >
-        <HiddenObjects editor={editor} />
         {editor.ui.find || editor.ui.filter ? (
           <FindBar editor={editor} />
         ) : (

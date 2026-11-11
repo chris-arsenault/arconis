@@ -3,7 +3,9 @@ import { CanvasDocument } from "./canvasDocument";
 import { LOCAL } from "./types";
 import { parse } from "../language/parser";
 import { writeStatements } from "../language/writer";
-import { balancedSides, layoutTree } from "./treeLayout";
+import { layoutTree } from "./treeLayout";
+import { printCanvas } from "../language/printer";
+import { importDocument } from "../files/canvasFile";
 import { branchNumbers } from "./relations";
 import { layeredLayout } from "../editor/graphLayout";
 import { tidyGrid } from "../editor/layoutCommands";
@@ -49,19 +51,43 @@ describe("laying out a tree", () => {
       sorted: false,
     });
     expect(unsorted.get("b")!.y).toBeLessThan(unsorted.get("a")!.y);
-    const sides = balancedSides(items, "root");
+    const sides = layoutTree(items, "root", {
+      direction: "balanced",
+      compact: false,
+      sorted: false,
+    });
     const root = items.find((item) => item.id === "root")!;
     const [first, second] = ["b", "a"].map((id) => sides.get(id)!);
     expect(first.x).toBeGreaterThan(root.x);
     expect(second.x).toBeLessThan(root.x);
   });
 
-  it("reads tidy's direction, compact and sorted in the language", () => {
+  it("reads tidy's direction, compact and sorted in the language, and the root remembers them", () => {
     const document = canvas(`${TREE}\ntidy root down sorted`);
     const get = (id: string) => document.get(id)!;
     expect(get("a").y).toBeGreaterThan(get("root").y);
     expect(get("a").x).toBeLessThan(get("b").x);
-    expect(() => canvas(`${TREE}\ntidy root sideways`)).toThrow(/sides\|right\|left\|down/);
+    expect(() => canvas(`${TREE}\ntidy root sideways`)).toThrow(
+      /sides\|balanced\|right\|left\|down/
+    );
+    expect(get("root").tidy).toEqual({ direction: "down", compact: false, sorted: true });
+    expect(printCanvas(document)).toContain('node root "Root" tidy down sorted');
+    // A bare tidy lays the tree out the remembered way, wherever its branches were dragged.
+    document.patch("a", { x: get("root").x - 900, y: get("root").y - 900 });
+    document.doc.transact(
+      () => writeStatements(document, parse("tidy root"), { author: "" }),
+      LOCAL
+    );
+    expect(get("a").y).toBeGreaterThan(get("root").y);
+    const copy = new CanvasDocument();
+    importDocument(copy, printCanvas(document));
+    expect(copy.get("root")!.tidy).toEqual(get("root").tidy);
+  });
+
+  it("keeps a direction apart from left of and right of placement", () => {
+    const document = canvas('node p "P" at 0,0\nnode q "Q" tidy compact right of p');
+    expect(document.get("q")!.tidy).toEqual({ direction: "sides", compact: true, sorted: false });
+    expect(document.get("q")!.x).toBeGreaterThan(document.get("p")!.x);
   });
 
   it("numbers branches under a numbered topic in the order they sit", () => {

@@ -22,13 +22,12 @@ function canvas(text: string) {
 const get = (document: CanvasDocument, id: string) => document.get(id)!;
 
 const FIELDS =
-  'locked hidden collapsed tags api, v2 marker p2 task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000';
+  'locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000';
 const FIELD_VALUES: Partial<Item> = {
   locked: true,
-  hidden: true,
   collapsed: true,
   tags: ["api", "v2"],
-  marker: "p2",
+  marker: "circle",
   task: "open",
   link: "https://example.com/a",
   properties: { owner: "Ada", ticket: "ARC-1" },
@@ -47,7 +46,6 @@ const EVERY_TYPE = `
   note s "Note" ${FIELDS} at 300,600 size 190,170
   picture p "Picture" hash abc123 format image/png ${FIELDS} at 600,600 size 200,100
   slide sl "Slide" deck pitch 1 ${FIELDS} at 0,1000 size 1280,720
-  sketch sk "Sketch" ${FIELDS} at 1400,0 size 400,300
   drawing d "" ink line ${FIELDS} points 10,10 100,100
   highlight h "" target n ${FIELDS} points 0,0
   n -> c as l1 ${FIELDS}
@@ -58,7 +56,7 @@ const EVERY_TYPE = `
 describe("fields on every item type", () => {
   it("reads, stores and prints the fields the same way on every type and on lines", () => {
     const document = canvas(EVERY_TYPE);
-    const ids = ["n", "c", "f", "g", "b", "t", "s", "p", "sl", "sk", "d", "h", "l1", "br", "ref"];
+    const ids = ["n", "c", "f", "g", "b", "t", "s", "p", "sl", "d", "h", "l1", "br", "ref"];
     for (const id of ids) expect(get(document, id), id).toMatchObject(FIELD_VALUES);
     const text = printCanvas(document);
     const copy = new CanvasDocument();
@@ -66,10 +64,10 @@ describe("fields on every item type", () => {
     expect(printCanvas(copy)).toBe(text);
     for (const id of ids) expect(get(copy, id), id).toMatchObject(FIELD_VALUES);
     expect(text).toContain(
-      'node n "Node" locked hidden collapsed tags api, v2 marker p2 task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" at 0,0 size 160,90 edited "Ada" at 1700000000000'
+      'node n "Node" locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" at 0,0 size 160,90 edited "Ada" at 1700000000000'
     );
     expect(text).toContain(
-      'n -> c as l1 locked hidden collapsed tags api, v2 marker p2 task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000'
+      'n -> c as l1 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000'
     );
   });
 
@@ -83,7 +81,7 @@ describe("fields on every item type", () => {
   });
 
   it("changes only the fields a restatement names, and clears them with off and none", () => {
-    const document = canvas('node a "A" locked tags x, y marker p1 task done link b at 0,0');
+    const document = canvas('node a "A" locked tags x, y marker star task done link b at 0,0');
     write(document, 'edit a property owner "Ada" property env "prod"');
     expect(get(document, "a").properties).toEqual({ owner: "Ada", env: "prod" });
     write(
@@ -97,15 +95,15 @@ describe("fields on every item type", () => {
     expect(item.marker).toBe("none");
     expect(item.task).toBe("none");
     expect(item.link).toBe("");
-    write(document, "edit a hidden tags z");
-    expect(get(document, "a")).toMatchObject({ hidden: true, tags: ["z"] });
+    write(document, "edit a collapsed tags z");
+    expect(get(document, "a")).toMatchObject({ collapsed: true, tags: ["z"] });
     expect(get(document, "a").locked).toBe(false);
   });
 
   it("refuses markers, tasks and tags outside their sets, changing nothing", () => {
     const document = canvas('node a "A"');
     const before = printCanvas(document);
-    expect(() => write(document, "edit a marker p9")).toThrow(/Choose marker p1\|p2/);
+    expect(() => write(document, "edit a marker p9")).toThrow(/Choose marker star\|circle/);
     expect(() => write(document, "edit a task maybe")).toThrow(/Choose task open\|done/);
     expect(() => write(document, "edit a tags with:colon")).toThrow(/cannot be a tag/);
     expect(() => write(document, "style s locked")).toThrow(/only look properties/);

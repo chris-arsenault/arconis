@@ -4,14 +4,12 @@ import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
 import {
   callEveryone,
-  closeChat,
   dismissSpotlight,
   followPeer,
   freshSpotlights,
   liveLaser,
   peerStates,
   readPeerState,
-  sendChat,
   stopFollowing,
   type PeerState,
 } from "../editor/presence";
@@ -48,46 +46,6 @@ export function LaserTrail({
         strokeLinejoin="round"
       />
     </svg>
-  );
-}
-
-/** The line this person is saying beside their cursor, until Escape or an empty send. */
-function CursorChat({
-  editor,
-  session,
-}: Readonly<{ editor: EditorController; session: RoomSession }>) {
-  const [text, setText] = useState("");
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => input.current?.focus(), []);
-  const close = () => closeChat(editor, session);
-  const at = editor.pointer ? editor.worldPoint(editor.pointer) : null;
-  const screen = at ? toScreen(editor, at) : { x: 24, y: 24 };
-  useEffect(() => {
-    if (input.current)
-      Object.assign(input.current.style, { left: `${screen.x + 16}px`, top: `${screen.y + 20}px` });
-  }, [screen.x, screen.y]);
-  return (
-    <input
-      ref={input}
-      className="cursor-chat"
-      aria-label="Say something beside your cursor"
-      placeholder="Say something"
-      data-hint-detail="Others see your words beside your cursor as you type; Enter clears, Escape closes."
-      value={text}
-      onChange={(event) => {
-        setText(event.target.value);
-        sendChat(session, event.target.value);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Escape" || (event.key === "Enter" && !text)) close();
-        else if (event.key === "Enter") {
-          setText("");
-          sendChat(session, "");
-        }
-        event.stopPropagation();
-      }}
-      onBlur={close}
-    />
   );
 }
 
@@ -175,7 +133,7 @@ function Pulse({ editor }: Readonly<{ editor: EditorController }>) {
   return <div ref={ref} key={id} className="find-pulse" data-testid="find-pulse" />;
 }
 
-/** This person's own presence chrome: their laser, chat line, following state and incoming calls. */
+/** This person's own presence chrome: their laser, following state and incoming calls. */
 export function PresenceOverlays({
   editor,
   session,
@@ -185,7 +143,6 @@ export function PresenceOverlays({
   return (
     <>
       <LaserTrail editor={editor} points={editor.ui.laser} color={own?.user?.color ?? "#7863d4"} />
-      {editor.ui.chat && <CursorChat editor={editor} session={session} />}
       <FollowingPill editor={editor} session={session} />
       <SpotlightBanner editor={editor} session={session} />
       <Pulse editor={editor} />

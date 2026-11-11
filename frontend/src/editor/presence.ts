@@ -6,7 +6,7 @@ import { flyToView } from "./views";
 
 /**
  * What each participant shares beyond the document: their name, cursor, drag preview, where
- * they are looking, a fading laser, a line of cursor chat and a call to look at their view.
+ * they are looking, a fading laser and a call to look at their view.
  * All of it rides on awareness and writes nothing to the document.
  */
 export interface PeerState {
@@ -15,7 +15,6 @@ export interface PeerState {
   preview: PreviewBox[];
   viewport: { center: { x: number; y: number }; zoom: number } | null;
   laser: { x: number; y: number; at: number }[];
-  chat: string;
   spotlight: { at: number } | null;
 }
 /** Awareness fields arrive independently; normalize the wire boundary before using presence. */
@@ -27,7 +26,6 @@ export function readPeerState(value: unknown): PeerState {
     preview: state.preview ?? [],
     viewport: state.viewport ?? null,
     laser: state.laser ?? [],
-    chat: state.chat ?? "",
     spotlight: state.spotlight ?? null,
   };
 }
@@ -77,10 +75,6 @@ export function callEveryone(session: RoomSession) {
   setField(session, "spotlight", { at: Date.now() });
 }
 
-export function sendChat(session: RoomSession, text: string) {
-  setField(session, "chat", text || null);
-}
-
 export function sendLaser(session: RoomSession, points: PeerState["laser"] | null) {
   setField(session, "laser", points);
 }
@@ -90,7 +84,7 @@ export function showPeerView(
   editor: EditorController,
   viewport: NonNullable<PeerState["viewport"]>
 ) {
-  const view: View = { id: "", name: "", center: viewport.center, zoom: viewport.zoom };
+  const view: View = { center: viewport.center, zoom: viewport.zoom };
   editor.history.travel(() => flyToView(editor.graph, editor.element, view, false));
 }
 
@@ -160,19 +154,6 @@ export function stopFollowing(editor: EditorController) {
   if (editor.ui.following === null) return;
   editor.ui.following = null;
   editor.emit();
-}
-
-export function openChat(editor: EditorController) {
-  editor.ui.chat = true;
-  editor.emit();
-}
-
-/** Closes the chat line and takes its words away from peers. */
-export function closeChat(editor: EditorController, session: RoomSession) {
-  sendChat(session, "");
-  editor.ui.chat = false;
-  editor.emit();
-  editor.element.focus({ preventScroll: true });
 }
 
 /** Lets a call to follow pass, remembering it so it does not return. */

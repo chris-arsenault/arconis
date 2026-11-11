@@ -188,7 +188,7 @@ function registerReading(server: McpServer, sessions: AgentSessions, owner: Sess
     {
       title: "Inspect the canvas outline and object ids",
       description:
-        "Read-only overview of the open canvas: title, participants, counts, bounds, styles, object and line ids/names, decks and slides, discussions and saved views. Use read to inspect actual content before editing.",
+        "Read-only overview of the open canvas: title, participants, counts, bounds, styles, object and line ids/names, decks and slides, and discussions. Use read to inspect actual content before editing.",
       inputSchema: sessionShape,
       annotations: { readOnlyHint: true },
     },

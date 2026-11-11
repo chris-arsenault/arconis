@@ -213,44 +213,37 @@ it("shows a compact property panel only for a selection, with controls that appl
   await context.close();
 });
 
-it("saves a place, lists it, returns to it on another window size and syncs it", async () => {
+it("marks an object as a jump point, lists it for a peer, flies there and syncs its removal", async () => {
   const first = await browser.newContext(VIEWPORT);
   const second = await browser.newContext({ viewport: { width: 1000, height: 700 } });
   const room = createRoomId();
   const a = await open(first, room);
   await add(a, "Rectangle (R)", "Far away", 300, 300);
-  await a.getByRole("button", { name: "Zoom in", exact: true }).click();
   await a.getByLabel("Object x", { exact: true }).fill("5000");
-  await canvas(a).click({ position: emptySpot });
-  // Opening a document panel narrows the canvas, so the view is fitted and measured after it.
+  await a.getByLabel("Object x", { exact: true }).press("Enter");
   await dockPanel(a, "Navigate");
-  await a.getByRole("button", { name: "Fit canvas", exact: true }).click();
-  const zoom = await a.getByTestId("zoom-level").textContent();
-  const offsetFromCenter = async (page: Page) => {
-    const bounds = (await canvas(page).boundingBox())!;
-    const box = await row(page, "Far away").boundingBox();
-    if (!box) return Infinity;
-    return box.x + box.width / 2 - (bounds.x + bounds.width / 2);
-  };
-  const expected = await offsetFromCenter(a);
-  await a.getByRole("button", { name: "Save current view", exact: true }).click();
-  const saved = a.getByRole("button", { name: "View 1", exact: true });
-  await saved.waitFor();
-  await saved.hover();
-  await a.getByRole("button", { name: "Rename view View 1", exact: true }).click();
-  await a.getByLabel("New name for View 1", { exact: true }).fill("Far corner");
-  await a.keyboard.press("Enter");
+  const jumps = (page: Page) => page.locator("details.rail-section[aria-label='Jump points']");
+  await jumps(a).getByRole("button", { name: "Mark selection", exact: true }).click();
+  await jumps(a).getByRole("button", { name: "Far away", exact: true }).waitFor();
+  expect((await exported(a)).text).toContain("jump");
   const b = await open(second, room);
   await dockPanel(b, "Navigate");
-  const named = b.getByRole("button", { name: "Far corner", exact: true });
+  const named = jumps(b).getByRole("button", { name: "Far away", exact: true });
   await named.waitFor({ timeout: 15000 });
+  expect(await row(b, "Far away").isVisible()).toBe(false);
   await named.click();
-  await expect.poll(() => b.getByTestId("zoom-level").textContent()).toBe(zoom);
-  await expect.poll(async () => Math.abs((await offsetFromCenter(b)) - expected)).toBeLessThan(5);
-  await a.getByRole("button", { name: "Far corner", exact: true }).hover();
-  await a.getByRole("button", { name: "Remove view Far corner", exact: true }).click();
+  await expect.poll(() => row(b, "Far away").isVisible()).toBe(true);
+  const bounds = (await canvas(b).boundingBox())!;
+  await expect
+    .poll(async () => {
+      const box = (await row(b, "Far away").boundingBox())!;
+      return Math.abs(box.x + box.width / 2 - (bounds.x + bounds.width / 2));
+    })
+    .toBeLessThan(200);
+  await jumps(a).getByRole("button", { name: "Far away", exact: true }).hover();
+  await jumps(a).getByRole("button", { name: "Remove jump point Far away", exact: true }).click();
   await expect.poll(() => named.count(), { timeout: 15000 }).toBe(0);
-  expect((await exported(a)).views).toHaveLength(0);
+  expect((await exported(a)).objects.some((item) => item.jump)).toBe(false);
   expect(errors).toEqual([]);
   await first.close();
   await second.close();
@@ -269,12 +262,9 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
     700,
     150
   );
-  await canvas(page).click({ position: emptySpot });
   await dockPanel(page, "Navigate");
-  await page
-    .getByLabel("View name", { exact: true })
-    .fill("Overview of the whole platform at a glance");
-  await page.getByRole("button", { name: "Save current view", exact: true }).click();
+  await page.getByRole("button", { name: "Mark selection", exact: true }).click();
+  await canvas(page).click({ position: emptySpot });
 
   // A frame's title ends inside the frame, which is 320 wide, instead of running past it.
   const title = (await row(page, /^Payments platform/).boundingBox())!;
@@ -301,22 +291,23 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
   for (const right of boxes) expect(right).toBeLessThanOrEqual(rail.x + rail.width + 1);
 
   // Every secondary panel is the same disclosure: History starts closed with its step count,
-  // Saved views starts open, and each stays as it was left after a reload.
+  // Jump points starts open, and each stays as it was left after a reload.
   const history = page.locator("details.rail-section[aria-label='History']");
   expect(await history.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
   expect(await history.locator(".rail-count").textContent()).toMatch(/^\d+$/);
   await history.locator("summary").click();
   await history.locator("button[aria-current='step']").waitFor();
-  const views = page.locator("details.rail-section[aria-label='Saved views']");
-  await views.locator("summary").click();
-  await expect.poll(() => page.getByLabel("View name", { exact: true }).isVisible()).toBe(false);
-  // The undo history does not survive a reload, so only the saved views panel is there to check.
+  const jumps = page.locator("details.rail-section[aria-label='Jump points']");
+  const mark = page.getByRole("button", { name: "Mark selection", exact: true });
+  await jumps.locator("summary").click();
+  await expect.poll(() => mark.isVisible()).toBe(false);
+  // The undo history does not survive a reload, so only the jump points panel is there to check.
   await page.reload();
   await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
   await dockPanel(page, "Navigate");
-  expect(await views.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
-  await views.locator("summary").click();
-  await page.getByLabel("View name", { exact: true }).waitFor();
+  expect(await jumps.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
+  await jumps.locator("summary").click();
+  await mark.waitFor();
   expect(errors).toEqual([]);
   await context.close();
 });

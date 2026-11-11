@@ -4,16 +4,21 @@ import {
   ChevronsUpDown,
   ExternalLink,
   LocateFixed,
-  Eye,
-  EyeOff,
   ListOrdered,
   Lock,
+  MapPin,
+  MapPinOff,
   Unlock,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { MARKERS, TASK_STATES, type Item, type TaskState } from "../document/types";
 import { branchChildren, holdsOthers } from "../document/relations";
+import {
+  TREE_DIRECTIONS,
+  type TreeDirection,
+  type TreeLayoutOptions,
+} from "../document/treeLayout";
 import { isWebLink } from "../language/fields";
 import { isCanvasObjectUrl } from "../document/ids";
 import { MARKER_SIGNS } from "../editor/marks";
@@ -94,14 +99,14 @@ function CommittedField({
   );
 }
 
-/** Lock, hide and, for anything that holds others, collapse: the selection's state on the canvas. */
+/** Lock, jump point and, for anything that holds others, collapse: the selection's state on the canvas. */
 export function StateToggles({
   selected,
   items,
   onChange,
 }: Readonly<{ selected: Item[]; items: Item[]; onChange: Change }>) {
   const locked = selected.every((candidate) => candidate.locked);
-  const hidden = selected.every((candidate) => candidate.hidden);
+  const jump = selected.every((candidate) => candidate.jump);
   const collapsible = selected.some(
     (candidate) => candidate.collapsed || holdsOthers(items, candidate.id)
   );
@@ -118,13 +123,13 @@ export function StateToggles({
         onClick={() => onChange({ locked: !locked })}
       />
       <ToggleButton
-        on={hidden}
-        label="Hide"
-        offLabel="Show"
-        detail="Hidden objects, with their contents and lines, disappear for everyone until shown."
-        icon={EyeOff}
-        offIcon={Eye}
-        onClick={() => onChange({ hidden: !hidden })}
+        on={jump}
+        label="Mark as jump point"
+        offLabel="Remove jump point"
+        detail="Jump points are listed in Navigate, where anyone in the room can fly to them."
+        icon={MapPin}
+        offIcon={MapPinOff}
+        onClick={() => onChange({ jump: !jump })}
       />
       {collapsible && (
         <ToggleButton
@@ -162,6 +167,60 @@ export function NumberBranchesToggle({
   );
 }
 
+const TIDY_DIRECTIONS: Record<TreeDirection, string> = {
+  sides: "Sides as placed",
+  balanced: "Balanced on both sides",
+  right: "To the right",
+  left: "To the left",
+  down: "Downward",
+};
+
+/** How Tidy lays out this topic's tree; the tree remembers, and each change tidies it again. */
+export function TidyOptions({
+  selected,
+  items,
+  onChange,
+}: Readonly<{
+  selected: Item[];
+  items: Item[];
+  onChange: (values: Partial<TreeLayoutOptions>) => void;
+}>) {
+  const [root] = selected;
+  if (selected.length !== 1 || !branchChildren(items, root.id).length) return null;
+  return (
+    <div className="tidy-options" role="group" aria-label="Tidy options">
+      <select
+        aria-label="Tidy direction"
+        data-hint-detail="Where Tidy puts this topic's branches; choosing one tidies the tree that way."
+        value={root.tidy.direction}
+        onChange={(event) => onChange({ direction: event.target.value as TreeDirection })}
+      >
+        {TREE_DIRECTIONS.map((direction) => (
+          <option key={direction} value={direction}>
+            {TIDY_DIRECTIONS[direction]}
+          </option>
+        ))}
+      </select>
+      <label data-hint-detail="Tidy with tighter gaps between branches.">
+        <input
+          type="checkbox"
+          checked={root.tidy.compact}
+          onChange={(event) => onChange({ compact: event.target.checked })}
+        />
+        Compact
+      </label>
+      <label data-hint-detail="Tidy with branches in alphabetical order.">
+        <input
+          type="checkbox"
+          checked={root.tidy.sorted}
+          onChange={(event) => onChange({ sorted: event.target.checked })}
+        />
+        Sorted by name
+      </label>
+    </div>
+  );
+}
+
 /** Marker, task state and link, applied to the whole selection. */
 export function StatusFields({
   selected,
@@ -178,7 +237,7 @@ export function StatusFields({
       <span>Marker</span>
       <select
         aria-label="Marker"
-        data-hint-detail="Put a priority or progress sign beside the selected objects."
+        data-hint-detail="Put a shape badge beside the selected objects; its meaning is yours to decide."
         value={marker ?? "mixed"}
         onChange={(event) => onChange({ marker: event.target.value as Item["marker"] })}
       >
@@ -240,7 +299,7 @@ function LinkControl({
         key={`link ${selected.map((item) => item.id).join(" ")} ${value}`}
         className="link-field"
         label="Link"
-        detail="Point the selected objects at a web address, saved view or object id."
+        detail="Point the selected objects at a web address or object id."
         placeholder={value === null ? "Mixed links" : "Web address or item id"}
         value={link}
         onCommit={(text) => onChange({ link: text.trim() })}
@@ -250,7 +309,7 @@ function LinkControl({
           className="icon-action link-follow"
           aria-label={followLabel}
           data-hint={followLabel}
-          data-hint-detail="Web addresses open in a new tab; objects and saved views fly into sight."
+          data-hint-detail="Web addresses open in a new tab; objects fly into sight."
           onClick={() => onFollow(link)}
         >
           <LinkIcon size={14} />

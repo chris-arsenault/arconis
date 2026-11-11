@@ -16,7 +16,7 @@ panel buttons available while giving the canvas more space.
 
 The right dock shows the selected object's properties, and beneath them three document panels:
 **Layers** for organising the canvas, **Slides** for building and presenting decks, and
-**Navigate** for saved views, topic outlines, tags and history. Choosing a panel's tab opens it
+**Navigate** for jump points, topic outlines, tags and history. Choosing a panel's tab opens it
 and choosing it again folds it away. With nothing selected and no panel open, the dock narrows to
 its tabs.
 
@@ -50,9 +50,9 @@ affecting the canvas selection.
 
 ## Canvas display
 
-Open **Settings** in the header to control your canvas display. Comments, tags, markers,
-relationships and task/lock indicators each offer **Show**, **Selected** and **Hide**. These
-preferences stay in your browser; hidden indicators leave their information available in Properties.
+Open **Settings** in the header to control your canvas display. One **Indicators** setting covers
+comments, tags, markers, relationships and task/lock signs: **Show**, **Selected** or **Hide**. The
+preference stays in your browser; hidden indicators leave their information available in Properties.
 Unselected objects use compact icons, with tag names and single-item counts expanding on selection.
 Indicators stack with their objects and rise while selected. Settings also offers markup and grid
 visibility, alongside their existing drawing and view controls.
@@ -84,14 +84,14 @@ and keep the edit. Enter alone adds a line. [Text and formatting](text.md) expla
 code, equations, preview and copy controls.
 
 The header's **Canvas title** names the document. The object label is separate from the document
-title and from the name of a saved view.
+title.
 
 ## Select and transform
 
 - Press **V** for Select. Click an object or drag across empty canvas to select an area.
 - Shift-click, Ctrl-click or Command-click toggles an object in the selection. Alt-click on
   stacked objects steps down to the one beneath the selection.
-- The command palette offers **Select same type**, **same style**, **same fill**, **children**,
+- The command palette offers **Select same type**, **same style**, **children**,
   **siblings** and **connected**, and **Invert selection** (Ctrl/Command Shift I).
 - Drag the selection to move it. Single-object handles resize it; the top handle rotates eligible objects.
 - Several objects, groups and drawings get a collective frame. Its corners scale the selection
@@ -140,7 +140,7 @@ appropriate scale for that view.
 At distant zoom, details too small to read can disappear from the view. Zoom in or select an
 object to see it again. Objects outside the window are also skipped while drawing the view;
 they remain in the document and can still appear in a full-canvas export. This is separate
-from hiding an object, hiding a layer or collapsing a topic. Use
+from hiding a layer or collapsing a topic. Use
 [Find on canvas](#find-on-canvas) to locate something you cannot see.
 
 Resizing the browser window preserves the center of your view. Opening or closing a side panel
@@ -173,7 +173,7 @@ and Add the ring then holds that mode's tools wherever it is pressed, so changin
 more stroke and never a required step.
 
 A wedge with a rim on its outer edge opens another ring: Mode, Colour, and in Draw the
-highlighters, vector shapes and erasers. It opens when a held pointer rests on it or strokes
+vector shapes and erasers. It opens when a held pointer rests on it or strokes
 out through it, centred on the pointer, and when clicked. **Back** sits opposite the wedge that
 opened it, so reversing the stroke returns. No ring opens a third. Escape cancels an unfinished
 choice.
@@ -196,8 +196,7 @@ and lines.
 
 The menu groups the same commands by intent: text, structure (branch, sibling, relate,
 connect), tags and status, arrangement, visibility, clipboard, view, and delete last. Families
-fold into submenus that open in place: **Align**, **Distribute**, **Tidy branches** and
-**Marker**.
+fold into submenus that open in place: **Align**, **Distribute** and **Marker**.
 
 The **selection toolbar** sits beside the selected object, with fills, line colour, text size,
 shape, comment and the rest of the menu. Editing text swaps its contents for Markdown tools in
@@ -281,8 +280,7 @@ The words you type match names, subtitles, tags, markers, comments and ids. Use 
 tag match. Choose named tag or marker chips to highlight related objects and list their matches.
 Enter, Shift Enter and the arrows step through the matches in reading
 order, flying to each one, selecting it and ringing it briefly; the list beneath shows the first
-matches, with hidden objects marked. The first Enter visits the first match. **Reveal** beside a
-hidden result restores that object without revealing the rest. Escape closes find.
+matches. The first Enter visits the first match. Escape closes find.
 
 ## Containers and groups
 
@@ -318,7 +316,7 @@ A frame, group or other holder keeps its contents on its own layer. Move the hol
 or drag an object out of its holder first; it keeps the layer it was in.
 
 A **Frame** is a titled container. **Screens** in the stencil rail creates frames at common
-device sizes; **Screen size** in the property panel changes them. A **Band** supplied through
+device sizes, which resize like any other frame. A **Band** supplied through
 the language spans behind items without holding them.
 
 Select several objects and choose **Group** or press Ctrl/Command G to wrap them together.
@@ -329,19 +327,16 @@ Use **Align** with multiple boxes to align edges or centers. Distribution contro
 available with enough objects to establish gaps. Drag guides help with placement. With one
 object selected, hold **Alt** and hover another to read the distances between them.
 
-### Docked frames, tables and task lists
+### Docked frames and task lists
 
 Frames whose edges meet are docked: dragging the shared edge of one resizes its neighbour so
 the edge stays shared, which makes a row or column of frames behave as swimlanes without a
 lane object. Move a frame as a whole and its neighbours stay where they are.
 
-**Insert a table** in the command palette places a group of docked frames, a header row over
-cells, where the pointer is; **Add a table row** and **Add a table column** grow it from a
-selected cell. Resizing a shared table boundary keeps its rows or columns aligned.
-**Insert a task list** places a column frame whose members are tasks: the
+**Insert a task list** in the command palette places a column frame whose members are tasks: the
 title counts how many are done, done tasks recede, **Alt Enter** while typing a task adds the
-next one below it, and anything dragged into the list becomes a task. Assistants write both as
-ordinary frames, groups and tasks in the canvas language.
+next one below it, and anything dragged into the list becomes a task. Assistants write it as
+an ordinary frame and tasks in the canvas language.
 
 ### Arranged frames
 
@@ -378,7 +373,7 @@ Any workspace object can serve as a topic, including a frame, an ink path or a l
 - **Tab** adds a branch from the selected topic; **Alt Enter** adds a sibling. A branch is a
   compact topic in its parent's style, one line tall, that grows as its text wraps.
 - Moving a topic carries its branches. Hold Alt while moving to move that topic alone.
-- **Tidy branches** lays out the selected topic's descendants.
+- **Tidy branches** lays out the selected topic's descendants the way that topic remembers.
 - **Z** zooms into the topic. Small details are culled from the view, and a label's `⊕` mark
   signals hidden detail beneath it.
 
@@ -408,12 +403,16 @@ selected: the chevrons fold and unfold, a click flies to a topic, a double click
 it, and with a row focused, Tab indents it under the topic above, Shift Tab promotes it, Enter
 adds a branch, Shift Enter a sibling, and Alt Up or Down reorders it.
 
-**Layout** is a set of verbs in the command palette: **Tidy branches** keeps each branch on its
-side, **Tidy branches to the right**, **to the left** or **downward** put them all one way,
-**Tidy branches compactly** tightens the gaps, **Sort branches by name** orders them, and
-**Balance branches on both sides** alternates them around the root. **Tidy into a grid** lays
-loose objects in rows, and **Lay out as a flow** ranks connected objects left to right along
-their lines. Assistants write the same: `tidy root down sorted`.
+**Tidy branches** is one command, and the tree remembers how it is tidied. Select the topic that
+heads the tree and, under **Relationships** in the property panel, choose its **Tidy direction**:
+**Sides as placed** keeps each branch on the side it is on, **Balanced on both sides** alternates
+the branches around the root, and **To the right**, **To the left** or **Downward** put them all
+one way. **Compact** tightens the gaps and **Sorted by name** orders the branches. Each choice
+tidies the tree at once, is shared with the room and travels with a file; **Tidy** afterwards
+lays the tree out the same way. Assistants write the same words: `tidy root down sorted`.
+
+For objects that are not a tree, **Tidy into a grid** lays loose objects in rows, and **Lay out
+as a flow** ranks connected objects left to right along their lines.
 
 **Number branches** under Relationships gives a topic's branches tiered numbers, 1, 1.1, 1.2,
 shown before their names, so a person or an assistant can say "change 2.3".
@@ -451,12 +450,12 @@ every kind of object. Its head names what is selected; click the name to edit it
 for the full menu. **Edit source** unfolds the label's Markdown. Then come:
 
 - **Relationships**: the topic it branches from, the frame it sits in, its references and lines,
-  each a row that flies to the other end, with its branch count, **Tidy**, **Number branches**,
-  **Add branch**, **Relate to…** and **Zoom into**. With two objects selected it offers **Relate
+  each a row that flies to the other end, with its branch count, **Tidy** and its options,
+  **Number branches**, **Add branch**, **Relate to…** and **Zoom into**. With two objects selected it offers **Relate
   these two** and **Connect with a line**.
 - **Tags and status**: tags, marker, task, link and properties.
 - **Appearance**: named style, fill, line, icon colour, text and, for a line, its connection.
-- **Layout**: position and size, alignment for several objects, screen size, and lock, hide and
+- **Layout**: position and size, alignment for several objects, and lock, jump point and
   collapse.
 - **Slide** for a slide, and **Comments**.
 
@@ -464,8 +463,7 @@ Each section folds from its header and stays as it was left on this device. Sect
 not apply to the selection are left out.
 
 **Properties** give an object named values, such as owner, environment or ticket. Hover an
-object to read them, and write `{owner}` in a label to show the value there. Files and
-assistants carry them as `property owner "Ada"`.
+object to read them. Files and assistants carry them as `property owner "Ada"`.
 
 ## History
 
@@ -489,19 +487,18 @@ the stroke ends.
 Arconis follows the system's colour scheme. The chrome around the canvas darkens; objects keep
 the colours they were given, so a canvas reads the same on every screen and in every export.
 
-## Lock, hide, collapse, tags, tasks and links
+## Lock, collapse, jump points, tags, tasks and links
 
 These fields apply to every kind of object, lines included, and to the whole selection at once.
-Lock, hide and collapse sit under **Layout** in the property panel; tags, marker, task and link
-under **Tags and status**.
+Lock, jump point and collapse sit under **Layout** in the property panel; tags, marker, task and
+link under **Tags and status**.
 
 - **Lock** keeps pointer edits away: a locked object cannot be moved, resized, rotated, edited or
   deleted, a marquee and Select all pass over it, and its chrome carries a padlock. Click it and
   choose **Unlock** to release it, or run **Unlock all** from the command palette. Assistants can
   still change a locked object.
-- **Hide** takes an object off the canvas with what it holds and the lines touching it. The
-  object stays in the document, out of routing, layout and exported pictures. The **N hidden**
-  button at the top right brings every hidden object back.
+- **Mark as jump point** lists an object under [Jump points](#jump-points) in Navigate, where
+  anyone in the room can fly to it. **Remove jump point** takes it off the list.
 - **Collapse** folds away what an object holds or heads: a frame shrinks to its title bar, a
   topic keeps its node, and the label shows how many objects are folded, as `▸3`. Everyone sees
   the same fold. **Expand** restores it.
@@ -510,26 +507,26 @@ under **Tags and status**.
   space to add it as a chip, or pick one the room already uses. **Tag…** in the ring's north-west
   wedge or the menu opens the same editor above the selection. With several objects selected,
   the chips are the tags they share; adding or removing one changes every object.
-- **Marker** adds a priority badge, P1 to P5, or a progress quarter from ○ to ●, outside the text.
-  Click the badge to highlight objects with the same marker.
+- **Marker** adds a shape badge outside the text: a star, circle, square, triangle, diamond or
+  hexagon. A shape means whatever your room decides it means. Click the badge to highlight
+  objects with the same marker.
 - **Task** adds a checkbox in the object chrome. Any frame, card or topic holding or heading tasks
   shows how many are done in a separate badge, as `2/5`.
-- **Link** holds a web address or the id of an object, slide or saved view; the arrow beside it
+- **Link** holds a web address or the id of an object or slide; the arrow beside it
   opens the address in a new tab or flies to the target.
 - **Last edited by** names whoever changed the object most recently, person or assistant, and
   when. Files carry it, so an opened file keeps its editors.
 
 While typing a label, `#word` adds a tag, `[]` or `[x]` at the start makes it an open or done
-task, and `:p1` to `:p5` or `:q0` to `:q4` set a marker. The shorthand leaves the label when the
+task, and `:star`, `:circle` or another shape's name sets a marker. The shorthand leaves the label when the
 edit finishes and becomes the fields above.
 
 **Tags**, under **Navigate**, lists the room's tags with how many objects carry each; choosing one
 filters the canvas to it. **Ctrl/Command Shift F** opens the same **Find and filter** panel,
 with named, counted chips for tags, markers, task states and editors. Chosen chips keep their objects bright, with the
 lines among them, and dim everything else; chips of one kind are alternatives, and kinds
-combine. **Clear highlights** restores the full canvas. **Gather into frame** moves what matches into a new frame laid out as a grid to the right
-of the canvas; with no filter, **Gather the selection into a frame** does the same for the
-selection. Closing the bar clears the filter.
+combine. **Clear highlights** restores the full canvas. Matching objects stay where they are.
+Closing the bar clears the filter.
 
 Files and assistants read and write the same fields as words of the canvas language; the
 `canvas_help` topic "flags-tags-tasks-and-links" lists them.
@@ -544,13 +541,18 @@ Vendor icons retain their colors and proportions, scale evenly and remain unrota
 icons can offer an icon-color control. Pictures are added by pasting or dropping image files;
 see [files and pictures](files.md#add-and-move-pictures).
 
-## Saved views
+## Jump points
 
-Open **Navigate** in the right dock, name the current position and zoom under **Saved views**, and choose **Save view**.
-Click a saved view to fly there. The buttons beside its name rename or remove it.
+A jump point is an object marked as a place to return to. Select the object and choose **Mark as
+jump point** under **Layout** in the property panel, in the menu or in the command palette; or
+open **Navigate** in the right dock and choose **Mark selection** under **Jump points**.
 
-Saved views are shared document data, while following one changes only your viewport. Use
-[slides](slides.md) for bounded presentation regions rather than navigation bookmarks.
+**Jump points** lists the marked objects by name. Click one to fly to it and select it. The
+button beside its name removes it from the list and leaves the object alone. The list follows
+the objects: renaming one renames its entry, and deleting one removes it.
+
+Jump points are shared with the room and travel with a file, while flying to one changes only
+your viewport. Use [slides](slides.md) for bounded presentation regions.
 
 ## Other workflows
 
@@ -608,10 +610,8 @@ text field is not consuming the key; [text editing](text.md#text-editing-shortcu
 | Shift N                                 | Capture notes                                                  |
 | Shift C                                 | Open the selected object's comments                            |
 | K (hold)                                | Point with the laser                                           |
-| /                                       | Say something beside your cursor                               |
 | .                                       | Focus on the selection, or leave focus                         |
 | Ctrl/Command Shift L                    | Lock / unlock                                                  |
-| Ctrl/Command Shift H                    | Hide                                                           |
 | Ctrl/Command .                          | Collapse / expand                                              |
 | Ctrl/Command Enter                      | Make a task, mark it done, then clear it                       |
 | Z / Shift Z                             | Zoom into the selection / back out                             |

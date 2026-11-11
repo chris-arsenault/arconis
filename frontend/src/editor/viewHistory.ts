@@ -20,13 +20,11 @@ export class ViewHistory {
     private element: Pick<HTMLElement, "clientWidth" | "clientHeight">
   ) {}
 
-  /** The view as it is now, in the form saved views take. */
+  /** The view as it is now. */
   current(): View {
     const { scale, translate } = this.graph.view;
     const { width, height } = viewportSize(this.element);
     return {
-      id: "",
-      name: "",
       zoom: scale,
       center: {
         x: width / 2 / scale - translate.x,

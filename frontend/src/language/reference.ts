@@ -60,7 +60,7 @@ Types:
 - frame: a container with a title. group: a light dashed container.
 - band: a highlight behind items, spanning across frames: band <id> "name" / "subtitle" over a, b, c. It is sized to cover them once everything is placed.
 - text: free text. note: a sticky note. picture: an image people added (agents do not add pictures).
-Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up. For an id that is also an attribute word (ink, target, markup, workspace, locked, hidden, collapsed, numbered, tags, marker, task, link, property or edited), follow the id with a quoted name, which may be empty; canonical files do this automatically.
+Ids are short words (letters, digits, _ and -) you choose, unique on the canvas; they are how you and lines refer to items. Leave one out and the canvas makes one up. For an id that is also an attribute word (ink, target, markup, workspace, locked, collapsed, jump, tidy, numbered, tags, marker, task, link, property or edited), follow the id with a quoted name, which may be empty; canonical files do this automatically.
 The name and subtitle are both optional: node r2 / "Amazon Aurora" has only a subtitle. Write \\n in text for a line break.
 
 Example:
@@ -124,14 +124,14 @@ An item's own look applies over its style. Restating a style replaces it everywh
 
 Any item or line takes these among its attributes, whatever its type; canonical output prints them after what the item is and before its look:
 - locked: pointer edits in the browser leave it alone until someone unlocks it; agents may still change it. locked off unlocks.
-- hidden: not drawn, not routed around, not in exported pictures and not counted by layout; its holder, what it holds and its lines stay in the canvas. hidden off shows it again.
 - collapsed: an item that holds or heads others shows without them; a frame shrinks to its title bar, a topic keeps its node, and a count badge says how many are folded away. Shared with everyone. collapsed off expands.
+- jump: a jump point, listed by name in the Navigate panel so anyone can fly to it; mark the few objects people will want to return to. jump off removes it.
 - numbered: a topic's branches show tiered numbers, 1, 1.1, 1.2, in the order they sit, so a person or an agent can say "change 2.3". numbered off removes them.
 - tags a, b, c: free categorical words of letters, digits, _ and -. Restating tags replaces the list; tags none clears it.
-- marker p1|p2|p3|p4|p5|q0|q1|q2|q3|q4: a small badge, priority 1 (highest) to 5 or progress in quarters 0 to 4; marker none removes it.
+- marker star|circle|square|triangle|diamond|hexagon: a small shape badge whose meaning the room decides; marker none removes it.
 - task open|done: a checkbox in the label; a holder or topic over tasks shows how many are done. task none removes it.
-- link "https://…" or link <id>: a web address, or an item, slide or saved view to fly to; link none removes it.
-- property <name> "value": a named value the item carries, such as property owner "Ada" or property ticket "ARC-12"; write several. People see them on hover, and {name} in a label shows the value there. property <name> none removes one.
+- link "https://…" or link <id>: a web address, or an item or slide to fly to; link none removes it.
+- property <name> "value": a named value the item carries, such as property owner "Ada" or property ticket "ARC-12"; write several. People see them on hover. property <name> none removes one.
 - edited "name" at <milliseconds>: who last changed the item and when. The canvas sets it on every edit by a person or an agent; files carry it.
 
 ## Changing what exists
@@ -141,7 +141,7 @@ Any item or line takes these among its attributes, whatever its type; canonical 
 - An existing id named alone inside a block moves that item into the block: frame r2 { api }
 - Restate a line by its id: a -> c as w1 "new label"
 - delete a, b removes items with everything they hold and their lines.
-- tidy <id> lays out a mind map's topics under the given topic, each branch on the side it already lies. tidy <id> right, left or down puts every branch on that side or beneath; compact tightens the gaps; sorted orders branches by name: tidy root down sorted.
+- tidy <id> lays out a mind map's topics under the given topic the way that topic remembers, which to begin with is each branch on the side it already lies. tidy <id> right, left or down puts every branch on that side or beneath; balanced alternates the branches between the two sides; sides returns to keeping each where it lies; compact tightens the gaps; sorted orders branches by name: tidy root down sorted. The topic remembers the words given, so a later tidy <id>, or Tidy in the editor, lays the tree out the same way; a file carries them on the topic as tidy down sorted among its attributes.
 - title "Canvas name" renames the canvas.
 - scale 100 represents 1 "m" calibrates distances without changing object coordinates. scale none clears calibration. Distances must be positive and finite; the unit is a quoted label of at most 32 characters. Files preserve the shared scale; coordinates remain canvas units.
 
@@ -161,7 +161,7 @@ ink freehand|line|arrow|double-arrow|rectangle|ellipse|polygon|bracket|brace|clo
 
 Markup is shared, saved and undoable, with no expiration. Tool selection and layer visibility are personal editor state. Ink edits use the existing atomic write and agent-local undo. A saved file and MCP read return these exact records.
 
-Frames and groups accept scale-contents (or scale-contents off). Editing an existing panel's size with this enabled scales descendant positions, dimensions, path points, text and paint once, including nested content. Pictures and vendor icons keep their proportions. Ordinary panels leave child geometry unchanged; file declarations keep geometry exactly as written. Legacy sketch syntax loads as an ordinary frame with scale-contents, and is printed as frame. Panels do not clip their contents. Markup cannot be a connector endpoint; remove connectors in the same write before converting connected ink to markup. An invalid conversion rejects the whole write without changing the canvas.
+Frames and groups accept scale-contents (or scale-contents off). Editing an existing panel's size with this enabled scales descendant positions, dimensions, path points, text and paint once, including nested content. Pictures and vendor icons keep their proportions. Ordinary panels leave child geometry unchanged; file declarations keep geometry exactly as written. Panels do not clip their contents. Markup cannot be a connector endpoint; remove connectors in the same write before converting connected ink to markup. An invalid conversion rejects the whole write without changing the canvas.
 
 ## Layers
 
@@ -181,13 +181,11 @@ Content layers stack the workspace in named collections, bottom to top, beneath 
 
 A slide is a fixed-size viewport over the canvas, 1280 by 720 unless sized, that presents what lies within it. To present existing content, place a slide over its region; this does not copy the content or change its holder. A slide holds nothing: its block places new items over it, within its area, but they stay where they are when the slide later moves or is deleted, and in <slide> is refused. It keeps its size. A deck is the name its slides share, written bare or in quotes, and N is the slide's number in that deck; without a number a slide takes the next, and without a deck it joins the deck named deck. People present a deck in number order, so renumber with edit s3 deck pitch 2. Comments on a slide are its speaker notes. A slide numbered 0 is the deck's template: the top-level items centred within it, with what they hold, are drawn under every other slide of the deck, at the same place within each, and a presentation skips it. slide t deck pitch 0 at 0,0 { text "Acme" at 1100,680 size 160,30 } puts the company name at the bottom right of every slide in pitch.
 
-## Discussions and views
+## Discussions
 
   comment on <id> "text"          start a discussion on an item
   reply <discussion id> "text"    reply to one
   resolve <discussion id>         resolve one; reopen <discussion id> reopens it
-  view <id> "name" center x,y zoom N     save a view (zoom 1 is normal magnification, 1×)
-
 ## Reading
 
 What you read is written in this same language: a file is the whole canvas in it. Read output may add // notes such as which items overlap.

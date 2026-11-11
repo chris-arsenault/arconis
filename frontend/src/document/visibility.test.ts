@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CanvasDocument } from "./canvasDocument";
-import { foldedBy, hiddenIds, holdsOthers, taskCounts, visibleItems } from "./relations";
+import { foldedBy, holdsOthers, taskCounts, visibleItems } from "./relations";
 import { LOCAL } from "./types";
 import { parse } from "../language/parser";
 import { writeStatements } from "../language/writer";
@@ -13,7 +13,7 @@ function canvas(text: string) {
 const sorted = (ids: Iterable<string>) => [...ids].sort((a, b) => a.localeCompare(b));
 const ids = (items: { id: string }[]) => sorted(items.map((item) => item.id));
 
-describe("hidden and collapsed items", () => {
+describe("collapsed items", () => {
   const TREE = `
     frame f "Frame" at 0,0 {
       node a "A"
@@ -26,27 +26,6 @@ describe("hidden and collapsed items", () => {
     a -> c as ac
     c -> root as cr
   `;
-
-  it("hides an item with its contents and the lines touching them, keeping its holder", () => {
-    const document = canvas(`${TREE}\nedit a hidden`);
-    expect(sorted(hiddenIds(document.list()))).toEqual(["a", "ac"]);
-    const drawn = ids(visibleItems(document.list()));
-    expect(drawn).not.toContain("a");
-    expect(drawn).not.toContain("ac");
-    expect(drawn).toContain("f");
-    expect(drawn).toContain("b");
-    expect(drawn).toContain("cr");
-  });
-
-  it("hides a holder with everything inside it", () => {
-    const document = canvas(`${TREE}\nedit f hidden`);
-    const drawn = ids(visibleItems(document.list()));
-    expect(drawn).not.toContain("f");
-    expect(drawn).not.toContain("a");
-    expect(drawn).not.toContain("b");
-    expect(drawn).not.toContain("ac");
-    expect(drawn).toContain("c");
-  });
 
   it("folds a collapsed holder's contents and a collapsed topic's branches away, not the item", () => {
     const document = canvas(`${TREE}\nedit f collapsed\nedit root collapsed`);

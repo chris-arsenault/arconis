@@ -1,9 +1,8 @@
 import type { CanvasComment } from "../document/comments";
-import { hiddenIds, removalClosure, worldBounds } from "../document/relations";
+import { worldBounds } from "../document/relations";
 import { isBox, typeLabel, type Item } from "../document/types";
 import type { EditorController } from "./controller";
 import { fittingView, flyToView } from "./views";
-import { changeFields } from "./commands";
 import { EMPTY_FILTER, filterMatches, isEmptyFilter, type Filter } from "./filter";
 import { MARKER_LABELS } from "./markerLabels";
 
@@ -14,7 +13,6 @@ export interface Match {
   item: Item;
   /** The field that matched, or a metadata filter when no words were entered. */
   where: "name" | "subtitle" | "tag" | "marker" | "comment" | "id" | "filter";
-  hidden: boolean;
 }
 
 /** What find looks through on an item: its own words, and the comments on it. */
@@ -46,7 +44,7 @@ function matchingField(
 
 /**
  * Items whose words contain the query, in reading order across the canvas: top to bottom, then
- * left to right, so Next walks the canvas the way eyes do. Hidden items are found too, marked.
+ * left to right, so Next walks the canvas the way eyes do.
  */
 export function findMatches(
   items: Item[],
@@ -58,7 +56,6 @@ export function findMatches(
   const filtering = !isEmptyFilter(filter);
   if (!typed && !filtering) return [];
   const allowed = filtering ? filterMatches(items, filter) : null;
-  const hidden = hiddenIds(items);
   const byItem = new Map<string, CanvasComment[]>();
   for (const comment of comments)
     byItem.set(comment.on, [...(byItem.get(comment.on) ?? []), comment]);
@@ -66,7 +63,7 @@ export function findMatches(
   const matches: Match[] = [];
   for (const item of candidates) {
     const where = matchingField(item, byItem.get(item.id) ?? [], typed);
-    if (where) matches.push({ item, where, hidden: hidden.has(item.id) });
+    if (where) matches.push({ item, where });
   }
   return matches.sort(readingOrder);
 }
@@ -79,37 +76,14 @@ function readingOrder(a: Match, b: Match) {
 }
 
 /** How a match reads in the list: its name or kind, and where the words were. */
-export function describeMatch({ item, where, hidden }: Match) {
+export function describeMatch({ item, where }: Match) {
   const name = item.name.split("\n")[0] || typeLabel(item);
-  const notes = [
-    where === "name" || where === "filter" ? "" : where,
-    hidden ? "hidden" : "",
-  ].filter(Boolean);
-  return notes.length ? `${name} (${notes.join(", ")})` : name;
+  return where === "name" || where === "filter" ? name : `${name} (${where})`;
 }
 
-/** Flies to a match and selects it when it is drawn. */
+/** Flies to a match and selects it. */
 export function showMatch(editor: EditorController, match: Match) {
   const box = isBox(match.item) ? match.item : worldBounds([match.item]);
   if (box) flyToView(editor.graph, editor.element, fittingView(box, editor.element, FIND_FILL));
-  if (!match.hidden) editor.select(match.item.id);
-  else {
-    editor.graph.clearSelection();
-    editor.emit();
-  }
-}
-
-/** Reveals this result and any hidden holder/end that hides it, leaving unrelated flags alone. */
-export function revealMatch(editor: EditorController, match: Match) {
-  const items = editor.document.list();
-  const hidden = items.filter(
-    (item) => item.hidden && removalClosure(items, [item.id]).has(match.item.id)
-  );
-  changeFields(
-    editor.document,
-    hidden.map((item) => item.id),
-    { hidden: false }
-  );
-  const current = editor.document.get(match.item.id);
-  if (current) showMatch(editor, { ...match, item: current, hidden: false });
+  editor.select(match.item.id);
 }

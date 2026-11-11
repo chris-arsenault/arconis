@@ -9,7 +9,6 @@ import {
 } from "../editor/filter";
 import { MARKER_SIGNS } from "../editor/marks";
 import { MARKER_LABELS } from "../editor/markerLabels";
-import { runCommand } from "../editor/registry";
 import { isLink, type Marker, type TaskState } from "../document/types";
 
 const TASK_LABELS: Record<TaskState, string> = { open: "☐ To do", done: "☑ Done" };
@@ -120,14 +119,6 @@ export function FilterBar({ editor }: Readonly<{ editor: EditorController }>) {
             onClick={() => editor.setFilter(EMPTY_FILTER)}
           >
             Clear highlights
-          </button>
-          <button
-            className="text-action"
-            data-hint="Gather matches into a frame"
-            data-hint-detail="Move the highlighted objects into a new frame for everyone; Undo puts them back."
-            onClick={() => runCommand(editor, "structure.gather")}
-          >
-            Gather into frame
           </button>
         </div>
       )}

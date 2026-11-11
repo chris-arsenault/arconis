@@ -2,7 +2,7 @@ import { requestedId, type Statement } from "./syntax";
 
 export type Conversation = Extract<
   Statement,
-  { kind: "view" | "discussion" | "comment" | "reply" | "resolve" }
+  { kind: "discussion" | "comment" | "reply" | "resolve" }
 >;
 
 type NonItemEffect = {
@@ -67,7 +67,6 @@ const EFFECTS: Effects = {
     kind: "metadata",
     reason: "Deleting a layer removes its items as a consequence, as deleting a holder does.",
   }),
-  view: () => ({ kind: "conversation", reason: "Views have no item stale-check policy." }),
   discussion: () => ({
     kind: "conversation",
     reason: "Imported discussions preserve their contents.",

@@ -12,9 +12,10 @@ import { LayerField } from "./LayersPanel";
 import { InkMoves, InkPaint } from "./InkProperties";
 import { isInk } from "../document/ink";
 import { StyleControls, GeometryControls } from "./ObjectProperties";
-import { AlignControls, Relationships, ScreenSizeControl } from "./TopicControls";
+import { AlignControls, Relationships } from "./TopicControls";
 import { itemName } from "../editor/relate";
-import { NumberBranchesToggle, StateToggles, StatusFields } from "./FieldControls";
+import { NumberBranchesToggle, StateToggles, StatusFields, TidyOptions } from "./FieldControls";
+import { tidyTreeAs } from "../editor/layoutCommands";
 import { PropertiesControls } from "./PropertiesControls";
 import { SlideControls } from "./SlideControls";
 import { followLink } from "../editor/links";
@@ -208,6 +209,11 @@ function RelationsSection({ editor, selected, sections }: PanelProps) {
           items={items}
           onChange={(values) => changeFields(canvas, ids(selected), values)}
         />
+        <TidyOptions
+          selected={selected}
+          items={items}
+          onChange={(values) => tidyTreeAs(canvas, selected[0].id, values)}
+        />
       </Relationships>
     </RailSection>
   );
@@ -316,12 +322,6 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
         onAlign={(mode) => alignSelection(editor, mode)}
         onDistribute={(axis) => distributeSelection(editor, axis)}
       />
-      {single && (
-        <ScreenSizeControl
-          item={item}
-          onSize={(width, height) => editor.updateGeometry(item.id, { width, height })}
-        />
-      )}
       <StateToggles
         selected={selected}
         items={canvas.list()}

@@ -251,18 +251,6 @@ const CONVERSE: {
     speaker: Speaker
   ) => void;
 } = {
-  // Restating a view's id changes it, except from a file, which adds its views beside these.
-  view: (draft, statement, { importing }) => {
-    const requested = requestedId(statement.identity);
-    const taken = importing && draft.document.views.has(requested);
-    const free = requested && isId(requested) && !taken;
-    draft.views.push({
-      id: free ? requested : newId((id) => draft.document.views.has(id)),
-      name: statement.name,
-      center: statement.center,
-      zoom: statement.zoom,
-    });
-  },
   discussion,
   comment: (draft, statement, speaker) => {
     const on = draft.resolve(statement.on, statement.line);

@@ -1,9 +1,9 @@
 import { roomHash } from "../collaboration/room";
 import type { CommandDefinition as Command, CommandContext } from "./registry";
-import { callEveryone, itemLink, openChat, peerStates, stopFollowing } from "./presence";
+import { callEveryone, itemLink, peerStates, stopFollowing } from "./presence";
 import { LASER_KEY } from "./laserInput";
 
-/** Being together on the canvas: calling everyone over, following, pointing, chatting and linking. */
+/** Being together on the canvas: calling everyone over, following, pointing and linking. */
 
 const inRoom = ({ editor }: CommandContext) => editor.room !== null;
 const withPeers = (context: CommandContext) =>
@@ -37,16 +37,6 @@ export const PRESENCE_COMMANDS: Command[] = [
     keywords: ["pointer", "highlight for others"],
     when: inRoom,
     run: () => undefined,
-  },
-  {
-    id: "presence.chat",
-    label: "Say something beside your cursor",
-    help: "Type a short message that shows under your name at your cursor for everyone here.",
-    group: "view",
-    shortcuts: [{ key: "/" }],
-    keywords: ["cursor chat", "message"],
-    when: inRoom,
-    run: ({ editor }) => openChat(editor),
   },
   {
     id: "presence.copyLink",

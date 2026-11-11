@@ -94,7 +94,7 @@ export const STOPS: Stop[] = [
     panel: "rail-draw",
     title: "Draw",
     tryIt: false,
-    text: "P draws editable ink that stays part of the canvas, in the active layer. Pick the pen, highlighters, shapes, erasers and fill, then set the brush.",
+    text: "P draws editable ink that stays part of the canvas, in the active layer. Pick the pen, shapes, erasers and fill, then set the brush.",
     side: "right",
   },
   {
@@ -126,7 +126,7 @@ export const STOPS: Stop[] = [
     panel: "dock-navigate",
     title: "Navigate",
     tryIt: false,
-    text: "Saved views are shared places on the canvas anyone can return to. The outline, tags and history help you find your way around a large room.",
+    text: "Jump points are objects marked for anyone in the room to fly back to. The outline, tags and history help you find your way around a large room.",
     side: "left",
   },
   {

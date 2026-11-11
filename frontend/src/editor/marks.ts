@@ -12,18 +12,14 @@ export interface Marks {
 }
 const NONE: Marks = { before: "", after: "" };
 
-/** How each marker reads in a label: a priority, or progress in quarters. */
+/** The shape each marker draws beside a label. */
 export const MARKER_SIGNS: Record<Marker, string> = {
-  p1: "P1",
-  p2: "P2",
-  p3: "P3",
-  p4: "P4",
-  p5: "P5",
-  q0: "○",
-  q1: "◔",
-  q2: "◑",
-  q3: "◕",
-  q4: "●",
+  star: "★",
+  circle: "●",
+  square: "■",
+  triangle: "▲",
+  diamond: "◆",
+  hexagon: "⬢",
 };
 
 /** The signs an item's own fields add, before and after its name. */

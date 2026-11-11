@@ -54,7 +54,7 @@ it("gives libraries a consistent disclosure and keeps document navigation in its
     "Azure",
     "Google Cloud",
   ]);
-  expect(await page.getByLabel("View name", { exact: true }).count()).toBe(0);
+  expect(await page.getByRole("button", { name: "Mark selection", exact: true }).count()).toBe(0);
   expect(await page.getByRole("button", { name: "Add slide", exact: true }).count()).toBe(0);
   const architecture = page.locator("details[aria-label='Architecture']");
   await architecture.locator("summary").click();
@@ -70,8 +70,9 @@ it("gives libraries a consistent disclosure and keeps document navigation in its
   expect((await exported(page)).objects[0].icon).toBe("aws:AWS-Lambda");
   // The document's panels are on the right, and leave the stencils where they were.
   await dockPanel(page, "Navigate");
-  await page.getByLabel("View name", { exact: true }).fill("Overview");
-  await page.getByRole("button", { name: "Save current view", exact: true }).click();
+  const jumps = page.locator("details.rail-section[aria-label='Jump points'] .rail-row");
+  await page.getByRole("button", { name: "Mark selection", exact: true }).click();
+  await expect.poll(() => jumps.count()).toBe(1);
   await dockPanel(page, "Slides");
   await page.getByText("No slides yet.", { exact: false }).waitFor();
   await page.getByRole("button", { name: "Add slide", exact: true }).click();
@@ -79,7 +80,7 @@ it("gives libraries a consistent disclosure and keeps document navigation in its
   await page.getByRole("button", { name: "Present deck", exact: true }).waitFor();
   await page.screenshot({ path: "test-results/dock-slides.png" });
   await dockPanel(page, "Navigate");
-  await page.getByRole("button", { name: "Overview", exact: true }).waitFor();
+  await expect.poll(() => jumps.count()).toBe(1);
   expect(await page.getByLabel("Search stencils", { exact: true }).isVisible()).toBe(true);
   await page.screenshot({ path: "test-results/dock-navigate.png" });
   expect(errors).toEqual([]);
@@ -99,7 +100,7 @@ it("saves and recalls a visible brush preset without a hidden modifier gesture",
   await page.getByRole("button", { name: "Replace saved brush 1", exact: true }).click();
   await page.getByRole("button", { name: "Use saved brush 3", exact: true }).click();
   expect(
-    await page.getByRole("button", { name: "Marker", exact: true }).getAttribute("aria-pressed")
+    await page.getByRole("button", { name: "Freehand", exact: true }).getAttribute("aria-pressed")
   ).toBe("true");
   await page.getByRole("button", { name: "Use saved brush 1", exact: true }).click();
   expect(await page.getByLabel("Stroke color", { exact: true }).inputValue()).toBe("#1971c2");

@@ -52,16 +52,19 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   await page.getByLabel("Edit canvas text").fill("Edited on canvas");
   await page.getByLabel("Edit canvas text").press("Escape");
   await expect.poll(() => row(page, "Edited on canvas").count()).toBe(1);
+  await row(page, "Edited on canvas").click();
   await dockPanel(page, "Navigate");
-  await page.getByLabel("View name", { exact: true }).fill("Overview");
-  await page.getByRole("button", { name: "Save current view", exact: true }).click();
+  const jump = page
+    .locator("details.rail-section[aria-label='Jump points']")
+    .getByRole("button", { name: "Edited on canvas", exact: true });
+  await page.getByRole("button", { name: "Mark selection", exact: true }).click();
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
-  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await jump.click();
   await page.screenshot({ path: "test-results/mixed-canvas.png" });
   await page.reload();
   await row(page, "Edited on canvas").waitFor();
   await dockPanel(page, "Navigate");
-  await page.getByRole("button", { name: "Overview", exact: true }).waitFor();
+  await jump.waitFor();
   expect(await objectCount(page)).toBe(3);
   expect(errors).toEqual([]);
   await context.close();
@@ -128,7 +131,7 @@ async function sharedGroupDeletion(a: Page, b: Page) {
   await expect.poll(() => objectCount(a), { timeout: 15000 }).toBe(0);
 }
 
-it("drags and resizes attached objects, changes routing and preserves portable views", async () => {
+it("drags and resizes attached objects, changes routing and imports its own export", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
   await add(page, "Rectangle (R)", "Move me", 220, 170);
@@ -149,9 +152,6 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   await selectConnector(page);
   await page.getByLabel("Line type").selectOption("diagonal");
   await page.getByLabel("Object text", { exact: true }).fill("Relationship");
-  await dockPanel(page, "Navigate");
-  await page.getByLabel("View name", { exact: true }).fill("Portable view");
-  await page.getByRole("button", { name: "Save current view", exact: true }).click();
   const saved = await exported(page);
   const edge = saved.objects.find((item) => item.type === "line")!;
   expect(saved.objects.find((item) => item.id === edge.from)).toMatchObject({
@@ -161,14 +161,12 @@ it("drags and resizes attached objects, changes routing and preserves portable v
   });
   expect(saved.objects.find((item) => item.id === edge.to)?.name).toBe("Attached note");
   expect(edge.look.path).toBe("diagonal");
-  expect(saved.views[0].name).toBe("Portable view");
   await page.getByLabel("Import file").setInputFiles({
     name: "copy.arconis",
     mimeType: "text/plain",
     buffer: Buffer.from(saved.text),
   });
   await expect.poll(() => objectCount(page)).toBe(6);
-  expect((await exported(page)).views).toHaveLength(2);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(3);
   expect(errors).toEqual([]);

@@ -54,16 +54,9 @@ it("matches armed tools to cursors over objects and restores the pen after tempo
   );
   expect(sizes.every(([width, height]) => width === 28 && height === 28)).toBe(true);
   await page.getByLabel("Stroke color", { exact: true }).fill("#ff0000");
-  for (const [family, tool, name] of [
-    ["Highlight", "Marker", "marker"],
-    ["Highlight", "Object outline", "target"],
-    ["Highlight", "Shaped highlight", "crosshair"],
-    ["Vector", "Rectangle", "crosshair"],
-  ] as const) {
-    await button(page, family).click();
-    await button(page, tool).click();
-    await cursor(page, name);
-  }
+  await button(page, "Vector").click();
+  await button(page, "Rectangle").click();
+  await cursor(page, "crosshair");
   for (const [tool, name] of [
     ["Erase segment", "eraser"],
     ["Erase stroke", "eraser"],

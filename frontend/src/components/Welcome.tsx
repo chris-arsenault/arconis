@@ -117,12 +117,17 @@ function WelcomeForm(props: Readonly<Props>) {
       <button className="primary" onClick={onCreate}>
         Create a room <ArrowRight size={18} />
       </button>
-      <button type="button" className="welcome-local" onClick={onCreateLocal}>
-        Work on this device only
-      </button>
-      <button type="button" className="welcome-local" onClick={props.onCreateLocked}>
-        Create a password room
-      </button>
+      <details className="welcome-options">
+        <summary>Room options</summary>
+        <button type="button" className="welcome-local" onClick={props.onCreateLocked}>
+          Create a password room
+        </button>
+        <p>Joining also needs a password, and the canvas is encrypted in the browser.</p>
+        <button type="button" className="welcome-local" onClick={onCreateLocal}>
+          Work on this device only
+        </button>
+        <p>The canvas stays in this browser, with no sharing link.</p>
+      </details>
       <div className="divider">or join a shared canvas</div>
       <form
         onSubmit={(event) => {

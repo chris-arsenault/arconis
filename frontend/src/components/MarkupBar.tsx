@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from "react";
 import {
+  Braces,
+  Brackets,
   Check,
+  Cloud,
   Eraser,
   Eye,
   EyeOff,
@@ -30,6 +33,9 @@ const TOOL_ICONS: Record<MarkupTool, LucideIcon> = {
   marker: Highlighter,
   arrow: MoveUpRight,
   box: Square,
+  bracket: Brackets,
+  brace: Braces,
+  cloud: Cloud,
   outline: ScanLine,
   eraser: Eraser,
   select: Lasso,

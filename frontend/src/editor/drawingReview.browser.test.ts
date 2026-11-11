@@ -160,9 +160,9 @@ it("preserves visible wide ink when moving between markup and content layers", a
   expect(errors).toEqual([]);
 });
 
-it("reads legacy Drawing holders as ordinary scalable panels without clipping their ink", async () => {
+it("keeps a scalable frame unrotated and leaves its ink unclipped", async () => {
   const { page } = await scene(`style turned rotate 90 line #112233
-    sketch s at 200,200 size 200,100 turned {
+    frame s at 200,200 size 200,100 scale-contents turned {
       drawing p points 270,170 330,170 330,330 270,330 270,170 closed fill #ff0000 line #ff0000
     }`);
   const canvas = page.getByTestId("canvas");

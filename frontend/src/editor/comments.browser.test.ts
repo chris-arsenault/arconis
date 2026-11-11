@@ -88,7 +88,7 @@ it("keeps long tags and comment controls inside a narrow canvas without changing
     .getByLabel("Add a tag", { exact: true })
     .fill("architecture-platform-runtime-contract, api");
   await page.getByLabel("Add a tag", { exact: true }).press("Enter");
-  await page.getByLabel("Marker", { exact: true }).selectOption("p1");
+  await page.getByLabel("Marker", { exact: true }).selectOption("star");
   await page.getByRole("button", { name: "Close properties", exact: true }).click();
   const chrome = page.getByTestId("object-metadata");
   await chrome.waitFor();

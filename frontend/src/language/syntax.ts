@@ -9,7 +9,7 @@ import type {
   Port,
   TaskState,
 } from "../document/types";
-import type { TreeDirection } from "../document/treeLayout";
+import type { TreeLayoutOptions } from "../document/treeLayout";
 import type { Calibration } from "../document/units";
 
 /**
@@ -22,8 +22,9 @@ export const DRAWING_WORDS = new Set([
   "markup",
   "workspace",
   "locked",
-  "hidden",
   "collapsed",
+  "jump",
+  "tidy",
   "numbered",
   "tags",
   "marker",
@@ -82,6 +83,8 @@ export type Attribute =
   | { kind: "ink"; ink: InkKind }
   | { kind: "target"; ref: string }
   | { kind: "flag"; flag: Flag; value: boolean }
+  /** How a topic's tree is tidied, remembered by the topic. */
+  | { kind: "tidy"; options: TreeLayoutOptions }
   /** An empty list clears the tags. */
   | { kind: "tags"; tags: string[] }
   | { kind: "marker"; marker: Marker | "none" }
@@ -161,13 +164,6 @@ export type Statement =
   | ({ kind: "style"; name: string; attributes: Attribute[] } & Located)
   | ({ kind: "delete"; refs: string[] } & Located)
   | ({
-      kind: "view";
-      identity: RequestedId;
-      name: string;
-      center: { x: number; y: number };
-      zoom: number;
-    } & Located)
-  | ({
       kind: "discussion";
       on: string;
       resolved: boolean;
@@ -176,13 +172,8 @@ export type Statement =
   | ({ kind: "comment"; on: string; text: string } & Located)
   | ({ kind: "reply"; to: string; text: string } & Located)
   | ({ kind: "resolve"; id: string; resolved: boolean } & Located)
-  | ({
-      kind: "tidy";
-      ref: string;
-      direction: TreeDirection;
-      compact: boolean;
-      sorted: boolean;
-    } & Located)
+  /** Lays a tree out; with options, the root remembers them first. */
+  | ({ kind: "tidy"; ref: string; options: TreeLayoutOptions | null } & Located)
   | ({ kind: "data"; hash: string; format: string; data: string } & Located)
   | ({
       kind: "layer";

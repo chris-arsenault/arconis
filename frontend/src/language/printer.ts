@@ -9,9 +9,9 @@ import {
   type Item,
   type Look,
   type Port,
-  type View,
 } from "../document/types";
 import { SIDES, DRAWING_WORDS } from "./syntax";
+import { isDefaultTidy, type TreeLayoutOptions } from "../document/treeLayout";
 import { lookEntries } from "./look";
 import { exportItems } from "../document/exportItems";
 import { selectedItems } from "../document/relations";
@@ -45,10 +45,21 @@ function word(text: string) {
   return BARE.test(text) && !text.includes("--") && !text.includes("->") ? text : quote(text);
 }
 
+/** How a topic remembers to be tidied, written only when it differs from the default. */
+function tidyWords(tidy: TreeLayoutOptions) {
+  if (isDefaultTidy(tidy)) return [];
+  const words = ["tidy"];
+  if (tidy.direction !== "sides") words.push(tidy.direction);
+  if (tidy.compact) words.push("compact");
+  if (tidy.sorted) words.push("sorted");
+  return words;
+}
+
 /** Shared item fields in their canonical printed order. */
 function fieldWords(item: Item) {
   const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
   if (item.scaleContents) parts.push("scale-contents");
+  parts.push(...tidyWords(item.tidy));
   if (item.tags.length) parts.push("tags", item.tags.join(", "));
   if (item.marker !== "none") parts.push("marker", item.marker);
   if (item.task !== "none") parts.push("task", item.task);
@@ -240,10 +251,6 @@ export function discussionStatements(comments: CanvasComment[]) {
   return lines;
 }
 
-export function viewStatement(view: View) {
-  return `view ${view.id} ${quote(view.name)} center ${pair(view.center.x, view.center.y)} zoom ${number(view.zoom)}`;
-}
-
 export function styleStatements(document: CanvasDocument, used?: Set<string>) {
   return [...document.styles.entries()]
     .filter(([name]) => !used || used.has(name))
@@ -311,7 +318,6 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   lines.push(...layerStatements(layers, whole ? undefined : layersUsed));
   printTree(chosen, lines);
   lines.push(...discussionStatements(listComments(document).filter((c) => ids.has(c.on))));
-  if (whole) lines.push(...[...document.views.values()].map(viewStatement));
   for (const picture of options.data)
     lines.push(`data ${picture.hash} ${picture.type} ${quote(picture.data)}`);
   return `${lines.join("\n")}\n`;

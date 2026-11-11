@@ -2,7 +2,7 @@ import { it, expect } from "vitest";
 import { createRoomId } from "../collaboration/room";
 import { browser, errors, open, add, row, selectionLabel } from "./browserHarness";
 
-it("follows a participant, answers a call to look, shows chat and lasers, and opens item links", async () => {
+it("follows a participant, answers a call to look, shows lasers, and opens item links", async () => {
   const first = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const second = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const room = createRoomId();
@@ -32,12 +32,8 @@ it("follows a participant, answers a call to look, shows chat and lasers, and op
   await b.getByTestId("following").waitFor();
   await b.getByTestId("canvas").click({ position: { x: 40, y: 40 } });
 
-  // Cursor chat and the laser reach the other side and write nothing to the document.
+  // The laser reaches the other side and writes nothing to the document.
   await a.getByTestId("canvas").hover({ position: { x: 500, y: 500 } });
-  await a.getByTestId("canvas").press("Slash");
-  await a.getByLabel("Say something beside your cursor", { exact: true }).fill("over here");
-  await expect.poll(() => b.getByTestId("peer-chat").textContent()).toBe("over here");
-  await a.getByLabel("Say something beside your cursor", { exact: true }).press("Escape");
   await a.keyboard.down("k");
   for (let step = 0; step < 6; step++)
     await a.getByTestId("canvas").hover({ position: { x: 500 + step * 20, y: 500 + step * 10 } });

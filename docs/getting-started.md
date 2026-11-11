@@ -16,7 +16,8 @@ You can also open **Help → Take the tour** for an introduction to the controls
 4. Choose **Share room**, then **Copy room link** to invite someone. Keep this tab open while
    a new participant joins, so they can receive the canvas.
 
-The welcome screen also offers **Create a password room** and **Work on this device only**.
+**Room options** on the welcome screen holds **Create a password room** and **Work on this
+device only**.
 [Rooms and collaboration](collaboration.md) explains how those choices affect sharing and storage.
 
 ## Build a small diagram
@@ -33,7 +34,7 @@ The welcome screen also offers **Create a password room** and **Work on this dev
 
 You can also drag stencils directly from the rail. Search the rail to find architecture icons.
 The right dock's tabs open **Layers**, **Slides** to create and present decks, and **Navigate**
-for saved views, topic outlines, tags and history.
+for jump points, topic outlines, tags and history.
 The [canvas guide](editing.md) covers selection, containers, connectors and keyboard navigation.
 
 ## Mark it up

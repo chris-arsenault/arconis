@@ -5,7 +5,7 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 
 ## Canvas and diagrams
 
-- Pan and zoom around the pointer, fit the canvas, and navigate through shared saved views.
+- Pan and zoom around the pointer, fit the canvas, and fly to objects marked as shared jump points.
 - Zoom equally far in and out from `1×`, with consistent wheel, button, keyboard and numeric controls.
 - Calibrate distances with presets, a custom reference or a measured known distance; read an adaptive
   scale bar, measure between points, and use physical units in geometry fields and grid snapping.
@@ -16,11 +16,14 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 - Nest workspace items in eligible holders; move contents with their holder and lay out rows,
   columns and grids in arranged frames.
 - Align or distribute selections and build screen layouts with common device-frame sizes.
+- Mark objects with tags, plain shape markers, tasks and named properties, then find and filter
+  by them.
 
 ## Topics and relationships
 
 - Use workspace objects and lines as topics, growing branches and siblings from the keyboard.
-- Move or tidy a topic tree, add cross-references and zoom into smaller-scale detail.
+- Move a topic tree or tidy it the way the tree remembers, add cross-references and zoom into
+  smaller-scale detail.
 - Display references and comments on labels and follow reference targets from the property panel.
 
 ## Text and pictures
@@ -33,9 +36,9 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 
 ## Drawing and markup
 
-- Annotate a diagram with Markup: a short bar of pen, marker, arrow, box, object outline and
-  eraser for temporary, shared annotations that stay out of the layers.
-- Draw artwork into the active layer with Freehand, Highlight or Vector, each with independent
+- Annotate a diagram with Markup: a bar of pen, marker, arrow, box, bracket, brace, revision
+  cloud, object outline and eraser for temporary, shared annotations that stay out of the layers.
+- Draw artwork into the active layer with Freehand or Vector, each with independent
   remembered brushes and contextual paint controls.
 - Lasso whole ink paths, recolor and transform them, and use whole or precision erasing.
 - Fill closed paths with solid colors or linear gradients.

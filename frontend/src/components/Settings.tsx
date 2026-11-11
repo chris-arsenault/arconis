@@ -1,42 +1,21 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import {
-  CheckSquare,
-  GitBranch,
-  MessageSquare,
-  Settings as SettingsIcon,
-  Tags,
-  Flag,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Settings as SettingsIcon, Tags, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import {
-  displayPreferences,
-  type DisplayPreferences,
-  type IndicatorType,
-  type IndicatorVisibility,
-} from "../editor/displayPreferences";
+import { displayPreferences, type IndicatorVisibility } from "../editor/displayPreferences";
 import { HelpZoneToggle } from "./HelpZone";
 import "./settings.css";
 
-const INDICATORS: { type: IndicatorType; label: string; icon: LucideIcon }[] = [
-  { type: "comments", label: "Comments", icon: MessageSquare },
-  { type: "tags", label: "Tags", icon: Tags },
-  { type: "markers", label: "Markers", icon: Flag },
-  { type: "relationships", label: "Relationships", icon: GitBranch },
-  { type: "status", label: "Tasks and locks", icon: CheckSquare },
-];
 const VISIBILITY: { value: IndicatorVisibility; label: string; detail: string }[] = [
-  { value: "show", label: "Show", detail: "Show these indicators on every object in your view." },
+  { value: "show", label: "Show", detail: "Show indicators on every object in your view." },
   {
     value: "selected",
     label: "Selected",
-    detail: "Show these indicators only on objects you select.",
+    detail: "Show indicators only on objects you select.",
   },
   {
     value: "hide",
     label: "Hide",
-    detail: "Hide these indicators; their details stay in Properties.",
+    detail: "Hide indicators; their details stay in Properties.",
   },
 ];
 const CLOSE_DETAIL = "Close settings; your choices are already applied.";
@@ -130,7 +109,8 @@ function SettingsDialog({
         </div>
         <h3>Object indicators</h3>
         <p>
-          Selected shows indicators only on selected objects. Hidden details stay in Properties.
+          Comments, tags, markers, relationships, tasks and locks show together. Selected shows them
+          only on selected objects; hidden details stay in Properties.
         </p>
         <IndicatorSettings preferences={preferences} />
       </div>
@@ -143,26 +123,26 @@ function SettingsDialog({
   );
 }
 
-function IndicatorSettings({ preferences }: Readonly<{ preferences: DisplayPreferences }>) {
-  return INDICATORS.map(({ type, label, icon: Icon }) => (
-    <div className="indicator-setting" key={type}>
-      <span id={`indicator-${type}`}>
-        <Icon size={16} /> {label}
+function IndicatorSettings({ preferences }: Readonly<{ preferences: IndicatorVisibility }>) {
+  return (
+    <div className="indicator-setting">
+      <span id="indicator-visibility">
+        <Tags size={16} /> Indicators
       </span>
-      <div className="indicator-options" role="radiogroup" aria-labelledby={`indicator-${type}`}>
+      <div className="indicator-options" role="radiogroup" aria-labelledby="indicator-visibility">
         {VISIBILITY.map(({ value, label: option, detail }) => (
           <label key={value} data-hint-detail={detail}>
             <input
               type="radio"
-              name={`indicator-${type}`}
+              name="indicator-visibility"
               value={value}
-              checked={preferences[type] === value}
-              onChange={() => displayPreferences.set(type, value)}
+              checked={preferences === value}
+              onChange={() => displayPreferences.set(value)}
             />
             <span>{option}</span>
           </label>
         ))}
       </div>
     </div>
-  ));
+  );
 }

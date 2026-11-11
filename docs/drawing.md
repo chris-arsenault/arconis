@@ -23,6 +23,9 @@ the side panels stay as they were, so the stencils remain in reach while you ann
 | Marker             | Drag to highlight with translucent ink.                |
 | Arrow              | Drag from where the arrow starts to what it points at. |
 | Box                | Drag across an area to frame it.                       |
+| Bracket            | Drag across what the bracket should span.              |
+| Brace              | Drag across what the brace should span.                |
+| Revision cloud     | Drag across an area to cloud it for revision.          |
 | Outline object     | Click an object to toggle an outline that follows it.  |
 | Erase              | Click or sweep across annotations to remove them.      |
 | Select annotations | Drag around annotations to move, restyle or keep them. |
@@ -47,13 +50,12 @@ Open **Draw** in the left rail, or press **P**. Draw paints into the active laye
 in **Layers**; the panel names it. The panel is always about the next mark:
 
 1. **Tool** is one palette: the creation tools and the ink-editing tools are a single choice.
-   Options that belong to one tool, such as Highlight's kind or Vector's geometry, appear beneath it.
+   Options that belong to one tool, such as Vector's geometry, appear beneath it.
 2. **Brush** sets the next mark's Stroke, Fill and Opacity.
 
 | Tool          | Use                                                                  |
 | ------------- | -------------------------------------------------------------------- |
 | Freehand      | Drag a pen stroke.                                                   |
-| Highlight     | Choose Marker, Shaped highlight or an attached Object outline.       |
 | Vector        | Choose a geometric path, then drag its bounds or endpoints.          |
 | Select ink    | Drag around whole paths; Shift adds to the selection.                |
 | Erase stroke  | Remove every whole stroke touched by a click or sweep.               |
@@ -61,8 +63,9 @@ in **Layers**; the panel names it. The panel is always about the next mark:
 | Fill path     | Click a closed path to apply Fill and gradient settings.             |
 | Pick color    | Sample Stroke or Fill and return to the previous creation brush.     |
 
-Freehand, Highlight and Vector remember independent colors, widths, opacity and geometry.
-Highlight remembers its last subtool.
+Freehand and Vector remember independent colors, widths, opacity and geometry. For a translucent
+highlighter, lower **Opacity** on a wide Freehand brush; a saved brush keeps it ready. Review
+marks such as an object outline, a bracket or a revision cloud are [Markup](#markup) tools.
 
 **Stroke** groups the outline's color and width; **Fill** groups a closed interior's color and
 gradient. Each color offers no paint, swatches, recent colors and a color picker. **Opacity**
@@ -73,26 +76,25 @@ and presets are local browser preferences; the paths themselves are shared docum
 
 The right-button ring's **Mode** wedge, to the west on every ring, switches to Draw or Markup
 with the tool each last used. While drawing, the ring holds the drawing tools: freehand north,
-the highlighters north-east, vector shapes east, the lasso south-east, the erasers south and
+pick color north-east, vector shapes east, the lasso south-east, the erasers south and
 fill north-west. Markup's ring holds its pen, marker, arrow, selection, eraser and box.
 
-## Draw shapes and outlines
+## Draw shapes
 
-Choose **Vector**, or **Highlight → Shaped highlight**, then choose geometry:
+Choose **Vector**, then choose geometry:
 
-| Geometry                       | Gesture                                                                |
-| ------------------------------ | ---------------------------------------------------------------------- |
-| Line, Arrow, Double arrow      | Drag from the starting end toward the finishing end.                   |
-| Rectangle, Ellipse             | Drag across opposite corners.                                          |
-| Polygon                        | Click corners; click near the first corner or press Enter to close it. |
-| Bracket, Brace, Revision cloud | Drag across the bounds.                                                |
+| Geometry                  | Gesture                                                                |
+| ------------------------- | ---------------------------------------------------------------------- |
+| Line, Arrow, Double arrow | Drag from the starting end toward the finishing end.                   |
+| Rectangle, Ellipse        | Drag across opposite corners.                                          |
+| Polygon                   | Click corners; click near the first corner or press Enter to close it. |
 
 Hold Shift to constrain equal sides or a fixed direction. Escape cancels an unfinished polygon.
 Changing tools or geometry also cancels unfinished gestures.
 
-**Highlight → Object outline** attaches an outline to the clicked workspace object. It follows
-that object's movement, size and rotation. Click again to remove it. Draw places the outline in
-the active layer; Markup's **Outline object** places it among annotations.
+Markup's **Outline object** attaches an outline to the clicked workspace object. It follows
+that object's movement, size and rotation. Click again to remove it. To keep an outline, a
+bracket or any other annotation as content, select it and choose **Move to content layer**.
 
 ## Select, edit and transfer ink
 
@@ -124,7 +126,7 @@ In a frame or group's **Layout** properties, enable **Scale content on resize** 
 held artwork with the container. It applies to nested content, ink points, shapes, text, pictures
 and internal routes. Paint and text scale too; pictures and vendor icons retain their proportions.
 With the property off, resizing keeps the ordinary panel behavior and leaves content sizes intact.
-The property defaults to off. Older files may group artwork in a frame with it enabled.
+The property defaults to off.
 
 Panels do not crop ink to their bounds. Container contents inherit the container's layer.
 

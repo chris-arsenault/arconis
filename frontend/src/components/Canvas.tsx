@@ -246,14 +246,7 @@ function PeerCursor({ peer, editor }: Readonly<{ peer: PeerState; editor: Editor
       <svg width="18" height="22" viewBox="0 0 18 22">
         <path d="M1 1 L16 12 L8 13 L5 21 Z" fill="currentColor" stroke="white" />
       </svg>
-      <span>
-        {peer.user.name}
-        {peer.chat && (
-          <span className="peer-chat" data-testid="peer-chat">
-            {peer.chat}
-          </span>
-        )}
-      </span>
+      <span>{peer.user.name}</span>
     </div>
   );
 }

@@ -22,7 +22,9 @@ describe("markup preferences", () => {
       width: 36,
       opacity: 30,
     });
-    expect(markup.drawingTool).toBe("marker");
+    expect(markup.cursor).toBe("marker");
+    markup.tool = "cloud";
+    expect(markup.settings).toMatchObject({ mode: "pen", shape: "cloud", width: 8 });
   });
 
   it("never fills or carries a gradient, whichever tool is chosen", () => {

@@ -27,14 +27,13 @@ async function checkCloudAttachment(page: Page) {
   expect(Math.abs(strip.x + strip.width / 2 - shape.x - shape.width / 2)).toBeLessThanOrEqual(1);
 }
 
-async function setVisibility(page: Page, types: string[], value: "Show" | "Selected" | "Hide") {
+async function setVisibility(page: Page, value: "Show" | "Selected" | "Hide") {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
-  for (const type of types)
-    await settings
-      .getByRole("radiogroup", { name: type, exact: true })
-      .getByRole("radio", { name: value, exact: true })
-      .check();
+  await settings
+    .getByRole("radiogroup", { name: "Indicators", exact: true })
+    .getByRole("radio", { name: value, exact: true })
+    .check();
   await settings.getByRole("button", { name: "Done", exact: true }).click();
 }
 
@@ -48,7 +47,7 @@ it("attaches comment, relationship and marker badges to a cloud's painted edge",
       name: "attached-details.arconis",
       mimeType: "text/plain",
       buffer: Buffer.from(`arconis 1
-node cloud "TLS / WAF / Load\\nbalancer" cloud at 100,120 size 260,160 fill #fff0ad tags edge marker p1
+node cloud "TLS / WAF / Load\\nbalancer" cloud at 100,120 size 260,160 fill #fff0ad tags edge marker star
 node app "Application" at 530,140 size 160,90
 node clients "Clients" at 140,450 size 160,90
 cloud ..> app as related
@@ -78,7 +77,7 @@ clients -> cloud as incoming
       .getByRole("list", { name: "Related items" })
       .filter({ hasText: "Application" })
       .waitFor();
-    await strip.getByRole("button", { name: "Highlight Priority 1", exact: true }).click();
+    await strip.getByRole("button", { name: "Highlight Star", exact: true }).click();
     await page.getByRole("button", { name: "Close find", exact: true }).click();
     await strip.getByRole("button", { name: /^1 open comment on TLS/ }).click();
     await page
@@ -125,17 +124,17 @@ it("keeps attached badges and connected-copy handles clickable without reserving
       .getByLabel("Add a tag", { exact: true })
       .fill("architecture-platform-runtime-contract, api");
     await page.getByLabel("Add a tag", { exact: true }).press("Enter");
-    await page.getByLabel("Marker", { exact: true }).selectOption("p1");
+    await page.getByLabel("Marker", { exact: true }).selectOption("star");
     const strip = (await page.getByTestId("object-metadata").boundingBox())!;
     const shape = await paintedBox(page, "#d9e9ff");
     expect(strip.y - shape.y - shape.height).toBeLessThanOrEqual(4);
     await page.screenshot({ path: "test-results/attached-rectangle-details.png" });
     const down = page.getByRole("button", { name: "Add a connected copy down", exact: true });
     const attachedDot = (await down.boundingBox())!;
-    await setVisibility(page, ["Tags", "Markers"], "Hide");
+    await setVisibility(page, "Hide");
     expect(await page.getByTestId("object-metadata").count()).toBe(0);
     expect((await down.boundingBox())!.y).toBeLessThan(attachedDot.y - 10);
-    await setVisibility(page, ["Tags", "Markers"], "Show");
+    await setVisibility(page, "Show");
     for (const side of ["up", "right", "down", "left"]) {
       const dot = page.getByRole("button", { name: `Add a connected copy ${side}`, exact: true });
       expect(
@@ -161,13 +160,7 @@ async function checkSavedSettingsOnPhone(page: Page) {
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   expect(
     await settings
-      .getByRole("radiogroup", { name: "Comments", exact: true })
-      .getByRole("radio", { name: "Hide", exact: true })
-      .isChecked()
-  ).toBe(true);
-  expect(
-    await settings
-      .getByRole("radiogroup", { name: "Markers", exact: true })
+      .getByRole("radiogroup", { name: "Indicators", exact: true })
       .getByRole("radio", { name: "Selected", exact: true })
       .isChecked()
   ).toBe(true);
@@ -178,7 +171,7 @@ async function checkSavedSettingsOnPhone(page: Page) {
   await settings.getByRole("button", { name: "Done", exact: true }).click();
 }
 
-it("remembers independent indicator visibility without changing a peer's view", async () => {
+it("remembers one indicator visibility without changing a peer's view", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const peerContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   try {
@@ -187,7 +180,7 @@ it("remembers independent indicator visibility without changing a peer's view", 
     await add(page, "Rectangle (R)", "Display preferences", 300, 250);
     await page.getByLabel("Add a tag", { exact: true }).fill("runtime");
     await page.getByLabel("Add a tag", { exact: true }).press("Enter");
-    await page.getByLabel("Marker", { exact: true }).selectOption("p1");
+    await page.getByLabel("Marker", { exact: true }).selectOption("star");
     await page.getByTestId("canvas").press("Shift+c");
     await page.getByLabel("Add a comment", { exact: true }).fill("Still available when hidden.");
     await page.getByRole("button", { name: "Post comment", exact: true }).click();
@@ -200,18 +193,14 @@ it("remembers independent indicator visibility without changing a peer's view", 
       name: "1 open comment on Display preferences",
       exact: true,
     });
-    const marker = page.getByRole("button", { name: "Highlight Priority 1", exact: true });
+    const marker = page.getByRole("button", { name: "Highlight Star", exact: true });
     const tags = page.getByRole("button", { name: "Highlight tag runtime", exact: true });
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     const settings = page.getByRole("dialog", { name: "Settings", exact: true });
-    await settings
-      .getByRole("radiogroup", { name: "Comments", exact: true })
-      .getByRole("radio", { name: "Hide", exact: true })
-      .check();
-    const markers = settings.getByRole("radiogroup", { name: "Markers", exact: true });
-    await markers.getByRole("radio", { name: "Show", exact: true }).focus();
+    const indicators = settings.getByRole("radiogroup", { name: "Indicators", exact: true });
+    await indicators.getByRole("radio", { name: "Show", exact: true }).focus();
     await page.keyboard.press("ArrowRight");
-    expect(await markers.getByRole("radio", { name: "Selected", exact: true }).isChecked()).toBe(
+    expect(await indicators.getByRole("radio", { name: "Selected", exact: true }).isChecked()).toBe(
       true
     );
     await page.screenshot({ path: "test-results/indicator-settings-desktop.png" });
@@ -222,28 +211,27 @@ it("remembers independent indicator visibility without changing a peer's view", 
         .getByRole("button", { name: "Settings", exact: true })
         .evaluate((node) => node === document.activeElement)
     ).toBe(true);
-    expect(await comments.count()).toBe(0);
+    expect(await comments.count()).toBe(1);
     expect(await marker.count()).toBe(1);
     expect(await tags.count()).toBe(1);
     await page.getByTestId("canvas").click({ position: { x: 850, y: 700 } });
+    expect(await comments.count()).toBe(0);
     expect(await marker.count()).toBe(0);
-    expect(await tags.count()).toBe(1);
-    expect(await tags.textContent()).toBe("");
+    expect(await tags.count()).toBe(0);
     expect(
       await peer
         .getByRole("button", { name: "1 open comment on Display preferences", exact: true })
         .count()
     ).toBe(1);
-    expect(
-      await peer.getByRole("button", { name: "Highlight Priority 1", exact: true }).count()
-    ).toBe(1);
+    expect(await peer.getByRole("button", { name: "Highlight Star", exact: true }).count()).toBe(1);
     await row(page, "Display preferences").click();
     expect(await marker.count()).toBe(1);
     expect(await tags.textContent()).toBe("runtime");
     await page.reload();
-    await page.getByRole("button", { name: "Highlight tag runtime", exact: true }).waitFor();
+    await row(page, "Display preferences").waitFor();
     expect(await comments.count()).toBe(0);
     expect(await marker.count()).toBe(0);
+    expect(await tags.count()).toBe(0);
     await checkSavedSettingsOnPhone(page);
     expect(errors).toEqual([]);
   } finally {
@@ -260,13 +248,13 @@ it("paints indicators with their object and raises them only while selected", as
       name: "stacked-details.arconis",
       mimeType: "text/plain",
       buffer: Buffer.from(`arconis 1
-node back "Behind" at 100,100 size 220,100 fill #d9e9ff tags runtime marker p1
+node back "Behind" at 100,100 size 220,100 fill #d9e9ff tags runtime marker star
 node front "In front" at 180,190 size 200,90 fill #ffd8d8
 `),
     });
     await expect.poll(() => objectCount(page)).toBe(2);
     await page.getByRole("button", { name: "Dismiss", exact: true }).click();
-    const marker = page.getByRole("button", { name: "Highlight Priority 1", exact: true });
+    const marker = page.getByRole("button", { name: "Highlight Star", exact: true });
     const receivesPointer = () =>
       marker.evaluate((node) => {
         const box = node.getBoundingClientRect();

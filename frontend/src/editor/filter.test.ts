@@ -5,7 +5,6 @@ import { LOCAL } from "../document/types";
 import { parse } from "../language/parser";
 import { writeStatements } from "../language/writer";
 import { EMPTY_FILTER, filterChoices, filterMatches, toggled } from "./filter";
-import { gatherIntoFrame } from "./gather";
 import { brightSet } from "./highlighting";
 
 function canvas(text: string) {
@@ -17,9 +16,9 @@ const sorted = (ids: Iterable<string>) => [...ids].sort((a, b) => a.localeCompar
 
 describe("shorthand typed into labels", () => {
   it("turns #tags, a leading checkbox and :markers into fields and takes them out of the name", () => {
-    expect(absorbShorthand("[] Ship it #api #v2 :p1", { tags: ["old"] })).toEqual({
+    expect(absorbShorthand("[] Ship it #api #v2 :star", { tags: ["old"] })).toEqual({
       name: "Ship it",
-      fields: { tags: ["old", "api", "v2"], marker: "p1", task: "open" },
+      fields: { tags: ["old", "api", "v2"], marker: "star", task: "open" },
     });
     expect(absorbShorthand("[x] Done", { tags: [] })).toEqual({
       name: "Done",
@@ -38,10 +37,10 @@ describe("shorthand typed into labels", () => {
   });
 });
 
-describe("filtering and gathering", () => {
+describe("filtering", () => {
   const document = canvas(`
     note a "A" tags api task open at 0,0
-    note b "B" tags api, v2 marker p1 at 300,0
+    note b "B" tags api, v2 marker star at 300,0
     note c "C" task done at 600,0
     frame f "Frame" at 0,400 { note d "D" tags api }
     a -> b as ab
@@ -52,7 +51,7 @@ describe("filtering and gathering", () => {
   it("offers the canvas's values and keeps matches bright with the lines among them", () => {
     expect(filterChoices(items)).toEqual({
       tags: ["api", "v2"],
-      markers: ["p1"],
+      markers: ["star"],
       tasks: ["open", "done"],
       authors: [],
     });
@@ -63,20 +62,5 @@ describe("filtering and gathering", () => {
     expect(toggled(byTag, "tags", "api")).toEqual(EMPTY_FILTER);
     expect(brightSet(items, null, EMPTY_FILTER)).toBeNull();
     expect(sorted(brightSet(items, "f", byTag)!)).toEqual(["d"]);
-  });
-
-  it("gathers matches into a grid frame to the right of everything", () => {
-    const frame = gatherIntoFrame(document, ["a", "b", "d"], "API");
-    const gathered = document.get(frame)!;
-    expect(gathered).toMatchObject({
-      type: "frame",
-      name: "API",
-      arrange: { how: "grid", columns: 2 },
-    });
-    for (const id of ["a", "b", "d"]) expect(document.get(id)!.inside).toBe(frame);
-    expect(gathered.x).toBeGreaterThan(600);
-    expect(document.get("b")!.x).toBeGreaterThan(document.get("a")!.x);
-    expect(document.get("d")!.y).toBeGreaterThan(document.get("a")!.y);
-    expect(gatherIntoFrame(document, ["ab"])).toBe("");
   });
 });

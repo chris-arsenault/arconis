@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, Eye, Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
-import { describeMatch, findMatches, revealMatch, showMatch, type Match } from "../editor/find";
+import { describeMatch, findMatches, showMatch, type Match } from "../editor/find";
 import { listComments } from "../document/comments";
 import { worldBounds } from "../document/relations";
 import { showFilter, showFind } from "../editor/ui";
@@ -45,7 +45,7 @@ function MatchList({
 }: Readonly<{
   matches: Match[];
   current: number;
-  onShow: (index: number, reveal?: boolean) => void;
+  onShow: (index: number) => void;
 }>) {
   return (
     <ul className="find-matches" aria-label="Matches">
@@ -59,18 +59,6 @@ function MatchList({
           >
             {describeMatch(match)}
           </button>
-          {match.hidden && (
-            <button
-              type="button"
-              className="find-reveal"
-              aria-label={`Reveal ${match.item.name.split("\n")[0] || "this object"}`}
-              data-hint="Reveal this object"
-              data-hint-detail="Unhide this object, and any hidden holder it needs, for everyone; other hidden objects stay hidden."
-              onClick={() => onShow(position, true)}
-            >
-              <Eye size={14} />
-            </button>
-          )}
         </li>
       ))}
       {matches.length > 8 && (
@@ -150,12 +138,11 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
     editor.filter
   );
   const current = matches.length ? Math.min(index, matches.length - 1) : -1;
-  const show = (position: number, reveal = false) => {
+  const show = (position: number) => {
     const match = matches[position];
-    if (reveal) revealMatch(editor, match);
-    else showMatch(editor, match);
+    showMatch(editor, match);
     setIndex(position);
-    setShown({ ...match, hidden: reveal ? false : match.hidden });
+    setShown(match);
   };
   const step = (by: number) => {
     if (!matches.length) return;
@@ -169,7 +156,7 @@ export function FindBar({ editor }: Readonly<{ editor: EditorController }>) {
   };
   return (
     <div className="find-bar discovery-panel" role="search" aria-label="Find on canvas">
-      {shown && !shown.hidden && <Pulse editor={editor} match={shown} />}
+      {shown && <Pulse editor={editor} match={shown} />}
       <FindHeading onClose={close} />
       <FindQuery
         query={query}

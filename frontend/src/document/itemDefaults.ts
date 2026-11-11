@@ -1,3 +1,4 @@
+import { DEFAULT_TIDY } from "./treeLayout";
 import type { Item } from "./types";
 
 /** Complete ordinary item state. Authored appearance remains an override map. */
@@ -22,6 +23,7 @@ export const BLANK: Omit<Item, "id" | "type"> = {
   toPort: null,
   picture: null,
   arrange: { how: "free" },
+  tidy: DEFAULT_TIDY,
   scaleContents: false,
   deck: "",
   slide: 1,
@@ -30,8 +32,8 @@ export const BLANK: Omit<Item, "id" | "type"> = {
   ink: "freehand",
   target: "",
   locked: false,
-  hidden: false,
   collapsed: false,
+  jump: false,
   numbered: false,
   tags: [],
   marker: "none",

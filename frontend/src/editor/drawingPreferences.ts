@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { InkSettings } from "./inkCommands";
-import { DRAWING_TOOLS, drawingToolOf, type DrawingFamily, type DrawingTool } from "./drawingTools";
+import { DRAWING_TOOLS, drawingToolOf, type DrawingTool } from "./drawingTools";
 import { INK_KINDS } from "../document/ink";
 
 export const DRAWING_PREFERENCES_KEY = "arconis-drawing-tools";
@@ -17,16 +17,7 @@ export const DEFAULT_BRUSH: InkSettings = {
 const color = z.string().regex(/^(#[0-9a-f]{6}|none)$/i);
 const brushSchema = z
   .object({
-    mode: z.enum([
-      "pen",
-      "highlighter",
-      "highlight",
-      "eraser",
-      "lasso",
-      "fill",
-      "eyedropper",
-      "precision",
-    ]),
+    mode: z.enum(["pen", "eraser", "lasso", "fill", "eyedropper", "precision"]),
     shape: z.enum(INK_KINDS),
     color,
     width: z.number().positive(),
@@ -40,24 +31,15 @@ const brushSchema = z
 export function readBrush(value: unknown, base = DEFAULT_BRUSH): InkSettings {
   const parsed = brushSchema.safeParse(value);
   if (!parsed.success) return { ...base };
-  const brush = { ...base, ...parsed.data };
-  if (parsed.data.opacity === undefined)
-    brush.opacity = brush.mode === "highlighter" ? 30 : base.opacity;
-  return brush;
+  return { ...base, ...parsed.data };
 }
 
 function initialBrush(tool: DrawingTool): InkSettings {
-  const spec = DRAWING_TOOLS[tool];
-  const shape = tool === "vector" || tool === "highlightShape" ? "rectangle" : "freehand";
-  const marker = spec.mode === "highlighter";
   return {
     ...DEFAULT_BRUSH,
-    mode: spec.mode,
-    shape,
-    color: marker ? "#ffcc00" : DEFAULT_BRUSH.color,
-    width: marker ? 24 : 3,
+    mode: DRAWING_TOOLS[tool].mode,
+    shape: tool === "vector" ? "rectangle" : "freehand",
     fill: tool === "fill" ? DEFAULT_BRUSH.color : "none",
-    opacity: marker ? 30 : 100,
   };
 }
 
@@ -68,24 +50,18 @@ export class DrawingPreferences {
   favorites = [
     DEFAULT_BRUSH,
     { ...DEFAULT_BRUSH, color: "#e64980", width: 6 },
-    initialBrush("marker"),
+    { ...DEFAULT_BRUSH, color: "#ffcc00", width: 24, opacity: 30 },
   ];
   recent: string[] = [];
   sampleTool: DrawingTool = "freehand";
   readonly brushes = Object.fromEntries(
     (Object.keys(DRAWING_TOOLS) as DrawingTool[]).map((tool) => [tool, initialBrush(tool)])
   ) as Record<DrawingTool, InkSettings>;
-  private familyTools: Record<DrawingFamily, DrawingTool> = {
-    freehand: "freehand",
-    highlight: "marker",
-    vector: "vector",
-  };
 
   constructor(saved: unknown = null) {
     if (!saved || typeof saved !== "object") return;
     const state = saved as Record<string, unknown>;
     this.restoreBrushes(state);
-    this.restoreFamilies(state.familyTools);
     this.settings = { ...this.brushes.freehand };
     if (Array.isArray(state.favorites))
       this.favorites = state.favorites.map((brush) => readBrush(brush));
@@ -99,24 +75,11 @@ export class DrawingPreferences {
     this.restoreSampleTool(state.sampleTool);
   }
 
-  private restoreFamilies(saved: unknown) {
-    if (!saved || typeof saved !== "object") return;
-    for (const family of Object.keys(this.familyTools) as DrawingFamily[]) {
-      const tool = (saved as Record<string, unknown>)[family];
-      if (
-        typeof tool === "string" &&
-        tool in DRAWING_TOOLS &&
-        DRAWING_TOOLS[tool as DrawingTool].family === family
-      )
-        this.familyTools[family] = tool as DrawingTool;
-    }
-  }
-
   private restoreSampleTool(tool: unknown) {
     if (
       typeof tool === "string" &&
       tool in DRAWING_TOOLS &&
-      (DRAWING_TOOLS[tool as DrawingTool].family || tool === "fill")
+      (DRAWING_TOOLS[tool as DrawingTool].creates || tool === "fill")
     )
       this.sampleTool = tool as DrawingTool;
   }
@@ -125,27 +88,16 @@ export class DrawingPreferences {
     const saved = state.brushes as Partial<Record<DrawingTool, unknown>> | undefined;
     for (const tool of Object.keys(this.brushes) as DrawingTool[])
       if (saved?.[tool]) this.brushes[tool] = readBrush(saved[tool], initialBrush(tool));
-    const legacy = state.instruments as Record<string, unknown> | undefined;
-    if (!saved && legacy) {
-      this.brushes.freehand = readBrush(legacy.pen, initialBrush("freehand"));
-      this.brushes.marker = readBrush(legacy.highlighter, initialBrush("marker"));
-    }
   }
 
   choose(tool: DrawingTool) {
-    if (DRAWING_TOOLS[this.tool].family || this.tool === "fill") this.sampleTool = this.tool;
+    if (DRAWING_TOOLS[this.tool].creates || this.tool === "fill") this.sampleTool = this.tool;
     this.brushes[this.tool] = { ...this.settings };
     this.tool = tool;
     this.settings = { ...this.brushes[tool] };
     this.settings.mode = DRAWING_TOOLS[tool].mode;
-    if (tool === "freehand" || tool === "marker") this.settings.shape = "freehand";
-    if ((tool === "vector" || tool === "highlightShape") && this.settings.shape === "freehand")
-      this.settings.shape = "rectangle";
-    const family = DRAWING_TOOLS[tool].family;
-    if (family) this.familyTools[family] = tool;
-  }
-  family(family: DrawingFamily) {
-    this.choose(this.familyTools[family]);
+    if (tool === "freehand") this.settings.shape = "freehand";
+    if (tool === "vector" && this.settings.shape === "freehand") this.settings.shape = "rectangle";
   }
 
   update(values: Partial<InkSettings>) {
@@ -155,8 +107,6 @@ export class DrawingPreferences {
     }
     Object.assign(this.settings, values);
     this.brushes[this.tool] = { ...this.settings };
-    const family = DRAWING_TOOLS[this.tool].family;
-    if (family) this.familyTools[family] = this.tool;
     if (values.color)
       this.recent = [values.color, ...this.recent.filter((entry) => entry !== values.color)].slice(
         0,
@@ -169,7 +119,6 @@ export class DrawingPreferences {
       brushes: this.brushes,
       favorites: this.favorites,
       recent: this.recent,
-      familyTools: this.familyTools,
       sampleTool: this.sampleTool,
     };
   }

@@ -1,4 +1,4 @@
-import { branchChildren, branchParent, hiddenIds } from "../document/relations";
+import { branchChildren, branchParent } from "../document/relations";
 import { isBox, type Item } from "../document/types";
 
 /**
@@ -48,8 +48,7 @@ function nearest(from: Item, candidates: Item[], direction: Direction) {
 
 /** Objects the selection can walk to: drawn boxes, leaving out line anchors. */
 function walkable(items: Item[]) {
-  const hidden = hiddenIds(items);
-  return items.filter((item) => isBox(item) && !item.onLine && !hidden.has(item.id));
+  return items.filter((item) => isBox(item) && !item.onLine);
 }
 
 /** The topic's parent, children and siblings, which an arrow prefers over loose neighbours. */

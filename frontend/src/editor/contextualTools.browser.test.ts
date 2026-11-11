@@ -82,7 +82,7 @@ it("keeps below-object tools clear of metadata badges near the canvas edge", asy
     await add(page, "Rectangle (R)", "At the top", 260, 35);
     await page.getByLabel("Add a tag", { exact: true }).fill("api");
     await page.getByLabel("Add a tag", { exact: true }).press("Enter");
-    await page.getByLabel("Marker", { exact: true }).selectOption("p1");
+    await page.getByLabel("Marker", { exact: true }).selectOption("star");
     const tools = page.getByRole("region", { name: "Object tools", exact: true });
     const chrome = page.getByTestId("object-metadata");
     await expect

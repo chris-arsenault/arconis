@@ -52,6 +52,9 @@ function word(item: Item, text: string, { draft, line }: Describing) {
 
 const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
   ...FIELD_DESCRIBERS,
+  tidy: (item, attribute) => {
+    item.tidy = attribute.options;
+  },
   scaleContents: (item, attribute, { line }) => {
     if (!isFrame(item))
       throw new LanguageError("Only a frame or group scales its contents on resize.", line);

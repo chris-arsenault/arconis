@@ -18,7 +18,6 @@ import {
 import type { ReactNode } from "react";
 import type { AlignMode } from "../document/relations";
 import { branchChildren, branchParent, referencesOf } from "../document/relations";
-import { SCREEN_SIZES } from "../document/screens";
 import { isBox, isLink, type Item } from "../document/types";
 import { itemName } from "../editor/relate";
 import type { Axis } from "../document/relations";
@@ -104,36 +103,6 @@ export function AlignControls({
           onClick={() => onDistribute("vertical")}
         />
       </div>
-    </Section>
-  );
-}
-
-export function ScreenSizeControl({
-  item,
-  onSize,
-}: Readonly<{ item: Item; onSize: (width: number, height: number) => void }>) {
-  if (item.type !== "frame") return null;
-  const current = SCREEN_SIZES.find(
-    (size) => size.width === item.width && size.height === item.height
-  );
-  return (
-    <Section title="Screen size">
-      <select
-        aria-label="Screen size"
-        data-hint-detail="Resize this frame to match a common device screen."
-        value={current?.name ?? ""}
-        onChange={(event) => {
-          const size = SCREEN_SIZES.find((candidate) => candidate.name === event.target.value);
-          if (size) onSize(size.width, size.height);
-        }}
-      >
-        <option value="">Custom</option>
-        {SCREEN_SIZES.map((size) => (
-          <option key={size.name} value={size.name}>
-            {size.name} ({size.width} × {size.height})
-          </option>
-        ))}
-      </select>
     </Section>
   );
 }

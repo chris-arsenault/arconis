@@ -70,6 +70,7 @@ it("a device-only room opens no connection, and keeps its work", async () => {
     })
   );
   await page.goto(baseUrl());
+  await page.getByText("Room options", { exact: true }).click();
   await page.getByRole("button", { name: "Work on this device only", exact: true }).click();
   await status(page).filter({ hasText: "On this device only" }).waitFor();
   expect(new URL(page.url()).hash).toMatch(/^#local=[a-f0-9]{48}$/);

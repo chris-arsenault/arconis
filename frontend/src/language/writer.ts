@@ -397,7 +397,8 @@ class Writer {
   tidy(statement: Extract<Statement, { kind: "tidy" }>) {
     const { draft } = this;
     const root = draft.item(statement.ref, statement.line);
-    const moves = layoutTree(this.itemsWithPendingLinks(), root.id, statement);
+    if (statement.options) root.tidy = statement.options;
+    const moves = layoutTree(this.itemsWithPendingLinks(), root.id, root.tidy);
     moves.forEach(({ x, y }, id) => draft.moveTo(draft.items.get(id)!, x, y));
   }
 

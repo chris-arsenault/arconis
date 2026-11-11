@@ -125,6 +125,7 @@ it("leaves abandoned password gates with Cancel or Escape and preserves the prev
     await unfoldSource(context);
     const page = await context.newPage();
     await page.goto(baseUrl());
+    await page.getByText("Room options", { exact: true }).click();
     await page.getByRole("button", { name: "Create a password room", exact: true }).click();
     await page.getByRole("dialog", { name: "Password required" }).waitFor();
     expect(
@@ -167,6 +168,7 @@ it("explains portable exports and reopens password rooms without exposing protec
     await unfoldSource(context);
     const page = await context.newPage();
     await page.goto(baseUrl());
+    await page.getByText("Room options", { exact: true }).click();
     await page.getByRole("button", { name: "Create a password room", exact: true }).click();
     await page.getByLabel("Choose a password", { exact: true }).fill(PHRASE);
     await page.getByRole("button", { name: "Create room", exact: true }).click();
