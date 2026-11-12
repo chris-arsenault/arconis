@@ -2205,6 +2205,12 @@ input.outline-name {
   fill: var(--text);
   pointer-events: none;
 }
+.ring-wedge.unavailable text {
+  fill: #a9afbf;
+}
+.ring-wedge.unavailable circle {
+  opacity: 0.35;
+}
 /* A wedge that opens another ring carries a rim on its outer edge. */
 .ring-wedge path.ring-rim,
 .ring-wedge:not(.empty):hover path.ring-rim,
@@ -2227,7 +2233,8 @@ input.outline-name {
   padding: 4px;
   list-style: none;
   min-width: 200px;
-  max-height: 60vh;
+  /* An object's menu lists every command it could take, so it gets most of the window's height. */
+  max-height: 85vh;
   overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--line);

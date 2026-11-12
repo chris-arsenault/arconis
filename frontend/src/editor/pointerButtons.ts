@@ -140,7 +140,7 @@ function releaseRing(editor: EditorController, stroke: Stroke) {
   const wedge = menu.wedge;
   const entry =
     wedge === null ? null : ringEntries(commandContext(editor), menu.subRing, menu.back)[wedge];
-  if (entry) {
+  if (entry && !entry.disabled) {
     chooseRingEntry(editor, entry, wedge);
     return;
   }

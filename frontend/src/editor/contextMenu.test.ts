@@ -64,10 +64,11 @@ describe("the command ring", () => {
     expect(branch).toMatchObject({ label: "Add branch", short: "Branch" });
   });
 
-  it("leaves a wedge empty, not shifted, when its command does not apply", () => {
+  it("keeps a wedge in its place, greyed out, when its command cannot run", () => {
     const { document, items } = notes(3);
     const ring = ringEntries(context(items, document), null);
-    expect(ring[0]).toBeNull();
+    expect(ring[0]).toMatchObject({ id: "structure.branch", disabled: true });
+    expect(ring[4]).toMatchObject({ id: "edit.delete", disabled: false });
     expect(ring[4]?.id).toBe("edit.delete");
     expect(ring[5]).toMatchObject({ id: "ring.more", kind: "more" });
   });
@@ -100,11 +101,48 @@ describe("a command the menu always lists", () => {
     expect(slide.slice(0, 2)).toEqual(["structure.present", "export.deckHtml"]);
   });
 
-  it("leaves out other commands that do not apply", () => {
+  const entryIds = (context: CommandContext) =>
+    menuGroups(context).map((group) => group.map((entry) => entry.id));
+  const off = (context: CommandContext) =>
+    menuGroups(context)
+      .flat()
+      .filter((entry) => entry.disabled)
+      .map((entry) => entry.id);
+
+  it("lists the same canvas entries whatever the canvas holds", () => {
+    const empty = new CanvasDocument();
+    const full = notes(2).document;
+    full.patch(full.list()[0].id, { locked: true });
+    expect(entryIds(context([], empty))).toEqual(entryIds(context([], full)));
+    expect(off(context([], empty))).toEqual(
+      expect.arrayContaining(["select.all", "view.fit", "view.find", "fields.unlockAll"])
+    );
+    expect(off(context([], full))).not.toEqual(
+      expect.arrayContaining(["select.all", "fields.unlockAll"])
+    );
+  });
+
+  it("lists the same object entries however much is selected", () => {
+    const { document, items } = notes(3);
+    const one = context([items[0]], document);
+    const three = context(items, document);
+    expect(entryIds(one)).toEqual(entryIds(three));
+    expect(off(one)).toEqual(expect.arrayContaining(["edit.group", "menu.Align"]));
+    expect(off(three)).toEqual(expect.arrayContaining(["structure.branch", "edit.text"]));
+    expect(off(three)).not.toContain("edit.group");
+    expect(off(three)).not.toContain("menu.Align");
+  });
+
+  it("leads a clock's menu with its own commands, which other objects do not list", () => {
     const document = new CanvasDocument();
-    const canvas = menuGroups(context([], document)).flat();
-    expect(canvas.map((entry) => entry.id)).not.toContain("fields.unlockAll");
-    expect(canvas.filter((entry) => entry.kind === "command" && entry.disabled)).toHaveLength(1);
+    document.doc.transact(
+      () =>
+        writeStatements(document, parse('node c "C" clock timer 300\nnote n "N"'), { author: "" }),
+      LOCAL
+    );
+    const [clock, note] = ["c", "n"].map((id) => document.get(id)!);
+    expect(entryIds(context([clock], document))[0]).toEqual(["clock.toggle", "clock.reset"]);
+    expect(entryIds(context([note], document)).flat()).not.toContain("clock.toggle");
   });
 });
 
@@ -178,7 +216,9 @@ describe("the ring's sub-rings", () => {
     const base = context(items, document);
     const colours = ringEntries(base, "ring.colour", 1);
     expect(colours[1]).toMatchObject({ id: "ring.back", kind: "back" });
-    expect(colours.filter((entry) => entry?.id.startsWith("colour."))).toHaveLength(6);
+    // The six colours, and Reset, which waits greyed out until the object has a fill of its own.
+    expect(colours.filter((entry) => entry?.id.startsWith("colour."))).toHaveLength(7);
+    expect(colours.find((entry) => entry?.id === "colour.clear")).toMatchObject({ disabled: true });
     const shapes = ringEntries(base, "ring.shape", null);
     expect(shapes.every((entry) => entry?.kind === "command")).toBe(true);
   });
@@ -213,7 +253,8 @@ describe("the context menu", () => {
     expect(ids[0]).toEqual(["edit.text", "edit.fitText", "comments.open"]);
     expect(ids[1]).toContain("structure.relate");
     const marker = groups.flat().find((entry) => entry.label === "Marker");
-    expect(marker?.kind === "submenu" && marker.submenu).toHaveLength(6);
+    // Six markers, and the entry that removes one, greyed out while there is none to remove.
+    expect(marker?.kind === "submenu" && marker.submenu).toHaveLength(7);
     expect(groups.flat().map((entry) => entry.id)).toContain("fields.tag");
   });
 

@@ -15,8 +15,6 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 
 ## Canvas
 
-- Keep every menu's entries fixed whatever the canvas holds: list each command that cannot run
-  yet greyed out, as the deck export is, across the right-click menu and the header menus.
 - Crop pictures in place, as the one geometry edit pictures need beyond resizing.
 - Let a connector carry a label at each end.
 - Add a minimap, hidden until asked for.

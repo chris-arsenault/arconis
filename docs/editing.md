@@ -165,7 +165,10 @@ A right click opens the menu at the pointer when the button is released. Holding
 button, or moving it, brings a ring of eight commands around the press point instead; drag past
 a short dead zone toward a wedge and release to stroke it without looking. Released anywhere but
 a wedge, the ring closes and no menu follows. The ring and the menu change with what was pressed: an object, a line, a slide or
-empty canvas. A right click on an unselected object selects it; one on a member of a selection
+empty canvas. For each of those the entries are always the same and in the same place. A
+command that cannot run now is greyed out: **Group** with one object selected, **Unlock all**
+with nothing locked, **Export deck as HTML** in a room with no slides. A clock's menu adds its
+start and reset commands at the top. A right click on an unselected object selects it; one on a member of a selection
 keeps the selection. Empty-space right-click opens canvas actions even when an object was selected.
 The browser's own menu never appears over the canvas. Tab and arrows navigate the open menu;
 Escape closes it and preserves the selection.

@@ -51,10 +51,14 @@ const MARKER: Submenu = {
 };
 const TAGS_AND_STATUS: MenuSlot[] = ["fields.tag", "fields.task", MARKER];
 const VISIBILITY = ["fields.lock", "fields.collapse", "fields.jump", "fields.opening"];
-/** Commands a menu lists even where they cannot run yet, greyed out, so the menu keeps its shape. */
-const ALWAYS_LISTED = new Set(["export.deckHtml"]);
+/** A clock's own commands, which lead the object menu when clocks are what was pressed. */
+const CLOCK = ["clock.toggle", "clock.reset"];
 
-/** Groups by intent: text, structure, tags and status, arrangement, visibility, clipboard, view. */
+/**
+ * Groups by intent: text, structure, tags and status, arrangement, visibility, clipboard, view.
+ * A menu's entries are fixed by what was pressed. One that cannot run now is listed greyed out,
+ * so each command keeps its place whatever the canvas holds and however much is selected.
+ */
 const MENUS: Record<MenuContext, MenuSlot[][]> = {
   canvas: [
     ["create.noteHere", "create.textHere", "create.frameHere", "create.capture"],
@@ -65,7 +69,6 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
     ["fields.unlockAll"],
   ],
   object: [
-    ["clock.toggle", "clock.reset"],
     ["edit.text", "edit.fitText", "comments.open"],
     [
       "structure.branch",
@@ -255,12 +258,12 @@ interface EntryLabel {
   help: string;
   /** A shorter name for a ring wedge, which still carries the full label for assistive tech. */
   short: string;
+  /** Listed in its place but not to be chosen now: a command that cannot run, or a ring or submenu of them. */
+  disabled: boolean;
 }
 export type MenuEntry = EntryLabel &
   (
-    | { kind: "ring" | "more" | "back" }
-    /** A disabled command is listed but cannot run yet, such as a deck export with no slides. */
-    | { kind: "command"; disabled: boolean }
+    | { kind: "command" | "ring" | "more" | "back" }
     | { kind: "mode"; mode: RingMode; current: boolean }
     | { kind: "submenu"; submenu: MenuEntry[] }
   );
@@ -271,16 +274,18 @@ const BACK_ENTRY: MenuEntry = {
   help: "Return to the ring this one opened from.",
   kind: "back",
   short: "Back",
+  disabled: false,
 };
 
-function entryFor(id: string, context: CommandContext): MenuEntry | null {
+function entryFor(id: string, context: CommandContext): MenuEntry {
   if (id === MORE)
     return {
       id,
       label: "More…",
-      help: "Fold the ring away and show every command that applies here as a menu.",
+      help: "Fold the ring away and show every command for what was pressed as a menu.",
       kind: "more",
       short: "More…",
+      disabled: false,
     };
   if (id.startsWith("mode.")) {
     const mode = id.slice(5) as RingMode;
@@ -292,55 +297,48 @@ function entryFor(id: string, context: CommandContext): MenuEntry | null {
       mode,
       current: currentMode(context.editor.tool) === mode,
       short: mode,
+      disabled: false,
     };
   }
   if (id in SUB_RINGS) {
-    const opens = SUB_RINGS[id].some((sub) => sub !== null && entryFor(sub, context) !== null);
-    return opens
-      ? {
-          kind: "ring",
-          id,
-          label: SUB_RING_LABELS[id],
-          help: SUB_RING_HELP[id],
-          short: SUB_RING_LABELS[id],
-        }
-      : null;
+    const label = SUB_RING_LABELS[id];
+    const closed = SUB_RINGS[id].every((sub) => sub === null || entryFor(sub, context).disabled);
+    return { kind: "ring", id, label, help: SUB_RING_HELP[id], short: label, disabled: closed };
   }
   const command = findCommand(id);
   const disabled = !isAvailable(command, context);
-  if (disabled && !ALWAYS_LISTED.has(id)) return null;
   const label = typeof command.label === "string" ? command.label : command.label(context);
   const short = RING_LABELS[id] ?? label;
   return { kind: "command", id, label, help: command.help, short, disabled };
 }
 
-function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {
+function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry {
   if (typeof slot === "string") return entryFor(slot, context);
-  const inner = slot.ids.map((id) => entryFor(id, context)).filter((entry) => entry !== null);
-  if (!inner.length) return null;
-  // A submenu of one is just that command.
-  if (inner.length === 1) return inner[0];
+  const submenu = slot.ids.map((id) => entryFor(id, context));
   return {
     kind: "submenu",
     id: `menu.${slot.label}`,
     label: slot.label,
     help: slot.help,
     short: slot.label,
-    submenu: inner,
+    disabled: submenu.every((entry) => entry.disabled),
+    submenu,
   };
 }
 
+/** The menu for what was pressed: the same entries every time, each enabled or greyed out. */
 export function menuGroups(context: CommandContext): MenuEntry[][] {
-  const kind = menuContextOf(context.selected);
-  return MENUS[kind]
-    .map((group) => group.map((slot) => slotEntry(slot, context)).filter((entry) => entry !== null))
-    .filter((group) => group.length > 0);
+  const { selected } = context;
+  const kind = menuContextOf(selected);
+  const clocks = kind === "object" && selected.every((item) => item.clock);
+  const groups = clocks ? [CLOCK, ...MENUS.object] : MENUS[kind];
+  return groups.map((group) => group.map((slot) => slotEntry(slot, context)));
 }
 
 /**
- * The ring's eight wedges in order; a wedge that does not apply is left empty rather than
- * shifted. The mode's own ring wins over what was pressed, and a sub-ring keeps its Back wedge
- * where the wedge that opened it was.
+ * The ring's eight wedges in order; a wedge whose command cannot run now keeps its place, greyed
+ * out, rather than the others shifting. The mode's own ring wins over what was pressed, and a
+ * sub-ring keeps its Back wedge where the wedge that opened it was.
  */
 export function ringEntries(
   context: CommandContext,
@@ -393,7 +391,8 @@ const RING_LABELS: Record<string, string> = {
 };
 
 /** Whether choosing the entry moves between rings rather than running something. */
-export const opensRing = (entry: MenuEntry) => entry.kind === "ring" || entry.kind === "back";
+export const opensRing = (entry: MenuEntry) =>
+  !entry.disabled && (entry.kind === "ring" || entry.kind === "back");
 
 /**
  * What choosing a wedge does, by click, by stroke or by resting on it: open a sub-ring from that
@@ -405,6 +404,7 @@ export function chooseRingEntry(
   wedge: number | null = null
 ) {
   const menu = editor.ui.menu;
+  if (entry.disabled) return;
   if (entry.kind === "ring") {
     openSubRing(editor, entry.id, wedge);
     return;

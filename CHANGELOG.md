@@ -4,6 +4,12 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Menus keep their entries
+
+- The right-click menu and ring list the same entries for what was pressed, whatever the canvas
+  holds and however much is selected. A command that cannot run now is greyed out in its place
+  instead of being left out.
+
 ### Sizing and selection
 
 - New objects take the scale of the closest object in view, or of the object they grow from,

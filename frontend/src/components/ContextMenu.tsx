@@ -87,11 +87,14 @@ function CommandRing({ editor }: Readonly<{ editor: EditorController }>) {
 function wedgeRole(entry: MenuEntry, active: boolean) {
   const classes = ["ring-wedge"];
   if (entry.kind === "more" || entry.kind === "back") classes.push("more");
-  if (active) classes.push("active");
+  // A wedge that cannot be chosen now keeps its place and its name, greyed out.
+  if (entry.disabled) classes.push("empty", "unavailable");
+  else if (active) classes.push("active");
   if (entry.kind !== "mode")
     return {
       className: classes.join(" "),
       role: "menuitem",
+      "aria-disabled": entry.disabled,
       "aria-haspopup": entry.kind === "ring" ? ("menu" as const) : undefined,
     };
   if (entry.current) classes.push("current");
@@ -150,7 +153,7 @@ function Wedge({
 /** One command in the menu, with its shortcut. */
 function MenuItem({ editor, entry }: Readonly<{ editor: EditorController; entry: MenuEntry }>) {
   const shortcut = findCommand(entry.id).shortcuts?.[0];
-  const disabled = entry.kind === "command" && entry.disabled;
+  const { disabled } = entry;
   return (
     <li role="none">
       <button
@@ -194,11 +197,12 @@ function Submenu({
         role="menuitem"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-disabled={entry.disabled}
         data-hint={entry.label}
         data-hint-detail={entry.help}
-        onClick={() => onOpen(open ? null : entry.id)}
+        onClick={() => !entry.disabled && onOpen(open ? null : entry.id)}
         onKeyDown={(event) => {
-          if (event.key === "ArrowRight") onOpen(entry.id);
+          if (event.key === "ArrowRight" && !entry.disabled) onOpen(entry.id);
           if (event.key === "ArrowLeft") onOpen(null);
         }}
       >
