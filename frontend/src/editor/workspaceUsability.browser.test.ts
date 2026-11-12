@@ -9,6 +9,7 @@ import {
   open,
   row,
   selectConnector,
+  setContextWheel,
 } from "./browserHarness";
 
 const desktop = { viewport: { width: 1440, height: 1000 } };
@@ -126,6 +127,7 @@ it("shows clipped content and actual fill samples, fits explicitly and undoes ac
   await expect.poll(async () => (await exported(b)).objects[0]?.height).toBe(before.height);
   expect((await exported(a)).objects[0].name).toBe(text);
   const label = (await row(a, /^Open questions/).boundingBox())!;
+  await setContextWheel(a, true);
   await a.mouse.move(label.x + 35, label.y + 10);
   await a.mouse.down({ button: "right" });
   await a.mouse.move(label.x + 85, label.y - 40, { steps: 8 });

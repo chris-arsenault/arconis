@@ -29,8 +29,9 @@ device only**.
 3. Choose **Connector: click two objects** and click the note followed by the rectangle.
 4. Press **V** to select. Drag either object; the connector stays attached.
 5. Select an object to see its properties in the right dock: its relationships, tags and status,
-   appearance and layout. Right-click it for the menu, or hold the right button for a ring of
-   the most-used commands. On narrow screens, **Hide panel** folds the left panel to give the canvas room.
+   appearance and layout. Right-click it for the menu, or right-drag to pan. **Settings → Enable
+   context wheel** replaces right-drag panning with a ring of commands. On narrow screens,
+   **Hide panel** folds the left panel to give the canvas room.
 
 You can also drag stencils directly from the rail. Search the rail to find architecture icons.
 The right dock's tabs open **Layers**, **Slides** to create and present decks, and **Navigate**
@@ -65,7 +66,7 @@ exports. [Files and pictures](files.md) explains import, export and storage choi
 
 ## Navigate and measure
 
-Hold Space and drag to pan. Use the zoom controls at the bottom to zoom in, zoom out or fit the
+Right-drag, or hold Space and drag, to pan. Use the zoom controls at the bottom to zoom in, zoom out or fit the
 canvas; `1×` is the normal view. Your view is independent of other participants' views.
 
 For a drawing with real distances, open **Settings** in the header and, under **Scale and

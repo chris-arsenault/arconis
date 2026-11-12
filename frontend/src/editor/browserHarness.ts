@@ -180,6 +180,19 @@ export async function open(context: BrowserContext, room = "", join = false, sta
   await page.getByTestId("connection-status").filter({ hasText: status }).waitFor();
   return page;
 }
+
+/** Changes the right-button mode through Settings, as a person does. */
+export async function setContextWheel(page: Page, enabled: boolean) {
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page
+    .getByRole("checkbox", { name: "Enable context wheel", exact: true })
+    .setChecked(enabled);
+  await page
+    .getByRole("dialog", { name: "Settings", exact: true })
+    .getByRole("button", { name: "Done", exact: true })
+    .click();
+}
+
 /** Shows one of the left rail's panels: Shapes or Draw. */
 export async function railPanel(page: Page, name: "Shapes" | "Draw") {
   await page

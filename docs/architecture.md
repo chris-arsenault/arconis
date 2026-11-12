@@ -202,11 +202,12 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   cell style as JSON for tooltips (`editor/rendering.ts`). Exports in
   `editor/exportCommands.ts` reuse the PNG renderer's scene for SVG files.
 - `editor/pointerButtons.ts` owns the middle and right buttons at the pointer-event level, so
-  maxGraph only ever sees the left: the middle button pans, and the right button opens
-  `editor/ui.ts`'s menu state, which `components/ContextMenu.tsx` draws as a ring and a list
+  maxGraph only ever sees the left: the middle button pans, and right-drag pans by default.
+  A right click opens `editor/ui.ts`'s menu state, which `components/ContextMenu.tsx` draws as a ring and a list
   from `editor/contextMenu.ts`, itself read from the command table. The press shows nothing: a
-  hold or a drag past the dead zone opens the ring, and a plain click opens the list on release.
-  A drag picks a wedge by angle; a wedge that opens a sub-ring does so on a rest or a stroke out
+  plain click opens the list on release. The browser-local `editor/pointerPreferences.ts`
+  setting enables the context wheel: a hold or a drag past the dead zone opens the ring instead
+  of panning. A drag picks a wedge by angle; a wedge that opens a sub-ring does so on a rest or a stroke out
   through it, in place, with Back where that wedge was. Every ring keeps Mode west and the
   menu south-west, and the mode's own ring wins over what was pressed. Comments open through `showComments` into
   `components/CommentModal.tsx`, anchored to the cell's state above the object. Swapping kinds,
@@ -479,8 +480,9 @@ to Ahara's private log gateway and shared Loki stack, so shipped diagnostics sur
 `accounts/` is the server side, and `account/` the browser's ([ADR-0012](adr/0012-accounts-and-encrypted-workspaces.md),
 [ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Arconis's users are its own database
 connection in the shared Ahara Auth0 tenant. The browser signs in to Auth0 with the authorization code
-flow and PKCE (`account/auth.ts`, through `oidc-client-ts`), for the accounts API's audience, and the ALB
-validates those tokens and that audience on `/api/*`. Sign-up verifies the email by a code before
+flow and PKCE (`account/auth.ts`, through `oidc-client-ts`), explicitly selecting the `arconis`
+connection for the accounts API's audience. The ALB validates those tokens and that audience on
+`/api/*`. Sign-up verifies the email by a code before
 completion; sign-in and password resets use Auth0's pages.
 
 `protocol/account.ts` owns shared HTTP metadata contracts. AccountStore checks outbound request bodies

@@ -13,6 +13,7 @@ import {
   drag,
   objectCount,
   selectDrawing,
+  setContextWheel,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -316,6 +317,7 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
 it("tags from the ring, filters from the rail's tags, and grows compact branches", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
+  await setContextWheel(page, true);
   await add(page, "Sticky note (N)", "Strategy", 300, 300);
   const root = (await exported(page)).objects[0];
 

@@ -74,7 +74,8 @@ applies to the whole mark. The preview shows the brush's paint and geometry.
 Open **Saved brushes** to recall a brush or replace a slot with the current settings. Brushes
 and presets are local browser preferences; the paths themselves are shared document content.
 
-The right-button ring's **Mode** wedge, to the west on every ring, switches to Draw or Markup
+Check **Settings → Enable context wheel** to use the right-button ring instead of right-drag
+panning. Its **Mode** wedge, to the west on every ring, switches to Draw or Markup
 with the tool each last used. While drawing, the ring holds the drawing tools: freehand north,
 pick color north-east, vector shapes east, the lasso south-east, the erasers south and
 fill north-west. Markup's ring holds its pen, marker, arrow, selection, eraser and box.

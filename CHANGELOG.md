@@ -4,6 +4,17 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Account connection routing
+
+- Site sign-in now explicitly selects the `arconis` database, matching MCP sign-in. This keeps
+  sign-up and password recovery from selecting the tenant's default database instead.
+
+### Right-button panning
+
+- Right-drag now pans by default. Added **Enable context wheel** in Settings, unchecked by
+  default, to use the command ring on right-hold or right-drag instead. The choice stays on
+  this device; right-click still opens the context menu in either mode.
+
 ### Menus keep their entries
 
 - The right-click menu and ring list the same entries for what was pressed, whatever the canvas

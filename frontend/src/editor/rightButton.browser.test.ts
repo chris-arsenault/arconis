@@ -1,6 +1,15 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
-import { add, browser, errors, objectCount, open, row } from "./browserHarness";
+import {
+  add,
+  browser,
+  errors,
+  exported,
+  objectCount,
+  open,
+  row,
+  setContextWheel,
+} from "./browserHarness";
 
 /**
  * Every way a right-button gesture can end. A click opens the menu on release and nothing before
@@ -57,6 +66,7 @@ it("ends every right-button gesture the same way, and never with an unasked menu
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   try {
     const page = await open(context);
+    await setContextWheel(page, true);
     await add(page, "Rectangle (R)", "Target", 520, 360);
     await add(page, "Rectangle (R)", "Spare", 820, 360);
     await watchBrowserMenus(page);
@@ -127,5 +137,88 @@ it("ends every right-button gesture the same way, and never with an unasked menu
     expect(errors).toEqual([]);
   } finally {
     await context.close();
+  }
+});
+
+it("defaults to right-drag panning and remembers the optional wheel only on this device", async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const peerContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  try {
+    const page = await open(context);
+    const peer = await open(peerContext, new URL(page.url()).hash.slice("#room=".length));
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    const checkbox = page.getByRole("checkbox", { name: "Enable context wheel", exact: true });
+    expect(await checkbox.isChecked()).toBe(false);
+    await page.getByRole("button", { name: "Close settings", exact: true }).click();
+    await add(page, "Rectangle (R)", "Target", 400, 300);
+    await add(page, "Rectangle (R)", "Selected", 700, 400);
+    await expect.poll(() => objectCount(peer)).toBe(2);
+    const saved = (await exported(page)).objects;
+    const target = (await row(page, "Target").boundingBox())!;
+    const peerBefore = (await row(peer, "Target").boundingBox())!;
+    await watchBrowserMenus(page);
+
+    // Dragging over a different object pans without changing the selection or shared geometry.
+    await press(page, target.x + target.width / 2, target.y + target.height / 2);
+    await page.waitForTimeout(350);
+    expect(await ring(page).count()).toBe(0);
+    await page.mouse.move(target.x + target.width / 2 + 100, target.y + target.height / 2 + 60, {
+      steps: 8,
+    });
+    const preview = (await row(page, "Target").boundingBox())!;
+    expect(Math.round(preview.x - target.x)).toBe(100);
+    expect(Math.round(preview.y - target.y)).toBe(60);
+    await page.mouse.up({ button: "right" });
+    await nothingOpen(page);
+    const after = (await row(page, "Target").boundingBox())!;
+    expect(Math.round(after.x - target.x)).toBe(100);
+    expect(Math.round(after.y - target.y)).toBe(60);
+    expect(await page.getByLabel("Object text", { exact: true }).inputValue()).toBe("Selected");
+    const peerAfter = (await row(peer, "Target").boundingBox())!;
+    expect(peerAfter.x).toBeCloseTo(peerBefore.x, 0);
+    expect(peerAfter.y).toBeCloseTo(peerBefore.y, 0);
+    expect((await exported(page)).objects).toEqual(saved);
+    expect(await browserMenus(page)).toEqual([]);
+
+    // A click, including a stationary hold, still opens the menu after release.
+    const area = (await page.getByTestId("canvas").boundingBox())!;
+    await press(page, area.x + 250, area.y + 650);
+    await page.waitForTimeout(350);
+    expect(await ring(page).count()).toBe(0);
+    await page.mouse.up({ button: "right" });
+    await menu(page).waitFor();
+    await page.keyboard.press("Escape");
+
+    // The checkbox works with a keyboard and survives a reload.
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await checkbox.focus();
+    await page.keyboard.press("Space");
+    expect(await checkbox.isChecked()).toBe(true);
+    await page.getByRole("button", { name: "Close settings", exact: true }).click();
+    await page.reload();
+    await page.getByTestId("canvas").waitFor();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    expect(await checkbox.isChecked()).toBe(true);
+    await page.getByRole("button", { name: "Close settings", exact: true }).click();
+    const canvas = (await page.getByTestId("canvas").boundingBox())!;
+    await press(page, canvas.x + 300, canvas.y + 600);
+    await ring(page).waitFor();
+    await page.mouse.up({ button: "right" });
+    await nothingOpen(page);
+    await peer.getByRole("button", { name: "Settings", exact: true }).click();
+    expect(
+      await peer.getByRole("checkbox", { name: "Enable context wheel", exact: true }).isChecked()
+    ).toBe(false);
+
+    // Turning it off applies immediately: a drag again pans and opens neither menu.
+    await setContextWheel(page, false);
+    await press(page, canvas.x + 300, canvas.y + 600);
+    await page.mouse.move(canvas.x + 380, canvas.y + 640, { steps: 8 });
+    await page.mouse.up({ button: "right" });
+    await nothingOpen(page);
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+    await peerContext.close();
   }
 });

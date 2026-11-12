@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { add, browser, errors, exported, open, row } from "./browserHarness";
+import { add, browser, errors, exported, open, row, setContextWheel } from "./browserHarness";
 
 const ring = (page: Page) => page.getByTestId("command-ring");
 
@@ -54,6 +54,7 @@ it("switches mode in one stroke from any ring, with nothing further to choose", 
   const peerContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const room = createRoomId();
   const page = await open(context, room);
+  await setContextWheel(page, true);
   const peer = await open(peerContext, room);
   await add(page, "Sticky note (N)", "Source", 420, 320);
   const canvas = page.getByTestId("canvas");
@@ -138,6 +139,7 @@ it("switches mode in one stroke from any ring, with nothing further to choose", 
 it("switches to drawing from the radial and hides workspace handles while preserving ink lasso transforms", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
+  await setContextWheel(page, true);
   await add(page, "Rectangle (R)", "Keep still", 260, 240);
   const canvas = page.getByTestId("canvas");
   const resize = canvas.locator('[style*="cursor:"][style*="-resize"]');

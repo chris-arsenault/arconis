@@ -10,6 +10,7 @@ import {
   exported,
   objectCount,
   selectionLabel,
+  setContextWheel,
 } from "./browserHarness";
 
 async function deleteWithRing(page: Page, label: string) {
@@ -70,6 +71,7 @@ it("keeps a context menu inside the canvas at its far corner", async () => {
 it("only selects radial commands inside their visible annulus, including rings clamped at an edge", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
+  await setContextWheel(page, true);
   await add(page, "Rectangle (R)", "Keep", 300, 250);
   const target = (await row(page, "Keep").boundingBox())!;
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
@@ -107,6 +109,7 @@ it("only selects radial commands inside their visible annulus, including rings c
 it("keeps right-click and radial menus exclusive, pans with middle drag, and opens comments above objects", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await open(context, createRoomId());
+  await setContextWheel(page, true);
   await add(page, "Rectangle (R)", "Target", 300, 200);
   await add(page, "Sticky note (N)", "Other", 700, 500);
   const canvas = page.getByTestId("canvas");

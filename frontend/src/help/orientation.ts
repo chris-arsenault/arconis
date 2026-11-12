@@ -59,9 +59,9 @@ export const STOPS: Stop[] = [
   },
   {
     target: "canvas",
-    title: "Right button: menu and ring",
+    title: "Right button: pan and menu",
     panel: "",
-    text: "Right-click an object or empty canvas for a menu of what applies there. Hold or drag the right button instead for a ring of the most-used commands. Try it now.",
+    text: "Drag with the right button to pan, or right-click an object or empty canvas for its menu. Settings can enable the context wheel instead of right-drag panning. Try it now.",
     side: "left",
     tryIt: true,
   },

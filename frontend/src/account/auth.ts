@@ -43,7 +43,9 @@ export function oidcAuth(config: AccountConfig): Auth {
     response_type: "code",
     // offline_access gives a rotating refresh token, so a session outlives one access token.
     scope: "openid email profile offline_access",
-    extraQueryParams: { audience: config.authAudience },
+    // Universal Login otherwise chooses among the application's enabled databases, including
+    // the tenant's default. Login, sign-up and password recovery must use Arconis's users.
+    extraQueryParams: { audience: config.authAudience, connection: "arconis" },
     userStore: new WebStorageStateStore({ store: localStorage }),
     automaticSilentRenew: false,
     loadUserInfo: false,

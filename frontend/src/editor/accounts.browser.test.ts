@@ -31,6 +31,30 @@ const commit = (page: Page) =>
       response.status() === 200
   );
 
+it("selects the Arconis connection in the browser's authorization request", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  try {
+    const page = await open(context, createRoomId());
+    // Capture only the authorization request: no account is created and no email is sent.
+    await page.route("**/oidc/authorize?**", (route) =>
+      route.fulfill({ contentType: "text/html", body: "Authorization request captured" })
+    );
+    await openAccount(page);
+    const authorization = page.waitForRequest((request) =>
+      new URL(request.url()).pathname.endsWith("/oidc/authorize")
+    );
+    await press(page, "Sign in or create an account");
+    const parameters = new URL((await authorization).url()).searchParams;
+    expect(parameters.get("connection")).toBe("arconis");
+    expect(parameters.get("audience")).toBe(fixture.config.authAudience);
+    expect(parameters.get("response_type")).toBe("code");
+    expect(parameters.get("code_challenge_method")).toBe("S256");
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 /** Signs in through the sign-in page, and comes back to the same place. */
 async function signIn(page: Page, email = EMAIL, ready = "Rectangle (R)") {
   const room = new URL(page.url()).hash;

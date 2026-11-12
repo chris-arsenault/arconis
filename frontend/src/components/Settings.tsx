@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Settings as SettingsIcon, Tags, X } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { displayPreferences, type IndicatorVisibility } from "../editor/displayPreferences";
+import { contextWheelPreference } from "../editor/pointerPreferences";
 import { HelpZoneToggle } from "./HelpZone";
 import { ScaleSettings } from "./ScaleControls";
 import "./settings.css";
@@ -38,7 +39,7 @@ export function Settings({ editor }: Readonly<{ editor: EditorController }>) {
         aria-label="Settings"
         aria-haspopup="dialog"
         data-hint="Settings"
-        data-hint-detail="Choose what appears in your view, and set the canvas's scale, units and grid spacing."
+        data-hint-detail="Choose mouse controls and what appears in your view, and set the canvas's scale, units and grid spacing."
         onClick={() => setOpen(true)}
       >
         <SettingsIcon size={17} />
@@ -84,6 +85,7 @@ function SettingsDialog({
         </button>
       </header>
       <div className="settings-content">
+        <PointerSettings />
         <DisplaySettings editor={editor} />
         <ScaleSettings editor={editor} />
         <h3>Object indicators</h3>
@@ -99,6 +101,31 @@ function SettingsDialog({
         </button>
       </footer>
     </dialog>
+  );
+}
+
+function PointerSettings() {
+  const enabled = useSyncExternalStore(
+    contextWheelPreference.subscribe,
+    contextWheelPreference.snapshot
+  );
+  return (
+    <>
+      <h3>Mouse controls</h3>
+      <p>
+        Right-drag pans by default. Enable the wheel to use right-hold or right-drag for commands.
+      </p>
+      <div className="settings-toggles">
+        <label data-hint-detail="Use the context wheel when holding or dragging the right mouse button; unchecked, right-drag pans. Right-click always opens the menu.">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(event) => contextWheelPreference.set(event.target.checked)}
+          />
+          Enable context wheel
+        </label>
+      </div>
+    </>
   );
 }
 

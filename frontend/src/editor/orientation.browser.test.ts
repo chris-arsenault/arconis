@@ -110,7 +110,7 @@ it("lets people try the right button while the tour describes it", async () => {
     const page = await open(context);
     await page.getByRole("button", { name: "Take the tour", exact: true }).click();
     const title = tourPopup(page).locator(".driver-popover-title");
-    for (const next of ["The canvas", "Right button: menu and ring"]) {
+    for (const next of ["The canvas", "Right button: pan and menu"]) {
       await expect.poll(() => nextFocused(page)).toBe(true);
       await page.keyboard.press("ArrowRight");
       await expect.poll(() => title.textContent()).toBe(next);
@@ -124,13 +124,15 @@ it("lets people try the right button while the tour describes it", async () => {
     expect(await grid.getAttribute("aria-pressed")).toBe("true");
     await menu.getByRole("menuitem", { name: /^Hide grid/ }).click();
     await expect.poll(() => grid.getAttribute("aria-pressed")).toBe("false");
-    // Holding the button brings the ring there too.
+    // Right-drag pans during the tour without opening either menu.
     await page.mouse.move(canvas.x + 400, canvas.y + 350);
     await page.mouse.down({ button: "right" });
-    await page.getByTestId("command-ring").waitFor();
+    await page.mouse.move(canvas.x + 480, canvas.y + 390, { steps: 8 });
     await page.mouse.up({ button: "right" });
     await page.keyboard.press("Escape");
-    expect(await title.textContent()).toBe("Right button: menu and ring");
+    expect(await page.getByTestId("command-ring").count()).toBe(0);
+    expect(await menu.count()).toBe(0);
+    expect(await title.textContent()).toBe("Right button: pan and menu");
     expect(errors).toEqual([]);
   } finally {
     await context.close();

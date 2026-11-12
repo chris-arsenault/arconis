@@ -124,8 +124,8 @@ panel in the narrow layout.
 
 ## Pan, zoom and grid
 
-Press **H** or hold Space to pan with a drag; release Space to return to Select. The middle
-button drags the view as well. Mouse-wheel scrolling zooms around the pointer; trackpad
+Right-drag to pan, or press **H** or hold Space to pan with a left drag; release Space to return
+to the previous tool. The middle button drags the view as well. Mouse-wheel scrolling zooms around the pointer; trackpad
 horizontal or smooth scroll gestures pan, and Ctrl/Command scrolling zooms.
 
 Use the bottom view controls to zoom or fit the canvas; click the multiplier to type a zoom,
@@ -159,10 +159,14 @@ The grid button shows or hides the grid. Objects snap while the grid is shown. T
 belongs to your browser. Fine drawing paths follow the pointer rather than snapping to the grid.
 For distances and grid intervals in concrete units, see [scale and measurement](#scale-units-and-measurement).
 
-## Right button: ring and menu
+## Right button: pan and menu
 
-A right click opens the menu at the pointer when the button is released. Holding the right
-button, or moving it, brings a ring of eight commands around the press point instead; drag past
+Drag with the right mouse button to pan without changing your tool or selection. A right click
+opens the menu at the pointer when the button is released.
+
+To use the command ring instead of right-drag panning, check **Enable context wheel** in
+**Settings**. It starts unchecked and stays on this device. When enabled, holding the right
+button, or moving it, brings a ring of eight commands around the press point; drag past
 a short dead zone toward a wedge and release to stroke it without looking. Released anywhere but
 a wedge, the ring closes and no menu follows. The ring and the menu change with what was pressed: an object, a line, a slide or
 empty canvas. For each of those the entries are always the same and in the same place. A

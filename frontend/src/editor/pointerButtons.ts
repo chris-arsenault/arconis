@@ -4,6 +4,7 @@ import { closeMenu, openMenu } from "./ui";
 import { commandContext } from "./registry";
 import { isPassive } from "./templates";
 import { chooseRingEntry, opensRing, ringEntries, type MenuEntry } from "./contextMenu";
+import { contextWheelPreference } from "./pointerPreferences";
 
 /**
  * The object under a pointer, including its label and indicators. Template underlays and items
@@ -39,8 +40,8 @@ function metadataOwner(editor: EditorController, target: EventTarget | null) {
 
 /**
  * The standard mapping: the left button selects, moves and marquees; the middle button drags the
- * view; a right click opens the context menu when it is released, and holding or dragging the
- * right button brings the command ring instead, where dragging into a visible wedge chooses it.
+ * view; a right click opens the context menu when it is released. Right-drag pans by default;
+ * enabling the context wheel makes holding or dragging the right button bring the command ring.
  * maxGraph never sees the middle or right button.
  */
 
@@ -92,33 +93,45 @@ export function configureButtons(band: RubberBandHandler) {
 }
 
 /** Drags the view with whatever pointer pressed, until it lifts. */
-export function panWithPointer(editor: EditorController, event: PointerEvent) {
+export function panWithPointer(
+  editor: EditorController,
+  event: PointerEvent,
+  onEnd?: (event: PointerEvent, dragged: boolean) => void
+) {
   const { element, graph } = editor;
   event.preventDefault();
   event.stopPropagation();
   element.setPointerCapture(event.pointerId);
   let dx = 0;
   let dy = 0;
+  let dragged = false;
   const move = (moveEvent: PointerEvent) => {
-    dx = moveEvent.clientX - event.clientX;
-    dy = moveEvent.clientY - event.clientY;
+    const x = moveEvent.clientX - event.clientX;
+    const y = moveEvent.clientY - event.clientY;
+    if (!dragged && event.button === 2 && Math.hypot(x, y) < DEAD_ZONE) return;
+    dragged = true;
+    dx = x;
+    dy = y;
     graph.panGraph(dx, dy);
   };
-  const finish = () => {
+  const finish = (finishEvent: PointerEvent) => {
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", finish);
     element.removeEventListener("pointercancel", finish);
     if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
     graph.panGraph(0, 0);
-    const { scale, translate } = graph.view;
-    graph.view.setTranslate(translate.x + dx / scale, translate.y + dy / scale);
+    if (dragged) {
+      const { scale, translate } = graph.view;
+      graph.view.setTranslate(translate.x + dx / scale, translate.y + dy / scale);
+    }
+    onEnd?.(finishEvent, dragged);
   };
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", finish);
   element.addEventListener("pointercancel", finish);
 }
 
-/** A right press selects what is under it, as the field does, and opens the ring and menu there. */
+/** Select what is under the pointer before opening its menu or ring. */
 function selectUnderPointer(editor: EditorController, event: PointerEvent) {
   const cell = cellAt(editor, event);
   const item = cell?.id ? editor.document.get(cell.id) : null;
@@ -239,11 +252,20 @@ function menuWithRightButton(editor: EditorController, event: PointerEvent, onEn
   event.preventDefault();
   event.stopPropagation();
   if (editor.ui.menu) closeMenu(editor);
-  selectUnderPointer(editor, event);
   const bounds = element.getBoundingClientRect();
   const at = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
   const world = editor.worldPoint(event);
   const open = (ring: boolean) => openMenu(editor, { at, world, wedge: null, subRing: null, ring });
+  if (!contextWheelPreference.snapshot()) {
+    panWithPointer(editor, event, (finishEvent, dragged) => {
+      onEnd();
+      if (dragged || finishEvent.type === "pointercancel") return;
+      selectUnderPointer(editor, event);
+      open(false);
+    });
+    return;
+  }
+  selectUnderPointer(editor, event);
   element.setPointerCapture(event.pointerId);
   // Nothing shows on the press. Resting or moving the held button brings the ring; a plain
   // click brings the menu when it is released.

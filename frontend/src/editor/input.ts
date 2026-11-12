@@ -250,7 +250,7 @@ export function bindCanvasInput(editor: EditorController) {
     options
   );
   window.addEventListener("blur", panHold.release, options);
-  // The right button opens the menu and the middle button pans; maxGraph handles the left alone.
+  // Pointer bindings own right-button pan/menu and middle-button pan; maxGraph handles the left.
   const pan = editor.graph.getPlugin<PanningHandler>("PanningHandler");
   if (pan) pan.usePopupTrigger = false;
   configureButtons(editor.band);
