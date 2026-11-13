@@ -192,12 +192,15 @@ it("preserves a real link named mixed and can clear different links in one selec
       buffer: Buffer.from(source),
     });
     await row(page, /^Internal source$/).click();
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
     expect(await page.getByLabel("Link", { exact: true }).inputValue()).toBe("mixed");
     await page.getByRole("button", { name: "Go to linked item", exact: true }).click();
+    await page.getByRole("tab", { name: "Design", exact: true }).click();
     expect(await page.getByLabel("Object text", { exact: true }).inputValue()).toBe("Target");
     await page.getByRole("button", { name: "Fit canvas", exact: true }).click();
     await row(page, /^Alpha$/).click();
     await row(page, /^Beta$/).click({ modifiers: ["Shift"] });
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
     expect(await page.getByLabel("Link", { exact: true }).getAttribute("placeholder")).toBe(
       "Mixed links"
     );
@@ -222,6 +225,7 @@ it("explains invalid property names and lets people correct and save them", asyn
   try {
     const page = await open(context, createRoomId());
     await add(page, "Rectangle (R)", "Property validation", 250, 180);
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
     const name = page.getByLabel("New property name", { exact: true });
     const addProperty = page.getByRole("button", { name: "Add property", exact: true });
     await name.fill("service owner");

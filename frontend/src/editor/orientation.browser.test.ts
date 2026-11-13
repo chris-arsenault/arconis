@@ -122,6 +122,7 @@ it("lets people try the right button while the tour describes it", async () => {
     await menu.waitFor();
     const grid = page.getByRole("button", { name: "Grid and snapping", exact: true });
     expect(await grid.getAttribute("aria-pressed")).toBe("true");
+    await menu.getByRole("menuitem", { name: "View", exact: true }).hover();
     await menu.getByRole("menuitem", { name: /^Hide grid/ }).click();
     await expect.poll(() => grid.getAttribute("aria-pressed")).toBe("false");
     // Right-drag pans during the tour without opening either menu.
@@ -129,10 +130,11 @@ it("lets people try the right button while the tour describes it", async () => {
     await page.mouse.down({ button: "right" });
     await page.mouse.move(canvas.x + 480, canvas.y + 390, { steps: 8 });
     await page.mouse.up({ button: "right" });
-    await page.keyboard.press("Escape");
     expect(await page.getByTestId("command-ring").count()).toBe(0);
     expect(await menu.count()).toBe(0);
     expect(await title.textContent()).toBe("Right button: pan and menu");
+    await page.keyboard.press("Escape");
+    await expect.poll(() => tourPopup(page).count()).toBe(0);
     expect(errors).toEqual([]);
   } finally {
     await context.close();

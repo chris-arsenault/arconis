@@ -1,19 +1,17 @@
-import { useSyncExternalStore } from "react";
-import { MessageSquare, MoreHorizontal } from "lucide-react";
+import { useId, useState, useSyncExternalStore } from "react";
+import { MessageSquare } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { runCommand } from "../editor/registry";
 import { showComments } from "../editor/ui";
-import { openMenuOverSelection } from "../editor/contextMenu";
-import { isFrame, isLink, typeLabel, type Item } from "../document/types";
+import { isFrame, isLink, type Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";
-import { hasSubtitle, hasText } from "../document/capabilities";
+import { hasText } from "../document/capabilities";
 import { SelectionConnection } from "./SelectionConnection";
 import { LayerField } from "./LayersPanel";
 import { InkMoves, InkPaint } from "./InkProperties";
 import { isInk } from "../document/ink";
 import { StyleControls, GeometryControls } from "./ObjectProperties";
 import { AlignControls, Relationships } from "./TopicControls";
-import { itemName } from "../editor/relate";
 import { NumberBranchesToggle, StateToggles, StatusFields, TidyOptions } from "./FieldControls";
 import { tidyTreeAs } from "../editor/layoutCommands";
 import { PropertiesControls } from "./PropertiesControls";
@@ -22,7 +20,8 @@ import { followLink } from "../editor/links";
 import { deckOf, decks, isSlide } from "../document/slides";
 import { TextProperties } from "./TextProperties";
 import { fitText } from "../editor/textLayout";
-import { ObjectText, SubtitleField } from "./InspectorText";
+import { InspectorContent } from "./InspectorText";
+import { InspectorHeader, PropertyTabs, type InspectorTab } from "./InspectorHeader";
 import { groupThreads, listComments } from "../document/comments";
 import { jumpTo } from "../editor/topics";
 import {
@@ -39,11 +38,7 @@ import { useRailSections } from "./useRailSections";
 import { TagEditor } from "./TagEditor";
 import { alignSelection, distributeSelection } from "../editor/topics";
 
-/**
- * The property panel, in one order for everything: what it is, how it relates to other things,
- * its tags and status, how it looks, where it sits, and its comments. Sections that do not
- * apply are left out, and each folds and stays folded on this device.
- */
+/** Selection controls grouped by task; each section retains its own disclosure preference. */
 const PANEL_DEFAULTS = {
   source: false,
   relations: true,
@@ -60,6 +55,8 @@ type PanelProps = Readonly<{ editor: EditorController; selected: Item[]; section
 export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
   const sections = useRailSections(PANEL_DEFAULTS, "arconis.inspector");
+  const [tab, setTab] = useState<InspectorTab>("Design");
+  const panelId = useId();
   const selected = editor.selected();
   const [item] = selected;
   if (!item) return null;
@@ -74,22 +71,45 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       data-help-topic="editing#property-panel"
     >
       <InspectorHeader editor={editor} selected={selected} />
-      <PrimaryControls key={selectionKey} {...props} />
-      {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
-      {single && <ClockControls editor={editor} item={item} />}
-      <LayerField editor={editor} selected={selected} />
-      <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
-      <LayoutSection key={`layout ${selectionKey}`} {...props} />
-      <RelationsSection {...props} />
-      <TagsSection key={`tags ${selectionKey}`} {...props} />
-      {single && !isSlide(item) && (
-        <CommentsSection
-          key={`comments ${selectionKey}`}
-          editor={editor}
-          item={item}
-          sections={sections}
-        />
-      )}
+      <PropertyTabs panelId={panelId} tab={tab} onChoose={setTab} />
+      <div
+        role="tabpanel"
+        id={`${panelId}-Design`}
+        aria-labelledby={`${panelId}-Design-tab`}
+        hidden={tab !== "Design"}
+      >
+        <PrimaryControls key={selectionKey} {...props} />
+        {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
+        {single && <ClockControls editor={editor} item={item} />}
+        {single && <PositionControls editor={editor} item={item} />}
+        <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
+        {single && !isSlide(item) && (
+          <CommentsSection
+            key={`comments ${selectionKey}`}
+            editor={editor}
+            item={item}
+            sections={sections}
+          />
+        )}
+      </div>
+      <div
+        role="tabpanel"
+        id={`${panelId}-Arrange`}
+        aria-labelledby={`${panelId}-Arrange-tab`}
+        hidden={tab !== "Arrange"}
+      >
+        <LayerField editor={editor} selected={selected} />
+        <LayoutSection key={`layout ${selectionKey}`} {...props} />
+        <RelationsSection {...props} />
+      </div>
+      <div
+        role="tabpanel"
+        id={`${panelId}-Data`}
+        aria-labelledby={`${panelId}-Data-tab`}
+        hidden={tab !== "Data"}
+      >
+        <TagsSection key={`tags ${selectionKey}`} {...props} />
+      </div>
       {single && item.editedBy && (
         <p className="edited-by" data-testid="edited-by">
           Last edited by {item.editedBy}, {new Date(item.editedAt).toLocaleString()}
@@ -105,7 +125,7 @@ function PrimaryControls(props: PanelProps) {
   const { editor, sections } = props;
   return (
     <>
-      <Content editor={editor} item={item} sections={sections} />
+      <InspectorContent editor={editor} item={item} sections={sections} />
       {isSlide(item) && (
         <>
           <SlideSection editor={editor} item={item} sections={sections} />
@@ -113,74 +133,6 @@ function PrimaryControls(props: PanelProps) {
         </>
       )}
       {isLink(item) && <SelectionConnection editor={editor} selected={props.selected} />}
-    </>
-  );
-}
-
-/** What is selected, its name (a click edits it on the canvas), and the rest of the commands. */
-function InspectorHeader({
-  editor,
-  selected,
-}: Readonly<{ editor: EditorController; selected: Item[] }>) {
-  const [item] = selected;
-  const several = selected.length > 1;
-  return (
-    <header className="inspector-header">
-      <div className="inspector-heading">
-        <span className="inspector-kind" data-testid="selection-count">
-          {several ? `${selected.length} objects` : typeLabel(item)}
-        </span>
-        {!several && hasText(item) && (
-          <button
-            className="inspector-name"
-            data-hint="Edit text on the canvas (Enter)"
-            data-hint-detail="Type straight onto the object; everyone in the room sees the text change."
-            onClick={() => runCommand(editor, "edit.text")}
-          >
-            {item.name.trim() ? itemName(item) : "Add text"}
-          </button>
-        )}
-      </div>
-      <button
-        className="text-action inspector-more"
-        data-hint="Every command for the selection"
-        data-hint-detail="Open the menu of all commands that apply to the selection, beside it on the canvas."
-        onClick={() => openMenuOverSelection(editor)}
-      >
-        <MoreHorizontal size={14} /> More
-      </button>
-    </header>
-  );
-}
-
-/** The subtitle, and the label's Markdown source folded away: the canvas is where text is typed. */
-function Content({
-  editor,
-  item,
-  sections,
-}: Readonly<{ editor: EditorController; item: Item; sections: Sections }>) {
-  const canvas = editor.document;
-  return (
-    <>
-      {hasSubtitle(item) && (
-        <SubtitleField
-          value={item.subtitle}
-          actions={canvas.actions}
-          onChange={(subtitle) => canvas.patch(item.id, { subtitle })}
-        />
-      )}
-      {hasText(item) && (
-        <RailSection
-          id="source"
-          count={0}
-          title="Edit source"
-          detail="Show or hide the object's text as editable source, Markdown included."
-          open={sections.open.source}
-          onToggle={sections.toggle}
-        >
-          <ObjectText editor={editor} item={item} />
-        </RailSection>
-      )}
     </>
   );
 }
@@ -299,7 +251,6 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
   const canvas = editor.document;
   const [item] = selected;
   const single = selected.length === 1;
-  const look = effectiveAppearance(item, canvas.namedStyle(item.style));
   return (
     <RailSection
       id="layout"
@@ -309,16 +260,6 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
       open={sections.open.layout}
       onToggle={sections.toggle}
     >
-      {single && !isLink(item) && item.type !== "drawing" && (
-        <GeometryControls
-          item={item}
-          factor={editor.grid.factor}
-          unit={editor.grid.unit}
-          rotation={look.rotation}
-          onGeometry={(key, value) => changeGeometry(editor, item, key, value)}
-          onRotate={(rotation) => changeSelectionLook(canvas, [item], { rotation })}
-        />
-      )}
       <AlignControls
         selected={selected}
         onAlign={(mode) => alignSelection(editor, mode)}
@@ -345,6 +286,22 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
         </label>
       )}
     </RailSection>
+  );
+}
+
+function PositionControls({ editor, item }: Readonly<{ editor: EditorController; item: Item }>) {
+  if (isLink(item) || item.type === "drawing") return null;
+  const canvas = editor.document;
+  const look = effectiveAppearance(item, canvas.namedStyle(item.style));
+  return (
+    <GeometryControls
+      item={item}
+      factor={editor.grid.factor}
+      unit={editor.grid.unit}
+      rotation={look.rotation}
+      onGeometry={(key, value) => changeGeometry(editor, item, key, value)}
+      onRotate={(rotation) => changeSelectionLook(canvas, [item], { rotation })}
+    />
   );
 }
 

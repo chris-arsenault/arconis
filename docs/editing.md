@@ -482,19 +482,19 @@ another room, a file or a chat, and paste any canvas language back onto a canvas
 
 ## Property panel
 
-Selecting something shows its properties at the top of the right dock, in the same order for
-every kind of object. Its head names what is selected; click the name to edit it on the canvas, or **More**
-for the full menu. **Edit source** unfolds the label's Markdown. Then come:
+Selecting something shows its properties at the top of the right dock. **Object type** changes
+eligible shapes, notes and text while keeping their identity, content and connections. Click
+the object's name to edit it on the canvas. Controls are organized into three tabs:
 
-- **Relationships**: the topic it branches from, the frame it sits in, its references and lines,
-  each a row that flies to the other end, with its branch count, **Tidy** and its options,
-  **Number branches**, **Add branch**, **Relate to…** and **Zoom into**. With two objects selected it offers **Relate
-  these two** and **Connect with a line**.
-- **Tags and status**: tags, marker, task, link and properties.
-- **Appearance**: named style, fill, line, icon colour, text and, for a line, its connection.
-- **Layout**: position and size, alignment for several objects, and lock, jump point and
-  collapse.
-- **Slide** for a slide, and **Comments**.
+- **Design**: text source and subtitle, position and size, appearance and typography, connector
+  settings, comments, and controls specific to slides, clocks or ink.
+- **Arrange**: layer assignment, alignment, lock, jump point and collapse, and **Relationships**.
+  Relationships lists branches, containers, references and lines, with navigation and tree-layout
+  controls. With two objects selected it offers **Relate these two** and **Connect with a line**.
+- **Data**: tags, marker, task, link and named properties.
+
+The canvas's right-click menu keeps common editing actions visible and groups secondary
+commands in one level of submenus. Right arrow opens a submenu; Left returns to its parent.
 
 Each section folds from its header and stays as it was left on this device. Sections that do
 not apply to the selection are left out.
@@ -527,8 +527,8 @@ the colours they were given, so a canvas reads the same on every screen and in e
 ## Lock, collapse, jump points, tags, tasks and links
 
 These fields apply to every kind of object, lines included, and to the whole selection at once.
-Lock, jump point and collapse sit under **Layout** in the property panel; tags, marker, task and
-link under **Tags and status**.
+Lock, jump point and collapse sit under **Arrange → Layout** in the property panel; tags,
+marker, task and link sit under **Data → Tags and status**.
 
 - **Lock** keeps pointer edits away: a locked object cannot be moved, resized, rotated, edited or
   deleted, a marquee and Select all pass over it, and its chrome carries a padlock. Click it and

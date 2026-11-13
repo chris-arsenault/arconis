@@ -106,6 +106,7 @@ describe("a command the menu always lists", () => {
   const off = (context: CommandContext) =>
     menuGroups(context)
       .flat()
+      .flatMap((entry) => (entry.kind === "submenu" ? [entry, ...entry.submenu] : [entry]))
       .filter((entry) => entry.disabled)
       .map((entry) => entry.id);
 
@@ -127,10 +128,10 @@ describe("a command the menu always lists", () => {
     const one = context([items[0]], document);
     const three = context(items, document);
     expect(entryIds(one)).toEqual(entryIds(three));
-    expect(off(one)).toEqual(expect.arrayContaining(["edit.group", "menu.Align"]));
+    expect(off(one)).toEqual(expect.arrayContaining(["edit.group", "arrange.align.left"]));
     expect(off(three)).toEqual(expect.arrayContaining(["structure.branch", "edit.text"]));
     expect(off(three)).not.toContain("edit.group");
-    expect(off(three)).not.toContain("menu.Align");
+    expect(off(three)).not.toContain("arrange.align.left");
   });
 
   it("leads a clock's menu with its own commands, which other objects do not list", () => {
@@ -246,22 +247,32 @@ describe("the ring's sub-rings", () => {
 });
 
 describe("the context menu", () => {
-  it("groups an object's commands by intent and folds markers into a submenu", () => {
+  it("keeps common actions direct and groups secondary commands one level deep", () => {
     const { document, items } = notes(1);
     const groups = menuGroups(context(items, document));
     const ids = groups.map((group) => group.map((entry) => entry.id));
-    expect(ids[0]).toEqual(["edit.text", "edit.fitText", "comments.open"]);
-    expect(ids[1]).toContain("structure.relate");
-    const marker = groups.flat().find((entry) => entry.label === "Marker");
-    // Six markers, and the entry that removes one, greyed out while there is none to remove.
-    expect(marker?.kind === "submenu" && marker.submenu).toHaveLength(7);
-    expect(groups.flat().map((entry) => entry.id)).toContain("fields.tag");
+    expect(ids[0]).toEqual(["edit.text", "comments.open"]);
+    const entries = groups.flat();
+    expect(entries.length).toBeLessThanOrEqual(15);
+    expect(entries.map((entry) => entry.id)).toContain("edit.copy");
+    const fields = entries.find((entry) => entry.label === "Tags and status");
+    expect(fields?.kind === "submenu" && fields.submenu.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining([
+        "fields.tag",
+        "fields.task",
+        "fields.marker.star",
+        "fields.marker.none",
+      ])
+    );
+    for (const entry of entries)
+      if (entry.kind === "submenu")
+        expect(entry.submenu.every((child) => child.kind === "command")).toBe(true);
   });
 
   it("folds alignment into a submenu once several objects are selected", () => {
     const { document, items } = notes(3);
     const entries = menuGroups(context(items, document)).flat();
-    const align = entries.find((entry) => entry.label === "Align");
+    const align = entries.find((entry) => entry.label === "Arrange");
     expect(align?.kind === "submenu" && align.submenu.map((entry) => entry.id)).toContain(
       "arrange.align.left"
     );
@@ -274,6 +285,7 @@ describe("the context menu", () => {
     const label = (selection: ReturnType<typeof notes>) =>
       menuGroups(context(selection.items, selection.document))
         .flat()
+        .flatMap((entry) => (entry.kind === "submenu" ? entry.submenu : [entry]))
         .find((entry) => entry.id === "structure.relate")?.label;
     expect(label(one)).toBe("Relate to…");
     expect(label(two)).toBe("Relate these two");

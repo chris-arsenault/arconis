@@ -22,6 +22,7 @@ it("Undo removes a branch's newly required line anchor, topic and relationship t
   await add(page, "Rectangle (R)", "Server", 700, 100);
   await row(page, "Client").click();
   await row(page, "Server").click({ modifiers: ["Shift"] });
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await selectConnector(page);
   const before = (await exported(page)).text;

@@ -80,6 +80,7 @@ it("keeps below-object tools clear of metadata badges near the canvas edge", asy
   try {
     const page = await open(context);
     await add(page, "Rectangle (R)", "At the top", 260, 35);
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
     await page.getByLabel("Add a tag", { exact: true }).fill("api");
     await page.getByLabel("Add a tag", { exact: true }).press("Enter");
     await page.getByLabel("Marker", { exact: true }).selectOption("star");
@@ -111,6 +112,7 @@ it("keeps metadata and tools visible above an object near the bottom edge", asyn
     const canvas = page.getByTestId("canvas");
     const area = (await canvas.boundingBox())!;
     await add(page, "Rectangle (R)", "At the bottom", 260, area.height - 100);
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
     await page.getByLabel("Add a tag", { exact: true }).fill("api");
     await page.getByLabel("Add a tag", { exact: true }).press("Enter");
     const chrome = page.getByTestId("object-metadata");

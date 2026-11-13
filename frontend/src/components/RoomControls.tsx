@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link2, Plus, LogIn, X, Copy, Check } from "lucide-react";
+import { Link2, X, Copy, Check } from "lucide-react";
 import { parseRoom } from "../protocol/room";
 
 interface Props {
-  onCreate: () => void;
   onJoin: (id: string) => void;
   name: string;
   onName: (name: string) => void;
@@ -16,24 +15,6 @@ export function RoomControls(props: Readonly<Props>) {
   const closeDialog = useCallback(() => setDialog(""), []);
   return (
     <>
-      <button
-        className="icon-button"
-        aria-label="Create another room"
-        data-hint="New room"
-        data-hint-detail="Start a fresh, empty room with a link of its own."
-        onClick={props.onCreate}
-      >
-        <Plus size={18} />
-      </button>
-      <button
-        className="icon-button"
-        aria-label="Join another room"
-        data-hint="Join room"
-        data-hint-detail="Go to another room by pasting its link or code."
-        onClick={() => setDialog("join")}
-      >
-        <LogIn size={18} />
-      </button>
       {props.shareable && (
         <button
           className="primary share-button"
@@ -50,11 +31,11 @@ export function RoomControls(props: Readonly<Props>) {
   );
 }
 
-function RoomDialog({
+export function RoomDialog({
   mode,
   onClose,
   ...props
-}: Readonly<Props & { mode: string; onClose: () => void }>) {
+}: Readonly<Pick<Props, "name" | "onName" | "onJoin"> & { mode: string; onClose: () => void }>) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;

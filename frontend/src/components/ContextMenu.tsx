@@ -176,8 +176,7 @@ function MenuItem({ editor, entry }: Readonly<{ editor: EditorController; entry:
 }
 
 /**
- * A submenu: a family of commands folded under one entry, unfolding in place on click or the
- * right arrow, so a long menu scrolls with it open.
+ * One level of flyout commands. It flips at the window edge and supports pointer and arrow keys.
  */
 function Submenu({
   editor,
@@ -190,9 +189,31 @@ function Submenu({
   open: boolean;
   onOpen: (id: string | null) => void;
 }>) {
+  const trigger = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLUListElement>(null);
+  const focusOnOpen = useRef(false);
+  useLayoutEffect(() => {
+    if (open) positionSubmenu(trigger.current, menu.current, focusOnOpen.current);
+  }, [open]);
+  const reveal = (focus: boolean) => {
+    if (entry.disabled) return;
+    focusOnOpen.current = focus;
+    onOpen(entry.id);
+  };
   return (
-    <li role="none" className="has-submenu">
+    <li
+      role="none"
+      className="has-submenu"
+      onKeyDown={(event) => {
+        if (!open || !["ArrowLeft", "Escape"].includes(event.key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen(null);
+        trigger.current?.focus();
+      }}
+    >
       <button
+        ref={trigger}
         type="button"
         role="menuitem"
         aria-haspopup="menu"
@@ -200,17 +221,29 @@ function Submenu({
         aria-disabled={entry.disabled}
         data-hint={entry.label}
         data-hint-detail={entry.help}
-        onClick={() => !entry.disabled && onOpen(open ? null : entry.id)}
+        onPointerEnter={() => reveal(false)}
+        onClick={() => {
+          reveal(true);
+          menu.current
+            ?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
+            ?.focus();
+        }}
         onKeyDown={(event) => {
-          if (event.key === "ArrowRight" && !entry.disabled) onOpen(entry.id);
-          if (event.key === "ArrowLeft") onOpen(null);
+          if (event.key !== "ArrowRight" || entry.disabled) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (open)
+            menu.current
+              ?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
+              ?.focus();
+          else reveal(true);
         }}
       >
         <span>{entry.label}</span>
         <ChevronRight size={13} aria-hidden="true" />
       </button>
       {open && (
-        <ul className="context-submenu" role="menu" aria-label={entry.label}>
+        <ul ref={menu} className="context-submenu" role="menu" aria-label={entry.label}>
           {entry.submenu.map((inner) => (
             <MenuItem key={inner.id} editor={editor} entry={inner} />
           ))}
@@ -218,6 +251,27 @@ function Submenu({
       )}
     </li>
   );
+}
+
+function positionSubmenu(
+  trigger: HTMLButtonElement | null,
+  menu: HTMLUListElement | null,
+  focus: boolean
+) {
+  if (!menu || !trigger) return;
+  const anchor = trigger.getBoundingClientRect();
+  const { top, bottom } = trigger.closest(".canvas-area")?.getBoundingClientRect() ?? {
+    top: 0,
+    bottom: window.innerHeight,
+  };
+  menu.style.maxHeight = `${bottom - top - 16}px`;
+  const box = menu.getBoundingClientRect();
+  const right = anchor.right + 4;
+  const x = right + box.width <= window.innerWidth - 8 ? right : anchor.left - box.width - 4;
+  const y = Math.max(top + 8, Math.min(anchor.top, bottom - box.height - 8));
+  Object.assign(menu.style, { left: `${Math.max(8, x)}px`, top: `${y}px` });
+  if (focus)
+    menu.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')?.focus();
 }
 
 /** Every applicable command, grouped by intent, with longer families folded into submenus. */
@@ -276,6 +330,7 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (document.activeElement?.closest(".context-submenu")) return;
         event.preventDefault();
         closeMenu(editor);
         editor.element.focus({ preventScroll: true });
@@ -312,11 +367,14 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
 }
 
 function focusMenuEntry(menu: HTMLDivElement | null, event: KeyboardEvent) {
+  if (!menu) return;
+  const active = document.activeElement?.closest<HTMLElement>('[role="menu"]');
+  const panel = active ?? menu;
   const entries = [
-    ...(menu?.querySelectorAll<HTMLElement | SVGElement>(
+    ...panel.querySelectorAll<HTMLElement | SVGElement>(
       "[role=menuitem]:not([aria-disabled=true]), [role=menuitemradio]"
-    ) ?? []),
-  ];
+    ),
+  ].filter((entry) => !active || entry.closest('[role="menu"]') === active);
   const current = entries.findIndex((entry) => entry === document.activeElement);
   const backwards = event.key === "ArrowUp" || (event.key === "Tab" && event.shiftKey);
   let index = (current + (backwards ? -1 : 1) + entries.length) % entries.length;

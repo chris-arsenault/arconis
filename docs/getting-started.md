@@ -20,6 +20,10 @@ You can also open **Help → Take the tour** for an introduction to the controls
 device only**.
 [Rooms and collaboration](collaboration.md) explains how those choices affect sharing and storage.
 
+From an open canvas, choose **File → New canvas** to start a separate document. The current
+canvas stays saved on this device. **File → Join room…** opens another room by link or code;
+**File → Back to my canvases** returns to the home screen.
+
 ## Build a small diagram
 
 1. Press **N** and click the canvas to add a note. Type an idea and press **Ctrl/Command Enter**
@@ -28,8 +32,9 @@ device only**.
    the rectangle to name it, and finish the edit.
 3. Choose **Connector: click two objects** and click the note followed by the rectangle.
 4. Press **V** to select. Drag either object; the connector stays attached.
-5. Select an object to see its properties in the right dock: its relationships, tags and status,
-   appearance and layout. Right-click it for the menu, or right-drag to pan. **Settings → Enable
+5. Select an object to see its properties in the right dock: **Design** for type, text and appearance,
+   **Arrange** for layers and relationships, and **Data** for tags and named values.
+   Right-click it for the menu, or right-drag to pan. **Settings → Enable
    context wheel** replaces right-drag panning with a ring of commands. On narrow screens,
    **Hide panel** folds the left panel to give the canvas room.
 

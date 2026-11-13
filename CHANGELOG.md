@@ -4,6 +4,15 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Organized canvas controls
+
+- Shortened right-click menus with one level of grouped commands and side-opening submenus.
+- Moved New canvas, Join room and Back to my canvases into File. New canvas explains that the
+  current canvas is kept; grouped the remaining header controls and removed ambiguous new/join icons.
+- Added Design, Arrange and Data tabs to Properties, with a direct object-type selector.
+  Removed the Properties More button that reopened the canvas menu.
+- Kept selection tools out of the way while placing objects and fixed the Join dialog on narrow screens.
+
 ### Shared Ahara accounts
 
 - Existing logins become the shared Ahara account connection, preserving user identities and

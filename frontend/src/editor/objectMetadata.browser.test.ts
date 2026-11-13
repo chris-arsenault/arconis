@@ -37,6 +37,14 @@ async function setVisibility(page: Page, value: "Show" | "Selected" | "Hide") {
   await settings.getByRole("button", { name: "Done", exact: true }).click();
 }
 
+async function clearCloudDetails(page: Page) {
+  await page.getByRole("tab", { name: "Data", exact: true }).click();
+  await page.getByLabel("Marker", { exact: true }).selectOption({ label: "None" });
+  await page.getByRole("button", { name: "Remove tag edge", exact: true }).click();
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
+  await page.getByRole("button", { name: "Remove reference to Application", exact: true }).click();
+}
+
 it("attaches comment, relationship and marker badges to a cloud's painted edge", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const peerContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -73,6 +81,7 @@ clients -> cloud as incoming
     }
     await checkCloudAttachment(peer);
     await strip.getByRole("button", { name: /^Show 1 relationships/ }).click();
+    await page.getByRole("tab", { name: "Arrange", exact: true }).click();
     await page
       .getByRole("list", { name: "Related items" })
       .filter({ hasText: "Application" })
@@ -85,11 +94,7 @@ clients -> cloud as incoming
       .getByText("Check the TLS boundary.", { exact: true })
       .waitFor();
     await page.getByRole("button", { name: "Close comments", exact: true }).click();
-    await page.getByLabel("Marker", { exact: true }).selectOption({ label: "None" });
-    await page.getByRole("button", { name: "Remove tag edge", exact: true }).click();
-    await page
-      .getByRole("button", { name: "Remove reference to Application", exact: true })
-      .click();
+    await clearCloudDetails(page);
     await page.getByTestId("zoom-level").click();
     await page.getByLabel("Zoom multiplier", { exact: true }).fill("1");
     await page.getByLabel("Zoom multiplier", { exact: true }).press("Enter");
@@ -116,6 +121,7 @@ it("keeps attached badges and connected-copy handles clickable without reserving
   try {
     const page = await open(context);
     await add(page, "Rectangle (R)", "Compact details", 260, 60);
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
     await page
       .getByRole("toolbar", { name: "Selection toolbar" })
       .getByRole("button", { name: "Fill #d9e9ff", exact: true })
@@ -178,6 +184,7 @@ it("remembers one indicator visibility without changing a peer's view", async ()
     const room = createRoomId();
     const page = await open(context, room);
     await add(page, "Rectangle (R)", "Display preferences", 300, 250);
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
     await page.getByLabel("Add a tag", { exact: true }).fill("runtime");
     await page.getByLabel("Add a tag", { exact: true }).press("Enter");
     await page.getByLabel("Marker", { exact: true }).selectOption("star");

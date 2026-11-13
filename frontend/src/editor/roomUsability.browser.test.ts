@@ -167,7 +167,8 @@ it("leaves abandoned password gates with Cancel or Escape and preserves the prev
     await page.getByRole("button", { name: "Create a room", exact: true }).click();
     await add(page, "Sticky note (N)", "Keep this idea", 260, 240);
     const previousUrl = page.url();
-    await page.getByRole("button", { name: "Join another room", exact: true }).click();
+    await page.getByRole("button", { name: "File", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Join room…", exact: true }).click();
     await page
       .getByLabel("Room link or code", { exact: true })
       .fill(`${baseUrl()}#locked=${createRoomId()}`);

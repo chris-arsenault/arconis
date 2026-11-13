@@ -124,14 +124,14 @@ it("owns File menu keyboard navigation, includes its checkbox and returns focus 
     await add(page, "Sticky note (N)", "Keep menu selection", 260, 240);
     const trigger = page.getByRole("button", { name: "File", exact: true });
     await trigger.press("ArrowDown");
-    const first = page.getByRole("menuitem", { name: "Export document", exact: true });
+    const first = page.getByRole("menuitem", { name: "New canvas", exact: true });
     await expect
       .poll(() => first.evaluate((button) => document.activeElement === button))
       .toBe(true);
     await page.keyboard.press("ArrowDown");
     expect(
       await page
-        .getByRole("menuitem", { name: "Export PNG", exact: true })
+        .getByRole("menuitem", { name: "Join room…", exact: true })
         .evaluate((button) => document.activeElement === button)
     ).toBe(true);
     await page.keyboard.press("End");
@@ -149,12 +149,12 @@ it("owns File menu keyboard navigation, includes its checkbox and returns focus 
     expect(await page.getByTestId("selection-count").textContent()).toContain("Sticky note");
     await trigger.press("ArrowDown");
     await first.waitFor();
-    // Tab closes the menu and continues to the next header control, Settings.
+    // Tab closes the menu and continues to the canvas title beside File.
     await page.keyboard.press("Tab");
     expect(await page.getByRole("menu", { name: "File", exact: true }).count()).toBe(0);
     expect(
       await page
-        .getByRole("button", { name: "Settings", exact: true })
+        .getByLabel("Canvas title", { exact: true })
         .evaluate((button) => document.activeElement === button)
     ).toBe(true);
     expect(errors).toEqual([]);

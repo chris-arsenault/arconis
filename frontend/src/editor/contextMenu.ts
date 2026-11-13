@@ -49,8 +49,43 @@ const MARKER: Submenu = {
   help: "Choose a shape badge for the selection; the room decides what each shape means.",
   ids: [...MARKERS.map((marker) => `fields.marker.${marker}`), "fields.marker.none"],
 };
-const TAGS_AND_STATUS: MenuSlot[] = ["fields.tag", "fields.task", MARKER];
+const TAGS_AND_STATUS: Submenu = {
+  label: "Tags and status",
+  help: "Set tags, task status and markers on the selection.",
+  ids: ["fields.tag", "fields.task", ...MARKER.ids],
+};
 const VISIBILITY = ["fields.lock", "fields.collapse", "fields.jump", "fields.opening"];
+const STRUCTURE: Submenu = {
+  label: "Structure",
+  help: "Add branches, relationships and connectors, or swap positions.",
+  ids: [
+    "structure.branch",
+    "structure.sibling",
+    "structure.relate",
+    "structure.connect",
+    "structure.swapPositions",
+  ],
+};
+const ARRANGE: Submenu = {
+  label: "Arrange",
+  help: "Order, align, distribute and group the selection.",
+  ids: [
+    "arrange.front",
+    "arrange.back",
+    ...ALIGN.ids,
+    ...DISTRIBUTE.ids,
+    "structure.tidy",
+    "arrange.fitFrame",
+    "edit.fitText",
+    "edit.group",
+    "edit.ungroup",
+  ],
+};
+const OBJECT_STATE: Submenu = {
+  label: "Object settings",
+  help: "Lock, collapse or mark objects as navigation points.",
+  ids: VISIBILITY,
+};
 /** A clock's own commands, which lead the object menu when clocks are what was pressed. */
 const CLOCK = ["clock.toggle", "clock.reset"];
 
@@ -63,47 +98,40 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
   canvas: [
     ["create.noteHere", "create.textHere", "create.frameHere", "create.capture"],
     ["edit.pasteHere", "select.all"],
-    ["view.fit", "view.find", "view.filter"],
-    ["view.grid", "view.references"],
+    [
+      {
+        label: "View",
+        help: "Find, filter and adjust the canvas view.",
+        ids: ["view.fit", "view.find", "view.filter", "view.grid", "view.references"],
+      },
+    ],
     ["export.deckHtml"],
     ["fields.unlockAll"],
   ],
   object: [
-    ["edit.text", "edit.fitText", "comments.open"],
-    [
-      "structure.branch",
-      "structure.sibling",
-      "structure.relate",
-      "structure.connect",
-      "structure.swapPositions",
-    ],
-    TAGS_AND_STATUS,
-    [
-      "arrange.front",
-      "arrange.back",
-      ALIGN,
-      DISTRIBUTE,
-      "structure.tidy",
-      "arrange.fitFrame",
-      "edit.group",
-      "edit.ungroup",
-    ],
-    VISIBILITY,
+    ["edit.text", "comments.open"],
     ["edit.cut", "edit.copy", "edit.pasteHere", "edit.duplicate"],
+    [STRUCTURE, ARRANGE, TAGS_AND_STATUS, OBJECT_STATE],
     ["view.zoomInto", "presence.copyLink"],
     ["edit.delete"],
   ],
   line: [
     ["comments.open", "structure.relate"],
-    TAGS_AND_STATUS,
-    ["arrange.route", "line.reverse", "line.clearPoints", "arrange.front", "arrange.back"],
+    [TAGS_AND_STATUS],
+    [
+      {
+        label: "Connector",
+        help: "Route, reverse and arrange this connector.",
+        ids: ["arrange.route", "line.reverse", "line.clearPoints", "arrange.front", "arrange.back"],
+      },
+    ],
     ["fields.lock"],
     ["edit.copy", "edit.duplicate"],
     ["edit.delete"],
   ],
   slide: [
     ["structure.present", "export.deckHtml", "edit.text", "comments.open"],
-    TAGS_AND_STATUS,
+    [TAGS_AND_STATUS],
     ["arrange.front", "arrange.back"],
     ["fields.lock"],
     ["edit.cut", "edit.copy", "edit.duplicate"],

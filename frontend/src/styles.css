@@ -782,7 +782,7 @@ dialog.password-gate {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 23px;
+  gap: 14px;
   padding: 0 27px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
@@ -812,6 +812,33 @@ dialog.password-gate {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+.topbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.topbar-group:empty {
+  display: none;
+}
+.topbar-group + .topbar-group {
+  border-left: 1px solid var(--line);
+  margin-left: 6px;
+  padding-left: 10px;
+}
+.topbar .participant-badge {
+  margin: 0 3px;
+}
+.topbar .share-button {
+  margin: 0 6px;
+}
+.menu-description {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 400;
 }
 .participant-badge {
   display: inline-flex;
@@ -1541,10 +1568,9 @@ details[open] > summary::before {
   border-left: 1px solid var(--line);
   font-size: 12px;
 }
-/* The panel's head: what is selected and its name, with every other command behind More. */
+/* The panel keeps type and name together; task tabs organize the controls beneath them. */
 .inspector-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 2;
   display: flex;
   align-items: flex-start;
@@ -1583,8 +1609,48 @@ details[open] > summary::before {
 .inspector-name:hover {
   background: var(--hover);
 }
-.inspector-more {
-  flex: none;
+.inspector-type {
+  display: grid;
+  gap: 4px;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.inspector-type select {
+  width: 100%;
+  padding: 6px 8px;
+  color: var(--text);
+  font-size: 12px;
+}
+.inspector-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  padding: 0 8px;
+  gap: 4px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.inspector-tabs button {
+  flex: 1;
+  padding: 9px 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+.inspector-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--purple);
+  color: var(--purple);
+  font-weight: 600;
+}
+.inspector [role="tabpanel"][hidden] {
+  display: none;
+}
+.inspector [role="tabpanel"] > .object-subtitle {
+  margin-top: 10px;
 }
 /* Sections in the panel share the rail's header; the controls inside sit flush beneath it. */
 .inspector .rail-section {
@@ -2293,7 +2359,6 @@ input.outline-name {
   padding: 4px;
   list-style: none;
   min-width: 200px;
-  /* An object's menu lists every command it could take, so it gets most of the window's height. */
   max-height: 85vh;
   overflow-y: auto;
   background: var(--panel);
@@ -2325,7 +2390,7 @@ input.outline-name {
   font-size: 12px;
 }
 .context-menu button:hover {
-  background: #efecfa;
+  background: var(--hover);
 }
 .context-menu kbd {
   color: #969daf;
@@ -2339,18 +2404,23 @@ input.outline-name {
   color: var(--muted);
   transition: transform 0.15s;
 }
-.context-menu .has-submenu > button[aria-expanded="true"] svg {
-  transform: rotate(90deg);
-}
 @media (prefers-reduced-motion: reduce) {
   .context-menu .has-submenu > button svg {
     transition: none;
   }
 }
 .context-submenu {
-  margin: 1px 0 3px 10px !important;
-  padding-left: 6px !important;
-  border-left: 2px solid var(--line);
+  position: fixed;
+  z-index: 1;
+  min-width: 210px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 4px !important;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 30px #44405b1f;
 }
 /* The ring's way to the full menu reads as a different kind of wedge. */
 .ring-wedge.more text {
@@ -2375,16 +2445,23 @@ input.outline-name {
 .file-menu-list {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
+  left: 0;
   z-index: 50;
   display: flex;
   flex-direction: column;
-  min-width: 210px;
+  width: 280px;
+  max-width: calc(100vw - 24px);
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
   box-shadow: 0 8px 30px #44405b1f;
+}
+.file-menu-list hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
 }
 .file-menu-list button {
   display: flex;
@@ -2809,13 +2886,15 @@ input.outline-name {
   inset: 0;
   z-index: 20;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   background: #2f294e40;
   backdrop-filter: blur(3px);
   padding: 20px;
 }
 .modal {
-  width: 440px;
+  width: min(440px, 100%);
+  min-width: 0;
   max-width: 100%;
   background: white;
   padding: 35px;
@@ -3322,6 +3401,22 @@ input.outline-name {
   .topbar {
     padding: 0 8px;
     gap: 6px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 104px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .topbar-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .topbar-group + .topbar-group {
+    padding-left: 4px;
+    margin-left: 0;
   }
   .document-title {
     min-width: 0;

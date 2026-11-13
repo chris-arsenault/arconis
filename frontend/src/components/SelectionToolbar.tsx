@@ -92,6 +92,7 @@ export function SelectionToolbar({
   useSelectionAnchor(editor, ref);
   const selected = editor.selected();
   if (hidden(editor, selected)) return null;
+  if (!editor.editId && editor.tool !== "select") return null;
   const editing = editor.editId ? editor.document.get(editor.editId) : null;
   return (
     <div

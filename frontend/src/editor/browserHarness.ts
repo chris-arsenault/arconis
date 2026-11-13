@@ -131,15 +131,21 @@ async function skipOrientation(context: BrowserContext) {
   await context.addInitScript(() => localStorage.setItem("arconis-orientation", "done"));
 }
 
-/** Opens a menu command for the selection through the property panel's More button. */
+/** Opens a selection command through the floating toolbar and, when needed, a submenu. */
 export async function more(page: Page, command: string) {
-  await page
-    .getByLabel("Object properties")
-    .getByRole("button", { name: "More", exact: true })
-    .click();
+  await page.getByRole("button", { name: "More commands", exact: true }).click();
   // A menu item's name ends with its shortcut, as "Group Ctrl G".
   const escaped = command.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  await page.getByRole("menuitem", { name: new RegExp(`^${escaped}( |$)`) }).click();
+  const item = page.getByRole("menuitem", { name: new RegExp(`^${escaped}( |$)`) });
+  await page.getByRole("menu", { name: "Canvas menu", exact: true }).waitFor();
+  const groups = page
+    .getByRole("menu", { name: "Canvas menu", exact: true })
+    .locator('button[aria-haspopup="menu"]');
+  for (const group of await groups.all()) {
+    if (await item.count()) break;
+    await group.hover();
+  }
+  await item.click();
 }
 
 /** Opens the header's File menu, where export and import live. */
