@@ -115,10 +115,16 @@ it("lets people try the right button while the tour describes it", async () => {
       await page.keyboard.press("ArrowRight");
       await expect.poll(() => title.textContent()).toBe(next);
     }
+    await expect.poll(() => nextFocused(page)).toBe(true);
     // A real right click on the highlighted canvas opens the menu, and its items work.
     const canvas = (await page.getByTestId("canvas").boundingBox())!;
     await page.mouse.click(canvas.x + 300, canvas.y + 300, { button: "right" });
     const menu = page.getByRole("menu", { name: "Canvas menu" });
+    await menu.waitFor();
+    await page.keyboard.press("Escape");
+    await expect.poll(() => menu.count()).toBe(0);
+    expect(await title.textContent()).toBe("Right button: pan and menu");
+    await page.mouse.click(canvas.x + 300, canvas.y + 300, { button: "right" });
     await menu.waitFor();
     const grid = page.getByRole("button", { name: "Grid and snapping", exact: true });
     expect(await grid.getAttribute("aria-pressed")).toBe("true");
@@ -133,6 +139,9 @@ it("lets people try the right button while the tour describes it", async () => {
     expect(await page.getByTestId("command-ring").count()).toBe(0);
     expect(await menu.count()).toBe(0);
     expect(await title.textContent()).toBe("Right button: pan and menu");
+    expect(
+      await page.getByTestId("canvas").evaluate((element) => document.activeElement === element)
+    ).toBe(true);
     await page.keyboard.press("Escape");
     await expect.poll(() => tourPopup(page).count()).toBe(0);
     expect(errors).toEqual([]);

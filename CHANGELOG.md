@@ -12,6 +12,7 @@ All notable user-visible changes are recorded here.
 - Added Design, Arrange and Data tabs to Properties, with a direct object-type selector.
   Removed the Properties More button that reopened the canvas menu.
 - Kept selection tools out of the way while placing objects and fixed the Join dialog on narrow screens.
+- Escape closes the guided tour after trying canvas panning and context-menu controls.
 
 ### Shared Ahara accounts
 

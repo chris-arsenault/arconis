@@ -54,7 +54,11 @@ function keyboard(editor: EditorController, event: KeyboardEvent, pan: Temporary
     pan.start();
     return;
   }
-  if (event.key === "Escape") setKeepsTool(editor, false);
+  if (event.key === "Escape") {
+    // Driver.js owns Escape even after a tour gesture returns focus to the canvas.
+    if (document.querySelector(".arconis-tour")) return;
+    setKeepsTool(editor, false);
+  }
   const command = commandForKey(event, commandContext(editor));
   if (!command || (event.key === "Tab" && !onCanvas(editor, event))) return;
   event.preventDefault();
