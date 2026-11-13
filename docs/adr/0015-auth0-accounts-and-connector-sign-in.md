@@ -1,7 +1,8 @@
 # 0015 — Accounts live in Ahara's Auth0 tenant, and connectors register there
 
 - Status: Accepted
-- Saved-copy format superseded by [ADR-0018](0018-one-encrypted-room-path.md); Auth0 decisions remain in force.
+- Saved-copy format superseded by [ADR-0018](0018-one-encrypted-room-path.md).
+- Product-owned user database and identity deletion superseded by [ADR-0019](0019-shared-ahara-identities.md); other Auth0 decisions remain in force.
 - Date: 2026-11-07
 - Supersedes: ADR-0012's sign-in and account key; ADR-0013's agent sign-in
 

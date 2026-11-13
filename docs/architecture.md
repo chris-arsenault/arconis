@@ -478,10 +478,13 @@ to Ahara's private log gateway and shared Loki stack, so shipped diagnostics sur
 ## Accounts
 
 `accounts/` is the server side, and `account/` the browser's ([ADR-0012](adr/0012-accounts-and-encrypted-workspaces.md),
-[ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Arconis's users are its own database
-connection in the shared Ahara Auth0 tenant. The browser signs in to Auth0 with the authorization code
-flow and PKCE (`account/auth.ts`, through `oidc-client-ts`), explicitly selecting the `arconis`
-connection for the accounts API's audience. The ALB validates those tokens and that audience on
+[ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md),
+[ADR-0019](adr/0019-shared-ahara-identities.md)). Ahara-infra owns the shared database connection
+and verification Action. It adopts the existing `arconis` connection without changing user subjects
+or passwords. Products enable their own clients additively and retain independent API audiences
+and grants. The browser signs in with the authorization code flow and PKCE (`account/auth.ts`,
+through `oidc-client-ts`), explicitly selecting the runtime-configured shared connection for the
+accounts API's audience. The ALB validates those tokens and that audience on
 `/api/*`. Sign-up verifies the email by a code before
 completion; sign-in and password resets use Auth0's pages.
 
@@ -508,7 +511,9 @@ a saved shared room starts the relay through the same activation path as local r
 
 Account deletion marks the existing profile before enumeration; publication and
 rename transactions reject that marker. Cleanup is retryable, and the marker remains after
-profile removal to reject writes from still-valid tokens.
+profile removal to reject writes from still-valid tokens. Frozen cleanup references remain until
+their stored objects are deleted, so storage failures can be retried. Deletion removes only Arconis
+data; the API has no shared-identity deletion capability or Auth0 Management API credentials.
 
 `components/WorkBrowser.tsx` serves both home and account-panel discovery, grouping room identities
 while keeping local/account actions separate. Saved copies and reusable layouts are private
@@ -519,8 +524,9 @@ Canonical selected canvas text and pictures use the existing private S3 bucket; 
 DynamoDB. Insertion assigns fresh identities, preserves internal references, materializes named
 appearance and reuses the existing file/paste operation as one Undo without importing room metadata.
 
-A post-login Action, compiled from `accounts/auth0-actions/post-login.ts`, refuses sign-in to Arconis's connection
-until the email is verified. Deleting an account removes its Auth0 user through the Management API.
+The platform's `services/auth0-actions/require-verified-email.js` refuses sign-in to the shared
+connection until the email is verified. Platform email templates identify the requesting app and
+explain that password resets affect the shared account.
 
 ## Limitations
 

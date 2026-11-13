@@ -4,6 +4,8 @@ export interface AccountConfig {
   /** The Ahara Auth0 tenant's issuer, where accounts live. */
   authAuthority: string;
   authClientId: string;
+  /** The shared Ahara user connection, provided by deployment configuration. */
+  authConnection: string;
   /** The accounts API, which access tokens are issued for. */
   authAudience: string;
   /** Auth0's sign-out, which returns to the site. */
@@ -44,8 +46,8 @@ export function oidcAuth(config: AccountConfig): Auth {
     // offline_access gives a rotating refresh token, so a session outlives one access token.
     scope: "openid email profile offline_access",
     // Universal Login otherwise chooses among the application's enabled databases, including
-    // the tenant's default. Login, sign-up and password recovery must use Arconis's users.
-    extraQueryParams: { audience: config.authAudience, connection: "arconis" },
+    // the tenant's default. Login, sign-up and recovery use the same shared Ahara users.
+    extraQueryParams: { audience: config.authAudience, connection: config.authConnection },
     userStore: new WebStorageStateStore({ store: localStorage }),
     automaticSilentRenew: false,
     loadUserInfo: false,

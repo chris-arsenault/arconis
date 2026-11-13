@@ -4,6 +4,7 @@ import { oidcAuth, type AccountConfig } from "./auth";
 const REQUIRED: (keyof AccountConfig)[] = [
   "authAuthority",
   "authClientId",
+  "authConnection",
   "authAudience",
   "authSignOutUrl",
   "relayUrl",

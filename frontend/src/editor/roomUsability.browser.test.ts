@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import {
   add,
@@ -15,6 +16,24 @@ import {
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const PHRASE = "local room test phrase";
+
+async function checkCanvasRows(page: Page) {
+  const browserPanel = page.getByRole("region", { name: "Saved work browser" });
+  const name = browserPanel.getByRole("button", { name: "Open local Workshop plan", exact: true });
+  await name.waitFor();
+  expect(await page.getByRole("heading", { name: "Your canvases", exact: true }).count()).toBe(1);
+  expect(await browserPanel.getByText("Workshop plan", { exact: true }).count()).toBe(1);
+  expect((await name.boundingBox())!.height).toBeLessThan(80);
+  const remove = browserPanel.getByRole("button", {
+    name: "Remove local Workshop plan",
+    exact: true,
+  });
+  expect((await remove.boundingBox())!.width).toBeLessThanOrEqual(40);
+  await browserPanel.getByLabel("Find saved work", { exact: true }).fill("no matching canvas");
+  await browserPanel.getByText("No canvases match your search.", { exact: true }).waitFor();
+  await browserPanel.getByLabel("Find saved work", { exact: true }).fill("");
+  await page.screenshot({ path: "test-results/canvas-browser-desktop.png" });
+}
 
 it("allows an empty title draft and publishes one undoable replacement without stale peer writes", async () => {
   const first = await browser.newContext(VIEWPORT);
@@ -71,6 +90,7 @@ it("reopens a retained canvas by title from home", async () => {
     await add(page, "Sticky note (N)", "Retained idea", 260, 240);
     const roomUrl = page.url();
     await page.getByRole("link", { name: "Arconis home", exact: true }).click();
+    await checkCanvasRows(page);
     await page.setViewportSize({ width: 390, height: 844 });
     const recent = page
       .getByRole("region", { name: "Saved work browser" })
@@ -78,6 +98,9 @@ it("reopens a retained canvas by title from home", async () => {
     const bounds = (await recent.boundingBox())!;
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390
+    );
     await page.screenshot({ path: "test-results/room-usability-home-mobile.png" });
     await page
       .getByRole("region", { name: "Saved work browser" })

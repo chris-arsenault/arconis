@@ -13,6 +13,9 @@ ordinary room by its link.
 
 Your account begins with your email as its name. The saved display name is used in rooms.
 The sign-in service handles password-reset prompts; the Arconis panel holds no password form.
+Your Ahara login can also be used by other applications that support Ahara accounts. Their
+permissions and saved data remain separate. Verification and reset emails come from Ahara and
+name the requesting application when available.
 
 ## Save a room
 
@@ -53,6 +56,7 @@ to keep their titles out of the account index.
 Opening a saved password room asks for its room password. An account password reset preserves
 all saved workspaces because the copies are not encrypted under that account password. It does
 not recover a forgotten room password.
+A reset changes the shared Ahara password for every application using this account.
 
 ## Recover a recent saved copy
 
@@ -81,11 +85,14 @@ The delete button beside an account copy removes that copy and its recent histor
 removes only this browser's retained copy and remembered address; close the room in other tabs first.
 Neither operation deletes objects from an open peer's canvas or the other kind of copy.
 
-**Sign out** ends account access in this browser. **Delete account** asks for confirmation and
-removes the account, its saved workspaces and histories, and reusable layouts.
+**Sign out** ends account access in this browser. **Delete Arconis account** asks for confirmation
+and permanently removes the Arconis profile, saved workspaces and histories, and reusable layouts.
+Your Ahara login and data in other applications remain.
 Export any portable copies you want before deleting saved data.
 If deletion fails partway through, the account panel offers **Retry account deletion**, including
-after a reload. New account saves are blocked while deletion is underway.
+after a reload. A retained deletion marker blocks further Arconis saves and profile creation,
+including requests made with a still-valid token. Deleting the Arconis account does not provide
+a way to recreate its profile under the same Ahara identity.
 
 ## When saving or signing in fails
 

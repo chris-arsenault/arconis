@@ -1,5 +1,5 @@
 # Arconis in the shared Ahara Auth0 tenant (ahara/INTEGRATION.md, Step 6b). Ahara-infra owns the
-# tenant, its branding and auth.ahara.io; this file owns Arconis's users, applications and APIs.
+# tenant, shared accounts and auth.ahara.io; this file owns Arconis's applications and APIs.
 # The site signs people in here, and MCP connectors register themselves and sign in here too.
 
 data "aws_ssm_parameter" "auth0_domain" {
@@ -25,50 +25,22 @@ provider "auth0" {
 }
 
 locals {
-  # The tenant's own domain answers the Management API; people and agents see auth.ahara.io.
-  auth0_tenant_domain = nonsensitive(data.aws_ssm_parameter.auth0_domain.value)
-  auth0_issuer        = nonsensitive(data.aws_ssm_parameter.auth0_issuer.value)
-  auth0_sign_in       = trimsuffix(local.auth0_issuer, "/")
-  mcp_scope           = "edit:rooms"
+  auth0_issuer  = nonsensitive(data.aws_ssm_parameter.auth0_issuer.value)
+  auth0_sign_in = trimsuffix(local.auth0_issuer, "/")
+  mcp_scope     = "edit:rooms"
 }
 
-# Arconis's own users. Domain-level, so the MCP clients that register themselves can sign in here;
-# no other product's connection is.
-resource "auth0_connection" "arconis" {
+# Ahara adopts this existing database without moving users. Its internal name stays stable.
+# A direct lookup lets this stack detach ownership before the platform publishes its SSM contract.
+data "auth0_connection" "accounts" {
   name                 = "arconis"
-  display_name         = "Arconis"
-  strategy             = "auth0"
-  is_domain_connection = true
+  skip_enabled_clients = true
+}
 
-  options {
-    disable_signup         = false
-    brute_force_protection = true
-    password_policy        = "fair"
-
-    password_complexity_options {
-      min_length = 12
-    }
-
-    # People sign in with their email, and sign-up asks for the code Auth0 emails them before it
-    # finishes, so a new account arrives verified (ahara-infra turns on identifier-first login).
-    attributes {
-      email {
-        profile_required    = true
-        verification_method = "otp"
-
-        identifier {
-          active = true
-        }
-
-        signup {
-          status = "required"
-
-          verification {
-            active = true
-          }
-        }
-      }
-    }
+removed {
+  from = auth0_connection.arconis
+  lifecycle {
+    destroy = false
   }
 }
 
@@ -166,65 +138,33 @@ resource "auth0_client_grant" "mcp_third_party" {
   depends_on = [auth0_resource_server_scopes.mcp]
 }
 
-# --- Account deletion: the accounts API removes the person's Auth0 user ---
-
-resource "random_password" "lifecycle" {
-  length  = 64
-  special = false
-}
-
-resource "auth0_client" "lifecycle" {
-  name        = "Arconis accounts service"
-  description = "Deletes the Auth0 user of a deleted Arconis account."
-  app_type    = "non_interactive"
-  grant_types = ["client_credentials"]
-}
-
-resource "auth0_client_credentials" "lifecycle" {
-  client_id             = auth0_client.lifecycle.client_id
-  authentication_method = "client_secret_post"
-  client_secret         = random_password.lifecycle.result
-}
-
-resource "auth0_client_grant" "lifecycle" {
-  client_id = auth0_client.lifecycle.client_id
-  audience  = "https://${local.auth0_tenant_domain}/api/v2/"
-  scopes    = ["delete:users"]
-}
-
-resource "auth0_connection_clients" "arconis" {
-  connection_id   = auth0_connection.arconis.id
-  enabled_clients = [auth0_client.web.client_id]
-}
-locals {
-  lifecycle_secrets = {
-    AUTH0_DOMAIN        = local.auth0_tenant_domain
-    AUTH0_CLIENT_ID     = auth0_client.lifecycle.client_id
-    AUTH0_CLIENT_SECRET = random_password.lifecycle.result
+removed {
+  from = auth0_connection_clients.arconis
+  lifecycle {
+    destroy = false
   }
 }
 
-# Actions run for the whole tenant, and this one acts only on Arconis's connection: Auth0's standard
-# way to require a verified email before sign-in. Sign-up verifies new accounts; this refuses any
-# account that never was.
-locals {
-  # Compiled by `tsc` from frontend/src/accounts/auth0-actions, as Auth0 documents for TypeScript.
-  auth0_actions_bundle = "${path.module}/../../frontend/dist-relay/auth0-actions/post-login.js"
+# Each application owns only its own association, so another product's access survives deploys.
+import {
+  to = auth0_connection_client.web
+  id = "${data.auth0_connection.accounts.id}::${auth0_client.web.client_id}"
 }
 
-resource "auth0_action" "require_activation" {
-  name    = "arconis-require-activation"
-  runtime = "node22"
-  deploy  = true
-  code    = file(local.auth0_actions_bundle)
-
-  supported_triggers {
-    id      = "post-login"
-    version = "v3"
+resource "auth0_connection_client" "web" {
+  connection_id = data.auth0_connection.accounts.id
+  client_id     = auth0_client.web.client_id
+}
+removed {
+  from = auth0_action.require_activation
+  lifecycle {
+    destroy = false
   }
 }
 
-resource "auth0_trigger_action" "require_activation" {
-  trigger   = "post-login"
-  action_id = auth0_action.require_activation.id
+removed {
+  from = auth0_trigger_action.require_activation
+  lifecycle {
+    destroy = false
+  }
 }

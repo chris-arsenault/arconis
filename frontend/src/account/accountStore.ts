@@ -223,7 +223,7 @@ export class AccountStore {
     await this.auth.signOut();
   }
 
-  /** Removes the account, its sign-in and everything saved in it. */
+  /** Removes Arconis data and signs out; the shared Ahara identity remains. */
   async deleteAccount() {
     this.error = "";
     this.deletionPending = true;

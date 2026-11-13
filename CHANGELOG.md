@@ -4,6 +4,23 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Shared Ahara accounts
+
+- Existing logins become the shared Ahara account connection, preserving user identities and
+  saved work. Each application retains its own permissions and data.
+- Arconis account deletion removes only Arconis data and signs out. The shared login remains;
+  interrupted workspace and layout cleanup retains its storage references for retry.
+- Ahara verification/reset emails identify the requesting application. Reset emails explain
+  that changing the password affects every application using the shared account.
+
+### Canvas browser and discussion layouts
+
+- Canvas lists use compact filename rows with copy locations, opened/saved dates and aligned
+  actions. Home has one browser heading, with account access in the header and room creation
+  alongside the list. Account settings use a wider, organised panel.
+- Comment threads keep author, date, Resolve and Delete in one header. Removed redundant
+  discussion/composer headings and corrected stretched buttons, margins and reply spacing.
+
 ### Account connection routing
 
 - Site sign-in now explicitly selects the `arconis` database, matching MCP sign-in. This keeps

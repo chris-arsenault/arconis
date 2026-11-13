@@ -14,10 +14,11 @@ Ahara admission lives in `ahara-infra/infrastructure/terraform/control/project-a
 - The control Lambda behind `/control/*`, `/mcp` and protected-resource discovery on the same host,
   and its SSM parameters. MCP requests forward through the ALB to `/mcp/relay`; WebSocket traffic
   continues directly to the relay.
-- Arconis in the shared Ahara Auth0 tenant (`auth0.tf`): its database connection, the site's
+- Arconis in the shared Ahara Auth0 tenant (`auth0.tf`): the site's
   application and the accounts API it is granted, the MCP API with its default grant for registered
-  connectors, the client that deletes users, and the post-login Action. The provider reads Ahara's credential from
-  `/ahara/auth0/*`; the tenant, its branding and `auth.ahara.io` belong to ahara-infra.
+  connectors, and an additive association with the shared user connection. The provider reads
+  Ahara's credential from `/ahara/auth0/*`; the tenant, shared connection and verification Action,
+  email templates, branding and `auth.ahara.io` belong to ahara-infra.
 - Accounts: a DynamoDB table, a private bucket of saved workspaces, and the API behind `/api/*` on the
   relay's host, whose ALB rule validates Auth0 tokens for the accounts API.
 - Agents: the relay executes MCP at `/mcp/relay` and reads the tenant's issuer from its boot script, and the website's
@@ -35,6 +36,14 @@ State uses the shared bucket at `projects/arconis.tfstate`.
 Run infrastructure deployment through the shared CI/CD workflow. Local validation builds and
 test fixtures exercise application behavior without deploying or calling real AWS services.
 The [development guide](development.md) lists those checks.
+
+The shared-identity ownership cutover runs Arconis first: its `removed` blocks detach the
+connection, exclusive client list, verification Action and binding without destroying them.
+Its additive client association imports the existing membership. Ahara-infra then imports the
+same connection, Action and binding and publishes `/ahara/auth0/connection-id` and
+`/ahara/auth0/connection-name` for new consumers. Review both CI plans in this order; the
+connection and Action must be retained in place. No user migration is involved. Arconis uses a
+direct connection lookup so its first deployment does not depend on the new platform parameters.
 
 Each feedback submission occupies `submissions/<feedback-id>/report.json` in the feedback bucket,
 plus `canvas.png` when the person opted in. The JSON includes client diagnostics and the server's

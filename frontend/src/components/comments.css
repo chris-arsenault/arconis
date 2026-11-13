@@ -1,15 +1,28 @@
 .object-discussion.comment-modal {
+  position: absolute;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
   width: min(380px, calc(100% - 16px));
   max-height: min(560px, calc(100% - 16px));
-  border-color: var(--line);
+  border: 1px solid var(--line);
   border-radius: 12px;
+  background: var(--panel);
   color: var(--text);
+  font-size: 13px;
   box-shadow: 0 8px 28px #24203926;
 }
 .object-discussion.comment-modal > header {
+  display: flex;
+  align-items: center;
   flex: none;
   gap: 10px;
-  padding: 14px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.object-discussion.comment-modal > header .icon-action {
+  flex: none;
+  width: 28px;
 }
 .comment-heading {
   display: grid;
@@ -28,6 +41,8 @@
   font-size: 12px;
 }
 .object-discussion.comment-modal .comment-list {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   padding: 0;
   gap: 0;
@@ -37,12 +52,14 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 14px;
+  padding: 0 12px;
+  scrollbar-gutter: stable;
 }
 .object-discussion .comment-thread {
   padding: 12px 0;
   margin: 0;
   font-size: 13px;
+  border-bottom: 1px solid var(--line);
 }
 .object-discussion .comment-thread:last-child {
   border: 0;
@@ -51,42 +68,62 @@
   opacity: 1;
   color: var(--text-soft);
 }
-.comment-thread-heading {
+.comment-meta {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+}
+.comment-author {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 0;
+}
+.comment-author strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.comment-author time {
+  flex: none;
+  white-space: nowrap;
   color: var(--text-soft);
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.comment-message-actions {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 4px;
+}
+.comment-message-actions .icon-action {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--text-soft);
 }
 .comment-resolve {
   gap: 4px;
-  padding: 3px 6px;
+  height: 26px;
+  padding: 3px 5px;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
   font-size: 11px;
 }
 .comment-message p {
-  margin: 5px 0 10px;
+  margin: 4px 0 0;
   line-height: 1.5;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
-.object-discussion .comment-meta {
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.object-discussion .comment-meta strong {
-  max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.object-discussion .comment-meta time {
-  color: var(--text-soft);
-  font-size: 10px;
-}
 .comment-replies {
-  margin: 10px 0 12px 7px;
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 8px 3px;
   padding-left: 12px;
   border-left: 2px solid var(--line);
 }
@@ -111,22 +148,26 @@
 .comment-new {
   flex: none;
   border-top: 1px solid var(--line);
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: var(--field);
   border-radius: 0 0 12px 12px;
 }
-.comment-new > strong {
-  display: block;
-  margin-bottom: 7px;
-  font-size: 12px;
+.object-discussion .comment-box {
+  margin: 8px 0 0;
+}
+.comment-new .comment-box {
+  margin: 0;
 }
 .object-discussion .comment-box textarea {
+  display: block;
+  width: 100%;
   min-height: 56px;
   max-height: 160px;
   padding: 8px 9px;
   font-size: 13px;
   line-height: 1.45;
   background: var(--panel);
+  resize: vertical;
 }
 .comment-compose-actions {
   display: flex;
@@ -138,7 +179,10 @@
 .comment-reply-action {
   color: var(--pressed-text);
   font-size: 12px;
-  padding: 4px 7px;
+  padding: 4px 0;
+  margin-top: 6px;
+  border: 0;
+  background: transparent;
 }
 .comment-compose-actions > span {
   color: var(--text-soft);

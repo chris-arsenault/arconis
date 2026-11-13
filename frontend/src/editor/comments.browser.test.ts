@@ -32,6 +32,23 @@ it("shares a thread with peers, marks the object, and survives reload", async ()
   await b.getByLabel(/^Reply to /).fill("Yes");
   await b.keyboard.press("Enter");
   await threads(a).getByText("Yes", { exact: true }).waitFor();
+  const discussion = threads(a).first();
+  const deletion = (await discussion
+    .getByRole("button", { name: /^Delete comment by / })
+    .first()
+    .boundingBox())!;
+  const resolution = (await discussion
+    .getByRole("button", { name: "Resolve thread", exact: true })
+    .boundingBox())!;
+  const text = (await discussion
+    .getByText("Is this <b>right</b>?", { exact: true })
+    .boundingBox())!;
+  expect(deletion.width).toBeLessThanOrEqual(32);
+  expect(deletion.height).toBeLessThanOrEqual(32);
+  expect(Math.abs(deletion.y - resolution.y)).toBeLessThanOrEqual(2);
+  expect(deletion.x - (resolution.x + resolution.width)).toBeLessThanOrEqual(8);
+  expect(text.y - (deletion.y + deletion.height)).toBeLessThanOrEqual(8);
+  await a.screenshot({ path: "test-results/comments-thread-actions.png" });
 
   await a.getByRole("button", { name: "Resolve thread", exact: true }).click();
   await expect

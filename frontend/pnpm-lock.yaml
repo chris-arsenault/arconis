@@ -77,9 +77,6 @@ importers:
       "@ahara/standards":
         specifier: github:chris-arsenault/ahara-standards
         version: https://codeload.github.com/chris-arsenault/ahara-standards/tar.gz/30e038a09b01c8f72e509e3fb1e7aa76003cda3a
-      "@auth0/actions":
-        specifier: 0.35.0
-        version: 0.35.0
       "@aws-sdk/client-auto-scaling":
         specifier: ^3.1164.0
         version: 3.1164.0
@@ -187,13 +184,6 @@ packages:
         tarball: https://codeload.github.com/chris-arsenault/ahara-standards/tar.gz/30e038a09b01c8f72e509e3fb1e7aa76003cda3a,
       }
     version: 0.1.0
-
-  "@auth0/actions@0.35.0":
-    resolution:
-      {
-        integrity: sha512-VeFE7UKZSOTlmB2g/r/d9R1VtntkGTWuKp1doyyVYCcKqvzV7BAKMTvyWPFXw1VksXUG4276tgno8mWqceSkwQ==,
-      }
-    engines: { node: ">=18.0.0" }
 
   "@aws-sdk/checksums@3.1002.3":
     resolution:
@@ -4195,8 +4185,6 @@ packages:
 snapshots:
   "@ahara/standards@https://codeload.github.com/chris-arsenault/ahara-standards/tar.gz/30e038a09b01c8f72e509e3fb1e7aa76003cda3a":
     {}
-
-  "@auth0/actions@0.35.0": {}
 
   "@aws-sdk/checksums@3.1002.3":
     dependencies:

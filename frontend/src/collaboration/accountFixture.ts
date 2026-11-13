@@ -57,7 +57,6 @@ export function accountFixture(base: () => string) {
       objects.delete(`/objects/${user}/${id}`);
       return Promise.resolve();
     },
-    deleteLogin: () => Promise.resolve(),
     now: Date.now,
     newRevision: () => crypto.randomUUID(),
   });

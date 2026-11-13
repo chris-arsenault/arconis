@@ -13,7 +13,6 @@ function setup() {
     signUpload: (user, path) => Promise.resolve(`put:${user}/${path}`),
     signDownload: (user, path) => Promise.resolve(`get:${user}/${path}`),
     deleteObject: vi.fn(() => Promise.resolve()),
-    deleteLogin: vi.fn(() => Promise.resolve()),
     now: () => 1000,
     newRevision: () => revision,
   } satisfies AccountServices;
@@ -26,6 +25,20 @@ function setup() {
     libraryListSchema.parse((await api.handle(user, "GET", "/api/library", "")).body).entries;
   return { table, services, revision, id, values, call, list, api };
 }
+
+it("retains layout cleanup references when account erasure fails, then completes on retry", async () => {
+  const { call, values, revision, id, api, table, services } = setup();
+  await call("a", "POST", id, { ...values, revision });
+  services.deleteObject.mockRejectedValueOnce(new Error("Storage unavailable"));
+  await expect(api.handle("a", "DELETE", "/api/me", "")).rejects.toThrow("Storage unavailable");
+  expect(await table.isDeleting("a")).toBe(true);
+  expect(await table.library("a")).toHaveLength(1);
+  expect(table.bytes("a")).toBe(100);
+  expect((await api.handle("a", "DELETE", "/api/me", "")).status).toBe(200);
+  expect(services.deleteObject).toHaveBeenCalledTimes(2);
+  expect(await table.library("a")).toEqual([]);
+  expect(table.total()).toBe(0);
+});
 
 it("publishes only a verified upload and isolates the layout from other accounts", async () => {
   const { call, list, values, revision, id, table } = setup();

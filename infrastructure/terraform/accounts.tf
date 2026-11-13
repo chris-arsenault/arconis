@@ -1,4 +1,4 @@
-# Accounts: Auth0 holds Arconis's users (auth0.tf), and the ALB validates its tokens. DynamoDB holds
+# Accounts: Ahara's Auth0 connection holds shared identities; the ALB validates Arconis API tokens. DynamoDB holds
 # profiles and workspace records, and a private bucket holds the workspaces.
 
 locals {
@@ -120,11 +120,11 @@ module "accounts_api" {
 
   reserved_concurrent_executions = 5
 
-  environment = merge(local.lifecycle_secrets, {
+  environment = {
     TABLE_NAME  = aws_dynamodb_table.accounts.name
     BUCKET_NAME = aws_s3_bucket.workspaces.id
     SITE_ORIGIN = local.site_origin
-  })
+  }
 
   depends_on = [aws_iam_role_policy.accounts, aws_iam_role_policy_attachment.accounts_vpc]
 }

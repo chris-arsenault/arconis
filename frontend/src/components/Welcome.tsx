@@ -23,17 +23,29 @@ interface Props {
 export function Welcome(props: Readonly<Props>) {
   const rooms = recentRooms();
   return (
-    <main className="welcome">
-      <div className="brand">
-        <span className="brand-mark">
-          <Shapes size={24} />
-        </span>{" "}
-        arconis
+    <main className={rooms.length ? "welcome welcome-returning" : "welcome"}>
+      <div className="welcome-topbar">
+        <div className="brand">
+          <span className="brand-mark">
+            <Shapes size={24} />
+          </span>{" "}
+          arconis
+        </div>
+        {props.account && (
+          <AccountButton account={props.account} onOpen={props.onOpenSaved} onJoin={props.onJoin} />
+        )}
       </div>
       <section className="welcome-content">
-        {rooms.length ? <h1>Your canvases</h1> : <WelcomeIntroduction />}
-        <WorkBrowser account={props.account} onOpen={props.onOpenSaved} onJoin={props.onJoin} />
-        <WelcomeForm {...props} />
+        {!rooms.length && <WelcomeIntroduction />}
+        <div className="welcome-workspace">
+          <WorkBrowser
+            account={props.account}
+            onOpen={props.onOpenSaved}
+            onJoin={props.onJoin}
+            headingLevel={rooms.length ? 1 : 2}
+          />
+          <WelcomeForm {...props} />
+        </div>
         <p className="welcome-footnote">
           No account required. Share a link and start thinking together.
           <br />
@@ -100,9 +112,6 @@ function WelcomeForm(props: Readonly<Props>) {
   };
   return (
     <div className="welcome-card">
-      {props.account && (
-        <AccountButton account={props.account} onOpen={props.onOpenSaved} onJoin={props.onJoin} />
-      )}
       {!props.signedIn && (
         <label>
           Your display name

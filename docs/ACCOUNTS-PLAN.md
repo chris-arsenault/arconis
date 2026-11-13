@@ -1,5 +1,80 @@
 # Accounts and saved work
 
+## Shared Ahara identities — 2026-11-13
+
+The user accepted one shared Ahara account connection with separate application permissions
+and data, then authorized commit, push and watching CI. Live user creation and email-sending
+tests remain excluded. The user explicitly rejected data migration, backwards-compatibility
+mappers and facades; use the existing account store directly.
+
+Reuse the existing `arconis` database and its user IDs, passwords and saved-work keys. Its
+internal name remains `arconis`; its public display name becomes Ahara. Ahara-infra
+owns the connection and verified-email rule, publishes its ID/name through `/ahara/auth0/`,
+and products enable their own clients additively. API audiences and grants remain product-specific.
+Do not merge or recreate accounts from the unrelated default database.
+
+Arconis deletion removes only its own saved work, layouts and profile. Its existing deletion
+marker continues to block concurrent and stale-token writes; it never deletes the shared login.
+Global Ahara account deletion and a new account-management portal are outside this change.
+
+Emails retain Ahara as sender and identify the requesting application when available. Reset
+wording explains that the shared password applies across participating apps. Use the existing
+SES provider and templates; do not add an email service or send tests.
+
+Sources: the current conversation's shared-account recommendation and user acceptance;
+`infrastructure/terraform/auth0.tf`, `frontend/src/accounts/api.ts`, `../ahara/INTEGRATION.md`,
+and `../ahara-infra/infrastructure/terraform/services/auth0.tf`.
+
+### Milestones and execution
+
+Root Sulion plan: `c3a600bc-27f1-4a07-89c8-5b0d9d60da6f`.
+
+- **M0 — Shared identity ownership and contract.** Adopt the existing connection and verification
+  Action through native Terraform remove/import declarations. Keep its original internal name;
+  expose shared connection metadata, use additive client associations, and update email context
+  and platform integration guidance. Acceptance: existing identities need no migration; a future
+  app can use the documented shared connection while retaining independent API permissions.
+  Validate Terraform offline and review ownership/import addresses. Live plans are unverified
+  while the prescribed credential broker reports `403: no secret is unlocked for this terminal`.
+- **M1 — Product data boundary and validation** [depends on M0]. Remove Arconis's Auth0 identity
+  deletion capability, retain retry/concurrency guards for product erasure, and align UI and docs.
+  Acceptance: product deletion has no global identity operation; local behavior tests cover
+  cleanup and failures; required lint/types/tests/build and Terraform checks pass.
+
+M0 execution (`11b6f803-de03-4a0d-a2bd-0f9aa1cc869a`, step
+`662911fd-8808-45ab-a210-86ba8e3644de`): one coherent step touching the two `auth0.tf` files, platform email/Action sources,
+the Arconis auth consumer, and integration/architecture guidance. Verify native import schemas,
+Terraform validation, the authorization-request regression, and local Action/template rendering.
+M1 execution (`f05346e2-b856-44a7-8368-04ebeb225045`, step
+`d2183c6e-c4b5-4a73-8578-014570b843aa`): remove the Management API adapter and deletion client/grant/secrets; preserve
+product erasure and its deletion marker, revise retry tests to exercise storage failure, and
+clarify the UI's product scope. Update current docs and run the shared final checks for both
+milestones: local account cleanup/authorization/browser journeys, full CI/build, offline
+Terraform validation, and local verification-Action and Liquid rendering checks.
+Preserve the pending browser/comments layout edits and unrelated
+`ahara-infra/services/db-migrate.tf` changes.
+
+Current state: both milestones are implemented locally. Arconis CI (707 unit tests), all 12
+affected browser journeys and the production build pass. Platform CI, including three verification
+Action tests, also passes. Arconis and the platform root/services
+Terraform validate offline. Both email templates render through Terraform and Liquid for five
+requester cases; the verification Action passes local verified/unverified/unrelated-connection
+checks. Live import plans and delivery remain unverified because credentials are locked; no
+users were created, no emails were sent, and no live state changes were made.
+
+Publication is tracked by Sulion plan `2b83d9cd-c30b-4527-869d-9c4d2505c126`.
+Publish Arconis first and confirm CI succeeds before platform adoption. Keep the unrelated
+database migration edit out of the platform commit. No data-conversion or compatibility layer
+is part of either stack.
+
+M1 prerequisite: a storage-failure regression showed account erasure removed workspace/layout
+metadata before object cleanup. Keep the existing frozen metadata until object deletion succeeds,
+so retries retain their references. This uses the existing deletion marker and storage ports;
+it adds no recovery system. Sulion branch: `2065646e-c54c-49d0-a3df-ba9d120605b7`, completed
+with 51 focused tests passing. M1 execution branch: `f05346e2-b856-44a7-8368-04ebeb225045`.
+
+## Earlier account and team-removal work
+
 Updated 2026-11-10 after the user approved removing all team-based functionality.
 This supersedes the team administration and peer-key proposals. Their Sulion history remains
 available, but team rooms, shared ownership, invitations, membership and key work are canceled,
@@ -61,9 +136,11 @@ its content and pictures for the new room identity; password history still needs
 
 ### Account lifecycle and room access
 
-Auth0 sign-in/profile/account deletion remain. Deletion removes private saved work/history,
-layouts and the Auth0 user. The Management API needs `delete:users`; invitation-related
-`read:users` and directory lookup are removed.
+Ahara sign-in and Arconis profile/account deletion remain. The shared-identity decision above
+supersedes the earlier global deletion behavior: deletion removes private saved work/history,
+layouts and the Arconis profile, preserving the shared Ahara login. Arconis no longer needs the
+Management API or its `delete:users` grant; invitation-related `read:users` and directory lookup
+remain removed.
 
 Room links and passwords govern live access. There is no account-based room membership or
 individual revocation. Already delivered copies remain available to their holders. A password

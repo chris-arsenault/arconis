@@ -9,7 +9,6 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { AccountsApi, tokenSubject, type AccountTable } from "./api";
-import { managementFromEnvironment } from "./auth0Management";
 import { dynamoLibrary } from "./libraryTable";
 import { dynamoWorkspaces } from "./workspaceTable";
 
@@ -20,7 +19,6 @@ const LINK_SECONDS = 300;
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({ requestChecksumCalculation: "WHEN_REQUIRED" });
-const management = managementFromEnvironment(process.env);
 const userKey = (user: string) => `USER#${user}`;
 const objectKey = (user: string, id: string) => `workspaces/${user}/${id}`;
 
@@ -116,8 +114,6 @@ const api = new AccountsApi(table, {
   deleteObject: async (user, id) => {
     await s3.send(new DeleteObjectCommand({ Bucket, Key: objectKey(user, id) }));
   },
-  // The token's subject is the Auth0 user.
-  deleteLogin: (sub) => management.deleteUser(sub),
   now: Date.now,
   newRevision: () => crypto.randomUUID(),
 });

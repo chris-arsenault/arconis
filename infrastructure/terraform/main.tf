@@ -46,6 +46,7 @@ module "frontend" {
     # Sign-in is the Ahara Auth0 tenant's, for the accounts API.
     authAuthority  = local.auth0_issuer
     authClientId   = auth0_client.web.client_id
+    authConnection = data.auth0_connection.accounts.name
     authAudience   = local.accounts_audience
     authSignOutUrl = local.sign_out_url
 

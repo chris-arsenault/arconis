@@ -193,9 +193,13 @@ export class WorkspacesApi {
   }
 
   async deleteAll(user: string) {
+    // Account deletion blocks publication. Keep these references until storage cleanup succeeds
+    // so a failed delete can enumerate the same objects on retry.
     for (const record of await this.table.workspaces(user)) {
-      const reply = await this.remove(user, record);
-      if (reply.status !== 200) return "A workspace changed. Try deleting your account again.";
+      for (const entry of await this.table.workspaceHistory(user, record.id))
+        await this.services.deleteObject(user, snapshotObject(entry));
+      if (!(await this.table.deleteWorkspace(user, record)))
+        return "A workspace changed. Try deleting your account again.";
     }
     return "";
   }

@@ -190,10 +190,5 @@ export default ts.config(
       "no-restricted-globals": ["error", "window", "document", "navigator", "BroadcastChannel"],
     },
   },
-  {
-    files: ["src/accounts/auth0-actions/post-login.ts"],
-    // Auth0 validates the runtime AsyncFunction signature even when the action needs no await.
-    rules: { "@typescript-eslint/require-await": "off" },
-  },
   prettier
 );

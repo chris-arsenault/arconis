@@ -18,14 +18,12 @@ export interface AccountTable extends LibraryTable, WorkspaceTable {
   deleteProfile(user: string): Promise<void>;
 }
 
-/** What the API needs from S3 and Auth0. */
+/** Product storage operations; shared identity management belongs to Ahara. */
 export interface AccountServices {
   objectInfo(user: string, id: string): Promise<{ size: number; checksum: string } | null>;
   signUpload(user: string, id: string, size: number, checksum: string): Promise<string>;
   signDownload(user: string, id: string): Promise<string>;
   deleteObject(user: string, id: string): Promise<void>;
-  /** Removes the person's Auth0 sign-in. */
-  deleteLogin(user: string): Promise<void>;
   now(): number;
   newRevision(): string;
 }
@@ -114,7 +112,6 @@ export class AccountsApi {
     const workspaceProblem = await this.workspaces.deleteAll(user);
     if (workspaceProblem) return conflict(workspaceProblem);
     await this.table.deleteProfile(user);
-    await this.services.deleteLogin(user);
     return { status: 200, body: {} };
   }
 }

@@ -16,7 +16,8 @@
 | [0012](0012-accounts-and-encrypted-workspaces.md)             | Accounts, with workspaces encrypted before they are saved            | Accepted; superseded in part by ADR-0015                      | 2026-11-07 |
 | [0013](0013-agents-work-through-domain-tools-on-the-relay.md) | Agents work through domain tools on the relay                        | Accepted; amended by ADR-0014, superseded in part by ADR-0015 | 2026-11-07 |
 | [0014](0014-one-canvas-language.md)                           | One canvas language for the document, files and agents               | Accepted                                                      | 2026-11-07 |
-| [0015](0015-auth0-accounts-and-connector-sign-in.md)          | Accounts live in Ahara's Auth0 tenant, and connectors register there | Accepted; saved-copy format superseded by ADR-0018            | 2026-11-07 |
+| [0015](0015-auth0-accounts-and-connector-sign-in.md)          | Accounts live in Ahara's Auth0 tenant, and connectors register there | Accepted; superseded in part by ADR-0018 and ADR-0019          | 2026-11-07 |
 | [0016](0016-slides-are-canvas-items.md)                       | Slides are canvas items, and a deck is the name its slides share     | Accepted                                                      | 2026-11-07 |
 | [0017](0017-content-layers.md)                                | Content layers are document records beneath markup                   | Accepted                                                      | 2026-11-09 |
 | [0018](0018-one-encrypted-room-path.md)                       | One encrypted path for rooms                                         | Accepted                                                      | 2026-11-10 |
+| [0019](0019-shared-ahara-identities.md)                      | Shared Ahara identities; separate application permissions and data   | Accepted                                                      | 2026-11-13 |

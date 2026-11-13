@@ -16,7 +16,6 @@ function setup() {
     signUpload: vi.fn((user: string, id: string) => Promise.resolve(`put:${user}:${id}`)),
     signDownload: vi.fn((user: string, id: string) => Promise.resolve(`get:${user}:${id}`)),
     deleteObject: vi.fn(() => Promise.resolve()),
-    deleteLogin: vi.fn(() => Promise.resolve()),
     now: () => 1000,
     newRevision: () => crypto.randomUUID(),
   };
@@ -278,15 +277,19 @@ describe("workspace publication", () => {
 });
 
 describe("deleting an account", () => {
-  it("removes workspaces, profile and login", async () => {
-    const { api, save, table, services } = setup();
+  it("removes only the user's Arconis workspaces and profile", async () => {
+    const { api, save, table } = setup();
     await api.handle("a", "PUT", "/api/me", JSON.stringify({ name: "A" }));
     await save("a", ID, 100);
+    await api.handle("b", "PUT", "/api/me", JSON.stringify({ name: "B" }));
+    await save("b", OTHER, 100);
     expect((await api.handle("a", "DELETE", "/api/me", "")).status).toBe(200);
     expect(await table.profile("a")).toBeNull();
     expect(await table.workspaces("a")).toEqual([]);
-    expect(table.total()).toBe(0);
-    expect(services.deleteLogin).toHaveBeenCalledWith("a");
+    expect(await table.isDeleting("a")).toBe(true);
+    expect(await table.profile("b")).toMatchObject({ name: "B" });
+    expect(await table.workspaces("b")).toHaveLength(1);
+    expect(table.total()).toBe(100);
   });
 });
 
@@ -329,10 +332,8 @@ describe("account deletion guards", () => {
   it("keeps deletion retryable and refuses recreation with a still-valid token", async () => {
     const { api, save, table, services } = setup();
     await save("a", ID);
-    services.deleteLogin.mockRejectedValueOnce(new Error("Sign-in service unavailable"));
-    await expect(api.handle("a", "DELETE", "/api/me", "")).rejects.toThrow(
-      "Sign-in service unavailable"
-    );
+    services.deleteObject.mockRejectedValueOnce(new Error("Storage unavailable"));
+    await expect(api.handle("a", "DELETE", "/api/me", "")).rejects.toThrow("Storage unavailable");
     expect(await table.isDeleting("a")).toBe(true);
     expect(await table.saveProfile("a", { name: "Recreated" })).toBe(false);
     expect(

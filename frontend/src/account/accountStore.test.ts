@@ -30,11 +30,10 @@ function backend() {
     },
     signUpload: (user, id) => Promise.resolve(`https://s3/${user}/${id}`),
     signDownload: (user, id) => Promise.resolve(`https://s3/${user}/${id}`),
-    deleteObject: (user, id) => {
+    deleteObject: vi.fn((user: string, id: string) => {
       objects.delete(`https://s3/${user}/${id}`);
       return Promise.resolve();
-    },
-    deleteLogin: vi.fn(() => Promise.resolve()),
+    }),
     now: () => 1000,
     newRevision: () => crypto.randomUUID(),
   } satisfies AccountServices;
@@ -116,7 +115,7 @@ describe("signing in", () => {
 
   it("stays out with no session, and says why a sign-in came back refused", async () => {
     const { store, session } = setup(false);
-    session.failure = "Activate your Arconis account from the email we sent.";
+    session.failure = "Verify your Ahara account from the email we sent.";
     await store.restore();
     expect(store.status).toBe("out");
     expect(store.error).toBe(session.failure);
@@ -229,28 +228,29 @@ describe("the account", () => {
     expect(auth.signOut).toHaveBeenCalledOnce();
   });
 
-  it("deleting it removes everything, including the sign-in, and signs out", async () => {
-    const { store, table, objects, services } = setup();
+  it("deleting it removes Arconis data and signs out of the browser session", async () => {
+    const { store, table, objects, auth } = setup();
     await store.restore();
     await store.save(ID, "Plan", COPY, "");
     await store.deleteAccount();
     expect(store.status).toBe("out");
     expect(await table.profile("ada")).toBeNull();
     expect(objects.size).toBe(0);
-    expect(services.deleteLogin).toHaveBeenCalledWith("ada");
+    expect(await table.isDeleting("ada")).toBe(true);
+    expect(auth.signOut).toHaveBeenCalledOnce();
   });
 
   it("resumes unfinished deletion after reloading with the same authenticated account", async () => {
-    const { store, make, services, auth, table } = setup();
+    const { store, make, services, auth, table, objects } = setup();
     await store.restore();
-    services.deleteLogin = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("Sign-in removal unavailable"))
-      .mockResolvedValue(undefined);
-    await expect(store.deleteAccount()).rejects.toThrow("Sign-in removal unavailable");
+    await store.save(ID, "Plan", COPY, "");
+    services.deleteObject.mockRejectedValueOnce(new Error("Storage unavailable"));
+    await expect(store.deleteAccount()).rejects.toThrow("Storage unavailable");
     expect(store.status).toBe("deleting");
     expect(auth.signOut).not.toHaveBeenCalled();
     expect(await table.isDeleting("ada")).toBe(true);
+    expect(await table.workspaces("ada")).toHaveLength(1);
+    expect(objects.size).toBe(1);
 
     const reloaded = make();
     await reloaded.restore();
@@ -260,7 +260,9 @@ describe("the account", () => {
     await reloaded.deleteAccount();
     expect(reloaded.status).toBe("out");
     expect(reloaded.error).toBe("");
-    expect(services.deleteLogin).toHaveBeenCalledTimes(2);
+    expect(services.deleteObject).toHaveBeenCalledTimes(2);
+    expect(await table.workspaces("ada")).toEqual([]);
+    expect(objects.size).toBe(0);
     expect(auth.signOut).toHaveBeenCalledOnce();
   });
 

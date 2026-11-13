@@ -5,31 +5,55 @@ import { MAX_COMMENT_LENGTH, type CanvasComment } from "../document/comments";
 function CommentBody({
   comment,
   onDelete,
-}: Readonly<{ comment: CanvasComment; onDelete: (id: string) => void }>) {
+  onResolve,
+}: Readonly<{
+  comment: CanvasComment;
+  onDelete: (id: string) => void;
+  onResolve: ((id: string, resolved: boolean) => void) | null;
+}>) {
   return (
     <div className="comment-message">
       <div className="comment-meta">
-        <strong>{comment.author}</strong>
-        <time
-          dateTime={new Date(comment.time).toISOString()}
-          data-tip={new Date(comment.time).toLocaleString()}
-        >
-          {new Date(comment.time).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-          {" · "}
-          {new Date(comment.time).toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </time>
-        <button
-          className="icon-action"
-          aria-label={`Delete comment by ${comment.author}`}
-          data-hint="Delete comment"
-          data-hint-detail="Deleting a thread's first comment also removes its replies."
-          onClick={() => onDelete(comment.id)}
-        >
-          <Trash2 size={12} />
-        </button>
+        <div className="comment-author">
+          <strong>{comment.author}</strong>
+          <time
+            dateTime={new Date(comment.time).toISOString()}
+            data-tip={new Date(comment.time).toLocaleString()}
+          >
+            {new Date(comment.time).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            })}
+            {" · "}
+            {new Date(comment.time).toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </time>
+        </div>
+        <div className="comment-message-actions">
+          {onResolve && (
+            <button
+              className="comment-resolve"
+              aria-label={comment.resolved ? "Reopen thread" : "Resolve thread"}
+              data-hint={comment.resolved ? "Reopen" : "Resolve"}
+              data-hint-detail="Resolved threads fold away under a count for everyone; reopening brings one back."
+              onClick={() => onResolve(comment.id, !comment.resolved)}
+            >
+              {comment.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
+              {comment.resolved ? "Reopen" : "Resolve"}
+            </button>
+          )}
+          <button
+            className="icon-action"
+            aria-label={`Delete comment by ${comment.author}`}
+            data-hint="Delete comment"
+            data-hint-detail="Deleting a thread's first comment also removes its replies."
+            onClick={() => onDelete(comment.id)}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
       <p>{comment.text}</p>
     </div>
@@ -145,24 +169,11 @@ function ThreadView({
       className={root.resolved ? "comment-thread resolved" : "comment-thread"}
       data-testid="comment-thread"
     >
-      <div className="comment-thread-heading">
-        <span>{root.resolved ? "Resolved" : "Open discussion"}</span>
-        <button
-          className="comment-resolve"
-          aria-label={root.resolved ? "Reopen thread" : "Resolve thread"}
-          data-hint={root.resolved ? "Reopen" : "Resolve"}
-          data-hint-detail="Resolved threads fold away under a count for everyone; reopening brings one back."
-          onClick={() => onResolve(root.id, !root.resolved)}
-        >
-          {root.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
-          {root.resolved ? "Reopen" : "Resolve"}
-        </button>
-      </div>
-      <CommentBody comment={root} onDelete={onDelete} />
+      <CommentBody comment={root} onDelete={onDelete} onResolve={onResolve} />
       {replies.length > 0 && (
         <div className="comment-replies">
           {replies.map((reply) => (
-            <CommentBody key={reply.id} comment={reply} onDelete={onDelete} />
+            <CommentBody key={reply.id} comment={reply} onDelete={onDelete} onResolve={null} />
           ))}
         </div>
       )}
@@ -253,7 +264,6 @@ export function CommentControls({
           ))}
       </div>
       <div className="comment-new">
-        <strong>{speakerNotes ? "New speaker note" : "New comment"}</strong>
         <CommentBox
           label={speakerNotes ? "Add speaker notes" : "Add a comment"}
           placeholder={speakerNotes ? "Add speaker notes" : "Add a comment"}

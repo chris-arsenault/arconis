@@ -78,6 +78,7 @@ function fixtureConfig(base: string) {
     relayUrl: base,
     authAuthority: `${base}/oidc`,
     authClientId: FIXTURE_CLIENT_ID,
+    authConnection: "shared-ahara",
     authAudience: `${base}/api`,
     authSignOutUrl: `${base}/oidc/logout`,
   };

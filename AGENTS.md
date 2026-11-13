@@ -32,7 +32,8 @@ sticky notes and freehand drawing in one shared document.
   `editor/styles.ts` speaks maxGraph styles.
 - Keep rooms usable without an account, and dependencies permissively licensed. Accounts live in
   Ahara's Auth0 tenant, and a password room's saved copy reaches the server only sealed under its
-  room key ([ADR-0015](docs/adr/0015-auth0-accounts-and-connector-sign-in.md)). InfiniPaint inspires
+  room key ([ADR-0015](docs/adr/0015-auth0-accounts-and-connector-sign-in.md),
+  [shared identities](docs/adr/0019-shared-ahara-identities.md)). InfiniPaint inspires
   interactions only; write original code ([ADR-0007](docs/adr/0007-permissive-licensing.md)).
   Vendor architecture icons are the one exception, and stay unrotated and evenly scaled
   ([ADR-0008](docs/adr/0008-vendor-architecture-icons.md)).

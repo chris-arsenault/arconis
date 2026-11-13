@@ -23,6 +23,22 @@ const openAccount = (page: Page) => page.locator(".account-button").click();
 const press = (page: Page, name: string) =>
   dialog(page).getByRole("button", { name, exact: true }).click();
 
+async function checkAccountLayout(page: Page) {
+  await dialog(page)
+    .getByRole("button", { name: /^Open account copy / })
+    .waitFor();
+  await dialog(page).getByRole("heading", { name: "Connect Claude or ChatGPT" }).waitFor();
+  await page.screenshot({ path: "test-results/account-canvas-browser-desktop.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const card = dialog(page).locator(":scope > section");
+  const bounds = (await card.boundingBox())!;
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  expect(await card.evaluate((node) => node.scrollWidth)).toBeLessThanOrEqual(bounds.width);
+  await page.screenshot({ path: "test-results/account-canvas-browser-mobile.png" });
+  await page.setViewportSize(VIEWPORT.viewport);
+}
+
 const commit = (page: Page) =>
   page.waitForResponse(
     (response) =>
@@ -31,7 +47,7 @@ const commit = (page: Page) =>
       response.status() === 200
   );
 
-it("selects the Arconis connection in the browser's authorization request", async () => {
+it("selects the configured shared connection in the browser's authorization request", async () => {
   const context = await browser.newContext(VIEWPORT);
   try {
     const page = await open(context, createRoomId());
@@ -45,7 +61,7 @@ it("selects the Arconis connection in the browser's authorization request", asyn
     );
     await press(page, "Sign in or create an account");
     const parameters = new URL((await authorization).url()).searchParams;
-    expect(parameters.get("connection")).toBe("arconis");
+    expect(parameters.get("connection")).toBe("shared-ahara");
     expect(parameters.get("audience")).toBe(fixture.config.authAudience);
     expect(parameters.get("response_type")).toBe("code");
     expect(parameters.get("code_challenge_method")).toBe("S256");
@@ -92,10 +108,18 @@ it("signs in, saves and reopens work, handles account failure, and signs out wit
   await peer.context().close();
   const elsewhere = await open(await browser.newContext(VIEWPORT), createRoomId());
   await signIn(elsewhere);
+  await elsewhere.evaluate(() => {
+    window.__APP_CONFIG__ = Object.assign({}, window.__APP_CONFIG__, {
+      mcpUrl: `${location.origin}/mcp`,
+    });
+  });
   await openAccount(elsewhere);
+  await checkAccountLayout(elsewhere);
   fixture.stop();
   const startsBeforeRestore = fixture.starts;
-  await dialog(elsewhere).locator(".workspace-open").click();
+  await dialog(elsewhere)
+    .getByRole("button", { name: /^Open account copy / })
+    .click();
   await expect.poll(() => row(elsewhere, SECRET).count()).toBe(1);
   await expect.poll(() => fixture.starts).toBeGreaterThan(startsBeforeRestore);
   await elsewhere.getByTestId("connection-status").filter({ hasText: "Connected" }).waitFor();
@@ -262,7 +286,9 @@ it("creates and saves a password room, then reopens it on another browser throug
   const elsewhere = await open(await browser.newContext(VIEWPORT), createRoomId());
   await signIn(elsewhere, `locked-${EMAIL}`);
   await openAccount(elsewhere);
-  await dialog(elsewhere).locator(".workspace-open", { hasText: "Password room" }).click();
+  await dialog(elsewhere)
+    .getByRole("button", { name: "Open account copy Password room", exact: true })
+    .click();
   await elsewhere.getByLabel("Room password", { exact: true }).fill(PHRASE);
   await elsewhere.getByRole("button", { name: "Open room", exact: true }).click();
   await expect.poll(() => row(elsewhere, SECRET).count()).toBe(1);

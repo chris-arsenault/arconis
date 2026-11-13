@@ -103,20 +103,22 @@ function SignedIn({
   const [error, setError] = useState("");
   return (
     <>
-      <p className="password-note">{account.email}</p>
-      <ActionForm
-        label="Save name"
-        detail="Store this name on your account."
-        action={() => account.rename(name)}
-      >
-        <Field
-          label="Your name"
-          value={name}
-          onChange={setName}
-          detail="The name on your account, shown on the account button."
-        />
-      </ActionForm>
-      <WorkBrowser account={account} onOpen={onOpen} onJoin={onJoin} />
+      <div className="account-profile">
+        <p className="password-note">{account.email}</p>
+        <ActionForm
+          label="Save name"
+          detail="Store this name on your Arconis profile."
+          action={() => account.rename(name)}
+        >
+          <Field
+            label="Your name"
+            value={name}
+            onChange={setName}
+            detail="Your name in Arconis, shown on the account button and to room participants."
+          />
+        </ActionForm>
+      </div>
+      <WorkBrowser account={account} onOpen={onOpen} onJoin={onJoin} headingLevel={2} />
       <ConnectAgent />
       {error && <p role="alert">{error}</p>}
       <div className="account-links">
@@ -129,9 +131,13 @@ function SignedIn({
         </button>
         <button
           type="button"
-          data-hint-detail="Permanently remove your account with its saved workspaces, history and layouts."
+          data-hint-detail="Permanently remove your Arconis profile, saved workspaces, history and layouts. Your Ahara login and other apps are kept."
           onClick={() => {
-            if (window.confirm("Delete your account, saved workspaces and history, and layouts?")) {
+            if (
+              window.confirm(
+                "Delete your Arconis profile, saved workspaces, history and layouts? Your Ahara login and data in other apps will remain."
+              )
+            ) {
               setError("");
               void account
                 .deleteAccount()
@@ -141,7 +147,7 @@ function SignedIn({
             }
           }}
         >
-          Delete account
+          Delete Arconis account
         </button>
       </div>
     </>
@@ -152,12 +158,15 @@ function Deleting({ account }: Readonly<{ account: AccountStore }>) {
   return (
     <div className="account-form">
       <p>{account.email}</p>
-      <p>Account deletion is unfinished. Retry to finish removing your saved work and account.</p>
+      <p>
+        Arconis account deletion is unfinished. Retry to remove your Arconis profile and saved work.
+        Your Ahara login and data in other apps will remain.
+      </p>
       {account.error && <p role="alert">{account.error}</p>}
       <button
         className="primary"
         disabled={account.deletionPending}
-        data-hint-detail="Try again to remove your saved work and then the account itself."
+        data-hint-detail="Try again to remove your Arconis profile and saved work."
         onClick={() => {
           void account.deleteAccount().catch(() => {});
         }}
@@ -204,34 +213,39 @@ export function AccountButton({
         <CircleUser size={18} /> {deleting ? "Account deletion" : name}
       </button>
       {open && (
-        <div className="password-gate" role="dialog" aria-label="Account">
+        <div className="password-gate account-dialog" role="dialog" aria-label="Account">
           <section>
-            <button
-              className="icon-action account-close"
-              aria-label="Close account"
-              data-hint-detail="Close the account panel and return to the canvas."
-              onClick={() => {
-                setOpen(false);
-                setDismissed(account.error);
-              }}
-            >
-              <X size={15} />
-            </button>
-            {signedIn && (
-              <SignedIn
-                account={account}
-                onJoin={(id) => {
+            <header className="account-heading">
+              <h2>Your account</h2>
+              <button
+                className="icon-action account-close"
+                aria-label="Close account"
+                data-hint-detail="Close the account panel and return to the canvas."
+                onClick={() => {
                   setOpen(false);
-                  onJoin(id);
+                  setDismissed(account.error);
                 }}
-                onOpen={(copy) => {
-                  setOpen(false);
-                  onOpen(copy);
-                }}
-              />
-            )}
-            {deleting && <Deleting account={account} />}
-            {!signedIn && !deleting && <SignedOut account={account} />}
+              >
+                <X size={15} />
+              </button>
+            </header>
+            <div className="account-content">
+              {signedIn && (
+                <SignedIn
+                  account={account}
+                  onJoin={(id) => {
+                    setOpen(false);
+                    onJoin(id);
+                  }}
+                  onOpen={(copy) => {
+                    setOpen(false);
+                    onOpen(copy);
+                  }}
+                />
+              )}
+              {deleting && <Deleting account={account} />}
+              {!signedIn && !deleting && <SignedOut account={account} />}
+            </div>
           </section>
         </div>
       )}

@@ -52,6 +52,12 @@
   .welcome {
     color: #2d354b;
     color-scheme: light;
+    --text: #2d354b;
+    --text-soft: #5d6579;
+    --panel: #fff;
+    --field: #fafbfe;
+    --line: #e7e9f0;
+    --hover: #f1f2f6;
   }
   .welcome button {
     background: #fff;
@@ -213,6 +219,43 @@ textarea {
   z-index: 1;
   margin: 9vh 0 0 6vw;
 }
+.welcome-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+  gap: 16px;
+}
+.welcome-topbar .account-button {
+  flex: none;
+  min-height: 36px;
+}
+.welcome-workspace {
+  display: grid;
+  gap: 24px;
+  margin-top: 28px;
+}
+.welcome-returning .welcome-content {
+  max-width: 1100px;
+  margin: 48px auto 0;
+}
+.welcome-returning .welcome-workspace {
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  margin-top: 0;
+}
+.welcome-returning .welcome-card {
+  max-width: none;
+}
+.welcome-returning .welcome-card > .primary {
+  justify-content: center;
+}
+@media (max-width: 900px) {
+  .welcome-returning .welcome-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .welcome-content > .eyebrow {
   display: flex;
   align-items: center;
@@ -264,47 +307,6 @@ h1 em {
 .welcome-card > .primary {
   padding: 13px;
   justify-content: space-between;
-}
-.comment-thread {
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-  font-size: 12px;
-}
-.comment-thread.resolved {
-  opacity: 0.55;
-}
-.comment p {
-  margin: 2px 0 6px;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-.comment-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.comment-meta time {
-  flex: 1;
-  color: #9ca3b3;
-  font-size: 10px;
-}
-.comment-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.comment-box {
-  flex: 1;
-}
-.comment-box textarea {
-  display: block;
-  width: 100%;
-  min-height: 30px;
-  padding: 5px 7px;
-  font-size: 12px;
-  line-height: 1.35;
-  resize: vertical;
 }
 /* Relationships: what the selection is related to, each a row that jumps to the other end. */
 .relation-list {
@@ -530,14 +532,6 @@ h1 em {
   padding: 0 8px;
   font-size: 12px;
 }
-.account-close {
-  float: right;
-}
-.workspace-list {
-  list-style: none;
-  margin: 0 0 8px;
-  padding: 0;
-}
 .agent-command {
   display: flex;
   align-items: flex-start;
@@ -552,22 +546,6 @@ h1 em {
   font-size: 11px;
   word-break: break-all;
   user-select: all;
-}
-.workspace-list li {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.workspace-open {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  padding: 4px;
-  text-align: left;
 }
 .password-gate {
   position: fixed;
@@ -618,6 +596,88 @@ dialog.password-gate {
 .password-note {
   color: #6b7284;
   font-size: 12px;
+}
+.account-dialog > section {
+  width: min(700px, calc(100vw - 32px));
+  background: var(--panel);
+  color: var(--text);
+}
+.account-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.account-dialog .account-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.account-heading .account-close {
+  flex: none;
+  width: 28px;
+  color: var(--text-soft);
+}
+.account-content {
+  display: grid;
+  gap: 24px;
+}
+.account-profile {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.account-profile .password-note {
+  margin: 0 0 12px;
+}
+.account-profile .account-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+.account-profile .account-form > .error {
+  grid-column: 1 / -1;
+}
+.account-profile .account-form > button {
+  grid-column: 2;
+  grid-row: 1;
+}
+.account-dialog section section {
+  padding: 0;
+}
+.account-dialog .work-browser-toolbar h2 {
+  margin: 0;
+}
+.account-dialog .connect-agent {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.account-dialog .connect-agent h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.account-dialog .connect-agent p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.account-dialog .agent-command {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+}
+.account-dialog .agent-command .icon-action {
+  flex: none;
+  width: 28px;
+}
+.account-dialog .account-links {
+  margin-top: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 480px) {
+  .account-dialog .agent-command > span {
+    flex-basis: 100%;
+  }
 }
 .welcome-local {
   width: 100%;
@@ -2368,42 +2428,6 @@ input.outline-name {
   padding: 8px 10px 4px;
   border-top: 1px solid var(--line);
 }
-.comment-modal {
-  position: absolute;
-  z-index: 40;
-  width: 300px;
-  max-height: 60vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 10px 36px #44405b2e;
-  font-size: 12px;
-}
-.comment-modal header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-}
-.comment-modal header .icon-action {
-  flex: none;
-  width: 26px;
-}
-.comment-modal .comment-list {
-  padding: 8px 10px 10px;
-  overflow-y: auto;
-}
-.comment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.resolved-toggle {
-  color: #7c8497;
-}
 .laser {
   position: absolute;
   inset: 0;
@@ -3237,51 +3261,6 @@ input.outline-name {
   color: var(--text-soft);
   overflow-wrap: anywhere;
 }
-.recent-rooms {
-  margin-top: 24px;
-}
-.recent-rooms h2 {
-  font-size: 15px;
-  margin: 0 0 8px;
-}
-.recent-rooms ul {
-  list-style: none;
-  padding: 0;
-  max-height: 240px;
-  overflow: auto;
-}
-.recent-rooms li + li {
-  margin-top: 5px;
-}
-.recent-rooms button {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  text-align: left;
-  gap: 8px;
-  padding: 6px;
-  overflow-wrap: anywhere;
-}
-.work-browser li,
-.work-browser li > span:not(.recent-room-title) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 6px;
-  min-width: 0;
-}
-.work-browser .recent-room-title,
-.work-browser li > span:not(.recent-room-title) {
-  grid-column: 1 / -1;
-}
-.work-browser small {
-  font-size: 10px;
-  max-width: 90px;
-  overflow-wrap: anywhere;
-}
-.work-browser .workspace-open,
-.work-browser li > span > section {
-  grid-column: 1 / -1;
-}
 .find-matches li {
   display: flex;
   align-items: center;
@@ -3289,14 +3268,6 @@ input.outline-name {
 .find-matches li > button:first-child {
   flex: 1;
   min-width: 0;
-}
-.recent-rooms button span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.recent-rooms button small {
-  color: #6b7284;
 }
 @media (max-width: 1100px) {
   .workspace:not(.presenting) .canvas-area {

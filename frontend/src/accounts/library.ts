@@ -108,6 +108,12 @@ export class LibraryApi {
   }
 
   async deleteAll(user: string) {
-    for (const entry of await this.table.library(user)) await this.remove(user, entry);
+    // The account's deletion marker blocks new layouts and renames. Retain cleanup references
+    // until object deletion succeeds, including when the request must be retried.
+    for (const entry of await this.table.library(user)) {
+      await this.services.deleteObject(user, object(entry));
+      if (!(await this.table.deleteLibrary(user, entry)))
+        throw new Error("A layout changed. Try deleting your Arconis account again.");
+    }
   }
 }
