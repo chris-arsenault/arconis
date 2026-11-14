@@ -146,6 +146,16 @@ label {
   color: #737d92;
   font-weight: 500;
 }
+/* A checkbox sits beside its own text in any container, never on a line of its own. */
+label:has(> input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+}
+input[type="checkbox"] {
+  flex: none;
+  width: auto;
+  margin: 0;
+}
 textarea {
   resize: vertical;
   line-height: 1.6;
@@ -916,9 +926,6 @@ dialog.password-gate {
   align-items: center;
   margin-top: 20px;
   font-size: 13px;
-}
-.export-annotations input {
-  width: auto;
 }
 .topbar-group {
   display: flex;
@@ -1738,8 +1745,13 @@ details[open] > summary::before {
   display: flex;
   gap: 1px;
 }
-.icon-action {
+/* An icon button keeps its own size; only a toolbar of equals spreads its buttons. */
+.selection-actions > .icon-action {
   flex: 1;
+}
+.icon-action {
+  flex: none;
+  min-width: 26px;
   height: 26px;
   padding: 0;
   border: none;

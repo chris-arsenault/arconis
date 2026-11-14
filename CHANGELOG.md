@@ -9,6 +9,9 @@ All notable user-visible changes are recorded here.
 - Replaced the nested Design/Arrange/Data property tabs with one scrollable inspector. Removed
   the duplicate object label and redundant fill presets, kept the full editor for text, and
   added visible step controls to exact position and size fields without losing arithmetic entry.
+- Kept checkboxes beside their labels and icon-only buttons, such as clear link, close and
+  delete, at their own size instead of stretching across a row. Feedback keeps its label in the
+  phone Tools menu.
 - Gave Properties, Layers, Slides and Navigate the full dock height one task at a time. Kept
   dimensions, connector routing, alignment, order and grouping together under Arrange.
 - Moved text source, subtitle and typography into a larger text editor, available from the
