@@ -7,6 +7,7 @@ import {
   clearWaypoints,
   fitFrameToContents,
   reverseLine,
+  swapLineHeads,
   swapPositions,
   type Kind,
 } from "./swap";
@@ -30,6 +31,7 @@ const KIND_LABELS: Record<Kind, string> = {
   card: "Card",
   icon: "Icon",
   junction: "Junction",
+  separator: "Separator",
 };
 
 /** What choosing each drawing tool lets the pointer do, wherever the ink is going. */
@@ -142,11 +144,21 @@ export const POINTER_COMMANDS: Command[] = [
   {
     id: "line.reverse",
     label: "Reverse direction",
-    help: "Turn the line around so its ends, ports and arrowheads trade places.",
+    help: "Turn the line around so it starts where it ended; its heads move to the other ends.",
     group: "arrange",
     keywords: ["flip arrow", "turn around"],
-    when: ({ selected }) => selected.length === 1 && isLink(selected[0]),
+    when: ({ selected }) =>
+      selected.length === 1 && isLink(selected[0]) && selected[0].type !== "branch",
     run: ({ editor, selected }) => reverseLine(editor.document, selected[0].id),
+  },
+  {
+    id: "line.swapHeads",
+    label: "Swap arrowheads",
+    help: "Trade the line's start and end heads while it stays attached the same way.",
+    group: "arrange",
+    keywords: ["swap arrows", "flip arrow", "arrow ends"],
+    when: ({ selected }) => selected.length === 1 && isLink(selected[0]),
+    run: ({ editor, selected }) => swapLineHeads(editor.document, selected[0].id),
   },
   {
     id: "line.clearPoints",

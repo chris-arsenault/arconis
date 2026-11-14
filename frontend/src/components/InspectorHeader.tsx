@@ -64,9 +64,9 @@ function ObjectTypeSelect({
   return (
     <label
       className="inspector-type"
+      data-hint="Object type"
       data-hint-detail="Change the selected objects' type while keeping their text and relationships."
     >
-      Object type
       <select
         aria-label="Object type"
         value={kind ?? ""}

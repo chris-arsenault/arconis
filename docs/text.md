@@ -112,9 +112,10 @@ Escape a literal dollar sign with a backslash. Dollar signs inside code stay lit
 ## Style and size the box
 
 Select an object and choose **Edit text…**. Choose a bundled sans, serif or
-monospace font, numeric size, color and whole-box emphasis. **Text position** combines horizontal
-and vertical alignment. For multiple selections, mixed values are shown as mixed; changing a
-control applies it to the selection.
+monospace font, numeric size, color and whole-box emphasis. The alignment buttons place the text
+left, center or right across the box and at its top, middle or bottom; the same buttons sit on the
+**Text** row under Appearance in Properties. For multiple selections, a mixed value presses no
+button or shows as mixed; changing a control applies it to the selection.
 
 **Spacing and sizing** contains line height, paragraph spacing, padding, text highlight and
 **Fit to text**. Free text can **Grow height with text** at fixed width. Explicitly resizing its height

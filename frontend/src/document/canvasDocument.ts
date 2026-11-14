@@ -22,6 +22,7 @@ export function defaultSize(type: ItemType, stencil = "rectangle"): [number, num
   };
   if (type === "node" && stencil === "icon") return [64, 64];
   if (type === "node" && stencil === "junction") return [10, 10];
+  if (type === "node" && stencil === "separator") return [240, 16];
   return sizes[type] ?? [160, 90];
 }
 

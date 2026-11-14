@@ -75,6 +75,7 @@ const TYPES: Partial<Record<Item["type"], Look>> = {
 const NODE_DEFAULTS: Record<string, Look> = {
   icon: { fill: "none", line: "none", valign: "top", padding: 2, textSize: 12 },
   junction: { fill: "#7f8aa3", line: "none" },
+  separator: { fill: "none", line: "#7f8aa3", lineWidth: 2 },
 };
 
 function typeDefaults(item: Item): Look {

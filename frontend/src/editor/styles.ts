@@ -9,6 +9,8 @@ import { LABEL_BADGE, LABEL_CLOCK, LABEL_PROPERTIES, LABEL_SUBTITLE } from "./re
 import { TEXT_FONTS } from "../text/typography";
 import "./inkShape";
 import { LINE_SHAPE } from "./lineJumps";
+import { SEPARATOR_SHAPE } from "./separatorShape";
+import { MARKERS } from "./markers";
 import { isMarkup } from "../document/ink";
 
 /**
@@ -39,6 +41,12 @@ const STENCIL_STYLES: Record<string, Style> = {
     shape: "ellipse",
     resizable: false,
     rotatable: false,
+    noLabel: true,
+  },
+  // A straight rule through its box; the box is only the grab area.
+  separator: {
+    shape: SEPARATOR_SHAPE,
+    rounded: false,
     noLabel: true,
   },
   icon: {
@@ -163,7 +171,6 @@ const PATHS: Record<LinePath, Style> = {
   diagonal: { edgeStyle: "none", curved: false },
   curved: { edgeStyle: "none", curved: true },
 };
-const ARROWS = { arrow: "block", open: "open", none: "none" };
 /** Style values that follow an item's scale, so deep-zoom items keep familiar proportions. */
 const SCALED = ["fontSize", "strokeWidth", "spacing", "spacingLeft", "startSize", "endSize"];
 
@@ -202,8 +209,12 @@ function lookStyle(item: Item, look: Appearance): Style {
   for (const [key, styleKey] of DIRECT) result[styleKey] = look[key];
   if (isLink(item) || item.type === "drawing") {
     Object.assign(result, PATHS[look.path]);
-    result.endArrow = ARROWS[look.arrow];
-    result.startArrow = ARROWS[look.startArrow];
+    const end = MARKERS[look.arrow] ?? MARKERS.arrow;
+    const start = MARKERS[look.startArrow] ?? MARKERS.none;
+    result.endArrow = end.marker;
+    result.endFill = end.filled;
+    result.startArrow = start.marker;
+    result.startFill = start.filled;
   }
   if (look.vertical) result.horizontal = false;
   result.fontStyle = fontFlags(look);

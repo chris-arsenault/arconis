@@ -1,10 +1,5 @@
-import {
-  type Align,
-  type Item,
-  type Look,
-  type TextFont,
-  type VerticalAlign,
-} from "../document/types";
+import { type Item, type Look, type TextFont } from "../document/types";
+import { TextAlignment } from "./TextAlignment";
 import type { Appearance } from "../document/appearance";
 import { TEXT_FONTS } from "../text/typography";
 import { textCanResize } from "../document/capabilities";
@@ -64,7 +59,7 @@ export function TextProperties({
           </label>
         </div>
         <TextToggles drawn={drawn} change={change} />
-        <TextPosition align={value("align")} valign={value("valign")} change={change} />
+        <TextAlignment align={value("align")} valign={value("valign")} change={change} />
         <SpacingControls value={value} change={change}>
           <TextSizing selected={selected} drawn={drawn} change={change} onFit={onFit} />
         </SpacingControls>
@@ -182,35 +177,6 @@ function TextToggles({
         );
       })}
     </div>
-  );
-}
-
-function TextPosition({
-  align,
-  valign,
-  change,
-}: Readonly<{ align: unknown; valign: unknown; change: (look: Look) => void }>) {
-  const current =
-    typeof align === "string" && typeof valign === "string" ? `${valign}-${align}` : "";
-  return (
-    <select
-      aria-label="Text position"
-      data-hint-detail="Place the text within its object, from top left to bottom right."
-      value={current}
-      onChange={(event) => {
-        const [vertical, horizontal] = event.target.value.split("-") as [VerticalAlign, Align];
-        change({ align: horizontal, valign: vertical });
-      }}
-    >
-      {!current && <option value="">Mixed position</option>}
-      {(["top", "middle", "bottom"] as VerticalAlign[]).flatMap((vertical) =>
-        (["left", "center", "right"] as Align[]).map((horizontal) => (
-          <option key={`${vertical}-${horizontal}`} value={`${vertical}-${horizontal}`}>
-            {vertical} {horizontal}
-          </option>
-        ))
-      )}
-    </select>
   );
 }
 

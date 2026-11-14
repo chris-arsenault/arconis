@@ -43,6 +43,7 @@ export const STENCILS = [
   "person",
   "icon",
   "junction",
+  "separator",
 ] as const;
 export type Stencil = (typeof STENCILS)[number];
 
@@ -51,8 +52,31 @@ export type Stencil = (typeof STENCILS)[number];
  * points. Where the points come from, such as routing around items, is placement, not type.
  */
 export type LinePath = "cornered" | "diagonal" | "curved";
-export type Arrow = "arrow" | "open" | "none";
-export const ARROWS: Arrow[] = ["arrow", "open", "none"];
+/**
+ * What a line ends in, at each end independently: no head, an arrowhead, a dot or diamond, a bar or
+ * cross, or an entity-relationship cardinality (one, only one, many and their optional forms).
+ */
+export const ARROWS = [
+  "none",
+  "arrow",
+  "open",
+  "classic",
+  "thin",
+  "triangle",
+  "dot",
+  "circle",
+  "diamond",
+  "hollow-diamond",
+  "bar",
+  "cross",
+  "one",
+  "only-one",
+  "many",
+  "one-or-many",
+  "zero-or-one",
+  "zero-or-many",
+] as const;
+export type Arrow = (typeof ARROWS)[number];
 /** Where a frame shows its title: a header bar, plain text at the top left, or a vertical side. */
 export type TitlePlace = "header" | "top" | "side";
 export type Align = "left" | "center" | "right";
@@ -283,6 +307,7 @@ const STENCIL_LABELS: Record<Stencil, string> = {
   person: "Person",
   icon: "Icon",
   junction: "Junction",
+  separator: "Separator",
 };
 const TYPE_LABELS: Record<ItemType, string> = {
   node: "Node",

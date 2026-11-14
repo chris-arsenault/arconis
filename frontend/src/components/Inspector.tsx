@@ -34,6 +34,8 @@ import { ClockControls } from "./ClockControls";
 import { useRailSections } from "./useRailSections";
 import { TagEditor } from "./TagEditor";
 import { alignSelection, distributeSelection } from "../editor/topics";
+import { hasText } from "../document/capabilities";
+import { TextAlignment } from "./TextAlignment";
 
 /** Selection controls grouped by task; each section retains its own disclosure preference. */
 const PANEL_DEFAULTS = {
@@ -78,7 +80,15 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
         onToggle={sections.toggle}
       >
         <LayerField editor={editor} selected={selected} />
-        <ArrangeActions editor={editor} />
+        <div className="inspector-toolbar" role="toolbar" aria-label="Arrange">
+          <ArrangeActions editor={editor} />
+          <span className="toolbar-divider" aria-hidden="true" />
+          <StateToggles
+            selected={selected}
+            items={editor.document.list()}
+            onChange={(values) => changeFields(editor.document, ids(selected), values)}
+          />
+        </div>
         <LayoutControls {...props} />
       </RailSection>
       <RelationsSection {...props} />
@@ -146,6 +156,9 @@ function RelationsSection({ editor, selected, sections }: PanelProps) {
 }
 
 const ids = (items: Item[]) => items.map((item) => item.id);
+/** The value every item shares, or undefined when they differ. */
+const common = <T,>(values: T[]) =>
+  values.every((value) => value === values[0]) ? values[0] : undefined;
 
 function TagsSection({ editor, selected, sections }: PanelProps) {
   const canvas = editor.document;
@@ -188,6 +201,8 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
   const drawn = (target: Item) => effectiveAppearance(target, canvas.namedStyle(target.style));
   // Ink keeps the paint controls of the brush that made it; a mixed selection uses the general ones.
   const inkOnly = selected.every(isInk);
+  // Text alignment sits with the look, where draw.io keeps it, for objects whose text sits in a box.
+  const texts = selected.filter((target) => hasText(target) && !isLink(target));
   return (
     <RailSection
       id="appearance"
@@ -207,6 +222,16 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
         change={(look) => changeSelectionLook(canvas, selected, look)}
         onStyle={(style) => changeSelectionStyle(canvas, selected, style)}
       />
+      {texts.length > 0 && (
+        <div className="paint-row inspector-text-alignment">
+          <span>Text</span>
+          <TextAlignment
+            align={common(texts.map((target) => drawn(target).align))}
+            valign={common(texts.map((target) => drawn(target).valign))}
+            change={(look) => changeSelectionLook(canvas, texts, look)}
+          />
+        </div>
+      )}
     </RailSection>
   );
 }
@@ -221,11 +246,6 @@ function LayoutControls({ editor, selected }: PanelProps) {
         selected={selected}
         onAlign={(mode) => alignSelection(editor, mode)}
         onDistribute={(axis) => distributeSelection(editor, axis)}
-      />
-      <StateToggles
-        selected={selected}
-        items={canvas.list()}
-        onChange={(values) => changeFields(canvas, ids(selected), values)}
       />
       {single && isFrame(item) && (
         <label

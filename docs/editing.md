@@ -82,7 +82,10 @@ keeps your text and screenshot choice so you can retry.
 Open **Shapes**. Click a stencil, then click the canvas, or drag the stencil directly onto it.
 Select returns after each object. Press **Q** to keep the tool in hand instead, so each click
 places another of the same kind without opening its text; **Q** again or Escape ends it.
-Basics include notes, free text, rectangles, ellipses, decisions, frames and clocks. Architecture stencils
+Basics include notes, free text, rectangles, ellipses, decisions, separator lines, frames and
+clocks. A separator is a straight rule with no text that runs along the longer side of its box:
+resize it wide for a horizontal divider or tall for a vertical one, and style its line color,
+width and dash in Properties. Architecture stencils
 include services, databases, clouds and people. Every library, including Screens and cloud
 providers, opens and closes from its header and remembers that choice on this device. Search
 finds items across libraries even when they are closed. Create slides from **Slides** in the
@@ -165,8 +168,8 @@ from hiding a layer or collapsing a topic. Use
 Resizing the browser window preserves the center of your view. Opening or closing a side panel
 keeps content in place; neither operation changes the drawing's scale calibration or geometry.
 
-The grid button shows or hides the grid. Objects snap while the grid is shown. This preference
-belongs to your browser. Fine drawing paths follow the pointer rather than snapping to the grid.
+The grid button shows or hides the grid. Objects snap to the grid while it is shown; alignment
+and straight-connector snapping work either way. This preference belongs to your browser. Fine drawing paths follow the pointer rather than snapping to the grid.
 For distances and grid intervals in concrete units, see [scale and measurement](#scale-units-and-measurement).
 
 ## Right button: pan and menu
@@ -362,8 +365,11 @@ Select several objects and choose **Group** or press Ctrl/Command G to wrap them
 contains and connected relationships; Undo restores the document edit.
 
 Use **Align** with multiple boxes to align edges or centers. Distribution controls become
-available with enough objects to establish gaps. While you drag, guides line up edges and
-centers. An object that nears equal spacing with its neighbours in a row or column snaps there,
+available with enough objects to establish gaps. While you drag, an object within a few screen
+pixels of lining up an edge or center with another object snaps into line, and a guide marks the
+alignment; further away it follows the pointer. An object whose connector is a few pixels from
+running level or upright snaps to where it runs straight, and the guide marks the connector's
+run; that takes precedence over edge alignment. An object that nears equal spacing with its neighbours in a row or column snaps there,
 and each of the equal gaps is marked with its size. With one object selected, hold **Alt** and
 hover another to read the distances between them.
 
@@ -396,9 +402,16 @@ Connect workspace objects in any of three ways:
 3. Select two objects and choose **Connect with a line** under Relationships in the property
    panel, or **Connect** in the menu.
 
-Select a connector to set **Line type** to Cornered, Diagonal or Curved, and choose its start
-and end arrowheads. Drag either endpoint to reattach it. Drag its segments or points to adjust
-the route.
+Select a connector to set **Line type** to Cornered, Diagonal or Curved. **Ends** has a menu for
+each end, as draw.io's line start and line end do: no head, arrows (filled, open, classic, thin or
+a hollow triangle), shapes (dot, circle, diamond, hollow diamond, bar or cross) or a relationship
+cardinality (one, only one, many, one or many, zero or one, zero or many). Either end, both or
+neither can carry a head. The swap button between the menus trades the two heads while the line
+stays attached the same way. **Reverse** turns the line around, as draw.io's Reverse does: it now
+starts where it ended, so each head is drawn at the other object. Branches swap heads but do not
+reverse, since that would change their tree. Drag either endpoint to reattach it. Drag its segments or points to adjust
+the route; a dragged point or segment snaps level or upright with the line's other points and
+the centers of its ends when it comes within a few pixels.
 
 Where two cornered or diagonal connectors cross, the flatter one hops over the other, so a
 crossing reads differently from a junction. Curved connectors cross plainly.
@@ -492,13 +505,15 @@ another room, a file or a chat, and paste any canvas language back onto a canvas
 
 ## Property panel
 
-Selecting something shows its properties in the right dock. **Object type** changes
-eligible shapes, notes and text while keeping their identity, content and connections. Click
-**Edit text…** to open the larger text editor, or double-click the object to type on the canvas.
-The panel has no second row of tabs or copy of the object's label. Position and size are at
-the top. Appearance, arrangement, relationships, tags and status follow in one scrolling
-panel, with controls for slides, clocks, ink and connectors when applicable. **Arrange** holds
-layer, order, grouping, alignment, lock, jump point and collapse. **Relationships** lists
+Selecting something shows its properties in the right dock. The type menu at the top, **Object
+type**, changes eligible shapes, notes and text while keeping their identity, content and
+connections. Click **Edit text…** to open the larger text editor, or double-click the object to
+type on the canvas. The panel has no second row of tabs or copy of the object's label. Position
+(X, Y), angle and size (W, H) are at the top; arrow keys step a field by one and Shift+arrow by
+ten. Appearance, arrangement, relationships, tags and status follow in one scrolling panel,
+with controls for slides, clocks, ink and connectors when applicable. **Arrange** holds the
+layer, a toolbar of icons for order, grouping, lock, jump point and collapse, each named by its
+tooltip, and alignment for several objects. **Relationships** lists
 branches, containers, references and lines, with navigation and tree-layout controls. With
 two objects selected it offers **Relate these two** and **Connect with a line**.
 

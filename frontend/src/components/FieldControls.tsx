@@ -36,6 +36,7 @@ function ToggleButton({
   icon: Icon,
   offIcon: OffIcon,
   onClick,
+  iconOnly,
 }: Readonly<{
   on: boolean;
   label: string;
@@ -44,18 +45,22 @@ function ToggleButton({
   icon: LucideIcon;
   offIcon: LucideIcon;
   onClick: () => void;
+  /** In a toolbar the tooltip names the button. */
+  iconOnly: boolean;
 }>) {
   const title = on ? offLabel : label;
+  const ShownIcon = on ? OffIcon : Icon;
   return (
     <button
-      className="text-action"
+      className={iconOnly ? "icon-action" : "text-action"}
       aria-label={title}
       data-hint={title}
       data-hint-detail={detail}
       aria-pressed={on}
       onClick={onClick}
     >
-      {on ? <OffIcon size={14} /> : <Icon size={14} />} {title}
+      <ShownIcon size={iconOnly ? 15 : 14} />
+      {!iconOnly && ` ${title}`}
     </button>
   );
 }
@@ -99,7 +104,10 @@ function CommittedField({
   );
 }
 
-/** Lock, jump point and, for anything that holds others, collapse: the selection's state on the canvas. */
+/**
+ * Lock, jump point and, for anything that holds others, collapse: the selection's state on the
+ * canvas, as toolbar icons.
+ */
 export function StateToggles({
   selected,
   items,
@@ -112,8 +120,9 @@ export function StateToggles({
   );
   const collapsed = selected.every((candidate) => candidate.collapsed);
   return (
-    <div className="field-toggles">
+    <>
       <ToggleButton
+        iconOnly
         on={locked}
         label="Lock"
         offLabel="Unlock"
@@ -123,6 +132,7 @@ export function StateToggles({
         onClick={() => onChange({ locked: !locked })}
       />
       <ToggleButton
+        iconOnly
         on={jump}
         label="Mark as jump point"
         offLabel="Remove jump point"
@@ -133,6 +143,7 @@ export function StateToggles({
       />
       {collapsible && (
         <ToggleButton
+          iconOnly
           on={collapsed}
           label="Collapse"
           offLabel="Expand"
@@ -142,7 +153,7 @@ export function StateToggles({
           onClick={() => onChange({ collapsed: !collapsed })}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -156,6 +167,7 @@ export function NumberBranchesToggle({
   const numbered = selected.every((candidate) => candidate.numbered);
   return (
     <ToggleButton
+      iconOnly={false}
       on={numbered}
       label="Number branches"
       offLabel="Unnumber branches"

@@ -64,7 +64,7 @@ export class DiagramBuilder {
   /** A line between two names, each a container if one is open under that name, else a box. */
   edge(from: string, to: string, values: Pick<DiagramEdge, "label" | "arrow" | "dashed">) {
     for (const end of [from, to]) if (!this.groups.has(end)) this.node(end);
-    this.edges.push({ ...values, from, to, path: "" });
+    this.edges.push({ ...values, from, to, path: "", heads: null });
   }
 
   /** The start or end marker of the open scope, as state diagrams draw one. */

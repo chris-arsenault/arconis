@@ -92,6 +92,50 @@ it("keeps long canvas text out of Properties and makes dimensions step with a po
   }
 });
 
+it("lays out a shape's properties densely, with arrangement as named icons", async () => {
+  const context = await browser.newContext(viewport);
+  try {
+    const page = await open(context, createRoomId());
+    await add(page, "Rectangle (R)", "Dense", 300, 220);
+    const panel = page.getByLabel("Object properties", { exact: true });
+    const box = async (label: string) =>
+      (await panel.getByLabel(label, { exact: true }).boundingBox())!;
+    const [x, y, angle, width] = await Promise.all(
+      ["Object x", "Object y", "Object rotation", "Object width"].map(box)
+    );
+    // X, Y and the angle share a row; size sits on the next one, and fields are 26px controls.
+    expect(Math.abs(x.y - y.y)).toBeLessThan(2);
+    expect(Math.abs(x.y - angle.y)).toBeLessThan(2);
+    expect(width.y).toBeGreaterThan(x.y + x.height);
+    expect(x.height).toBeLessThanOrEqual(26);
+    // Fill and line share a row.
+    const [fill, line] = await Promise.all(["Fill color", "Line color"].map(box));
+    expect(Math.abs(fill.y - line.y)).toBeLessThan(4);
+    // Order and state are one toolbar of icons, each named for assistive technology and tooltips.
+    const toolbar = panel.getByRole("toolbar", { name: "Arrange", exact: true });
+    for (const name of ["Bring to front", "Send to back", "Lock", "Mark as jump point"]) {
+      const button = toolbar.getByRole("button", { name, exact: true });
+      expect((await button.innerText()).trim()).toBe("");
+    }
+    // Coordinates read to two decimals, however finely the object was placed.
+    const xField = page.getByLabel("Object x", { exact: true });
+    await xField.fill("100.123456");
+    await xField.press("Enter");
+    expect((await exported(page)).objects[0].x).toBeCloseTo(100.123456, 6);
+    expect(await xField.inputValue()).toBe("100.12");
+    await page.screenshot({ path: "test-results/properties-dense.png" });
+    await toolbar.getByRole("button", { name: "Lock", exact: true }).click();
+    expect(
+      await toolbar
+        .getByRole("button", { name: "Unlock", exact: true })
+        .getAttribute("aria-pressed")
+    ).toBe("true");
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 it("creates a separate canvas without clearing the original and keeps File navigation usable on a narrow screen", async () => {
   const context = await browser.newContext(viewport);
   const peerContext = await browser.newContext(viewport);

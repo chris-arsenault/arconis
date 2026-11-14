@@ -105,6 +105,13 @@ const CREATE: Command[] = [
   place("rectangle", "Rectangle", "a rectangle", "r"),
   place("ellipse", "Ellipse", "an ellipse", "e", ["circle"]),
   place("decision", "Decision", "a diamond for a decision in a flow", "d", ["diamond"]),
+  place(
+    "separator",
+    "Separator line",
+    "a straight line that divides or underlines content",
+    undefined,
+    ["line", "divider", "rule"]
+  ),
   place("frame", "Frame", "a frame that holds the objects dropped into it", "f", ["container"]),
   place("clock", "Clock", "a clock, stopwatch or countdown timer everyone sees", undefined, [
     "timer",

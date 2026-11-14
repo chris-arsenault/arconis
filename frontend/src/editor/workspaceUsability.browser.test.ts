@@ -167,7 +167,8 @@ it("puts connector controls first and distinguishes incoming, outgoing and bidir
   expect(
     order.findIndex((text) => text?.includes("Connector") || text?.includes("Connection"))
   ).toBeLessThan(order.findIndex((text) => text?.includes("Tags and status")));
-  await page.getByLabel("Connector start arrow", { exact: true }).selectOption("arrow");
+  await page.getByRole("button", { name: "Line start: None", exact: true }).click();
+  await page.getByRole("option", { name: "Arrow", exact: true }).click();
   await row(page, /^API$/).click();
   await page
     .getByRole("list", { name: "Related items" })

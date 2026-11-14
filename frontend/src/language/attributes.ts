@@ -22,6 +22,7 @@ export const STENCIL_WORDS = new Set([
   "cloud",
   "person",
   "junction",
+  "separator",
 ]);
 
 function beside(cursor: Cursor, side: Side): Attribute {

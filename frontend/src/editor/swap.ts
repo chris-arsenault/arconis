@@ -1,7 +1,7 @@
 import type { CanvasDocument } from "../document/canvasDocument";
 import { movedWithContents, worldBounds } from "../document/relations";
 import { paddingOf } from "../document/layout";
-import { authoredLook } from "../document/appearance";
+import { authoredLook, effectiveAppearance } from "../document/appearance";
 import {
   LOCAL,
   STENCILS,
@@ -21,14 +21,15 @@ import {
 /** What an object can become: a node of a stencil, or another box type that carries text. */
 export type Kind = Stencil | "note" | "text" | "card";
 export const KINDS: Kind[] = [
-  ...STENCILS.filter((s) => s !== "junction" && s !== "icon"),
+  ...STENCILS.filter((s) => s !== "junction" && s !== "icon" && s !== "separator"),
   "note",
   "text",
   "card",
 ];
 
 export function kindOf(item: Item): Kind | null {
-  if (item.type === "node") return item.stencil;
+  // A separator is a bare rule, not a box with text to carry into another shape.
+  if (item.type === "node") return item.stencil === "separator" ? null : item.stencil;
   if (item.type === "note" || item.type === "text" || item.type === "card") return item.type;
   return null;
 }
@@ -74,20 +75,33 @@ export function swapPositions(document: CanvasDocument, first: string, second: s
   return true;
 }
 
-/** Turns a line around: its ends, ports and arrowheads trade places. */
+/**
+ * Turns a line around, as draw.io's Reverse does: it now starts where it ended, so the head that
+ * was at one object is drawn at the other. Its bends keep their places, in the new order.
+ */
 export function reverseLine(document: CanvasDocument, id: string) {
   const line = document.get(id);
-  if (!line || !isLink(line)) return false;
-  step(document, () => {
+  if (!line || !isLink(line) || line.type === "branch") return false;
+  step(document, () =>
     document.patch(id, {
       from: line.to,
       to: line.from,
       fromPort: line.toPort,
       toPort: line.fromPort,
-    });
-    const { arrow, startArrow } = line.look;
-    document.patchLook(id, { arrow: startArrow ?? "none", startArrow: arrow ?? "arrow" });
-  });
+      points: [...line.points].reverse(),
+    })
+  );
+  return true;
+}
+
+/** Trades a line's start and end heads while its ends stay where they are. */
+export function swapLineHeads(document: CanvasDocument, id: string) {
+  const line = document.get(id);
+  if (!line || !isLink(line)) return false;
+  const drawn = effectiveAppearance(line, document.namedStyle(line.style));
+  step(document, () =>
+    document.patchLook(id, { arrow: drawn.startArrow, startArrow: drawn.arrow })
+  );
   return true;
 }
 

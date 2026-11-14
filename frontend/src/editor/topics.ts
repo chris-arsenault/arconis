@@ -22,6 +22,7 @@ import { fittingView, flyToView } from "./views";
 import { creationSize, creationValues } from "./zoom";
 import { scaleOf } from "./creationScale";
 import { configureEqualGaps } from "./equalGaps";
+import { configureSoftSnap } from "./moveSnap";
 
 const ANCHOR_PIXELS = 14;
 /** How much of the window an object fills after zooming into it. */
@@ -362,6 +363,8 @@ export function configureComposition(graph: Graph, document: CanvasDocument) {
   const handler = graph.getPlugin<SelectionHandler>("SelectionHandler");
   if (!handler) return;
   handler.guidesEnabled = true;
+  // Straight lines and alignment decide first; equal spacing takes an axis they leave free.
+  configureSoftSnap(graph, handler, document);
   configureEqualGaps(graph, handler);
 }
 

@@ -83,35 +83,66 @@
 .right-dock .inspector-type {
   flex: 1;
   min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
+  display: block;
 }
 .right-dock .inspector-object-kind {
   flex: 1;
 }
 .right-dock .inspector-heading .inspector-edit-text {
-  font-size: 11px;
-  padding: 6px 7px;
   flex: none;
 }
 .right-dock .layer-field {
   flex-direction: row;
-  margin: 3px 0;
+  margin: 0;
 }
-.right-dock .rail-body > .inspector-command-group {
-  padding: 4px 0;
-  border: none;
-}
-.right-dock .rail-body > .inspector-command-group button {
-  min-height: 30px;
+.right-dock .layer-field > span {
+  flex: 0 0 34px;
 }
 .inspector-comments {
-  padding: 10px;
+  padding: 4px 8px;
   border-top: 1px solid var(--line);
 }
-.inspector-comments .text-action {
-  min-height: 32px;
+/* Properties is a dense tool panel, as in draw.io: fields and buttons are 26px tall and rows sit
+   close. Classed controls keep their own sizing; these set the panel's defaults. */
+.inspector :where(select, input:not([type="checkbox"], [type="color"], [type="radio"])) {
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.inspector :where(textarea) {
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.inspector :where(button:not([class])),
+.inspector .text-action {
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.inspector-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--line);
+}
+.toolbar-divider:first-child {
+  display: none;
+}
+.inspector .tag-editor {
+  margin: 0;
+}
+.inspector .tag-chips {
+  min-height: 26px;
+  padding: 2px;
+  border-radius: 4px;
 }
 .right-dock .inspector {
   overflow-x: hidden;
@@ -120,24 +151,6 @@
   flex-direction: row;
   justify-content: flex-start;
   margin: 8px 0;
-}
-.inspector-command-group {
-  padding: 8px 10px;
-  border-top: 1px solid var(--line);
-}
-.inspector-command-group h3 {
-  font-size: 11px;
-  color: var(--text-soft);
-  margin: 0 0 6px;
-}
-.inspector-command-group > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.inspector-command-group button {
-  padding: 6px 8px;
-  font-size: 11px;
 }
 @media (max-width: 1200px) {
   .right-dock {
@@ -157,14 +170,10 @@
 }
 @media (max-width: 650px) {
   .right-dock .geometry-grid {
-    grid-template-columns: 1fr;
-  }
-  .right-dock .number-field .numeric-steppers {
-    flex-direction: row;
-    width: 80px;
-  }
-  .right-dock .number-field .numeric-steppers button + button {
-    border-top: 0;
-    border-left: 1px solid var(--line);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "x y"
+      "width height"
+      "rotation .";
   }
 }

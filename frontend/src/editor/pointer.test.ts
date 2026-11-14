@@ -5,7 +5,14 @@ import { parse } from "../language/parser";
 import { writeStatements } from "../language/writer";
 import { wedgeAt } from "./pointerButtons";
 import { menuContextOf } from "./contextMenu";
-import { changeKind, clearWaypoints, fitFrameToContents, reverseLine, swapPositions } from "./swap";
+import {
+  changeKind,
+  clearWaypoints,
+  fitFrameToContents,
+  reverseLine,
+  swapLineHeads,
+  swapPositions,
+} from "./swap";
 
 function canvas(text: string) {
   const document = new CanvasDocument();
@@ -80,17 +87,22 @@ describe("swapping in place and the line and frame verbs", () => {
     expect(document.get("inner")!.x).toBe(document.get("f")!.x + innerOffset);
   });
 
-  it("reverses a line and clears its bend points", () => {
+  it("reverses a line so its heads change ends, and clears its bend points", () => {
     const document = canvas(
-      'node a "A" at 0,0\nnode b "B" at 300,0\na.right -> b.left as l via 100,50 label-at 10,0 start-arrow open'
+      'node a "A" at 0,0\nnode b "B" at 300,0\na.right -> b.left as l via 100,50 200,50 label-at 10,0 start-arrow open'
     );
     expect(reverseLine(document, "l")).toBe(true);
+    // The end arrow now meets A, and the open head leaves from B, as draw.io's Reverse draws it.
     expect(document.get("l")).toMatchObject({
       from: "b",
       to: "a",
       fromPort: [0, 0.5],
       toPort: [1, 0.5],
-      look: { arrow: "open", startArrow: "arrow" },
+      points: [
+        [200, 50],
+        [100, 50],
+      ],
+      look: { startArrow: "open" },
     });
     expect(clearWaypoints(document, "l")).toBe(true);
     expect(document.get("l")).toMatchObject({ points: [], x: 0, y: 0 });
@@ -106,4 +118,20 @@ describe("swapping in place and the line and frame verbs", () => {
     expect(f.x + f.width).toBeGreaterThan(260);
     expect(f.width).toBeLessThan(400);
   });
+});
+
+it("swaps a line's heads while its ends stay put, and keeps a branch's direction", () => {
+  const document = canvas(
+    'node a "A" at 0,0\nnode b "B" at 300,0\nnode c "C" at 0,200\na -> b as l arrow diamond start-arrow zero-or-many\na => c as t'
+  );
+  expect(swapLineHeads(document, "l")).toBe(true);
+  expect(document.get("l")).toMatchObject({
+    from: "a",
+    to: "b",
+    look: { arrow: "zero-or-many", startArrow: "diamond" },
+  });
+  // A branch's heads can trade places, but turning it around would change the tree.
+  expect(swapLineHeads(document, "t")).toBe(true);
+  expect(reverseLine(document, "t")).toBe(false);
+  expect(document.get("t")).toMatchObject({ from: "a", to: "c" });
 });

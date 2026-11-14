@@ -8,6 +8,7 @@ import {
   type Paint,
 } from "./diagram";
 import { findElement, parseXml, plainText, type XmlElement } from "./xml";
+import type { Arrow } from "../document/types";
 
 /**
  * A draw.io file read into the shared diagram model. Its boxes keep the positions and sizes the
@@ -157,9 +158,54 @@ const NAMED_SHAPES: [string, DiagramShape][] = [
 
 function shapeOf(style: Style): DiagramShape {
   const name = (style.shape ?? "").toLowerCase();
+  // draw.io's horizontal and vertical lines are boxes drawn as a rule, as a separator is.
+  if (name === "line" || (!name && "line" in style)) return "separator";
   const named = NAMED_SHAPES.find(([word]) => name.includes(word));
   if (named) return named[1];
   return FLAG_SHAPES.find(([flag]) => flag in style)?.[1] ?? "rectangle";
+}
+
+/** draw.io's marker names, filled and hollow, as the canvas's line ends. */
+const FILLED_HEADS: Record<string, Arrow> = {
+  classic: "classic",
+  classicThin: "thin",
+  block: "arrow",
+  blockThin: "thin",
+  oval: "dot",
+  diamond: "diamond",
+  diamondThin: "diamond",
+};
+const HOLLOW_HEADS: Record<string, Arrow> = {
+  classic: "triangle",
+  classicThin: "triangle",
+  block: "triangle",
+  blockThin: "triangle",
+  oval: "circle",
+  diamond: "hollow-diamond",
+  diamondThin: "hollow-diamond",
+};
+const OTHER_HEADS: Record<string, Arrow> = {
+  none: "none",
+  open: "open",
+  openThin: "open",
+  openAsync: "open",
+  async: "arrow",
+  dash: "bar",
+  baseDash: "bar",
+  cross: "cross",
+  circle: "circle",
+  circlePlus: "circle",
+  ERone: "one",
+  ERmandOne: "only-one",
+  ERmany: "many",
+  ERoneToMany: "one-or-many",
+  ERzeroToOne: "zero-or-one",
+  ERzeroToMany: "zero-or-many",
+};
+
+function headOf(marker: string, fill: string | undefined): Arrow {
+  const table = fill === "0" ? HOLLOW_HEADS : FILLED_HEADS;
+  return table[marker] ?? OTHER_HEADS[marker] ?? "arrow";
 }
 
 const colorOf = (value: string | undefined) =>
@@ -291,6 +337,10 @@ class Page {
         arrow: arrowOf(start, end),
         dashed: cell.style.dashed === "1",
         path: pathOf(cell.style),
+        heads: {
+          start: headOf(cell.style.startArrow ?? "none", cell.style.startFill),
+          end: headOf(cell.style.endArrow ?? "classic", cell.style.endFill),
+        },
       });
     }
   }

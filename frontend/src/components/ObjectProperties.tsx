@@ -143,6 +143,7 @@ function PaintControls({ item, drawn, appearances, change }: StyleProps & { item
             onChange={(color) => change({ line: color })}
           />
           <NumberField
+            area=""
             prefix="W"
             label="Line width"
             value={mixedWidth ? "mixed" : drawn.lineWidth * drawn.scale}
@@ -173,6 +174,7 @@ function PaintControls({ item, drawn, appearances, change }: StyleProps & { item
  * arrows and ten with Shift.
  */
 function NumberField({
+  area,
   prefix,
   label,
   value,
@@ -180,6 +182,8 @@ function NumberField({
   rules,
   unit,
 }: Readonly<{
+  /** The field's place in the geometry grid; empty outside it. */
+  area: "x" | "y" | "width" | "height" | "rotation" | "";
   prefix: string;
   label: string;
   value: NumericValue;
@@ -190,7 +194,7 @@ function NumberField({
 }>) {
   return (
     <div
-      className="number-field"
+      className={area ? `number-field geometry-${area}` : "number-field"}
       data-hint={label}
       data-hint-detail="Type a value or sum like 200+40; a leading +10 or *2 changes the current value."
     >
@@ -232,12 +236,14 @@ export function GeometryControls({
   factor: number;
   unit: string;
 }>) {
+  // The letters name the fields, so the section needs no heading: X Y and angle, then W H.
   return (
-    <Section title="Position and size">
+    <section className="inspector-section geometry-section" aria-label="Position and size">
       <div className="geometry-grid">
         {GEOMETRY.map(({ key, prefix }) => (
           <NumberField
             key={key}
+            area={key}
             prefix={prefix}
             label={`Object ${key}`}
             value={item[key] * factor}
@@ -248,6 +254,7 @@ export function GeometryControls({
         ))}
         {canRotate(item) && (
           <NumberField
+            area="rotation"
             prefix="°"
             label="Object rotation"
             value={rotation}
@@ -257,6 +264,6 @@ export function GeometryControls({
           />
         )}
       </div>
-    </Section>
+    </section>
   );
 }

@@ -125,6 +125,14 @@ function edgeStatement(edge: DiagramEdge, ids: IdMap) {
   if (edge.label) words.push(quote(edge.label));
   if (edge.dashed) words.push("dashed");
   if (edge.path) words.push(`path ${edge.path}`);
+  if (edge.heads) {
+    // Named heads follow the ends as written, which an arrow at the start swapped.
+    const [start, end] =
+      edge.arrow === "start"
+        ? [edge.heads.end, edge.heads.start]
+        : [edge.heads.start, edge.heads.end];
+    words.push(`start-arrow ${start}`, `arrow ${end}`);
+  }
   return words.join(" ");
 }
 

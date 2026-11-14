@@ -55,7 +55,7 @@ Text styling applies to the whole box and stays separate from Markdown. Copy Mar
   <type> [id] ["name"] [/ "subtitle"] [attributes...] [{ items inside }]
 
 Types:
-- node: a shape in a diagram or a topic in a mind map. Bare word for its stencil: rectangle (default), ellipse, decision, service, database, cloud, person. With icon <key> it is an icon, its name and subtitle drawn under it.
+- node: a shape in a diagram or a topic in a mind map. Bare word for its stencil: rectangle (default), ellipse, decision, service, database, cloud, person. With icon <key> it is an icon, its name and subtitle drawn under it. The separator stencil is a straight rule with no text: it runs through the middle of its box along the longer side, so node rule separator at 0,100 size 400,16 divides horizontally and size 16,300 vertically; line, line-width and dashed style it.
 - card: a wide box with an icon on the left and its name and subtitle beside it.
 - frame: a container with a title. group: a light dashed container.
 - band: a highlight behind items, spanning across frames: band <id> "name" / "subtitle" over a, b, c. It is sized to cover them once everything is placed.
@@ -101,7 +101,8 @@ A frame or group can keep its contents arranged: frame f "Layer" row gap 30 { ..
   a -> b -> c         a chain
   a -> b "x", c "y"   a fan-out from a
   a -> b as w1        the line's id, to change it later
-Attributes after the ends apply to every line in the statement: a style, look properties, path cornered|diagonal|curved (the line's type; cornered by default), arrow arrow|open|none, start-arrow arrow|open|none, via x,y x,y (points the line passes through), label-at x,y, and vertical to run the label from bottom to top.
+Attributes after the ends apply to every line in the statement: a style, look properties, path cornered|diagonal|curved (the line's type; cornered by default), arrow <head> and start-arrow <head> for the head at each end, via x,y x,y (points the line passes through), label-at x,y, and vertical to run the label from bottom to top.
+A <head> is none, arrow, open, classic, thin, triangle (hollow), dot, circle (hollow), diamond, hollow-diamond, bar, cross, or an entity-relationship cardinality: one, only-one, many, one-or-many, zero-or-one, zero-or-many. Each end is set on its own: users.(1,0.5) -> orders.left arrow zero-or-many start-arrow only-one.
 around places a line's points so it goes around the items and labels between its ends: a -> b around. It is placement, worked out once like below or right of; afterwards the line is an ordinary line whose points anyone can move. Use it for lines through busy areas, and write it again after moving things to route afresh.
 shared after a fan-out runs one trunk from the start to a junction, a small dot, and splits there: api -> bus "Async", logic "Sync" shared. A junction is a node with stencil junction, and you can declare and join one yourself.
 Any item can be a line's end, including a frame or a band.
@@ -115,7 +116,7 @@ A new item at a line's far end with no placement goes to the right of the start,
 
 fill <color|none>, line <color|none>, line-width N, dashed, opacity N (0-100), text-color <color>, text-size N, font sans|serif|mono, bold, italic, underline, strike, align left|center|right, valign top|middle|bottom, text-highlight <color|none>, line-height N (positive multiplier), paragraph-gap N (non-negative em), padding N (non-negative canvas units), text-fit fixed|height (free text may grow vertically), vertical, rotate N, icon-color <color>, badge <icon key> (frames: an icon in the corner), title header|top|side (frames: a header bar, plain text at the top left, or vertical down the side). Text size must be positive. Flags take off to turn off (bold off); value properties take default to return to the type's default (fill default).
 
-Named styles are declared once and used by name. A style's name must not be a stencil's name (rectangle, ellipse, decision, service, database, cloud, person):
+Named styles are declared once and used by name. A style's name must not be a stencil's name (rectangle, ellipse, decision, service, database, cloud, person, junction, separator):
   style region line #00a1c9 dashed title top badge lucide:Flag text-color #00a1c9
   frame r1 "us-east-1" region { ... }
 An item's own look applies over its style. Restating a style replaces it everywhere it is used.

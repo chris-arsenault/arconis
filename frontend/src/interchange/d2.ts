@@ -270,6 +270,7 @@ class D2Diagram {
         arrow: ARROWS[operator],
         dashed: dashedIn(children),
         path: "",
+        heads: null,
       })
     );
   }

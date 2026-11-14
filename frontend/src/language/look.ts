@@ -1,4 +1,9 @@
-import type { Look } from "../document/types";
+import { ARROWS, type Arrow, type Look } from "../document/types";
+
+const ARROW_CHOICES = Object.fromEntries(ARROWS.map((arrow) => [arrow, true])) as Record<
+  Arrow,
+  true
+>;
 
 type Definition<Value> = { word: string } & ([Value] extends [boolean]
   ? { kind: "flag" }
@@ -41,12 +46,8 @@ const LOOK = {
   badge: { word: "badge", kind: "icon" },
   title: { word: "title", kind: "choice", choices: { header: true, top: true, side: true } },
   path: { word: "path", kind: "choice", choices: { cornered: true, diagonal: true, curved: true } },
-  arrow: { word: "arrow", kind: "choice", choices: { arrow: true, open: true, none: true } },
-  startArrow: {
-    word: "start-arrow",
-    kind: "choice",
-    choices: { arrow: true, open: true, none: true },
-  },
+  arrow: { word: "arrow", kind: "choice", choices: ARROW_CHOICES },
+  startArrow: { word: "start-arrow", kind: "choice", choices: ARROW_CHOICES },
   scale: { word: "scale", kind: "number", range: "positive" },
 } as const satisfies { [Key in keyof Look]-?: Definition<NonNullable<Look[Key]>> };
 

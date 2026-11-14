@@ -5,6 +5,8 @@ export interface NumericRules {
   integer: boolean;
   increment: number | "any";
   arithmetic: boolean;
+  /** Decimal places a resting field shows; typed and stepped values keep full precision. */
+  decimals: number;
 }
 export const PLAIN_NUMBER: NumericRules = {
   minimum: -Infinity,
@@ -12,10 +14,11 @@ export const PLAIN_NUMBER: NumericRules = {
   integer: false,
   increment: "any",
   arithmetic: false,
+  decimals: 12,
 };
 export const POSITIVE_NUMBER: NumericRules = { ...PLAIN_NUMBER, positive: true };
 export const SLIDE_NUMBER: NumericRules = { ...PLAIN_NUMBER, minimum: 0, integer: true };
-export const GEOMETRY_NUMBER: NumericRules = { ...PLAIN_NUMBER, arithmetic: true };
+export const GEOMETRY_NUMBER: NumericRules = { ...PLAIN_NUMBER, arithmetic: true, decimals: 2 };
 export const SIZE_NUMBER: NumericRules = { ...GEOMETRY_NUMBER, positive: true };
 export const LINE_WIDTH_NUMBER: NumericRules = { ...GEOMETRY_NUMBER, minimum: 0 };
 export const TEXT_SPACING: Record<"lineHeight" | "paragraphGap" | "padding", NumericRules> = {

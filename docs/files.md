@@ -82,7 +82,8 @@ one undoable change.
 | Outline  | A `.txt` or `.md` file with headings or indentation  | A topic tree                                                                                   |
 
 Boxes keep their text, their shape where Arconis has the same one, and their fill, line and text
-colours. Lines keep their labels, arrowheads and dashes. A container becomes a frame holding its
+colours. Lines keep their labels, arrowheads and dashes; draw.io's named line ends, such as
+diamonds and entity-relationship cardinalities, become the canvas's matching heads. A container becomes a frame holding its
 contents. Mermaid, D2 and PlantUML carry no positions, so their diagrams are laid out in ranks
 along their lines, in the direction the source asks for. A sequence diagram becomes its
 participants joined by numbered messages. Other styling, icons and notes stay behind, and a

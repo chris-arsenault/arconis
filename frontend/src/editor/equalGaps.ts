@@ -1,14 +1,12 @@
 import { Point, type Cell, type Graph, type SelectionHandler, type Shape } from "@maxgraph/core";
 import { equalGapSnap, type EqualGap, type GapBox } from "../document/equalGaps";
+import { SNAP_PIXELS } from "./moveSnap";
 
 /**
  * Equal-gap snapping for native moves. The move's alignment guide decides first; on an axis it
  * leaves free, a box nearing equal spacing with its neighbours snaps there, and the equal gaps
  * are kept here for the overlay that marks them.
  */
-
-/** How near, in screen pixels, a box must come to equal spacing to snap to it. */
-const SNAP_PIXELS = 8;
 
 const shown = new WeakMap<Graph, EqualGap[]>();
 

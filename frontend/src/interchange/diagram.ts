@@ -3,6 +3,7 @@
  * containers that hold them and the lines between them. A format that carries positions keeps
  * them; one that does not is laid out in ranks.
  */
+import type { Arrow } from "../document/types";
 
 export type DiagramShape =
   | "rectangle"
@@ -12,6 +13,7 @@ export type DiagramShape =
   | "database"
   | "cloud"
   | "person"
+  | "separator"
   | "note"
   | "text";
 
@@ -61,6 +63,8 @@ export interface DiagramEdge {
   dashed: boolean;
   /** The line's type, or "" for the canvas's default. */
   path: EdgePath;
+  /** The heads a source names at each end, or null when it only says which ends have arrows. */
+  heads: { start: Arrow; end: Arrow } | null;
 }
 
 /** A line that joins nothing, kept as an editable path through its points. */

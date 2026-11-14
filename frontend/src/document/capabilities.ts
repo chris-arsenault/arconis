@@ -2,13 +2,17 @@ import { isLockedIcon } from "./geometry";
 import { isBox, isFrame, type Item } from "./types";
 import { isMarkup } from "./ink";
 
-export const hasText = (item: Item) => item.type !== "drawing" && item.type !== "highlight";
+/** A separator is a bare rule: it draws no text and has nothing to fill. */
+const isSeparator = (item: Item) => item.type === "node" && item.stencil === "separator";
+export const hasText = (item: Item) =>
+  item.type !== "drawing" && item.type !== "highlight" && !isSeparator(item);
 export const hasSubtitle = (item: Item) =>
-  ["node", "card", "band"].includes(item.type) && !item.onLine;
+  ["node", "card", "band"].includes(item.type) && !item.onLine && !isSeparator(item);
 export const hasFill = (item: Item) =>
   (isBox(item) || (item.type === "drawing" && item.look.closed === true)) &&
   item.type !== "text" &&
   item.type !== "picture" &&
+  !isSeparator(item) &&
   !(item.type === "node" && item.stencil === "icon");
 export const hasLine = (item: Item) =>
   item.type !== "note" &&
@@ -18,7 +22,7 @@ export const canColorIcon = (item: Item) => item.icon.startsWith("lucide:");
 /** Captions and container titles cannot resize the object they describe. */
 export const textCanResize = (item: Item) =>
   ["text", "note", "card"].includes(item.type) ||
-  (item.type === "node" && item.stencil !== "icon" && item.stencil !== "junction");
+  (item.type === "node" && !["icon", "junction", "separator"].includes(item.stencil));
 export const canRotate = (item: Item) =>
   !isFrame(item) && item.type !== "slide" && !isLockedIcon(item);
 /** Numeric dimension controls preserve these objects' aspect ratio. */

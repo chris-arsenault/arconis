@@ -4,6 +4,33 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Separator lines and soft snapping
+
+- Added **Separator** to Basics in Shapes: a straight horizontal or vertical rule with no text,
+  placed and resized like any shape instead of drawn with vector ink. draw.io lines import as
+  separators.
+- Dragged objects snap into alignment with other objects from a few screen pixels away at any
+  zoom, with the grid on or off, and move freely beyond that.
+- Dragged objects also snap to where their connectors run level or upright, and dragged connector
+  points and segments snap straight with their neighbours.
+
+### Connector ends and text alignment
+
+- Each connector end takes its own head from a draw.io-style menu: none, arrows, dots, circles,
+  diamonds, bars, crosses and entity-relationship cardinalities, filled or hollow. Both ends can
+  carry heads, and draw.io files keep their named line ends.
+- Added **Swap arrowheads**. Fixed **Reverse**, which left every head at the same object; it now
+  turns the line around as draw.io does, keeping its bends in order.
+- Restored text alignment to Properties, with left, center and right, and top, middle and bottom
+  buttons for objects with text; the text editor uses the same buttons.
+
+### Denser Properties
+
+- Tightened Properties to 26px fields and buttons with closer rows. Position, angle and size
+  take two rows with slim steppers, and coordinates show two decimals.
+- Put fill, line color and line width on one row, and order, grouping, lock and jump point in
+  one Arrange toolbar of icons named by their tooltips.
+
 ### Organized canvas controls
 
 - Replaced the nested Design/Arrange/Data property tabs with one scrollable inspector. Removed

@@ -36,6 +36,7 @@ export function shapeItem(shape: Shape): { type: ItemType; stencil: Stencil } {
 }
 
 function defaultName(shape: Shape) {
+  if (shape === "separator") return "";
   return shape === "note" ? "Your idea here" : typeLabel(shapeItem(shape));
 }
 

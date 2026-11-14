@@ -2,6 +2,7 @@ import type { EditorController } from "../editor/controller";
 import type { Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";
 import { changeSelectionLook, routeAround } from "../editor/commands";
+import { reverseLine, swapLineHeads } from "../editor/swap";
 import { ConnectionControls } from "./ConnectionControls";
 
 /** Compose the connection's semantic controls with the current selection's operations. */
@@ -18,6 +19,8 @@ export function SelectionConnection({
         look={effectiveAppearance(item, canvas.namedStyle(item.style))}
         onLook={(look) => changeSelectionLook(canvas, [item], look)}
         onRoute={() => routeAround(canvas, item)}
+        onSwap={() => swapLineHeads(canvas, item.id)}
+        onReverse={item.type === "branch" ? null : () => reverseLine(canvas, item.id)}
       />
     </section>
   );

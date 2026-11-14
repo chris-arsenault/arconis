@@ -66,9 +66,13 @@ function numberBounds(options: NumericRules) {
   };
 }
 
+function shownNumber(value: number, rules: NumericRules) {
+  return String(Number(Number(value.toPrecision(12)).toFixed(rules.decimals)));
+}
+
 /** Incomplete drafts stay local; finishing an edit produces one application command. */
 function useNumericDraft(options: NumericProps) {
-  const shown = options.value === "mixed" ? "" : String(Number(options.value.toPrecision(12)));
+  const shown = options.value === "mixed" ? "" : shownNumber(options.value, options.rules);
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState("");
   const skipBlur = useRef(false);
@@ -162,7 +166,7 @@ export function NumericInput(options: Readonly<NumericProps>) {
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => field.step("ArrowUp")}
           >
-            <ChevronUp size={12} />
+            <ChevronUp size={10} />
           </button>
           <button
             type="button"
@@ -171,7 +175,7 @@ export function NumericInput(options: Readonly<NumericProps>) {
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => field.step("ArrowDown")}
           >
-            <ChevronDown size={12} />
+            <ChevronDown size={10} />
           </button>
         </span>
       )}

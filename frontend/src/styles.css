@@ -1689,7 +1689,7 @@ details[open] > summary::before {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 10px 10px 8px;
+  padding: 6px 8px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
@@ -1712,25 +1712,26 @@ details[open] > summary::before {
 }
 .inspector-type select {
   width: 100%;
-  padding: 6px 8px;
   color: var(--text);
-  font-size: 12px;
 }
 /* Sections in the panel share the rail's header; the controls inside sit flush beneath it. */
 .inspector .rail-section {
-  padding: 3px 4px 4px;
+  padding: 1px 4px 2px;
 }
 .inspector .rail-section:first-of-type {
   border-top: none;
+}
+.inspector .rail-section > summary {
+  min-height: 28px;
 }
 .inspector .rail-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 2px 6px 6px;
+  padding: 0 4px 6px;
 }
 .inspector .rail-body > .inspector-section {
-  padding: 4px 0 2px;
+  padding: 0;
   border-top: none;
 }
 /* The slide section's own title repeats the section header. */
@@ -1738,7 +1739,7 @@ details[open] > summary::before {
   display: none;
 }
 .inspector > .edited-by {
-  padding: 8px 10px 12px;
+  padding: 6px 8px 8px;
   border-top: 1px solid var(--line);
 }
 .selection-actions {
@@ -1790,7 +1791,7 @@ details[open] > summary::before {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 10px 10px;
+  padding: 6px 8px 8px;
   border-top: 1px solid var(--line);
 }
 .inspector-section h3 {
@@ -1817,7 +1818,7 @@ details[open] > summary::before {
   flex: 1;
   align-items: center;
   min-width: 0;
-  height: 44px;
+  height: 26px;
   background: var(--field);
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -1827,7 +1828,7 @@ details[open] > summary::before {
 }
 .number-field > span:first-child {
   flex-shrink: 0;
-  width: 20px;
+  width: 18px;
   color: #7c8497;
   font-size: 11px;
   text-align: center;
@@ -1846,13 +1847,19 @@ details[open] > summary::before {
 .number-field input::-webkit-inner-spin-button {
   appearance: none;
 }
+/* Slim steppers: the arrow keys step too, and Shift steps by ten. */
 .number-field .numeric-steppers {
   display: flex;
   flex: none;
   flex-direction: column;
-  width: 30px;
+  width: 14px;
   height: 100%;
   border-left: 1px solid var(--line);
+}
+@media (pointer: coarse) {
+  .number-field .numeric-steppers {
+    width: 22px;
+  }
 }
 .number-field .numeric-steppers button {
   display: grid;
@@ -1874,23 +1881,55 @@ details[open] > summary::before {
 }
 .geometry-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    "x y rotation"
+    "width height .";
+  gap: 4px;
 }
+.geometry-x {
+  grid-area: x;
+}
+.geometry-y {
+  grid-area: y;
+}
+.geometry-width {
+  grid-area: width;
+}
+.geometry-height {
+  grid-area: height;
+}
+.geometry-rotation {
+  grid-area: rotation;
+}
+/* Fill, line and icon color share rows; each label sits beside its own swatch. */
 .paint-controls {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+.paint-controls .number-field {
+  flex: 0 0 64px;
 }
 .paint-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 .paint-row > span {
-  flex: 0 0 32px;
+  flex: none;
   color: var(--text-soft);
   font-size: 11px;
+}
+.inspector-text-alignment > span {
+  flex: 0 0 26px;
+}
+.text-alignment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .select-grid {
   display: grid;
@@ -2000,12 +2039,8 @@ details[open] > summary::before {
   background: var(--line);
   margin: 0 4px;
 }
-.field-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.field-toggles .text-action[aria-pressed="true"] {
+.text-action[aria-pressed="true"],
+.icon-action[aria-pressed="true"] {
   background: #ece8fb;
   color: var(--purple);
 }

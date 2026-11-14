@@ -51,11 +51,23 @@ it("positions a label at all nine places, changes fonts and undoes whole-box sty
   await page.getByLabel("Object height", { exact: true }).fill("260");
   await textEditor(page);
   const positions: Record<string, { x: number; y: number }> = {};
-  for (const vertical of ["top", "middle", "bottom"]) {
-    for (const horizontal of ["left", "center", "right"]) {
-      const position = page.getByLabel("Text position", { exact: true });
-      await position.selectOption(`${vertical}-${horizontal}`);
-      expect(await position.inputValue()).toBe(`${vertical}-${horizontal}`);
+  const dialog = textDialog(page);
+  const across = { left: "Align text left", center: "Center text", right: "Align text right" };
+  const down = {
+    top: "Align text to top",
+    middle: "Center text vertically",
+    bottom: "Align text to bottom",
+  };
+  for (const [vertical, downLabel] of Object.entries(down)) {
+    for (const [horizontal, acrossLabel] of Object.entries(across)) {
+      await dialog.getByRole("button", { name: downLabel, exact: true }).click();
+      await dialog.getByRole("button", { name: acrossLabel, exact: true }).click();
+      for (const label of [downLabel, acrossLabel])
+        expect(
+          await dialog
+            .getByRole("button", { name: label, exact: true })
+            .getAttribute("aria-pressed")
+        ).toBe("true");
       const bounds = (await row(page, "Alignment").boundingBox())!;
       positions[`${vertical}-${horizontal}`] = bounds;
     }

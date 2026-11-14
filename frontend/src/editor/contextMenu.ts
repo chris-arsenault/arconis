@@ -39,6 +39,7 @@ const ALIGN: Submenu = {
     (mode) => `arrange.align.${mode}`
   ),
 };
+const LINE_VERBS = ["arrange.route", "line.reverse", "line.swapHeads", "line.clearPoints"];
 const DISTRIBUTE: Submenu = {
   label: "Distribute",
   help: "Choose an axis to space the selected objects evenly along.",
@@ -122,7 +123,7 @@ const MENUS: Record<MenuContext, MenuSlot[][]> = {
       {
         label: "Connector",
         help: "Route, reverse and arrange this connector.",
-        ids: ["arrange.route", "line.reverse", "line.clearPoints", "arrange.front", "arrange.back"],
+        ids: [...LINE_VERBS, "arrange.front", "arrange.back"],
       },
     ],
     ["fields.lock"],
