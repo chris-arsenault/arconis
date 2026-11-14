@@ -101,7 +101,6 @@ it("keeps long tags and comment controls inside a narrow canvas without changing
   const page = await open(context, createRoomId());
   await add(page, "Rectangle (R)", "Service", 60, 190);
   const before = await row(page, "Service").textContent();
-  await page.getByRole("tab", { name: "Data", exact: true }).click();
   await page
     .getByLabel("Add a tag", { exact: true })
     .fill("architecture-platform-runtime-contract, api");

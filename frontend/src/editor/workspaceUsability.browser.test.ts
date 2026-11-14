@@ -23,7 +23,6 @@ it("keeps custom-property drafts current with peers without untouched blur overw
   const a = await open(first, room);
   const b = await open(second, room);
   await add(a, "Rectangle (R)", "Service", 220, 200);
-  await a.getByRole("tab", { name: "Data", exact: true }).click();
   await a.getByLabel("New property name", { exact: true }).fill("service owner");
   expect(
     await a.getByLabel("New property name", { exact: true }).getAttribute("aria-invalid")
@@ -37,7 +36,6 @@ it("keeps custom-property drafts current with peers without untouched blur overw
   await a.getByLabel("New property value", { exact: true }).fill("Alice");
   await a.getByRole("button", { name: "Add property", exact: true }).click();
   await row(b, /^Service$/).click();
-  await b.getByRole("tab", { name: "Data", exact: true }).click();
   const av = a.getByLabel("Value of owner", { exact: true });
   const bv = b.getByLabel("Value of owner", { exact: true });
   await bv.fill("Bob");
@@ -151,7 +149,6 @@ it("puts connector controls first and distinguishes incoming, outgoing and bidir
   await page.getByRole("button", { name: "Connector: click two objects (C)", exact: true }).click();
   await row(page, /^Client$/).click();
   await row(page, /^API$/).click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await row(page, /^API$/).click();
   await page
     .getByRole("list", { name: "Related items" })
@@ -163,7 +160,6 @@ it("puts connector controls first and distinguishes incoming, outgoing and bidir
     .getByText("→ To", { exact: true })
     .waitFor();
   await selectConnector(page);
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   const order = await page
     .getByLabel("Object properties", { exact: true })
     .locator(".inspector-primary, .rail-section")
@@ -173,7 +169,6 @@ it("puts connector controls first and distinguishes incoming, outgoing and bidir
   ).toBeLessThan(order.findIndex((text) => text?.includes("Tags and status")));
   await page.getByLabel("Connector start arrow", { exact: true }).selectOption("arrow");
   await row(page, /^API$/).click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page
     .getByRole("list", { name: "Related items" })
     .getByText("↔ Both ways", { exact: true })

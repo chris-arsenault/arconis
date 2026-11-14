@@ -1,4 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { evaluateNumber } from "../editor/arithmetic";
 import { unitExpression } from "../document/units";
 
@@ -14,6 +15,8 @@ interface NumericProps {
   detail: string;
   /** The unit typed values are read in; empty for a plain number. */
   unit: string;
+  /** Arithmetic inputs cannot have native spinners; show explicit steppers when needed. */
+  steppers: boolean;
 }
 
 function parseNumber(source: string, options: NumericProps) {
@@ -39,7 +42,8 @@ function steppedNumber(text: string, options: NumericProps, key: string, large: 
   const next =
     (parseNumber(text, options) ?? (options.value === "mixed" ? 0 : options.value)) +
     direction * step;
-  return String(Number(next.toPrecision(12)));
+  const rounded = Number(next.toPrecision(12));
+  return withinRange(rounded, options.rules) ? rounded : null;
 }
 
 function numberError(options: NumericRules) {
@@ -96,15 +100,29 @@ function useNumericDraft(options: NumericProps) {
       event.currentTarget.blur();
     } else if (["ArrowUp", "ArrowDown"].includes(event.key)) {
       event.preventDefault();
-      change(steppedNumber(text, options, event.key, event.shiftKey));
+      const next = steppedNumber(text, options, event.key, event.shiftKey);
+      if (next !== null) change(String(next));
     }
   };
   const blur = () => {
     if (!skipBlur.current) commit();
     skipBlur.current = false;
   };
+  const step = (direction: "ArrowUp" | "ArrowDown") => {
+    // An invalid draft must not be silently replaced by a stepper click.
+    if (draft !== null && parseNumber(draft, options) === null) {
+      setError(numberError(options.rules));
+      return;
+    }
+    const next = steppedNumber(text, options, direction, false);
+    if (next === null) return;
+    if (next !== options.value) options.onCommit(next);
+    setDraft(null);
+    setError("");
+  };
   return {
     error,
+    step,
     binding: {
       value: text,
       onChange: (event: React.ChangeEvent<HTMLInputElement>) => change(event.target.value),
@@ -135,6 +153,28 @@ export function NumericInput(options: Readonly<NumericProps>) {
         placeholder={options.value === "mixed" ? "Mixed" : undefined}
         {...field.binding}
       />
+      {options.steppers && (
+        <span className="numeric-steppers">
+          <button
+            type="button"
+            aria-label={`Increase ${options.label}`}
+            data-hint-detail={`Increase ${options.label} by one ${options.unit || "unit"}.`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => field.step("ArrowUp")}
+          >
+            <ChevronUp size={12} />
+          </button>
+          <button
+            type="button"
+            aria-label={`Decrease ${options.label}`}
+            data-hint-detail={`Decrease ${options.label} by one ${options.unit || "unit"}.`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => field.step("ArrowDown")}
+          >
+            <ChevronDown size={12} />
+          </button>
+        </span>
+      )}
       {field.error && (
         <span id={errorId} className="field-error" role="status">
           {field.error}

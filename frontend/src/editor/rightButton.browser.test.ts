@@ -183,7 +183,7 @@ it("defaults to right-drag panning and remembers the optional wheel only on this
     const after = (await row(page, "Target").boundingBox())!;
     expect(Math.round(after.x - target.x)).toBe(100);
     expect(Math.round(after.y - target.y)).toBe(60);
-    expect(await page.locator(".inspector-name").textContent()).toBe("Selected");
+    expect(await row(page, /^Selected$/).count()).toBe(1);
     const peerAfter = (await row(peer, "Target").boundingBox())!;
     expect(peerAfter.x).toBeCloseTo(peerBefore.x, 0);
     expect(peerAfter.y).toBeCloseTo(peerBefore.y, 0);

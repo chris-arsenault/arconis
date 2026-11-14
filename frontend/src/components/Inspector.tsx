@@ -1,4 +1,4 @@
-import { useId, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { MessageSquare } from "lucide-react";
 import type { EditorController } from "../editor/controller";
 import { runCommand } from "../editor/registry";
@@ -18,7 +18,7 @@ import { SlideControls } from "./SlideControls";
 import { followLink } from "../editor/links";
 import { deckOf, decks, isSlide } from "../document/slides";
 import { ArrangeActions } from "./ArrangeActions";
-import { InspectorHeader, PropertyTabs, type InspectorTab } from "./InspectorHeader";
+import { InspectorHeader } from "./InspectorHeader";
 import { groupThreads, listComments } from "../document/comments";
 import { jumpTo } from "../editor/topics";
 import {
@@ -42,23 +42,14 @@ const PANEL_DEFAULTS = {
   appearance: true,
   layout: true,
   slide: true,
-  comments: true,
 };
 
 type Sections = ReturnType<typeof useRailSections>;
 type PanelProps = Readonly<{ editor: EditorController; selected: Item[]; sections: Sections }>;
 
-function initialTab(editor: EditorController): InspectorTab {
-  return editor.selected().some((item) => isInk(item) || isSlide(item) || item.clock)
-    ? "Design"
-    : "Arrange";
-}
-
 export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
   const sections = useRailSections(PANEL_DEFAULTS, "arconis.inspector");
-  const [tab, setTab] = useState<InspectorTab>(() => initialTab(editor));
-  const panelId = useId();
   const selected = editor.selected();
   const [item] = selected;
   if (!item) return null;
@@ -73,46 +64,26 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       data-help-topic="editing#property-panel"
     >
       <InspectorHeader editor={editor} selected={selected} />
-      <PropertyTabs panelId={panelId} tab={tab} onChoose={setTab} />
-      <div
-        role="tabpanel"
-        id={`${panelId}-Design`}
-        aria-labelledby={`${panelId}-Design-tab`}
-        hidden={tab !== "Design"}
+      {single && <PositionControls editor={editor} selected={selected} />}
+      <PrimaryControls key={selectionKey} {...props} />
+      {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
+      {single && <ClockControls editor={editor} item={item} />}
+      <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
+      <RailSection
+        id="layout"
+        count={0}
+        title="Arrange"
+        detail="Layer, order, alignment, lock and visibility."
+        open={sections.open.layout}
+        onToggle={sections.toggle}
       >
-        <PrimaryControls key={selectionKey} {...props} />
-        {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
-        {single && <ClockControls editor={editor} item={item} />}
-        <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
-        {single && !isSlide(item) && (
-          <CommentsSection
-            key={`comments ${selectionKey}`}
-            editor={editor}
-            item={item}
-            sections={sections}
-          />
-        )}
-      </div>
-      <div
-        role="tabpanel"
-        id={`${panelId}-Arrange`}
-        aria-labelledby={`${panelId}-Arrange-tab`}
-        hidden={tab !== "Arrange"}
-      >
-        {single && <PositionControls editor={editor} selected={selected} />}
         <LayerField editor={editor} selected={selected} />
         <ArrangeActions editor={editor} />
-        <LayoutSection key={`layout ${selectionKey}`} {...props} />
-        <RelationsSection {...props} />
-      </div>
-      <div
-        role="tabpanel"
-        id={`${panelId}-Data`}
-        aria-labelledby={`${panelId}-Data-tab`}
-        hidden={tab !== "Data"}
-      >
-        <TagsSection key={`tags ${selectionKey}`} {...props} />
-      </div>
+        <LayoutControls {...props} />
+      </RailSection>
+      <RelationsSection {...props} />
+      <TagsSection key={`tags ${selectionKey}`} {...props} />
+      {single && !isSlide(item) && <CommentsAction editor={editor} item={item} />}
       {single && item.editedBy && (
         <p className="edited-by" data-testid="edited-by">
           Last edited by {item.editedBy}, {new Date(item.editedAt).toLocaleString()}
@@ -131,7 +102,7 @@ function PrimaryControls(props: PanelProps) {
       {isSlide(item) && (
         <>
           <SlideSection editor={editor} item={item} sections={sections} />
-          <CommentsSection editor={editor} item={item} sections={sections} />
+          <CommentsAction editor={editor} item={item} />
         </>
       )}
     </>
@@ -240,19 +211,12 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
   );
 }
 
-function LayoutSection({ editor, selected, sections }: PanelProps) {
+function LayoutControls({ editor, selected }: PanelProps) {
   const canvas = editor.document;
   const [item] = selected;
   const single = selected.length === 1;
   return (
-    <RailSection
-      id="layout"
-      count={0}
-      title="Layout"
-      detail="Show or hide position, size, alignment, lock and visibility."
-      open={sections.open.layout}
-      onToggle={sections.toggle}
-    >
+    <>
       <AlignControls
         selected={selected}
         onAlign={(mode) => alignSelection(editor, mode)}
@@ -278,7 +242,7 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
           Scale content on resize
         </label>
       )}
-    </RailSection>
+    </>
   );
 }
 
@@ -330,11 +294,7 @@ function SlideSection({
 }
 
 /** Comments open in a modal above the object; the panel says how many and opens them. */
-function CommentsSection({
-  editor,
-  item,
-  sections,
-}: Readonly<{ editor: EditorController; item: Item; sections: Sections }>) {
+function CommentsAction({ editor, item }: Readonly<{ editor: EditorController; item: Item }>) {
   const threads = groupThreads(listComments(editor.document), item.id);
   const open = threads.filter((thread) => !thread.root.resolved).length;
   const slide = isSlide(item);
@@ -344,14 +304,7 @@ function CommentsSection({
     ? `${heading} (${open} open, ${threads.length - open} resolved)`
     : empty;
   return (
-    <RailSection
-      id="comments"
-      title={slide ? "Speaker notes" : "Comments"}
-      detail="Show or hide this object's comments, or a slide's speaker notes."
-      count={open}
-      open={sections.open.comments}
-      onToggle={sections.toggle}
-    >
+    <div className="inspector-comments">
       <button
         className="text-action"
         data-hint-detail="Open the threads attached to this object, which everyone in the room can read."
@@ -359,6 +312,6 @@ function CommentsSection({
       >
         <MessageSquare size={14} /> {label}
       </button>
-    </RailSection>
+    </div>
   );
 }

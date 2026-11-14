@@ -33,10 +33,10 @@ async function inView(page: Page, fill: string) {
 
 const selection = (page: Page) => page.locator("aside.inspector");
 
-/** The selected object's text, or "" when nothing is selected. */
+/** Match the selected position to one of this fixture's two distinct objects. */
 async function selectedName(page: Page) {
-  const field = page.locator(".inspector-name");
-  return (await field.count()) ? field.textContent() : "";
+  const x = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
+  return (await exported(page)).objects.find((item) => item.x === x)?.name ?? "";
 }
 
 it("locks a layer for everyone so clicks pass through to what is beneath", async () => {

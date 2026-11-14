@@ -6,6 +6,9 @@ All notable user-visible changes are recorded here.
 
 ### Organized canvas controls
 
+- Replaced the nested Design/Arrange/Data property tabs with one scrollable inspector. Removed
+  the duplicate object label and redundant fill presets, kept the full editor for text, and
+  added visible step controls to exact position and size fields without losing arithmetic entry.
 - Gave Properties, Layers, Slides and Navigate the full dock height one task at a time. Kept
   dimensions, connector routing, alignment, order and grouping together under Arrange.
 - Moved text source, subtitle and typography into a larger text editor, available from the
@@ -17,8 +20,8 @@ All notable user-visible changes are recorded here.
 - Shortened right-click menus with one level of grouped commands and side-opening submenus.
 - Moved New canvas, Join room and Back to my canvases into File. New canvas explains that the
   current canvas is kept; grouped the remaining header controls and removed ambiguous new/join icons.
-- Added Design, Arrange and Data tabs to Properties, with a direct object-type selector.
-  Removed the Properties More button that reopened the canvas menu.
+- Kept a direct object-type selector in Properties and removed its More button, which had
+  reopened the canvas menu.
 - Kept selection tools out of the way while placing objects and fixed the Join dialog on narrow screens.
 - Escape closes the guided tour after trying canvas panning and context-menu controls.
 

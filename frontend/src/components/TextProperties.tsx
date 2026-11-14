@@ -49,6 +49,7 @@ export function TextProperties({
               value={common(drawn.map((style) => style.textSize)) ?? "mixed"}
               onCommit={(textSize) => change({ textSize })}
               unit=""
+              steppers={false}
             />
           </label>
           <label>
@@ -239,6 +240,7 @@ function NumericLook({
         value={typeof value === "number" ? value : "mixed"}
         onCommit={(number) => change({ [property]: number })}
         unit=""
+        steppers={false}
       />
     </label>
   );

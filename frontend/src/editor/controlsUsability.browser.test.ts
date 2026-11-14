@@ -99,12 +99,10 @@ it("validates dimensions while retaining signed coordinates, expressions and zer
     expect(await width.inputValue()).toBe("nonsense");
     await width.press("Escape");
     expect(await width.inputValue()).toBe("240");
-    await page.getByRole("tab", { name: "Design", exact: true }).click();
     const line = page.getByLabel("Line width", { exact: true });
     await clearAndType(line, "0");
     await page.getByTestId("canvas").click({ position: { x: 40, y: 40 } });
     await row(page, "Geometry").click();
-    await page.getByRole("tab", { name: "Design", exact: true }).click();
     expect(await line.inputValue()).toBe("0");
     await line.press("ArrowUp");
     await line.press("Tab");
@@ -202,15 +200,12 @@ it("preserves a real link named mixed and can clear different links in one selec
       buffer: Buffer.from(source),
     });
     await row(page, /^Internal source$/).click();
-    await page.getByRole("tab", { name: "Data", exact: true }).click();
     expect(await page.getByLabel("Link", { exact: true }).inputValue()).toBe("mixed");
     await page.getByRole("button", { name: "Go to linked item", exact: true }).click();
-    await page.getByRole("tab", { name: "Design", exact: true }).click();
-    expect(await page.locator(".inspector-name").textContent()).toBe("Target");
+    expect(await row(page, /^Target$/).count()).toBe(1);
     await page.getByRole("button", { name: "Fit canvas", exact: true }).click();
     await row(page, /^Alpha$/).click();
     await row(page, /^Beta$/).click({ modifiers: ["Shift"] });
-    await page.getByRole("tab", { name: "Data", exact: true }).click();
     expect(await page.getByLabel("Link", { exact: true }).getAttribute("placeholder")).toBe(
       "Mixed links"
     );
@@ -235,7 +230,6 @@ it("explains invalid property names and lets people correct and save them", asyn
   try {
     const page = await open(context, createRoomId());
     await add(page, "Rectangle (R)", "Property validation", 250, 180);
-    await page.getByRole("tab", { name: "Data", exact: true }).click();
     const name = page.getByLabel("New property name", { exact: true });
     const addProperty = page.getByRole("button", { name: "Add property", exact: true });
     await name.fill("service owner");

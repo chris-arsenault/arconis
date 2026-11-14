@@ -48,8 +48,7 @@ it("culls small objects by zoom, reveals held detail on zooming in, and still fi
   const page = await open(context, createRoomId());
   await add(page, "Rectangle (R)", "Auth service", 300, 300);
   await row(page, "Auth service").click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
-  await page.getByRole("button", { name: "Zoom into", exact: true }).click();
+  await canvas(page).press("z");
   await page.waitForTimeout(600);
   const zoomed = Number.parseFloat((await page.getByTestId("zoom-level").textContent())!);
   expect(zoomed).toBeGreaterThan(3);
@@ -177,7 +176,6 @@ it("moves a topic with its branches, alone with Alt, and tidies a tree", async (
   expect((await named(page, "Child")).y).toBe(before.y + 100);
 
   await row(page, "Root").click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page
     .getByLabel("Object properties")
     .getByRole("button", { name: "Tidy", exact: true })
@@ -199,7 +197,6 @@ it("relates a topic to another by name, shows it while selected, follows it, and
   await add(page, "Rectangle (R)", "Invoices", 650, 600);
   await canvas(page).click({ position: emptySpot });
   await row(page, "Billing").click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await action(page, "Relate to…").click();
   await page.getByRole("button", { name: "Search by name", exact: true }).click();
   await page.keyboard.type("inv");
@@ -214,10 +211,9 @@ it("relates a topic to another by name, shows it while selected, follows it, and
   await expect.poll(lines).toBe(0);
 
   await row(page, /Billing/).click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await related.getByRole("button", { name: "Invoices", exact: true }).click();
   await page.waitForTimeout(600);
-  await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Invoices");
+  await expect.poll(() => row(page, /^Invoices$/).count()).toBe(1);
   await expect.poll(() => related.getByText("Referred by", { exact: true }).count()).toBe(1);
 
   await canvas(page).click({ position: emptySpot });
@@ -227,7 +223,6 @@ it("relates a topic to another by name, shows it while selected, follows it, and
   await expect.poll(lines).toBe(0);
 
   await row(page, /Invoices/).click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByRole("button", { name: "Remove reference to Billing", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(2);
   expect(errors).toEqual([]);
@@ -261,7 +256,6 @@ it("relates unnamed objects by the next canvas click and cancels with Escape or 
     to: target.id,
   });
 
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await action(page, "Relate to…").click();
   await picker.waitFor();
   await picker.getByRole("button", { name: "Search by name", exact: true }).click();
@@ -291,7 +285,6 @@ it("lets a line be a topic, whose anchor and branches follow the line", async ()
   await canvas(page).click({ position: emptySpot });
   await row(page, "Client").click();
   await row(page, "Server").click({ modifiers: ["Shift"] });
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await action(page, "Connect with a line").click();
   await canvas(page).click({ position: emptySpot });
   await selectConnector(page);

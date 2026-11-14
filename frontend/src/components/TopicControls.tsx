@@ -12,7 +12,6 @@ import {
   Plus,
   Spline,
   X,
-  ZoomIn,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -282,7 +281,6 @@ export function Relationships({
       <div className="relation-actions">
         <Action label="Add branch" icon={Plus} onClick={() => run("structure.branch")} />
         <Action label="Relate to…" icon={Bookmark} onClick={() => run("structure.relate")} />
-        <Action label="Zoom into" icon={ZoomIn} onClick={() => run("view.zoomInto")} />
       </div>
     </>
   );

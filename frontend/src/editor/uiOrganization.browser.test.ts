@@ -4,7 +4,7 @@ import { add, browser, errors, exported, objectCount, open, row } from "./browse
 
 const viewport = { viewport: { width: 1440, height: 1000 } };
 
-it("changes object type across peers and navigates property tabs and shallow menus by keyboard", async () => {
+it("changes object type across peers and keeps properties together with shallow menus", async () => {
   const first = await browser.newContext(viewport);
   const second = await browser.newContext(viewport);
   try {
@@ -19,19 +19,14 @@ it("changes object type across peers and navigates property tabs and shallow men
     expect((await exported(peer)).objects[0]).toMatchObject({ id: before.id, name: before.name });
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await expect.poll(async () => (await exported(peer)).objects[0].stencil).toBe("rectangle");
-    await page.getByRole("tab", { name: "Design", exact: true }).click();
-    await page.getByRole("tab", { name: "Design", exact: true }).press("ArrowRight");
-    expect(
-      await page.getByRole("tab", { name: "Arrange", exact: true }).getAttribute("aria-selected")
-    ).toBe("true");
-    await page.getByRole("tab", { name: "Data", exact: true }).click();
+    expect(await page.getByRole("tab", { name: "Data", exact: true }).count()).toBe(0);
+    expect(await page.getByLabel("Object width", { exact: true }).count()).toBe(1);
     await page.getByLabel("New property name", { exact: true }).fill("owner");
     await page.getByLabel("New property value", { exact: true }).fill("Team");
     await page.getByRole("button", { name: "Add property", exact: true }).click();
     await expect
       .poll(async () => (await exported(peer)).objects[0].properties)
       .toEqual({ owner: "Team" });
-    await page.getByRole("tab", { name: "Design", exact: true }).click();
     expect(await page.getByRole("button", { name: "More", exact: true }).count()).toBe(0);
     await page.screenshot({ path: "test-results/organized-properties-desktop.png" });
     await row(page, "Keep this object").click({ button: "right" });
@@ -57,6 +52,43 @@ it("changes object type across peers and navigates property tabs and shallow men
   } finally {
     await first.close();
     await second.close();
+  }
+});
+
+it("keeps long canvas text out of Properties and makes dimensions step with a pointer", async () => {
+  const context = await browser.newContext(viewport);
+  try {
+    const page = await open(context, createRoomId());
+    const name =
+      "Planning notes for the entire integration and its exceptionallylongunbrokenidentifierthatshouldnotstretchthepropertiesbar\nNext paragraph of the plan";
+    await add(page, "Rectangle (R)", name, 300, 220);
+    const panel = page.getByLabel("Object properties", { exact: true });
+    expect((await panel.textContent())?.includes(name)).toBe(false);
+    expect(await panel.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+    const width = page.getByLabel("Object width", { exact: true });
+    const before = Number(await width.inputValue());
+    await page.getByRole("button", { name: "Increase Object width", exact: true }).click();
+    expect((await exported(page)).objects[0].width).toBe(before + 1);
+    await page.getByRole("button", { name: "Decrease Object width", exact: true }).click();
+    expect((await exported(page)).objects[0].width).toBe(before);
+    await width.fill("240+10");
+    await width.press("Enter");
+    expect((await exported(page)).objects[0].width).toBe(250);
+    await width.fill("bad value");
+    await page.getByRole("button", { name: "Increase Object width", exact: true }).click();
+    expect(await width.inputValue()).toBe("bad value");
+    expect((await exported(page)).objects[0].width).toBe(250);
+    await width.press("Escape");
+    await page.screenshot({ path: "test-results/properties-desktop.png" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Object properties", exact: true }).click();
+    expect(await panel.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+    const bounds = (await panel.boundingBox())!;
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    await page.screenshot({ path: "test-results/properties-mobile.png" });
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
   }
 });
 

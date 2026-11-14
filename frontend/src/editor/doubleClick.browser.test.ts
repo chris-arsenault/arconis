@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open } from "./browserHarness";
+import { browser, errors, open, row } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
@@ -51,7 +51,7 @@ for (const [under, text] of CASES)
     // The note is the one being typed into, and it is still the selection afterwards.
     await page.keyboard.type("!");
     await page.keyboard.press("Escape");
-    await expect.poll(() => page.locator(".inspector-name").textContent()).toContain("!");
+    await expect.poll(() => row(page, /!/).count()).toBe(1);
     expect(errors).toEqual([]);
     await context.close();
   });

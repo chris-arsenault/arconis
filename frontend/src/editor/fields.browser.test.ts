@@ -12,7 +12,6 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
 
   // Locking keeps a drag from moving the object; the object can still be clicked to unlock.
   await row(page, "Loose").click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   const before = (await exported(page)).objects.find((item) => item.name === "Loose")!;
   await page.getByRole("button", { name: "Lock", exact: true }).click();
   await drag(page, 660, 210, 120, 80);
@@ -33,7 +32,6 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
   // Tags, a marker and a task use object chrome without changing the text's layout.
   await row(page, "Loose").click();
   const labelBefore = await row(page, "Loose").boundingBox();
-  await page.getByRole("tab", { name: "Data", exact: true }).click();
   await page.getByLabel("Add a tag", { exact: true }).fill("api, v2");
   await page.getByLabel("Add a tag", { exact: true }).press("Enter");
   await page.getByLabel("Marker", { exact: true }).selectOption("star");
@@ -54,7 +52,6 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
 
   // Collapsing a frame folds its contents away and shows how many; expanding brings them back.
   await row(page, "Lanes").click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByRole("button", { name: "Collapse", exact: true }).click();
   await expect.poll(() => row(page, "Inside").count()).toBe(0);
   await row(page, /▸1/).waitFor();

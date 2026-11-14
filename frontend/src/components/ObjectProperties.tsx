@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { COLORS, type Item, type Look } from "../document/types";
+import { type Item, type Look } from "../document/types";
 import type { Appearance } from "../document/appearance";
 import { canColorIcon, canRotate, hasFill, hasLine } from "../document/capabilities";
 import { Section } from "./ConnectionControls";
@@ -77,18 +77,8 @@ export function StyleControls({
     <>
       <NamedStyle item={item} names={names} onStyle={onStyle} mixed={mixedStyle} />
       {paint}
-      {!paint && hasFill(item) && <FillControls {...props} />}
-      {!paint && hasLine(item) && <LineControls {...props} />}
-      {canColorIcon(item) && (
-        <Section title="Icon">
-          <ColorChip
-            label="Icon color"
-            detail="Recolor the icon drawn on the selected objects."
-            value={drawn.iconColor ?? "#283249"}
-            mixed={isMixed(appearances, "iconColor")}
-            onChange={(color) => change({ iconColor: color })}
-          />
-        </Section>
+      {!paint && (hasFill(item) || hasLine(item) || canColorIcon(item)) && (
+        <PaintControls item={item} {...props} />
       )}
     </>
   );
@@ -125,57 +115,56 @@ function ColorChip({
   );
 }
 
-function FillControls({ drawn, appearances, change }: StyleProps) {
-  const mixed = isMixed(appearances, "fill");
-  return (
-    <Section title="Fill">
-      <div className="control-row">
-        {COLORS.map((color, index) => (
-          <button
-            key={color}
-            data-hint={`Fill ${color}`}
-            aria-label={`Fill ${color}`}
-            data-hint-detail="Fill the selection with this color."
-            className={`swatch swatch-${index}`}
-            aria-pressed={!mixed && drawn.fill === color}
-            onClick={() => change({ fill: color })}
-          />
-        ))}
-        <ColorChip
-          label="Fill color"
-          detail="Pick any fill color for the selected objects."
-          value={drawn.fill}
-          mixed={mixed}
-          onChange={(color) => change({ fill: color })}
-        />
-      </div>
-    </Section>
-  );
-}
-
-function LineControls({ drawn, appearances, change }: StyleProps) {
+function PaintControls({ item, drawn, appearances, change }: StyleProps & { item: Item }) {
   const widths = appearances.map((appearance) => appearance.lineWidth * appearance.scale);
   const mixedWidth = widths.some((width) => width !== widths[0]);
   return (
-    <Section title="Line">
-      <div className="control-row">
-        <ColorChip
-          label="Line color"
-          detail="Color the lines and outlines of the selected objects."
-          value={drawn.line}
-          mixed={isMixed(appearances, "line")}
-          onChange={(color) => change({ line: color })}
-        />
-        <NumberField
-          prefix="W"
-          label="Line width"
-          value={mixedWidth ? "mixed" : drawn.lineWidth * drawn.scale}
-          rules={LINE_WIDTH_NUMBER}
-          onChange={(value) => change({ lineWidth: value / drawn.scale })}
-          unit=""
-        />
-      </div>
-    </Section>
+    <div className="paint-controls">
+      {hasFill(item) && (
+        <div className="paint-row">
+          <span>Fill</span>
+          <ColorChip
+            label="Fill color"
+            detail="Pick any fill color for the selected objects. Presets are beside the selection on the canvas."
+            value={drawn.fill}
+            mixed={isMixed(appearances, "fill")}
+            onChange={(color) => change({ fill: color })}
+          />
+        </div>
+      )}
+      {hasLine(item) && (
+        <div className="paint-row">
+          <span>Line</span>
+          <ColorChip
+            label="Line color"
+            detail="Color the lines and outlines of the selected objects."
+            value={drawn.line}
+            mixed={isMixed(appearances, "line")}
+            onChange={(color) => change({ line: color })}
+          />
+          <NumberField
+            prefix="W"
+            label="Line width"
+            value={mixedWidth ? "mixed" : drawn.lineWidth * drawn.scale}
+            rules={LINE_WIDTH_NUMBER}
+            onChange={(value) => change({ lineWidth: value / drawn.scale })}
+            unit=""
+          />
+        </div>
+      )}
+      {canColorIcon(item) && (
+        <div className="paint-row">
+          <span>Icon</span>
+          <ColorChip
+            label="Icon color"
+            detail="Recolor the icon drawn on the selected objects."
+            value={drawn.iconColor ?? "#283249"}
+            mixed={isMixed(appearances, "iconColor")}
+            onChange={(color) => change({ iconColor: color })}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -200,7 +189,7 @@ function NumberField({
   unit: string;
 }>) {
   return (
-    <label
+    <div
       className="number-field"
       data-hint={label}
       data-hint-detail="Type a value or sum like 200+40; a leading +10 or *2 changes the current value."
@@ -214,9 +203,10 @@ function NumberField({
         detail="Type a value or sum like 200+40; a leading +10 or *2 changes the current value."
         onCommit={onChange}
         unit={unit}
+        steppers
       />
       {unit && <small>{unit}</small>}
-    </label>
+    </div>
   );
 }
 

@@ -36,7 +36,6 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   // The deck's size follows a size choice, and the width field keeps the ratio.
   await page.getByLabel("Slide size", { exact: true }).selectOption("Standard 4:3");
   await expect.poll(async () => (await slides(page))[1].height).toBe(768);
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object width", { exact: true }).fill("512");
   await expect.poll(async () => (await slides(page))[1].height).toBe(384);
   expect((await slides(page))[1]).toMatchObject({ deck: "pitch", slide: 5, width: 512 });
@@ -75,7 +74,6 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   await dockPanel(page, "Slides");
   await page.getByTestId("deck").getByRole("button", { name: "1 · Problem" }).click();
   await page.getByRole("button", { name: "Properties", exact: true }).click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object x", { exact: true }).fill("9000");
   await page.getByLabel("Object x", { exact: true }).press("Tab");
   await expect.poll(async () => (await slides(page)).some((slide) => slide.x === 9000)).toBe(true);
@@ -152,7 +150,6 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   await add(page, "Slide", "Body", 100, 100);
   // The deck's second slide moves well clear of the first before the first becomes the template.
   await add(page, "Slide", "Layout", 200, 200);
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object x", { exact: true }).fill("3000");
   await dockPanel(page, "Slides");
   await page.getByTestId("deck").getByRole("button", { name: "2 · Layout" }).click();
@@ -200,7 +197,8 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   const copy = last!;
   await page.mouse.click(copy.x + copy.width / 2, copy.y + copy.height / 2);
   await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
-  expect(await page.locator(".inspector-name").textContent()).toBe("Body");
+  const body = (await exported(page)).objects.find((item) => item.name === "Body")!;
+  expect(Number(await page.getByLabel("Object x", { exact: true }).inputValue())).toBe(body.x);
   expect((await exported(page)).objects).toHaveLength(3);
 
   // Presenting skips the template and shows its text on the slide.

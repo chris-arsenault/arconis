@@ -78,7 +78,7 @@ it.each(["keystrokes", "replacement"] as const)(
     await expect.poll(() => inline.evaluate((element) => element.style.width)).toBe("300px");
     expect(await inline.evaluate((element) => element === document.activeElement)).toBe(true);
     await inline.press("Escape");
-    await expect.poll(() => b.locator(".inspector-name").textContent()).toBe("abXcdef!");
+    await expect.poll(() => row(b, /^abXcdef!$/).count()).toBe(1);
     const inspector = a.getByLabel("Object text", { exact: true });
     await textEditor(a);
     await inspector.focus();
@@ -138,7 +138,7 @@ it.each(["keystrokes", "replacement"] as const)(
     await inline.press("ControlOrMeta+Shift+z");
     await expect.poll(() => inline.inputValue()).toBe("a漢b!");
     await inline.press("Escape");
-    await expect.poll(() => b.locator(".inspector-name").textContent()).toBe("a漢b!");
+    await expect.poll(() => row(b, /^a漢b!$/).count()).toBe(1);
     expect(errors).toEqual([]);
     await first.close();
     await second.close();

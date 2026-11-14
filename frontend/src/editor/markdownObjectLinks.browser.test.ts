@@ -71,7 +71,7 @@ node Store_A "Storage" at 1600,1000 size 180,100 fill #d9e9ff`
     );
     await canvas(page).press("v");
     await canvas(page).getByRole("link", { name: "Read Storage", exact: true }).click();
-    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Storage");
+    await expect.poll(() => row(page, /^Storage$/).count()).toBe(1);
     await centered(page, "#d9e9ff");
     await textEditor(page);
     await sourceField(page).fill("Storage renamed");
@@ -89,7 +89,7 @@ node Store_A "Storage" at 1600,1000 size 180,100 fill #d9e9ff`
       .toContain("Invalid object link");
     await canvas(page).getByRole("link", { name: "Alias", exact: true }).focus();
     await page.keyboard.press("Enter");
-    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Storage renamed");
+    await expect.poll(() => row(page, /^Storage renamed$/).count()).toBe(1);
     await centered(page, "#d9e9ff");
     expect(page.url()).toBe(url);
     expect(context.pages()).toHaveLength(1);
@@ -204,7 +204,7 @@ node Target "Database" at 680,330 size 180,90 tags storage fill #d9e9ff`
       .getByLabel("Markdown preview", { exact: true })
       .getByRole("link", { name: "Database", exact: true })
       .tap();
-    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Database");
+    await expect.poll(() => row(page, /^Database$/).count()).toBe(1);
     await centered(page, "#d9e9ff");
     expect(errors).toEqual([]);
   } finally {

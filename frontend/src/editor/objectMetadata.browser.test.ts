@@ -39,10 +39,8 @@ async function setVisibility(page: Page, value: "Show" | "Selected" | "Hide") {
 }
 
 async function clearCloudDetails(page: Page) {
-  await page.getByRole("tab", { name: "Data", exact: true }).click();
   await page.getByLabel("Marker", { exact: true }).selectOption({ label: "None" });
   await page.getByRole("button", { name: "Remove tag edge", exact: true }).click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByRole("button", { name: "Remove reference to Application", exact: true }).click();
 }
 
@@ -82,7 +80,6 @@ clients -> cloud as incoming
     }
     await checkCloudAttachment(peer);
     await strip.getByRole("button", { name: /^Show 1 relationships/ }).click();
-    await page.getByRole("tab", { name: "Arrange", exact: true }).click();
     await page
       .getByRole("list", { name: "Related items" })
       .filter({ hasText: "Application" })
@@ -122,7 +119,6 @@ it("keeps attached badges and connected-copy handles clickable without reserving
   try {
     const page = await open(context);
     await add(page, "Rectangle (R)", "Compact details", 260, 60);
-    await page.getByRole("tab", { name: "Data", exact: true }).click();
     await page
       .getByRole("toolbar", { name: "Selection toolbar" })
       .getByRole("button", { name: "Fill #d9e9ff", exact: true })
@@ -185,7 +181,6 @@ it("remembers one indicator visibility without changing a peer's view", async ()
     const room = createRoomId();
     const page = await open(context, room);
     await add(page, "Rectangle (R)", "Display preferences", 300, 250);
-    await page.getByRole("tab", { name: "Data", exact: true }).click();
     await page.getByLabel("Add a tag", { exact: true }).fill("runtime");
     await page.getByLabel("Add a tag", { exact: true }).press("Enter");
     await page.getByLabel("Marker", { exact: true }).selectOption("star");
@@ -274,7 +269,7 @@ node front "In front" at 180,190 size 200,90 fill #ffd8d8
     await row(page, "Behind").click();
     await expect.poll(receivesPointer).toBe(true);
     await marker.click({ button: "right" });
-    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Behind");
+    await expect.poll(() => row(page, /^Behind$/).count()).toBe(1);
     await page.keyboard.press("Escape");
     await page.screenshot({ path: "test-results/indicator-selected-stacking.png" });
     await page.getByTestId("canvas").click({ position: { x: 850, y: 700 } });

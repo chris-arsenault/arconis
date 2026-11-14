@@ -58,7 +58,6 @@ it("organises a shared canvas in layers, with hiding local to each person", asyn
   await a.getByRole("button", { name: "Move selection to Notes", exact: true }).click();
   await expect.poll(() => row(b, "Base box").count()).toBe(0);
   await a.getByRole("button", { name: "Properties", exact: true }).click();
-  await a.getByRole("tab", { name: "Arrange", exact: true }).click();
   await a.getByLabel("Object layer", { exact: true }).selectOption({ label: "Workspace" });
   await expect.poll(() => row(b, "Base box").count()).toBe(1);
 

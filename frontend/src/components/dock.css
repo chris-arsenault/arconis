@@ -14,6 +14,7 @@
   flex: 1;
   width: auto;
   min-height: 0;
+  overscroll-behavior: contain;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -73,31 +74,47 @@
   border-radius: 5px;
 }
 .right-dock .inspector-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
 .right-dock .inspector-type {
-  grid-column: 1 / -1;
+  flex: 1;
+  min-width: 0;
+  display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
 }
 .right-dock .inspector-object-kind {
-  grid-column: 1 / -1;
-}
-.right-dock .inspector-heading .inspector-name {
-  font-size: 12px;
-  padding: 0;
-  margin: 0;
+  flex: 1;
 }
 .right-dock .inspector-heading .inspector-edit-text {
   font-size: 11px;
-  padding: 4px;
+  padding: 6px 7px;
+  flex: none;
 }
 .right-dock .layer-field {
   flex-direction: row;
-  margin: 8px 10px;
+  margin: 3px 0;
+}
+.right-dock .rail-body > .inspector-command-group {
+  padding: 4px 0;
+  border: none;
+}
+.right-dock .rail-body > .inspector-command-group button {
+  min-height: 30px;
+}
+.inspector-comments {
+  padding: 10px;
+  border-top: 1px solid var(--line);
+}
+.inspector-comments .text-action {
+  min-height: 32px;
+}
+.right-dock .inspector {
+  overflow-x: hidden;
 }
 .right-dock .slide-template {
   flex-direction: row;
@@ -136,5 +153,18 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     box-shadow: 0 5px 24px #11182726;
+  }
+}
+@media (max-width: 650px) {
+  .right-dock .geometry-grid {
+    grid-template-columns: 1fr;
+  }
+  .right-dock .number-field .numeric-steppers {
+    flex-direction: row;
+    width: 80px;
+  }
+  .right-dock .number-field .numeric-steppers button + button {
+    border-top: 0;
+    border-left: 1px solid var(--line);
   }
 }

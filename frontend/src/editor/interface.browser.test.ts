@@ -352,7 +352,6 @@ it("tags from the ring, filters from the rail's tags, and grows compact branches
     .poll(() => page.locator(".inspector .tag-chip").allTextContents())
     .toEqual(["#growth"]);
   await row(page, "Pricing").click();
-  await page.getByRole("tab", { name: "Data", exact: true }).click();
   await page.getByRole("group", { name: "Tags in this room" }).getByText("#growth").click();
   await expect
     .poll(async () => (await exported(page)).objects.filter((item) => item.tags.length > 0).length)
@@ -372,7 +371,6 @@ it("tags from the ring, filters from the rail's tags, and grows compact branches
 
   // Panel sections fold from their header and stay folded after a reload.
   await row(page, "Strategy").click();
-  await page.getByRole("tab", { name: "Design", exact: true }).click();
   const appearance = page
     .getByLabel("Object properties")
     .locator("details[aria-label='Appearance']");

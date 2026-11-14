@@ -19,6 +19,9 @@ The right dock gives one task the full panel height: **Properties** for the sele
 **Navigate** for jump points, topic outlines, tags and history. Selecting an object on the canvas
 returns to Properties; selecting it from a document panel keeps that panel open. With nothing
 selected and no document panel open, the dock narrows to its tabs.
+Properties shows position and size first, then the object's controls and collapsible sections
+for appearance, arrangement, relationships, tags and status. The object's text stays on the
+canvas; **Edit text** opens the full text editor instead of showing a second copy in the dock.
 
 The header keeps canvas navigation and files in **File**, the document name in **Canvas title**,
 and sharing and account access on the right. **Tools** contains Settings, Help, Feedback and,
@@ -105,13 +108,15 @@ title.
   and its top handle rotates it. Hold Shift for proportions or angle snapping.
 - The property panel's geometry fields set exact positions and dimensions. They take
   arithmetic, such as `200+40` or `*2` against the current value, apply on Enter or when left,
-  and step by one with the arrow keys or ten with Shift. Hold Alt while dragging a resize
+  and step by one with the arrow keys or ten with Shift. The visible up/down buttons step by one
+  with a pointer; they do not replace an invalid draft. Hold Alt while dragging a resize
   handle to scale from the centre.
 - Use **Duplicate**, **Delete**, **Bring to front** and **Send to back** in the panel or through
   their keyboard shortcuts.
 
-Styling controls apply to the selection. Choose fill, line color/width, text appearance and
-other controls that apply to the selected type. Named styles supplied by a file or assistant
+Styling controls apply to the selection. The toolbar beside the object offers preset fills;
+Properties keeps arbitrary fill and line colors, line width and controls for the selected type.
+Named styles supplied by a file or assistant
 appear in **Style**; item overrides apply over that style. Clearing a property through the
 canvas language restores its inherited/default behavior. Numeric fields preserve empty and partial
 drafts; Enter or leaving the field applies a valid value as one Undo step, while Escape cancels.
@@ -490,21 +495,19 @@ another room, a file or a chat, and paste any canvas language back onto a canvas
 Selecting something shows its properties in the right dock. **Object type** changes
 eligible shapes, notes and text while keeping their identity, content and connections. Click
 **Edit text…** to open the larger text editor, or double-click the object to type on the canvas.
-Controls are organized into three tabs:
-
-- **Design**: appearance, comments, and controls specific to slides, clocks or ink.
-- **Arrange**: position and size, connector routing, layers, order, grouping, alignment, lock,
-  jump point, collapse and **Relationships**.
-  Relationships lists branches, containers, references and lines, with navigation and tree-layout
-  controls. With two objects selected it offers **Relate these two** and **Connect with a line**.
-- **Data**: tags, marker, task, link and named properties.
+The panel has no second row of tabs or copy of the object's label. Position and size are at
+the top. Appearance, arrangement, relationships, tags and status follow in one scrolling
+panel, with controls for slides, clocks, ink and connectors when applicable. **Arrange** holds
+layer, order, grouping, alignment, lock, jump point and collapse. **Relationships** lists
+branches, containers, references and lines, with navigation and tree-layout controls. With
+two objects selected it offers **Relate these two** and **Connect with a line**.
 
 The canvas's right-click menu keeps common editing actions visible and groups secondary
 commands in one level of submenus. Right arrow opens a submenu; Left returns to its parent.
 On phones a submenu replaces the main menu; **Back**, Left arrow or Escape returns to it.
 
-Each section folds from its header and stays as it was left on this device. Sections that do
-not apply to the selection are left out.
+Disclosure sections fold from their headers and stay as they were left on this device. Controls
+that do not apply to the selection are left out.
 
 **Properties** give an object named values, such as owner, environment or ticket. Hover an
 object to read them. Files and assistants carry them as `property owner "Ada"`.
@@ -534,8 +537,8 @@ the colours they were given, so a canvas reads the same on every screen and in e
 ## Lock, collapse, jump points, tags, tasks and links
 
 These fields apply to every kind of object, lines included, and to the whole selection at once.
-Lock, jump point and collapse sit under **Arrange → Layout** in the property panel; tags,
-marker, task and link sit under **Data → Tags and status**.
+Lock, jump point and collapse sit under **Arrange** in the property panel; tags,
+marker, task and link sit under **Tags and status**.
 
 - **Lock** keeps pointer edits away: a locked object cannot be moved, resized, rotated, edited or
   deleted, a marquee and Select all pass over it, and its chrome carries a padlock. Click it and

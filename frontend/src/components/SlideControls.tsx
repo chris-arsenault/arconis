@@ -88,6 +88,7 @@ export function SlideControls({
             detail="Set where this slide comes in its deck's presenting order."
             onCommit={onNumber}
             unit=""
+            steppers={false}
           />
         </label>
       </div>

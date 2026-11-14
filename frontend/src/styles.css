@@ -1675,7 +1675,7 @@ details[open] > summary::before {
   border-left: 1px solid var(--line);
   font-size: 12px;
 }
-/* The panel keeps type and name together; task tabs organize the controls beneath them. */
+/* Selection identity is its kind, not a second copy of its canvas text. */
 .inspector-header {
   position: relative;
   z-index: 2;
@@ -1697,22 +1697,6 @@ details[open] > summary::before {
   color: var(--muted);
   font-size: 11px;
 }
-.inspector-name {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  margin: 0 -4px;
-  padding: 1px 4px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .inspector-type {
   display: grid;
   gap: 4px;
@@ -1724,37 +1708,6 @@ details[open] > summary::before {
   padding: 6px 8px;
   color: var(--text);
   font-size: 12px;
-}
-.inspector-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  padding: 0 8px;
-  gap: 4px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
-}
-.inspector-tabs button {
-  flex: 1;
-  padding: 9px 4px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-soft);
-  font-size: 12px;
-}
-.inspector-tabs button[aria-selected="true"] {
-  border-bottom-color: var(--purple);
-  color: var(--purple);
-  font-weight: 600;
-}
-.inspector [role="tabpanel"][hidden] {
-  display: none;
-}
-.inspector [role="tabpanel"] > .object-subtitle {
-  margin-top: 10px;
 }
 /* Sections in the panel share the rail's header; the controls inside sit flush beneath it. */
 .inspector .rail-section {
@@ -1772,14 +1725,6 @@ details[open] > summary::before {
 .inspector .rail-body > .inspector-section {
   padding: 4px 0 2px;
   border-top: none;
-}
-.inspector .rail-body .object-text,
-.inspector .rail-body .object-subtitle {
-  width: 100%;
-  margin: 0;
-}
-.inspector > .object-subtitle {
-  margin-top: 8px;
 }
 /* The slide section's own title repeats the section header. */
 .slide-section .inspector-section > h3 {
@@ -1860,7 +1805,7 @@ details[open] > summary::before {
   flex: 1;
   align-items: center;
   min-width: 0;
-  height: 26px;
+  height: 44px;
   background: var(--field);
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -1868,7 +1813,7 @@ details[open] > summary::before {
 .number-field:focus-within {
   border-color: #7560cb;
 }
-.number-field span {
+.number-field > span:first-child {
   flex-shrink: 0;
   width: 20px;
   color: #7c8497;
@@ -1876,7 +1821,8 @@ details[open] > summary::before {
   text-align: center;
 }
 .number-field input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   padding: 0 4px 0 0;
   border: none;
@@ -1888,10 +1834,51 @@ details[open] > summary::before {
 .number-field input::-webkit-inner-spin-button {
   appearance: none;
 }
+.number-field .numeric-steppers {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 30px;
+  height: 100%;
+  border-left: 1px solid var(--line);
+}
+.number-field .numeric-steppers button {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-soft);
+}
+.number-field .numeric-steppers button + button {
+  border-top: 1px solid var(--line);
+}
+.number-field .numeric-steppers button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
 .geometry-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 5px;
+}
+.paint-controls {
+  display: grid;
+  gap: 8px;
+}
+.paint-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.paint-row > span {
+  flex: 0 0 32px;
+  color: var(--text-soft);
+  font-size: 11px;
 }
 .select-grid {
   display: grid;
@@ -3385,6 +3372,25 @@ input.outline-name {
 .property-draft {
   flex: 1;
   min-width: 0;
+}
+.inspector .property-row {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.inspector .property-key {
+  flex: 0 0 35%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inspector .property-row .object-subtitle {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+.inspector .property-row .icon-action {
+  flex: 0 0 26px;
 }
 .field-feedback,
 .field-error {

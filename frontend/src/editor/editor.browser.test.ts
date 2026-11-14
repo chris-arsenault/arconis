@@ -29,18 +29,15 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   const page = await open(context);
   await add(page, "Rectangle (R)", "API service", 220, 170);
   await add(page, "Sticky note (N)", "A connected idea", 500, 300);
-  await page.getByRole("tab", { name: "Design", exact: true }).click();
   await page
-    .getByLabel("Object properties")
+    .getByRole("toolbar", { name: "Selection toolbar" })
     .getByRole("button", { name: "Fill #ffd9da", exact: true })
     .click();
   await row(page, "API service").click();
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(3);
   await row(page, "API service").click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object x", { exact: true }).fill("350");
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
   await more(page, "Group");
@@ -127,7 +124,6 @@ async function sharedGroupDeletion(a: Page, b: Page) {
   await row(a, "Grouped peer idea").waitFor();
   await row(a, "Shared database").click();
   await row(a, "Grouped peer idea").click({ modifiers: ["Shift"] });
-  await a.getByRole("tab", { name: "Arrange", exact: true }).click();
   await a.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await more(a, "Group");
   await groupLabel(b).waitFor();
@@ -147,10 +143,8 @@ it("drags and resizes attached objects, changes routing and imports its own expo
   await add(page, "Sticky note (N)", "Attached note", 540, 390);
   await row(page, "Move me").click();
   await row(page, "Attached note").click({ modifiers: ["Shift"] });
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await row(page, "Move me").click();
-  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   const oldX = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
   await drag(page, 300, 215, 100, 70);
   await expect

@@ -116,6 +116,7 @@ function BrushWidths({ settings, change }: Readonly<BrushProps>) {
           value={settings.width}
           onCommit={(width) => change({ width })}
           unit=""
+          steppers={false}
         />
       </div>
     </div>
@@ -214,6 +215,7 @@ function PaintControls({ settings, change }: Readonly<BrushProps>) {
             value={settings.gradientAngle}
             onCommit={(gradientAngle) => change({ gradientAngle })}
             unit=""
+            steppers={false}
           />
         </label>
         <p className="drawing-hint">

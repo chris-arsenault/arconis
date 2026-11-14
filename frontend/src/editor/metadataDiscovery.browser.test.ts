@@ -82,7 +82,7 @@ it("discovers tags and named markers, highlights locally and searches matching o
     expect(await page.getByTestId("find-count").textContent()).toBe("1 match");
     await page.screenshot({ path: "test-results/metadata-discovery.png" });
     await panel.getByRole("button", { name: "Next match", exact: true }).click();
-    expect(await page.locator(".inspector-name").textContent()).toBe("Orders");
+    expect(await row(page, /^Orders$/).count()).toBe(1);
     expect(await page.getByTestId("find-count").textContent()).toBe("1 of 1");
     await panel.getByRole("button", { name: "Clear highlights", exact: true }).click();
     const query = panel.getByRole("textbox", { name: "Find on canvas", exact: true });
