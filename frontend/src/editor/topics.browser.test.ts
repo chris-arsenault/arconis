@@ -15,7 +15,7 @@ import {
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
-const emptySpot = { x: 880, y: 800 };
+const emptySpot = { x: 750, y: 800 };
 
 const objects = async (page: Page) => (await exported(page)).objects;
 const named = async (page: Page, label: string) =>
@@ -196,7 +196,7 @@ it("relates a topic to another by name, shows it while selected, follows it, and
   const room = createRoomId();
   const page = await open(await browser.newContext(VIEWPORT), room);
   await add(page, "Rectangle (R)", "Billing", 100, 100);
-  await add(page, "Rectangle (R)", "Invoices", 900, 600);
+  await add(page, "Rectangle (R)", "Invoices", 650, 600);
   await canvas(page).click({ position: emptySpot });
   await row(page, "Billing").click();
   await page.getByRole("tab", { name: "Arrange", exact: true }).click();
@@ -217,9 +217,7 @@ it("relates a topic to another by name, shows it while selected, follows it, and
   await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await related.getByRole("button", { name: "Invoices", exact: true }).click();
   await page.waitForTimeout(600);
-  await expect
-    .poll(() => page.getByLabel("Object text", { exact: true }).inputValue())
-    .toBe("Invoices");
+  await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Invoices");
   await expect.poll(() => related.getByText("Referred by", { exact: true }).count()).toBe(1);
 
   await canvas(page).click({ position: emptySpot });

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { browser, errors, open, add, exported, exportPng, objectCount } from "./browserHarness";
+import { textEditor, closeTextEditor } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
@@ -17,10 +18,12 @@ it("retains Markdown, code, math and box styles across peer edits, local Undo an
   await add(a, "Sticky note (N)", original, 220, 170);
   await a.getByLabel("Object width", { exact: true }).fill("400");
   await a.getByLabel("Object height", { exact: true }).fill("420");
+  await textEditor(a);
   await a.getByLabel("Text font", { exact: true }).selectOption("serif");
   const b = await open(second, room);
   await canvas(b).locator("h1").waitFor();
   await canvas(b).locator("h1").click();
+  await textEditor(b);
   await expect.poll(() => source(b).inputValue()).toBe(original);
   expect(await b.getByLabel("Text font", { exact: true }).inputValue()).toBe("serif");
   await source(a).focus();
@@ -44,6 +47,7 @@ it("retains Markdown, code, math and box styles across peer edits, local Undo an
   await a.reload();
   await a.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();
   await canvas(a).locator("h1").click();
+  await textEditor(a);
   await expect.poll(() => source(a).inputValue()).toBe(expected);
   expect(await canvas(a).locator(".katex").count()).toBe(1);
   expect(await canvas(a).locator(".hljs-keyword").count()).toBeGreaterThan(0);
@@ -56,6 +60,7 @@ it("grows free text on request, fits fixed boxes and preserves explicit resize m
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await add(page, "Text (T)", "Short", 220, 170);
+  await textEditor(page);
   const options = page.getByText("Spacing and sizing", { exact: true });
   await options.click();
   await page.getByLabel("Grow text height", { exact: true }).check();
@@ -67,11 +72,14 @@ it("grows free text on request, fits fixed boxes and preserves explicit resize m
   await expect
     .poll(async () => Number(await page.getByLabel("Object height", { exact: true }).inputValue()))
     .toBeGreaterThan(initial);
+  await closeTextEditor(page);
   await page.getByLabel("Object height", { exact: true }).fill("150");
   await page.getByLabel("Object height", { exact: true }).press("Tab");
+  await textEditor(page);
   expect(await page.getByLabel("Grow text height", { exact: true }).isChecked()).toBe(false);
   await source(page).fill("Short again");
   expect(Number(await page.getByLabel("Object height", { exact: true }).inputValue())).toBe(150);
+  await page.getByText("Spacing and sizing", { exact: true }).click();
   await page.getByRole("button", { name: "Fit to text", exact: true }).click();
   await expect
     .poll(async () => Number(await page.getByLabel("Object height", { exact: true }).inputValue()))
@@ -88,6 +96,7 @@ it("exports actual highlighted/math pixels with bundled fonts and reimports exac
   await add(page, "Sticky note (N)", markdown, 220, 170);
   await page.getByLabel("Object width", { exact: true }).fill("440");
   await page.getByLabel("Object height", { exact: true }).fill("500");
+  await textEditor(page);
   await page.getByLabel("Text font", { exact: true }).selectOption("serif");
   await page.screenshot({ path: "test-results/markdown-canvas.png" });
   const pending = page.waitForEvent("download");

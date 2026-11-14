@@ -9,6 +9,7 @@ import {
   open,
   row,
   selectConnector,
+  textEditor,
 } from "./browserHarness";
 
 it("Undo removes a branch's newly required line anchor, topic and relationship together", async () => {
@@ -48,11 +49,13 @@ it("one Undo restores both growing text typography and its fitted geometry", asy
     createRoomId()
   );
   await add(page, "Text (T)", "Line one\nLine two\nLine three", 220, 170);
+  await textEditor(page);
   await page.getByText("Spacing and sizing", { exact: true }).click();
   await page.getByLabel("Grow text height", { exact: true }).check();
   await expect.poll(async () => (await exported(page)).objects[0].look.textFit).toBe("height");
   const before = await exported(page);
   const oldHeight = before.objects[0].height;
+  await textEditor(page);
   await page.getByLabel("Font size", { exact: true }).fill("44");
   await expect
     .poll(async () => (await exported(page)).objects[0].height)
@@ -69,12 +72,13 @@ it("Markdown formatting keeps immediate source and fitted height in the same Und
     createRoomId()
   );
   await add(page, "Text (T)", "Heading", 220, 170);
+  await textEditor(page);
   await page.getByText("Spacing and sizing", { exact: true }).click();
   await page.getByLabel("Grow text height", { exact: true }).check();
   await expect.poll(async () => (await exported(page)).objects[0].look.textFit).toBe("height");
   const before = await exported(page);
   const source = page.getByLabel("Object text", { exact: true });
-  await page.getByText("Markdown tools", { exact: true }).click();
+  await textEditor(page);
   await source.press("ControlOrMeta+a");
   await page.getByRole("button", { name: "Markdown heading", exact: true }).click();
   expect(await source.inputValue()).toBe("## Heading");

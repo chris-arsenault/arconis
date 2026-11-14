@@ -16,7 +16,6 @@ import {
   pastePicture,
   row,
   serveFixtures,
-  unfoldSource,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -27,7 +26,6 @@ const PHRASE = "correct horse battery";
 async function visit(url = baseUrl()) {
   const context = await browser.newContext(VIEWPORT);
   await serveFixtures(context);
-  await unfoldSource(context);
   const page = await context.newPage();
   const frames: string[] = [];
   page.on("websocket", (socket) => {

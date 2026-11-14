@@ -25,7 +25,7 @@ name the requesting application when available.
    after activity settles; choose Save now when you want to save immediately.
 
 The saved workspace includes the shared document, markup and picture data needed to restore it.
-The **Include markup** export checkbox has no effect on account saving.
+The **Include canvas annotations** export option has no effect on account saving.
 Before storing an existing saved workspace, Arconis merges a newer saved copy, preserving edits
 made from another device rather than replacing that device's work.
 

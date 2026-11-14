@@ -6,7 +6,7 @@ import { changeSelectionLook, editSource } from "../editor/commands";
 import { hasFill, hasLine, hasText } from "../document/capabilities";
 import { effectiveAppearance, type Appearance } from "../document/appearance";
 import { runCommand } from "../editor/registry";
-import { showComments } from "../editor/ui";
+import { showComments, showTextEditor } from "../editor/ui";
 import { openMenuOverSelection as openOverSelection } from "../editor/contextMenu";
 import { MarkdownTools } from "./MarkdownTools";
 import { useSelectionAnchor } from "./useSelectionAnchor";
@@ -76,6 +76,7 @@ function hidden(editor: EditorController, selected: Item[]) {
     editor.ui.tagging ||
     Boolean(editor.ui.relating) ||
     Boolean(editor.ui.comments) ||
+    Boolean(editor.ui.textEditor) ||
     selected.every((item) => item.locked)
   );
 }
@@ -108,6 +109,13 @@ export function SelectionToolbar({
             <span>Text</span>
             <button
               type="button"
+              data-hint-detail="Open a larger editor for Markdown, preview and text appearance."
+              onClick={() => showTextEditor(editor, [editing.id])}
+            >
+              Open text editor
+            </button>
+            <button
+              type="button"
               aria-label="Finish editing text"
               data-hint="Finish editing (Esc)"
               data-hint-detail="Close the text editor; what you typed is already saved for everyone."
@@ -127,7 +135,12 @@ export function SelectionToolbar({
             expanded
             compact
             objectLink={
-              <CanvasObjectLink editor={editor} sourceId={editing.id} textarea={textarea} />
+              <CanvasObjectLink
+                editor={editor}
+                sourceId={editing.id}
+                textarea={textarea}
+                canvasPicking
+              />
             }
           />
         </>
@@ -169,6 +182,20 @@ function SelectionActions({
         />
       )}
       {textItems.length > 0 && <TextSizeButtons editor={editor} items={textItems} look={look} />}
+      {textItems.length > 0 && (
+        <button
+          aria-label="Open text editor"
+          data-hint-detail="Edit content and typography in a larger editor."
+          onClick={() =>
+            showTextEditor(
+              editor,
+              textItems.map((item) => item.id)
+            )
+          }
+        >
+          <Type size={15} />
+        </button>
+      )}
       {selected.some((item) => isBox(item) && item.type !== "frame") && (
         <button
           aria-label="Change shape"

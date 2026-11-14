@@ -199,18 +199,20 @@ export function AccountButton({
   const signedIn = account.status === "in";
   const deleting = account.status === "deleting";
   const name = signedIn ? account.name : "Sign in";
+  const caption = deleting ? "Account deletion" : name;
   // A sign-in that came back refused opens the panel to say why, until it is closed.
   const open = chosen || (account.error !== "" && account.error !== dismissed);
   return (
     <>
       <button
         className="icon-button account-button"
+        aria-label={caption}
         data-help-id="account"
         data-help-topic="accounts"
         data-hint-detail="Sign in, or manage your saved work, agent connections and account."
         onClick={() => setOpen(true)}
       >
-        <CircleUser size={18} /> {deleting ? "Account deletion" : name}
+        <CircleUser size={18} /> <span className="account-button-label">{caption}</span>
       </button>
       {open && (
         <div className="password-gate account-dialog" role="dialog" aria-label="Account">

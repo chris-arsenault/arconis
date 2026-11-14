@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
 import { add, browser, errors, exported, open, row } from "./browserHarness";
+import { textEditor } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
@@ -19,6 +20,8 @@ it("publishes title and subtitle fields at their completion boundaries", async (
   await expect
     .poll(() => b.getByLabel("Canvas title", { exact: true }).inputValue())
     .toBe("Completed title");
+  await textEditor(a);
+  await textEditor(b);
   await a.getByLabel("Object subtitle", { exact: true }).fill("Completed subtitle");
   await a.waitForTimeout(150);
   expect(await b.getByLabel("Object subtitle", { exact: true }).inputValue()).toBe("");
@@ -41,6 +44,8 @@ it("keeps typing local through join/repair, merges concurrent text and publishes
   const b = await open(second, room);
   await row(b, "Shared").click();
   const sourceA = a.getByLabel("Object text", { exact: true });
+  await textEditor(a);
+  await textEditor(b);
   await sourceA.press("ControlOrMeta+End");
   await sourceA.pressSequentially(" local", { delay: 100 });
   expect(await row(b, /^Shared$/).count()).toBe(1);
@@ -65,6 +70,7 @@ it("retains unfinished text locally on reload and publishes it after the editor 
   const room = createRoomId();
   const a = await open(context, room);
   await add(a, "Sticky note (N)", "Before", 220, 170);
+  await textEditor(a);
   await a.getByLabel("Object text", { exact: true }).fill("Recovered local edit");
   await a.reload();
   await row(a, /^Recovered local edit$/).waitFor();

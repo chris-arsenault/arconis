@@ -11,7 +11,6 @@ import {
   open,
   row,
   serveFixtures,
-  unfoldSource,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -145,7 +144,6 @@ it("leaves abandoned password gates with Cancel or Escape and preserves the prev
   const context = await browser.newContext(VIEWPORT);
   try {
     await serveFixtures(context);
-    await unfoldSource(context);
     const page = await context.newPage();
     await page.goto(baseUrl());
     await page.getByText("Room options", { exact: true }).click();
@@ -189,7 +187,6 @@ it("explains portable exports and reopens password rooms without exposing protec
   const context = await browser.newContext(VIEWPORT);
   try {
     await serveFixtures(context);
-    await unfoldSource(context);
     const page = await context.newPage();
     await page.goto(baseUrl());
     await page.getByText("Room options", { exact: true }).click();
@@ -201,12 +198,14 @@ it("explains portable exports and reopens password rooms without exposing protec
     await page.getByLabel("Canvas title", { exact: true }).press("Enter");
     await add(page, "Sticky note (N)", "Readable portable copy", 260, 240);
     await fileMenu(page);
+    await page.getByRole("menuitem", { name: "Export document", exact: true }).click();
     await page
       .getByText(
         "Exports are readable copies without the room password. PNGs include editable canvas content.",
         { exact: true }
       )
       .waitFor();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
     expect((await exported(page)).text).toContain("Readable portable copy");
     const index = await page.evaluate(() => localStorage.getItem("arconis:recent-rooms"));
     expect(index).not.toContain("Secret acquisition");

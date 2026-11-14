@@ -108,8 +108,9 @@ it("authors editable drawings through actual MCP tools, renders gradient PNGs an
     await expect.poll(async () => (await exported(peer)).objects.length).toBe(3);
     expect(await call("check_layout")).toContain("Layout check: 3 objects looked at");
     await row(page, "Agent Drawing").click();
-    await page.getByLabel("Object text", { exact: true }).fill("Human Drawing");
-    await page.getByLabel("Object text", { exact: true }).press("Control+Enter");
+    await page.keyboard.press("Enter");
+    await page.getByLabel("Edit canvas text", { exact: true }).fill("Human Drawing");
+    await page.getByLabel("Edit canvas text", { exact: true }).press("Control+Enter");
     await agent.reconnect();
     expect(await call("read", { items: ["p"] })).toContain("gradient #0000ff");
     expect(await call("write", { statements: "edit p line #ffcc00 line-width 6" })).toContain(

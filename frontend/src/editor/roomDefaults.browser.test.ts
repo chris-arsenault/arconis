@@ -35,8 +35,8 @@ const selection = (page: Page) => page.locator("aside.inspector");
 
 /** The selected object's text, or "" when nothing is selected. */
 async function selectedName(page: Page) {
-  const field = page.getByLabel("Object text", { exact: true });
-  return (await field.count()) ? field.inputValue() : "";
+  const field = page.locator(".inspector-name");
+  return (await field.count()) ? field.textContent() : "";
 }
 
 it("locks a layer for everyone so clicks pass through to what is beneath", async () => {
@@ -88,6 +88,7 @@ node cover "Cover" at 150,100 size 300,200 fill #0000ff in-layer plan`),
   expect(after.find((item) => item.id === "under")).toBeUndefined();
 
   // A locked layer cannot take new objects; unlocking restores it.
+  await dockPanel(page, "Layers");
   await layerRow(page, "plan").locator(".layer-name").click();
   await page.getByText('"Plan" is locked; unlock it to add to it.').waitFor();
   expect(await layerRow(page, "plan").getAttribute("data-active")).toBe("false");

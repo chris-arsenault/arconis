@@ -32,8 +32,9 @@ canvas stays saved on this device. **File → Join room…** opens another room 
    the rectangle to name it, and finish the edit.
 3. Choose **Connector: click two objects** and click the note followed by the rectangle.
 4. Press **V** to select. Drag either object; the connector stays attached.
-5. Select an object to see its properties in the right dock: **Design** for type, text and appearance,
-   **Arrange** for layers and relationships, and **Data** for tags and named values.
+5. Select an object to see its properties in the right dock: **Design** for appearance,
+   **Arrange** for geometry, layers and relationships, and **Data** for tags and named values.
+   **Edit text…** opens a larger editor for content and typography.
    Right-click it for the menu, or right-drag to pan. **Settings → Enable
    context wheel** replaces right-drag panning with a ring of commands. On narrow screens,
    **Hide panel** folds the left panel to give the canvas room.
@@ -66,8 +67,9 @@ the canvas, an account-saved copy or a portable file. Clearing browser storage r
 local copy, so export or save work you want to retain independently.
 
 **Export PNG** exports the selection, or the whole canvas when nothing is selected, and includes
-an editable copy. **Include markup**, in the same menu, controls whether annotations appear in document and PNG
-exports. [Files and pictures](files.md) explains import, export and storage choices.
+an editable copy. Each document or PNG export opens options where **Include canvas annotations**
+controls whether pen and highlighter marks appear in that download. HTML decks omit annotations.
+[Files and pictures](files.md) explains import, export and storage choices.
 
 ## Navigate and measure
 

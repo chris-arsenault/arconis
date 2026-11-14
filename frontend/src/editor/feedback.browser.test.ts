@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
 import { isPng, readCopy } from "../document/pngCopy";
 import { add, browser, errors, exported, fixture, open, row } from "./browserHarness";
+import { workspaceTools } from "./browserHarness";
 
 it("sends guest feedback with diagnostics and no canvas content by default", async () => {
   const context = await browser.newContext({
@@ -13,6 +14,7 @@ it("sends guest feedback with diagnostics and no canvas content by default", asy
   const page = await open(context, room);
   const peer = await open(peerContext, room);
   await add(page, "Sticky note (N)", "Private content stays on the canvas", 250, 200);
+  await workspaceTools(page);
   await page.getByRole("button", { name: "Feedback", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Send feedback", exact: true });
   expect(
@@ -68,6 +70,7 @@ it("uploads the standard whole-canvas PNG only with opt-in and preserves the for
   await add(page, "Sticky note (N)", "Second object", 600, 250);
   await row(page, "First object").click();
   const zoom = await page.getByTestId("zoom-level").textContent();
+  await workspaceTools(page);
   await page.getByRole("button", { name: "Feedback", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Send feedback", exact: true });
   const message = dialog.getByLabel("What could be easier?", { exact: true });
@@ -99,6 +102,7 @@ it("uploads the standard whole-canvas PNG only with opt-in and preserves the for
   expect(copy).toContain("Second object");
   expect(await page.getByTestId("zoom-level").textContent()).toBe(zoom);
   await dialog.getByRole("button", { name: "Done", exact: true }).click();
+  await workspaceTools(page);
   await page.getByRole("button", { name: "Feedback", exact: true }).click();
   expect(
     await dialog.getByLabel("Include a screenshot of the canvas", { exact: true }).isChecked()

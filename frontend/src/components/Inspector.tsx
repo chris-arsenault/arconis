@@ -5,7 +5,6 @@ import { runCommand } from "../editor/registry";
 import { showComments } from "../editor/ui";
 import { isFrame, isLink, type Item } from "../document/types";
 import { effectiveAppearance } from "../document/appearance";
-import { hasText } from "../document/capabilities";
 import { SelectionConnection } from "./SelectionConnection";
 import { LayerField } from "./LayersPanel";
 import { InkMoves, InkPaint } from "./InkProperties";
@@ -18,9 +17,7 @@ import { PropertiesControls } from "./PropertiesControls";
 import { SlideControls } from "./SlideControls";
 import { followLink } from "../editor/links";
 import { deckOf, decks, isSlide } from "../document/slides";
-import { TextProperties } from "./TextProperties";
-import { fitText } from "../editor/textLayout";
-import { InspectorContent } from "./InspectorText";
+import { ArrangeActions } from "./ArrangeActions";
 import { InspectorHeader, PropertyTabs, type InspectorTab } from "./InspectorHeader";
 import { groupThreads, listComments } from "../document/comments";
 import { jumpTo } from "../editor/topics";
@@ -40,7 +37,6 @@ import { alignSelection, distributeSelection } from "../editor/topics";
 
 /** Selection controls grouped by task; each section retains its own disclosure preference. */
 const PANEL_DEFAULTS = {
-  source: false,
   relations: true,
   tags: true,
   appearance: true,
@@ -52,10 +48,16 @@ const PANEL_DEFAULTS = {
 type Sections = ReturnType<typeof useRailSections>;
 type PanelProps = Readonly<{ editor: EditorController; selected: Item[]; sections: Sections }>;
 
+function initialTab(editor: EditorController): InspectorTab {
+  return editor.selected().some((item) => isInk(item) || isSlide(item) || item.clock)
+    ? "Design"
+    : "Arrange";
+}
+
 export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
   useSyncExternalStore(editor.subscribe, editor.snapshot);
   const sections = useRailSections(PANEL_DEFAULTS, "arconis.inspector");
-  const [tab, setTab] = useState<InspectorTab>("Design");
+  const [tab, setTab] = useState<InspectorTab>(() => initialTab(editor));
   const panelId = useId();
   const selected = editor.selected();
   const [item] = selected;
@@ -81,7 +83,6 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
         <PrimaryControls key={selectionKey} {...props} />
         {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
         {single && <ClockControls editor={editor} item={item} />}
-        {single && <PositionControls editor={editor} item={item} />}
         <AppearanceSection key={`appearance ${selectionKey}`} {...props} />
         {single && !isSlide(item) && (
           <CommentsSection
@@ -98,7 +99,9 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
         aria-labelledby={`${panelId}-Arrange-tab`}
         hidden={tab !== "Arrange"}
       >
+        {single && <PositionControls editor={editor} selected={selected} />}
         <LayerField editor={editor} selected={selected} />
+        <ArrangeActions editor={editor} />
         <LayoutSection key={`layout ${selectionKey}`} {...props} />
         <RelationsSection {...props} />
       </div>
@@ -125,14 +128,12 @@ function PrimaryControls(props: PanelProps) {
   const { editor, sections } = props;
   return (
     <>
-      <InspectorContent editor={editor} item={item} sections={sections} />
       {isSlide(item) && (
         <>
           <SlideSection editor={editor} item={item} sections={sections} />
           <CommentsSection editor={editor} item={item} sections={sections} />
         </>
       )}
-      {isLink(item) && <SelectionConnection editor={editor} selected={props.selected} />}
     </>
   );
 }
@@ -213,7 +214,6 @@ function TagsSection({ editor, selected, sections }: PanelProps) {
 function AppearanceSection({ editor, selected, sections }: PanelProps) {
   const canvas = editor.document;
   const [item] = selected;
-  const textItems = selected.filter(hasText);
   const drawn = (target: Item) => effectiveAppearance(target, canvas.namedStyle(target.style));
   // Ink keeps the paint controls of the brush that made it; a mixed selection uses the general ones.
   const inkOnly = selected.every(isInk);
@@ -222,7 +222,7 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
       id="appearance"
       count={0}
       title="Appearance"
-      detail="Show or hide style, colours, lines and text formatting."
+      detail="Show or hide the object's style, fill and outline."
       open={sections.open.appearance}
       onToggle={sections.toggle}
     >
@@ -235,14 +235,7 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
         paint={inkOnly ? <InkPaint editor={editor} ink={selected} /> : undefined}
         change={(look) => changeSelectionLook(canvas, selected, look)}
         onStyle={(style) => changeSelectionStyle(canvas, selected, style)}
-      >
-        <TextProperties
-          selected={textItems}
-          drawn={textItems.map(drawn)}
-          change={(look) => void changeSelectionLook(canvas, textItems, look, true)}
-          onFit={() => textItems.forEach((target) => void fitText(canvas, target.id))}
-        />
-      </StyleControls>
+      />
     </RailSection>
   );
 }
@@ -289,8 +282,10 @@ function LayoutSection({ editor, selected, sections }: PanelProps) {
   );
 }
 
-function PositionControls({ editor, item }: Readonly<{ editor: EditorController; item: Item }>) {
-  if (isLink(item) || item.type === "drawing") return null;
+function PositionControls({ editor, selected }: Pick<PanelProps, "editor" | "selected">) {
+  const [item] = selected;
+  if (isLink(item)) return <SelectionConnection editor={editor} selected={selected} />;
+  if (item.type === "drawing") return null;
   const canvas = editor.document;
   const look = effectiveAppearance(item, canvas.namedStyle(item.style));
   return (

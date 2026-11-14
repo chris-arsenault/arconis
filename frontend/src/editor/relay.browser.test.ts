@@ -1,16 +1,7 @@
 import { afterEach, expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import {
-  add,
-  baseUrl,
-  browser,
-  errors,
-  fixture,
-  objectCount,
-  open,
-  unfoldSource,
-} from "./browserHarness";
+import { add, baseUrl, browser, errors, fixture, objectCount, open } from "./browserHarness";
 
 const status = (page: Page) => page.getByTestId("connection-status");
 const startButton = (page: Page) =>
@@ -58,7 +49,6 @@ it("a device-only room opens no connection, and keeps its work", async () => {
     if (request.url().includes(new URL(fixture.config.relayUrl).host))
       relayRequests.push(request.url());
   });
-  await unfoldSource(context);
   const page = await context.newPage();
   page.on("websocket", (socket) => {
     if (socket.url().includes(new URL(fixture.config.relayUrl).host)) sockets.push(socket.url());

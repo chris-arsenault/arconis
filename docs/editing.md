@@ -14,11 +14,16 @@ The left rail has the tools **Select**, **Pan**, **Connect**, **Markup** and **M
 its own bar over the canvas and leaves the panel as it was. **Hide panel** leaves the tools and
 panel buttons available while giving the canvas more space.
 
-The right dock shows the selected object's properties, and beneath them three document panels:
-**Layers** for organising the canvas, **Slides** for building and presenting decks, and
-**Navigate** for jump points, topic outlines, tags and history. Choosing a panel's tab opens it
-and choosing it again folds it away. With nothing selected and no panel open, the dock narrows to
-its tabs.
+The right dock gives one task the full panel height: **Properties** for the selection,
+**Layers** for organising the canvas, **Slides** for building and presenting decks, or
+**Navigate** for jump points, topic outlines, tags and history. Selecting an object on the canvas
+returns to Properties; selecting it from a document panel keeps that panel open. With nothing
+selected and no document panel open, the dock narrows to its tabs.
+
+The header keeps canvas navigation and files in **File**, the document name in **Canvas title**,
+and sharing and account access on the right. **Tools** contains Settings, Help, Feedback and,
+when signed in, My layouts. **File → New canvas** opens a separate canvas and keeps the current
+one. **Back to my canvases** returns to the home screen.
 
 On phones, the left panel starts hidden; choosing a panel opens it over the canvas, and choosing
 a stencil closes it for placement. **Properties**, or **Panels** when nothing is selected, opens
@@ -32,7 +37,7 @@ focus and says in one sentence what it does. When the panel is hidden, the help 
 header while you point at a control. On touch screens, hold a control to read its help without
 activating it. **Settings** can hide the help zone on this device.
 
-**Help** in the header, or **?**, opens Help in the middle of the screen: the topics on the left,
+**Tools → Help**, or **?**, opens Help in the middle of the screen: the topics on the left,
 and on the right the chosen guide section or every command with its shortcut. Search finds guide
 sections, and links between guides open inside Help. Pressing **?** while pointing at a panel or
 header control opens the guide for that area. Escape clears a search, then closes Help. On a
@@ -50,7 +55,7 @@ affecting the canvas selection.
 
 ## Canvas display
 
-Open **Settings** in the header to control your canvas display. One **Indicators** setting covers
+Open **Tools → Settings** to control your canvas display. One **Indicators** setting covers
 comments, tags, markers, relationships and task/lock signs: **Show**, **Selected** or **Hide**. The
 preference stays in your browser; hidden indicators leave their information available in Properties.
 Unselected objects use compact icons, with tag names and single-item counts expanding on selection.
@@ -59,7 +64,7 @@ visibility, alongside their existing drawing and view controls.
 
 ## Send usability feedback
 
-Open **Feedback** in the header and describe what you tried and what was confusing. Guests can
+Open **Tools → Feedback** and describe what you tried and what was confusing. Guests can
 submit without signing in. Reports are stored privately with your display name, available account
 email, app version, browser and viewport, room details, connection state and editor diagnostics.
 Passwords, room keys and authentication tokens are excluded.
@@ -482,19 +487,21 @@ another room, a file or a chat, and paste any canvas language back onto a canvas
 
 ## Property panel
 
-Selecting something shows its properties at the top of the right dock. **Object type** changes
+Selecting something shows its properties in the right dock. **Object type** changes
 eligible shapes, notes and text while keeping their identity, content and connections. Click
-the object's name to edit it on the canvas. Controls are organized into three tabs:
+**Edit text…** to open the larger text editor, or double-click the object to type on the canvas.
+Controls are organized into three tabs:
 
-- **Design**: text source and subtitle, position and size, appearance and typography, connector
-  settings, comments, and controls specific to slides, clocks or ink.
-- **Arrange**: layer assignment, alignment, lock, jump point and collapse, and **Relationships**.
+- **Design**: appearance, comments, and controls specific to slides, clocks or ink.
+- **Arrange**: position and size, connector routing, layers, order, grouping, alignment, lock,
+  jump point, collapse and **Relationships**.
   Relationships lists branches, containers, references and lines, with navigation and tree-layout
   controls. With two objects selected it offers **Relate these two** and **Connect with a line**.
 - **Data**: tags, marker, task, link and named properties.
 
 The canvas's right-click menu keeps common editing actions visible and groups secondary
 commands in one level of submenus. Right arrow opens a submenu; Left returns to its parent.
+On phones a submenu replaces the main menu; **Back**, Left arrow or Escape returns to it.
 
 Each section folds from its header and stays as it was left on this device. Sections that do
 not apply to the selection are left out.

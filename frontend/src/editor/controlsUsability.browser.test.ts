@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { Locator } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { add, browser, drawInto, errors, exported, open, railPanel, row } from "./browserHarness";
+import { textEditor, closeTextEditor } from "./browserHarness";
 
 async function clearAndType(field: Locator, replacement: string) {
   await field.click();
@@ -22,13 +23,16 @@ it("preserves numeric drafts and undoes a completed typography edit across peers
     await add(a, "Rectangle (R)", "Typography", 250, 180);
     const b = await open(second, room);
     await row(b, "Typography").click();
+    await textEditor(a);
+    await textEditor(b);
     const font = a.getByLabel("Font size", { exact: true });
     await font.fill("18");
     await font.press("Tab");
     await clearAndType(font, "24");
     await expect.poll(() => b.getByLabel("Font size", { exact: true }).inputValue()).toBe("24");
     expect((await exported(b)).objects[0].look.textSize).toBe(24);
-    await a.getByRole("button", { name: "Undo", exact: true }).click();
+    await textEditor(b);
+    await (await textEditor(a)).getByRole("button", { name: "Undo", exact: true }).click();
     await expect.poll(() => font.inputValue()).toBe("18");
     await expect.poll(() => b.getByLabel("Font size", { exact: true }).inputValue()).toBe("18");
     await clearAndType(font, "12.5");
@@ -50,10 +54,13 @@ it("preserves numeric drafts and undoes a completed typography edit across peers
       padding: 0.25,
     });
     await add(a, "Sticky note (N)", "Other typography", 600, 200);
+    await textEditor(a);
     await font.fill("20");
     await font.press("Tab");
+    await closeTextEditor(a);
     await a.getByTestId("canvas").click({ position: { x: 40, y: 40 } });
     await a.keyboard.press("ControlOrMeta+A");
+    await textEditor(a);
     expect(await font.inputValue()).toBe("");
     await clearAndType(font, "24");
     expect((await exported(a)).objects.map((item) => item.look.textSize)).toEqual([24, 24]);
@@ -92,10 +99,12 @@ it("validates dimensions while retaining signed coordinates, expressions and zer
     expect(await width.inputValue()).toBe("nonsense");
     await width.press("Escape");
     expect(await width.inputValue()).toBe("240");
+    await page.getByRole("tab", { name: "Design", exact: true }).click();
     const line = page.getByLabel("Line width", { exact: true });
     await clearAndType(line, "0");
     await page.getByTestId("canvas").click({ position: { x: 40, y: 40 } });
     await row(page, "Geometry").click();
+    await page.getByRole("tab", { name: "Design", exact: true }).click();
     expect(await line.inputValue()).toBe("0");
     await line.press("ArrowUp");
     await line.press("Tab");
@@ -146,6 +155,7 @@ it("uses the same decimal increments for native mouse spinners and keyboard arro
   try {
     const page = await open(context, createRoomId());
     await add(page, "Rectangle (R)", "Spacing steps", 250, 180);
+    await textEditor(page);
     await page.getByText("Spacing and sizing", { exact: true }).click();
     for (const [label, start, result] of [
       ["Line height", "1.35", "1.4"],
@@ -196,7 +206,7 @@ it("preserves a real link named mixed and can clear different links in one selec
     expect(await page.getByLabel("Link", { exact: true }).inputValue()).toBe("mixed");
     await page.getByRole("button", { name: "Go to linked item", exact: true }).click();
     await page.getByRole("tab", { name: "Design", exact: true }).click();
-    expect(await page.getByLabel("Object text", { exact: true }).inputValue()).toBe("Target");
+    expect(await page.locator(".inspector-name").textContent()).toBe("Target");
     await page.getByRole("button", { name: "Fit canvas", exact: true }).click();
     await row(page, /^Alpha$/).click();
     await row(page, /^Beta$/).click({ modifiers: ["Shift"] });

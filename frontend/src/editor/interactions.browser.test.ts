@@ -2,6 +2,7 @@ import { it, expect } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { browser, errors, open, add, row, exported, objectCount } from "./browserHarness";
+import { textEditor, closeTextEditor } from "./browserHarness";
 
 async function peerText(
   page: Page,
@@ -9,6 +10,7 @@ async function peerText(
   mode: "keystrokes" | "replacement",
   prefix = false
 ) {
+  await textEditor(page);
   const input = page.getByLabel("Object text", { exact: true });
   if (mode === "replacement") await input.fill(value);
   else {
@@ -19,6 +21,7 @@ async function peerText(
     );
   }
   await input.press("ControlOrMeta+Enter");
+  await closeTextEditor(page);
 }
 
 it("cancels an unfinished connector before starting another relationship", async () => {
@@ -75,10 +78,9 @@ it.each(["keystrokes", "replacement"] as const)(
     await expect.poll(() => inline.evaluate((element) => element.style.width)).toBe("300px");
     expect(await inline.evaluate((element) => element === document.activeElement)).toBe(true);
     await inline.press("Escape");
-    await expect
-      .poll(() => b.getByLabel("Object text", { exact: true }).inputValue())
-      .toBe("abXcdef!");
+    await expect.poll(() => b.locator(".inspector-name").textContent()).toBe("abXcdef!");
     const inspector = a.getByLabel("Object text", { exact: true });
+    await textEditor(a);
     await inspector.focus();
     await inspector.evaluate((element: HTMLTextAreaElement) =>
       element.setSelectionRange(2, 4, "backward")
@@ -136,9 +138,7 @@ it.each(["keystrokes", "replacement"] as const)(
     await inline.press("ControlOrMeta+Shift+z");
     await expect.poll(() => inline.inputValue()).toBe("a漢b!");
     await inline.press("Escape");
-    await expect
-      .poll(() => b.getByLabel("Object text", { exact: true }).inputValue())
-      .toBe("a漢b!");
+    await expect.poll(() => b.locator(".inspector-name").textContent()).toBe("a漢b!");
     expect(errors).toEqual([]);
     await first.close();
     await second.close();

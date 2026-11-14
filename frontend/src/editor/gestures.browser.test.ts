@@ -23,7 +23,7 @@ const selectedCount = async (page: Page) => {
   if (!label) return 0;
   return label.includes("objects") ? parseInt(label) : 1;
 };
-const emptySpot = { x: 880, y: 760 };
+const emptySpot = { x: 750, y: 760 };
 
 async function canvasOrigin(page: Page) {
   const bounds = (await canvas(page).boundingBox())!;

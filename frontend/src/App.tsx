@@ -159,6 +159,7 @@ export function App() {
       onCreate={() => create()}
       onJoin={open}
       onLeave={() => returnToRoom(previousRoom.current)}
+      onHome={() => returnToRoom(null)}
     />
   );
 }

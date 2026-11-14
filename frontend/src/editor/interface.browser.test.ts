@@ -18,7 +18,7 @@ import {
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
-const emptySpot = { x: 880, y: 760 };
+const emptySpot = { x: 750, y: 760 };
 
 async function dragStencil(page: Page, label: string, x: number, y: number) {
   const stencil = page.getByRole("button", { name: label, exact: true });
@@ -190,7 +190,7 @@ it("shows a compact property panel only for a selection, with controls that appl
   await add(page, "Sticky note (N)", "Note", 500, 150);
   expect(await fits()).toBe(true);
   expect(await page.getByLabel("Line color", { exact: true }).count()).toBe(0);
-  expect(await page.getByLabel("Font size", { exact: true }).inputValue()).toBe("16");
+  expect(await page.getByLabel("Font size", { exact: true }).count()).toBe(0);
   await add(page, "Text (T)", "Words", 500, 400);
   expect(await page.getByLabel("Fill color", { exact: true }).count()).toBe(0);
   await drawInto(page, "content");
@@ -372,6 +372,7 @@ it("tags from the ring, filters from the rail's tags, and grows compact branches
 
   // Panel sections fold from their header and stay folded after a reload.
   await row(page, "Strategy").click();
+  await page.getByRole("tab", { name: "Design", exact: true }).click();
   const appearance = page
     .getByLabel("Object properties")
     .locator("details[aria-label='Appearance']");

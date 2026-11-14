@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { add, browser, errors, open } from "./browserHarness";
+import { selectionLabel } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
@@ -56,7 +57,7 @@ it("describes focused controls from the zone and keeps information tooltips sepa
     expect(await page.getByTestId("help-zone-detail").textContent()).toContain("follow someone");
     await page.keyboard.press("Escape");
     expect(await page.getByRole("tooltip").count()).toBe(0);
-    expect(await page.getByTestId("selection-count").textContent()).toContain("Sticky note");
+    expect(await selectionLabel(page)).toContain("Sticky note");
     expect(errors).toEqual([]);
   } finally {
     await context.close();
@@ -117,7 +118,7 @@ it("shows touch-hold help in the docked zone after the delay and leaves a quick 
   }
 });
 
-it("owns File menu keyboard navigation, includes its checkbox and returns focus safely", async () => {
+it("owns File menu keyboard navigation and returns focus safely", async () => {
   const context = await browser.newContext(VIEWPORT);
   try {
     const page = await open(context);
@@ -135,18 +136,16 @@ it("owns File menu keyboard navigation, includes its checkbox and returns focus 
         .evaluate((button) => document.activeElement === button)
     ).toBe(true);
     await page.keyboard.press("End");
-    const markup = page.getByRole("menuitemcheckbox", { name: "Include markup", exact: true });
-    expect(await markup.evaluate((checkbox) => document.activeElement === checkbox)).toBe(true);
-    await page.keyboard.press("Space");
-    expect(await markup.isChecked()).toBe(false);
+    const last = page.getByRole("menuitem", { name: "Import document", exact: true });
+    expect(await last.evaluate((button) => document.activeElement === button)).toBe(true);
     await page.keyboard.press("Home");
     expect(await first.evaluate((button) => document.activeElement === button)).toBe(true);
     await page.keyboard.press("ArrowUp");
-    expect(await markup.evaluate((checkbox) => document.activeElement === checkbox)).toBe(true);
+    expect(await last.evaluate((button) => document.activeElement === button)).toBe(true);
     await page.keyboard.press("Escape");
     expect(await page.getByRole("menu", { name: "File", exact: true }).count()).toBe(0);
     expect(await trigger.evaluate((button) => document.activeElement === button)).toBe(true);
-    expect(await page.getByTestId("selection-count").textContent()).toContain("Sticky note");
+    expect(await selectionLabel(page)).toContain("Sticky note");
     await trigger.press("ArrowDown");
     await first.waitFor();
     // Tab closes the menu and continues to the canvas title beside File.

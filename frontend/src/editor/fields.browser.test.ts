@@ -7,7 +7,7 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
   const page = await open(context, createRoomId());
   await add(page, "Frame (F)", "Lanes", 300, 200);
   await add(page, "Sticky note (N)", "Inside", 360, 300);
-  await add(page, "Rectangle (R)", "Loose", 900, 200);
+  await add(page, "Rectangle (R)", "Loose", 650, 200);
   const canvas = page.getByTestId("canvas");
 
   // Locking keeps a drag from moving the object; the object can still be clicked to unlock.
@@ -15,7 +15,7 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
   await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   const before = (await exported(page)).objects.find((item) => item.name === "Loose")!;
   await page.getByRole("button", { name: "Lock", exact: true }).click();
-  await drag(page, 910, 210, 120, 80);
+  await drag(page, 660, 210, 120, 80);
   const locked = (await exported(page)).objects.find((item) => item.name === "Loose")!;
   expect(locked.locked).toBe(true);
   expect(locked.x).toBe(before.x);
@@ -25,7 +25,7 @@ it("locks, hides, collapses, tags and tracks the editor of objects from the pane
     .toContain("Last edited by Guest");
   await row(page, "Loose").click();
   await page.getByRole("button", { name: "Unlock", exact: true }).click();
-  await drag(page, 910, 210, 120, 80);
+  await drag(page, 660, 210, 120, 80);
   const moved = (await exported(page)).objects.find((item) => item.name === "Loose")!;
   expect(moved.locked).toBe(false);
   expect(moved.x).toBeGreaterThan(before.x);

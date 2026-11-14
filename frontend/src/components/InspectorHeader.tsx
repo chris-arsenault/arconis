@@ -5,12 +5,13 @@ import { KINDS, kindOf } from "../editor/swap";
 import { typeLabel, type Item } from "../document/types";
 import { hasText } from "../document/capabilities";
 import { itemName } from "../editor/relate";
+import { showTextEditor } from "../editor/ui";
 
 const INSPECTOR_TABS = ["Design", "Arrange", "Data"] as const;
 export type InspectorTab = (typeof INSPECTOR_TABS)[number];
 const TAB_DETAILS: Record<InspectorTab, string> = {
-  Design: "Edit the selection's content, position, size and appearance.",
-  Arrange: "Organize layers, alignment, object state and relationships.",
+  Design: "Edit the object's fill, outline and type-specific settings.",
+  Arrange: "Set dimensions, alignment, order, groups, layers and relationships.",
   Data: "Edit tags, status, links and named properties on the selection.",
 };
 
@@ -77,21 +78,34 @@ export function InspectorHeader({
     <header className="inspector-header">
       <div className="inspector-heading">
         <ObjectTypeSelect editor={editor} selected={selected} />
-        <span className="inspector-kind" data-testid="selection-count">
-          {several ? `${selected.length} objects` : typeLabel(item)}
-        </span>
-        {!several && hasText(item) && (
+        <SelectionSummary selected={selected} />
+        {!several && item.name.trim() && <span className="inspector-name">{itemName(item)}</span>}
+        {selected.some(hasText) && (
           <button
-            className="inspector-name"
-            data-hint="Edit text on the canvas (Enter)"
-            data-hint-detail="Type straight onto the object; everyone in the room sees the text change."
-            onClick={() => runCommand(editor, "edit.text")}
+            className="text-action inspector-edit-text"
+            aria-label="Edit text"
+            data-hint-detail="Open the full text editor with Markdown, preview, subtitle and typography controls."
+            onClick={() =>
+              showTextEditor(
+                editor,
+                selected.filter(hasText).map((target) => target.id)
+              )
+            }
           >
-            {item.name.trim() ? itemName(item) : "Add text"}
+            Edit text…
           </button>
         )}
       </div>
     </header>
+  );
+}
+
+function SelectionSummary({ selected }: Readonly<{ selected: Item[] }>) {
+  if (selected.length === 1) return null;
+  return (
+    <span className="inspector-kind" data-testid="selection-count">
+      {selected.length > 1 ? `${selected.length} objects` : typeLabel(selected[0])}
+    </span>
   );
 }
 
@@ -100,12 +114,18 @@ function ObjectTypeSelect({
   selected,
 }: Readonly<{ editor: EditorController; selected: Item[] }>) {
   const [item] = selected;
-  const kinds = selected.map(kindOf);
+  const kinds = selected.map((target) => (target.clock ? null : kindOf(target)));
   const changeable =
     kinds.every((kind) => kind !== null) &&
     isAvailable(findCommand("shape.rectangle"), commandContext(editor));
   const kind = kinds.every((value) => value === kinds[0]) ? kinds[0] : "";
-  if (!changeable) return null;
+  if (!changeable && selected.length > 1) return null;
+  if (!changeable)
+    return (
+      <span className="inspector-kind inspector-object-kind" data-testid="selection-count">
+        {typeLabel(item)}
+      </span>
+    );
   return (
     <label
       className="inspector-type"

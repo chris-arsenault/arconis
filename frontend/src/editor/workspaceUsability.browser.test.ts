@@ -10,7 +10,9 @@ import {
   row,
   selectConnector,
   setContextWheel,
+  workspaceTools,
 } from "./browserHarness";
+import { selectionLabel } from "./browserHarness";
 
 const desktop = { viewport: { width: 1440, height: 1000 } };
 
@@ -88,7 +90,7 @@ it("includes a pending capture idea and gives the context menu exclusive keyboar
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Escape");
   expect(await page.getByTestId("context-menu").count()).toBe(0);
-  expect(await page.getByTestId("selection-count").textContent()).toBe("Sticky note");
+  expect(await selectionLabel(page)).toBe("Sticky note");
   expect((await exported(page)).objects.length).toBe(3);
   await page.getByTestId("canvas").click({ button: "right", position: { x: 650, y: 620 } });
   await page.getByRole("menuitem", { name: /^Add note here/ }).waitFor();
@@ -161,7 +163,7 @@ it("puts connector controls first and distinguishes incoming, outgoing and bidir
     .getByText("→ To", { exact: true })
     .waitFor();
   await selectConnector(page);
-  await page.getByRole("tab", { name: "Design", exact: true }).click();
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   const order = await page
     .getByLabel("Object properties", { exact: true })
     .locator(".inspector-primary, .rail-section")
@@ -203,9 +205,11 @@ it("keeps editing, File actions, participants and presentation reachable after l
       });
       expect(hit).toBe(true);
       await item.click();
+      await page.getByRole("button", { name: "Cancel", exact: true }).click();
       await page.getByRole("button", { name: "Close properties", exact: true }).click();
     }
   }
+  await workspaceTools(page);
   await page.getByRole("button", { name: "Participants", exact: true }).click();
   await page
     .getByRole("dialog", { name: "Participants", exact: true })

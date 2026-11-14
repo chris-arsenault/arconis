@@ -778,12 +778,12 @@ dialog.password-gate {
   overflow: hidden;
 }
 .topbar {
-  height: 78px;
+  height: 56px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 27px;
+  gap: 12px;
+  padding: 0 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
   z-index: 10;
@@ -794,6 +794,7 @@ dialog.password-gate {
   background: var(--line);
 }
 .document-title {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -805,13 +806,119 @@ dialog.password-gate {
   border: none;
   font-size: 14px;
   font-weight: 600;
-  width: min(260px, 22vw);
+  width: 100%;
 }
 .topbar-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 5px;
+}
+.topbar-collaboration {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.topbar .account-button {
+  max-width: 150px;
+}
+.account-button-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-tools {
+  position: relative;
+}
+.header-tools > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px;
+  list-style: none;
+  border-radius: 5px;
+}
+.header-tools > summary::-webkit-details-marker {
+  display: none;
+}
+.header-tools[open] > summary,
+.header-tools > summary:hover {
+  background: var(--hover);
+}
+.header-tools-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 230px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 30px #44405b1f;
+}
+.header-tools-list h3 {
+  margin: 6px 8px;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.header-tools-list > button {
+  justify-content: flex-start;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  height: auto;
+  min-height: 36px;
+  border: 0;
+  font-size: 12px;
+}
+.header-tools-list > .settings-button::after,
+.header-tools-list > button[aria-label="Change room password"]::after,
+.header-tools-list > .participant-badge::after {
+  content: attr(aria-label);
+}
+.topbar .header-tools-list .participant-badge {
+  display: flex;
+  margin: 0;
+}
+.export-dialog {
+  width: min(440px, calc(100vw - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  padding: 24px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.export-dialog::backdrop {
+  background: #2f294e55;
+}
+.export-dialog h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.export-dialog p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.export-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+.export-annotations {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 20px;
+  font-size: 13px;
+}
+.export-annotations input {
+  width: auto;
 }
 .topbar-group {
   display: flex;
@@ -1605,9 +1712,6 @@ details[open] > summary::before {
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.inspector-name:hover {
-  background: var(--hover);
 }
 .inspector-type {
   display: grid;
@@ -2422,6 +2526,16 @@ input.outline-name {
   border-radius: 8px;
   box-shadow: 0 8px 30px #44405b1f;
 }
+.context-submenu button > span {
+  min-width: 0;
+  white-space: normal;
+}
+.context-menu-title {
+  color: var(--text-soft);
+  font-size: 11px;
+  padding: 6px 9px;
+  border-top: 1px solid var(--line);
+}
 /* The ring's way to the full menu reads as a different kind of wedge. */
 .ring-wedge.more text {
   fill: var(--muted);
@@ -2450,7 +2564,7 @@ input.outline-name {
   display: flex;
   flex-direction: column;
   width: 280px;
-  max-width: calc(100vw - 24px);
+  max-width: calc(100vw - 180px);
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -3401,22 +3515,54 @@ input.outline-name {
   .topbar {
     padding: 0 8px;
     gap: 6px;
-    flex-wrap: wrap;
-    height: auto;
-    min-height: 104px;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    flex-wrap: nowrap;
+    height: 56px;
+    min-height: 56px;
   }
   .topbar-actions {
-    width: 100%;
+    width: auto;
     margin-left: 0;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    row-gap: 6px;
+    flex-wrap: nowrap;
+    gap: 2px;
   }
   .topbar-group + .topbar-group {
     padding-left: 4px;
     margin-left: 0;
+  }
+  .topbar .account-button {
+    padding: 6px;
+    width: 30px;
+    min-width: 30px;
+  }
+  .topbar .account-button-label,
+  .header-tools > summary > span {
+    display: none;
+  }
+  .header-tools > summary {
+    padding: 6px;
+  }
+  .topbar-collaboration {
+    gap: 2px;
+  }
+  .topbar .share-button {
+    padding: 7px;
+    margin: 0;
+  }
+  .topbar .document-title {
+    min-width: 0;
+  }
+  .topbar .document-title input {
+    width: 100%;
+    min-width: 0;
+  }
+  .file-menu-list {
+    position: fixed;
+    left: 8px;
+    top: 52px;
+    width: min(280px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
   }
   .document-title {
     min-width: 0;

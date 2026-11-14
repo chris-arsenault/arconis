@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { add, browser, errors, exported, open } from "./browserHarness";
+import { workspaceTools } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const helpDialog = (page: Page) => page.getByRole("dialog", { name: "Help", exact: true });
@@ -12,6 +13,7 @@ it("opens a centred dialog with topics beside the content, searches, follows lin
     await add(page, "Sticky note (N)", "Current work", 360, 300);
     const room = page.url();
     const before = (await exported(page)).objects;
+    await workspaceTools(page);
     const help = page.getByRole("button", { name: "Help", exact: true });
     await help.click();
     const reference = helpDialog(page);
@@ -81,6 +83,7 @@ it("shows topics, then content, one at a time on a phone", async () => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   try {
     const page = await open(context);
+    await workspaceTools(page);
     await page.getByRole("button", { name: "Help", exact: true }).click();
     const reference = helpDialog(page);
     const topics = reference.getByRole("navigation", { name: "Help topics" });

@@ -254,6 +254,7 @@ function showing(element: HTMLElement | null) {
 
 /** Whether a stop is about the right dock, which a narrow screen keeps behind its toggle. */
 const inDock = (stop: Stop) => (stop.panel || stop.target).startsWith("dock");
+const inTools = (stop: Stop) => Boolean(area(stop.target)?.closest(".header-tools"));
 
 const pressedTab = (tabs: string) =>
   document.querySelector<HTMLElement>(`[aria-label="${tabs}"] [aria-pressed="true"]`);
@@ -285,8 +286,11 @@ export function startOrientation(editor: EditorController, onEnd?: () => void) {
   const dockPanel = pressedTab("Document panels");
   const rail = document.querySelector(".left-rail");
   const expanded = rail?.getAttribute("data-expanded");
+  const tools = document.querySelector<HTMLDetailsElement>(".header-tools");
+  const toolsOpen = tools?.open ?? false;
   // Markup's bar shows only for its own stop, and a narrow screen's dock only for the dock's.
   const choose = (stop: Stop) => {
+    if (tools) tools.open = inTools(stop);
     if (stop.panel !== "markup-tool" && editor.tool === "markup") editor.setTool("select");
     const toggle = area("dock-toggle");
     if (toggle && inDock(stop) !== (toggle.getAttribute("aria-expanded") === "true"))
@@ -302,6 +306,7 @@ export function startOrientation(editor: EditorController, onEnd?: () => void) {
   const reachable = (stop: Stop) =>
     !stop.target ||
     showing(area(stop.panel || stop.target)) ||
+    (inTools(stop) && showing(area("workspace-tools"))) ||
     (inDock(stop) && showing(area("dock-toggle")));
   const steps: DriveStep[] = STOPS.filter(reachable).map((stop) => ({
     // On a narrow screen a dock stop points at the button that opens the dock.
@@ -344,6 +349,7 @@ export function startOrientation(editor: EditorController, onEnd?: () => void) {
     onHighlighted: (_element, _step, { state }) =>
       state.popover?.nextButton.focus({ preventScroll: true }),
     onDestroyed: () => {
+      if (tools) tools.open = toolsOpen;
       restoreRail(panel, expanded);
       restoreDock(dockPanel);
       if (editor.tool !== tool) editor.setTool(tool);

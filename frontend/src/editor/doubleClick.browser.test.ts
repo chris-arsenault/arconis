@@ -51,9 +51,7 @@ for (const [under, text] of CASES)
     // The note is the one being typed into, and it is still the selection afterwards.
     await page.keyboard.type("!");
     await page.keyboard.press("Escape");
-    await expect
-      .poll(() => page.getByLabel("Object text", { exact: true }).inputValue())
-      .toContain("!");
+    await expect.poll(() => page.locator(".inspector-name").textContent()).toContain("!");
     expect(errors).toEqual([]);
     await context.close();
   });

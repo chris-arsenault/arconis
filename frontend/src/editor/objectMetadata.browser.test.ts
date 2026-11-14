@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { add, browser, errors, more, objectCount, open, row } from "./browserHarness";
+import { openSettings } from "./browserHarness";
 
 function paintedBox(page: Page, fill: string) {
   return page
@@ -28,7 +29,7 @@ async function checkCloudAttachment(page: Page) {
 }
 
 async function setVisibility(page: Page, value: "Show" | "Selected" | "Hide") {
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await openSettings(page);
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await settings
     .getByRole("radiogroup", { name: "Indicators", exact: true })
@@ -162,7 +163,7 @@ it("keeps attached badges and connected-copy handles clickable without reserving
 
 async function checkSavedSettingsOnPhone(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await openSettings(page);
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   expect(
     await settings
@@ -202,7 +203,7 @@ it("remembers one indicator visibility without changing a peer's view", async ()
     });
     const marker = page.getByRole("button", { name: "Highlight Star", exact: true });
     const tags = page.getByRole("button", { name: "Highlight tag runtime", exact: true });
-    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await openSettings(page);
     const settings = page.getByRole("dialog", { name: "Settings", exact: true });
     const indicators = settings.getByRole("radiogroup", { name: "Indicators", exact: true });
     await indicators.getByRole("radio", { name: "Show", exact: true }).focus();
@@ -273,9 +274,7 @@ node front "In front" at 180,190 size 200,90 fill #ffd8d8
     await row(page, "Behind").click();
     await expect.poll(receivesPointer).toBe(true);
     await marker.click({ button: "right" });
-    await expect
-      .poll(() => page.getByLabel("Object text", { exact: true }).inputValue())
-      .toBe("Behind");
+    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Behind");
     await page.keyboard.press("Escape");
     await page.screenshot({ path: "test-results/indicator-selected-stacking.png" });
     await page.getByTestId("canvas").click({ position: { x: 850, y: 700 } });

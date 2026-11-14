@@ -101,8 +101,9 @@ it("switches mode in one stroke from any ring, with nothing further to choose", 
   await page.mouse.up({ button: "right" });
   expect(await tool()).toBe("rectangle");
   await canvas.click({ position: { x: 760, y: 320 } });
-  await page.getByLabel("Object text", { exact: true }).fill("Target");
-  await page.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
+  await canvas.press("Enter");
+  await page.getByLabel("Edit canvas text", { exact: true }).fill("Target");
+  await page.getByLabel("Edit canvas text", { exact: true }).press("ControlOrMeta+Enter");
 
   // Mode is on an object's ring too: a quick stroke out through it, then south, connects.
   const source = (await row(page, "Source").boundingBox())!;

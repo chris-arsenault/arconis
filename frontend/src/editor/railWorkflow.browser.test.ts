@@ -77,6 +77,7 @@ it("gives libraries a consistent disclosure and keeps document navigation in its
   await page.getByText("No slides yet.", { exact: false }).waitFor();
   await page.getByRole("button", { name: "Add slide", exact: true }).click();
   await page.getByTestId("canvas").click({ position: { x: 90, y: 90 } });
+  await dockPanel(page, "Slides");
   await page.getByRole("button", { name: "Present deck", exact: true }).waitFor();
   await page.screenshot({ path: "test-results/dock-slides.png" });
   await dockPanel(page, "Navigate");

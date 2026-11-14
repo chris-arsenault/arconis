@@ -52,7 +52,7 @@ async function buildCanvas(page: Page) {
   await add(page, "Rectangle (R)", "First box", 220, 170);
   await add(page, "Sticky note (N)", "Second note", 560, 170);
   const bounds = (await page.getByTestId("canvas").boundingBox())!;
-  await page.getByTestId("canvas").click({ position: { x: 880, y: 760 } });
+  await page.getByTestId("canvas").click({ position: { x: 750, y: 760 } });
   await page.mouse.move(bounds.x + 340, bounds.y + 215, { steps: 2 });
   await page.mouse.move(bounds.x + 380, bounds.y + 215, { steps: 8 });
   await page.mouse.down();

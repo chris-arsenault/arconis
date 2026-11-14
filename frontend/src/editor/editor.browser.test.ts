@@ -16,6 +16,8 @@ import {
   drag,
   objectCount,
   selectionLabel,
+  textEditor,
+  closeTextEditor,
   groupLabel,
   selectConnector,
   selectDrawing,
@@ -27,6 +29,7 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   const page = await open(context);
   await add(page, "Rectangle (R)", "API service", 220, 170);
   await add(page, "Sticky note (N)", "A connected idea", 500, 300);
+  await page.getByRole("tab", { name: "Design", exact: true }).click();
   await page
     .getByLabel("Object properties")
     .getByRole("button", { name: "Fill #ffd9da", exact: true })
@@ -37,7 +40,7 @@ it("edits a complete mixed canvas, routes and groups connected objects", async (
   await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await expect.poll(() => objectCount(page)).toBe(3);
   await row(page, "API service").click();
-  await page.getByRole("tab", { name: "Design", exact: true }).click();
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object x", { exact: true }).fill("350");
   await row(page, "A connected idea").click({ modifiers: ["Shift"] });
   await more(page, "Group");
@@ -88,6 +91,8 @@ it("synchronizes independent browsers, late join, offline edits, reload and room
   await expect.poll(() => a.getByTestId("connection-status").textContent()).toBe("Offline");
   await a.getByLabel("Object x", { exact: true }).fill("450");
   await b.getByLabel("Object y", { exact: true }).fill("420");
+  await textEditor(a);
+  await textEditor(b);
   await a.getByLabel("Object text", { exact: true }).fill("First Shared database");
   await b.getByLabel("Object text", { exact: true }).fill("Shared database second");
   await a.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
@@ -107,6 +112,7 @@ it("synchronizes independent browsers, late join, offline edits, reload and room
   await row(a, "Shared database").waitFor();
   const isolated = await open(second, createRoomId());
   expect(await objectCount(isolated)).toBe(0);
+  await closeTextEditor(b);
   await row(b, "Peer idea").click();
   await more(b, "Delete");
   await expect.poll(() => row(a, "Peer idea").count()).toBe(0);
@@ -126,7 +132,7 @@ async function sharedGroupDeletion(a: Page, b: Page) {
   await more(a, "Group");
   await groupLabel(b).waitFor();
   // b still has its new note selected, and that note's rotation handle sits over the group label.
-  await b.getByTestId("canvas").click({ position: { x: 880, y: 800 } });
+  await b.getByTestId("canvas").click({ position: { x: 750, y: 800 } });
   await groupLabel(b).click();
   expect(await selectionLabel(b)).toBe("Group");
   await more(b, "Delete");
@@ -144,7 +150,7 @@ it("drags and resizes attached objects, changes routing and imports its own expo
   await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByRole("button", { name: "Connect with a line", exact: true }).click();
   await row(page, "Move me").click();
-  await page.getByRole("tab", { name: "Design", exact: true }).click();
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   const oldX = Number(await page.getByLabel("Object x", { exact: true }).inputValue());
   await drag(page, 300, 215, 100, 70);
   await expect
@@ -156,6 +162,7 @@ it("drags and resizes attached objects, changes routing and imports its own expo
     .toBe("240");
   await selectConnector(page);
   await page.getByLabel("Line type").selectOption("diagonal");
+  await textEditor(page);
   await page.getByLabel("Object text", { exact: true }).fill("Relationship");
   const saved = await exported(page);
   const edge = saved.objects.find((item) => item.type === "line")!;

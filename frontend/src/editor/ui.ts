@@ -35,6 +35,8 @@ export interface EditorUi {
   menu: MenuState | null;
   /** The item whose comments are open in a modal above it. */
   comments: string | null;
+  /** Objects whose text and typography are open in the full editor. */
+  textEditor: string[] | null;
   /** Whether the tag editor floats over the selection. */
   tagging: boolean;
   /** The source object awaiting a relation target on the canvas or in optional search. */
@@ -63,6 +65,7 @@ export function initialUi(): EditorUi {
     pulse: null,
     menu: null,
     comments: null,
+    textEditor: null,
     tagging: false,
     relating: null,
     dragging: false,
@@ -148,6 +151,13 @@ export function showComments(editor: EditorController, id: string | null) {
   editor.ui.comments = id;
   editor.emit();
   if (!id) editor.element.focus({ preventScroll: true });
+}
+
+export function showTextEditor(editor: EditorController, ids: string[] | null) {
+  editor.editId = null;
+  editor.ui.textEditor = ids;
+  editor.emit();
+  if (!ids) editor.element.focus({ preventScroll: true });
 }
 
 export function showTagger(editor: EditorController, open: boolean) {

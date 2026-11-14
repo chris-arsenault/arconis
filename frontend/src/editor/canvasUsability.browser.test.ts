@@ -73,7 +73,7 @@ it("shows the first search match first", async () => {
   expect(await page.getByTestId("find-count").textContent()).toBe("2 matches");
   await input.press("Enter");
   expect(await page.getByTestId("find-count").textContent()).toBe("1 of 2");
-  expect(await page.getByLabel("Object text", { exact: true }).inputValue()).toBe("Agenda first");
+  expect(await page.locator(".inspector-name").textContent()).toBe("Agenda first");
   await input.press("Escape");
   expect(errors).toEqual([]);
   await context.close();

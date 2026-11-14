@@ -20,10 +20,12 @@ export function CanvasObjectLink({
   editor,
   sourceId,
   textarea,
+  canvasPicking,
 }: Readonly<{
   editor: EditorController;
   sourceId: string;
   textarea: RefObject<HTMLTextAreaElement | null>;
+  canvasPicking: boolean;
 }>) {
   const [range, setRange] = useState<LinkRange | null>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -53,20 +55,11 @@ export function CanvasObjectLink({
     );
     setRange(null);
   };
-  useCanvasTarget(editor, panel, range !== null, pick, close, () => setRange(null));
+  useCanvasTarget(editor, panel, range !== null, pick, close, () => setRange(null), canvasPicking);
   const begin = () => {
     const element = textarea.current;
     if (!element) return;
-    const text = editor.document.text(sourceId);
-    if (!text) return;
-    setRange({
-      start: Y.createRelativePositionFromTypeIndex(text, element.selectionStart),
-      end: Y.createRelativePositionFromTypeIndex(
-        text,
-        element.selectionEnd,
-        element.selectionStart === element.selectionEnd ? 0 : -1
-      ),
-    });
+    setRange(linkRange(editor, sourceId, element));
   };
   return (
     <>
@@ -81,9 +74,34 @@ export function CanvasObjectLink({
       >
         <LocateFixed size={14} /> Object
       </button>
-      {range && <ObjectLinkPanel ref={panel} editor={editor} onPick={pick} onClose={close} />}
+      {range && (
+        <ObjectLinkPanel
+          ref={panel}
+          editor={editor}
+          onPick={pick}
+          onClose={close}
+          searchOnly={!canvasPicking}
+        />
+      )}
     </>
   );
+}
+
+function linkRange(
+  editor: EditorController,
+  id: string,
+  element: HTMLTextAreaElement
+): LinkRange | null {
+  const text = editor.document.text(id);
+  if (!text) return null;
+  return {
+    start: Y.createRelativePositionFromTypeIndex(text, element.selectionStart),
+    end: Y.createRelativePositionFromTypeIndex(
+      text,
+      element.selectionEnd,
+      element.selectionStart === element.selectionEnd ? 0 : -1
+    ),
+  };
 }
 
 function useCanvasTarget(
@@ -92,7 +110,8 @@ function useCanvasTarget(
   active: boolean,
   pick: (item: Item) => void,
   close: () => void,
-  dismiss: () => void
+  dismiss: () => void,
+  canvasPicking: boolean
 ) {
   useEffect(() => {
     if (!active) return;
@@ -101,14 +120,14 @@ function useCanvasTarget(
     window.addEventListener(
       "pointerdown",
       (event) => {
+        if (!canvasPicking) return;
         if (!(event.target instanceof Node) || panel.current?.contains(event.target)) return;
         if (!editor.element.contains(event.target)) return dismiss();
         event.preventDefault();
         event.stopImmediatePropagation();
         if (event.button === 2) return close();
         if (event.button === 1) return panWithPointer(editor, event);
-        const cell = cellAt(editor, event);
-        const item = cell?.id ? editor.document.get(cell.id) : null;
+        const item = pointedItem(editor, event);
         if (item) pick(item);
       },
       options
@@ -124,7 +143,12 @@ function useCanvasTarget(
       options
     );
     return () => abort.abort();
-  }, [editor, panel, active, pick, close, dismiss]);
+  }, [editor, panel, active, pick, close, dismiss, canvasPicking]);
+}
+
+function pointedItem(editor: EditorController, event: PointerEvent) {
+  const cell = cellAt(editor, event);
+  return cell?.id ? editor.document.get(cell.id) : null;
 }
 
 function linkCandidates(items: Item[], query: string) {
@@ -140,17 +164,21 @@ function ObjectLinkPanel({
   editor,
   onPick,
   onClose,
+  searchOnly,
 }: Readonly<{
   ref: RefObject<HTMLDivElement | null>;
   editor: EditorController;
   onPick: (item: Item) => void;
   onClose: () => void;
+  searchOnly: boolean;
 }>) {
-  const [searching, setSearching] = useState(false);
+  const [searching, setSearching] = useState(searchOnly);
   return (
     <div ref={ref} className="canvas-link-picker" role="group" aria-label="Choose link target">
       <div className="canvas-link-heading">
-        <strong>Click an object to link to it</strong>
+        <strong>
+          {searchOnly ? "Find an object to link to" : "Click an object to link to it"}
+        </strong>
         <button
           type="button"
           data-hint-detail="Stop picking a target and leave the text unlinked."
@@ -159,7 +187,11 @@ function ObjectLinkPanel({
           Cancel
         </button>
       </div>
-      <p>Esc or right-click cancels. Middle-drag pans.</p>
+      <p>
+        {searchOnly
+          ? "Search by name, tag or id. Esc cancels."
+          : "Esc or right-click cancels. Middle-drag pans."}
+      </p>
       {!searching ? (
         <button
           type="button"

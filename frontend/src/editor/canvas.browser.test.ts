@@ -17,7 +17,7 @@ import {
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
-const emptySpot = { x: 880, y: 760 };
+const emptySpot = { x: 750, y: 760 };
 
 async function canvasOrigin(page: Page) {
   const bounds = (await canvas(page).boundingBox())!;

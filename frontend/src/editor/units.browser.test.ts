@@ -3,6 +3,7 @@ import { writeFile } from "node:fs/promises";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { add, browser, drag, errors, exported, open, row } from "./browserHarness";
+import { openSettings } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 async function zoom(page: Page, scale: number) {
@@ -20,7 +21,7 @@ it("shares calibration, converts geometry and preserves physical measurements th
   await add(page, "Rectangle (R)", "Measured room", 300, 250);
   const before = (await exported(page)).objects;
   const peer = await open(b, room);
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await openSettings(page);
   await page.getByLabel("Scale preset", { exact: true }).selectOption("House");
   await expect.poll(() => page.getByTestId("scale-distance").textContent()).toBe("1 m");
   await expect.poll(() => peer.getByTestId("scale-distance").textContent()).toBe("1 m");
@@ -39,7 +40,7 @@ it("shares calibration, converts geometry and preserves physical measurements th
   await expect
     .poll(() => peer.getByLabel("Object width", { exact: true }).inputValue())
     .toBe("2.4");
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await openSettings(page);
   await page.getByLabel("Display unit", { exact: true }).selectOption("mm");
   await page.getByRole("button", { name: "Close settings", exact: true }).click();
   expect(await page.getByLabel("Object width", { exact: true }).inputValue()).toBe("2400");
@@ -82,7 +83,7 @@ it("shares calibration, converts geometry and preserves physical measurements th
 it("uses a fixed electronics pitch, keeps keyboard measurements stable and undoes calibration", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await openSettings(page);
   await page.getByLabel("Scale preset", { exact: true }).selectOption("Electronics");
   await page.getByLabel("Fixed grid distance", { exact: true }).fill("2.54");
   await page.getByRole("button", { name: "Set fixed grid", exact: true }).click();

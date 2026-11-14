@@ -4,6 +4,7 @@ import { CanvasDocument } from "../document/canvasDocument";
 import { serializeDocument } from "../files/canvasFile";
 import { createRoomId } from "../collaboration/room";
 import { browser, open, objectCount, exported } from "./browserHarness";
+import { textEditor, closeTextEditor } from "./browserHarness";
 
 function mixedCanvas() {
   const document = new CanvasDocument();
@@ -134,11 +135,13 @@ it("edits a 500-item canvas through real input and converges with an independent
   await find.press("Enter");
   await find.press("Escape");
   const field = page.getByLabel("Object text", { exact: true });
+  await textEditor(page);
   await field.click();
   await field.press("End");
   const started = performance.now();
   await page.keyboard.type(" edited");
   await field.press("Tab");
+  await closeTextEditor(page);
   await page.getByLabel("Object width", { exact: true }).fill("200");
   await page
     .getByRole("toolbar", { name: "Selection toolbar", exact: true })

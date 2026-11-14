@@ -8,12 +8,10 @@ import {
 import { Download, FileText, ImageDown, Upload, FilePlus2, FolderOpen, House } from "lucide-react";
 import type { RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
-import { downloadFile } from "../files/download";
-import { renderPng } from "../editor/pngExport";
-import { pictureScope } from "../editor/layerView";
 import { IMPORT_ACCEPT, importForeignFile } from "../editor/importFile";
 import { RoomDialog } from "./RoomControls";
 import { DeckExportItem } from "./DeckExports";
+import { CanvasExport, type ExportFormat } from "./CanvasExport";
 
 interface FileProps {
   session: RoomSession;
@@ -25,6 +23,7 @@ type FileMenuProps = FileProps &
     onCreate: () => void;
     onJoin: (id: string) => void;
     onLeave: () => void;
+    onHome: () => void;
     name: string;
     onName: (name: string) => void;
   }>;
@@ -41,53 +40,9 @@ async function loadFile({ session, editor, onMessage }: FileProps, file: File) {
   }
 }
 
-async function exportPng({ session, editor, onMessage }: FileProps, includeMarkup: boolean) {
-  if (!editor) return;
-  try {
-    const ids = pictureScope(session.document, editor.layers, editor.selectionClosure());
-    if (!ids) {
-      onMessage("Every layer with content is hidden.");
-      return;
-    }
-    const png = await session.files.png(
-      ids,
-      () => renderPng(editor.graph, ids, session.document.list(), includeMarkup),
-      includeMarkup
-    );
-    if (!png) {
-      onMessage("Add something to the canvas first.");
-      return;
-    }
-    downloadFile(session.document, new Uint8Array(png), "image/png", "png");
-  } catch (error) {
-    fileFailure(error, onMessage);
-  }
-}
-
 function fileFailure(error: unknown, onMessage: (text: string) => void) {
   if (error instanceof DOMException && error.name === "AbortError") return;
   onMessage(String(error));
-}
-
-function ExportCopyNote({ locked }: Readonly<{ locked: boolean }>) {
-  return locked ? (
-    <p className="export-copy-note">
-      Exports are readable copies without the room password. PNGs include editable canvas content.
-    </p>
-  ) : null;
-}
-
-async function exportCanvas({ session, onMessage }: FileProps, includeMarkup: boolean) {
-  try {
-    downloadFile(
-      session.document,
-      await session.files.canvas([], includeMarkup),
-      "text/plain",
-      "arconis"
-    );
-  } catch (error) {
-    fileFailure(error, onMessage);
-  }
 }
 
 /** Closes a header menu on a press outside it or on Escape. */
@@ -138,15 +93,13 @@ function navigateFileMenu(
 
 function FileMenuItems({
   props,
-  includeMarkup,
-  onMarkup,
+  onExport,
   run,
   onImport,
   onJoin,
 }: Readonly<{
   props: FileMenuProps;
-  includeMarkup: boolean;
-  onMarkup: (include: boolean) => void;
+  onExport: (format: ExportFormat) => void;
   run: (action: () => void) => () => void;
   onImport: () => void;
   onJoin: () => void;
@@ -154,10 +107,9 @@ function FileMenuItems({
   return (
     <>
       <CanvasNavigation props={props} run={run} onJoin={onJoin} />
-      <ExportCopyNote locked={props.session.lock.requiresPassword} />
       <button
         role="menuitem"
-        onClick={run(() => void exportCanvas(props, includeMarkup))}
+        onClick={run(() => onExport("document"))}
         data-hint="Export document"
         data-hint-detail="Download the whole canvas as a readable file any room can import."
       >
@@ -165,7 +117,7 @@ function FileMenuItems({
       </button>
       <button
         role="menuitem"
-        onClick={run(() => void exportPng(props, includeMarkup))}
+        onClick={run(() => onExport("png"))}
         data-hint="Export PNG"
         data-hint-detail="Download the selection, or the whole canvas, as a picture with editable source inside."
       >
@@ -179,29 +131,15 @@ function FileMenuItems({
       >
         <Upload size={15} /> Import document
       </button>
-      <label
-        className="export-markup"
-        data-hint-detail="Choose whether exports carry the markup drawn over the canvas."
-      >
-        <input
-          type="checkbox"
-          role="menuitemcheckbox"
-          aria-checked={includeMarkup}
-          checked={includeMarkup}
-          onChange={(event) => onMarkup(event.target.checked)}
-        />
-        Include markup
-      </label>
     </>
   );
 }
 
 /**
- * The file menu: export the canvas as a file or a picture, import one, and whether exports carry
- * the markup drawn over the canvas. The file chooser stays mounted so a dropped-in file works.
+ * Canvas navigation, import and export choices. The file chooser stays mounted for file drops.
  */
 export function FileMenu(props: FileMenuProps) {
-  const [includeMarkup, setIncludeMarkup] = useState(true);
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [open, setOpen] = useState(false);
   const [joining, setJoining] = useState(false);
   const [closeJoin] = useState(() => () => setJoining(false));
@@ -254,24 +192,18 @@ export function FileMenu(props: FileMenuProps) {
         >
           <FileMenuItems
             props={props}
-            includeMarkup={includeMarkup}
-            onMarkup={setIncludeMarkup}
+            onExport={setExporting}
             run={run}
             onImport={importFile}
             onJoin={() => setJoining(true)}
           />
         </div>
       )}
-      {joining && (
-        <RoomDialog
-          mode="join"
-          name={props.name}
-          onName={props.onName}
-          onJoin={props.onJoin}
-          onClose={closeJoin}
-        />
-      )}
+      {joining && <RoomDialog {...props} mode="join" onClose={closeJoin} />}
       <FilePicker input={input} props={props} />
+      {exporting && (
+        <CanvasExport {...props} format={exporting} onClose={() => setExporting(null)} />
+      )}
     </div>
   );
 }
@@ -304,7 +236,7 @@ function CanvasNavigation({
       </button>
       <button
         role="menuitem"
-        onClick={run(props.onLeave)}
+        onClick={run(props.onHome)}
         data-hint-detail="Return to your canvases on the home screen."
       >
         <House size={15} /> Back to my canvases

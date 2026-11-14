@@ -36,15 +36,18 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   // The deck's size follows a size choice, and the width field keeps the ratio.
   await page.getByLabel("Slide size", { exact: true }).selectOption("Standard 4:3");
   await expect.poll(async () => (await slides(page))[1].height).toBe(768);
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object width", { exact: true }).fill("512");
   await expect.poll(async () => (await slides(page))[1].height).toBe(384);
   expect((await slides(page))[1]).toMatchObject({ deck: "pitch", slide: 5, width: 512 });
 
   // The rail lists each deck and flies to a slide.
+  await dockPanel(page, "Slides");
   const decks = page.getByTestId("deck");
   await expect.poll(() => decks.count()).toBe(2);
   await decks.filter({ hasText: "pitch" }).getByRole("button", { name: "5 · Solution" }).click();
   await expect.poll(() => page.getByTestId("zoom-level").textContent()).not.toBe("1×");
+  await page.getByRole("button", { name: "Properties", exact: true }).click();
   expect(await page.getByTestId("selection-count").textContent()).toBe("Slide");
 
   // Speaker notes: a comment of several lines, broken with Shift Enter, in the comments modal.
@@ -71,6 +74,8 @@ it("places slides behind the canvas in a numbered deck, keeps their shape and ta
   expect(placed.inside).toBe("");
   await dockPanel(page, "Slides");
   await page.getByTestId("deck").getByRole("button", { name: "1 · Problem" }).click();
+  await page.getByRole("button", { name: "Properties", exact: true }).click();
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object x", { exact: true }).fill("9000");
   await page.getByLabel("Object x", { exact: true }).press("Tab");
   await expect.poll(async () => (await slides(page)).some((slide) => slide.x === 9000)).toBe(true);
@@ -93,6 +98,7 @@ it("presents a deck with the chrome gone, moving by key and button, with notes a
   await dockPanel(b, "Slides");
   await expect.poll(() => b.getByTestId("deck").count()).toBe(1);
 
+  await dockPanel(a, "Slides");
   await a.getByRole("button", { name: "Present deck", exact: true }).click();
   await a.getByTestId("presenter").waitFor();
   expect(await a.getByRole("banner").count()).toBe(0);
@@ -146,10 +152,14 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   await add(page, "Slide", "Body", 100, 100);
   // The deck's second slide moves well clear of the first before the first becomes the template.
   await add(page, "Slide", "Layout", 200, 200);
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await page.getByLabel("Object x", { exact: true }).fill("3000");
+  await dockPanel(page, "Slides");
   await page.getByTestId("deck").getByRole("button", { name: "2 · Layout" }).click();
+  await page.getByRole("button", { name: "Properties", exact: true }).click();
   await page.getByRole("checkbox", { name: "Template under the deck's slides" }).check();
   await expect.poll(() => row(page, "deck · template Layout").count()).toBe(1);
+  await dockPanel(page, "Slides");
   await expect.poll(() => page.getByRole("button", { name: "Template · Layout" }).count()).toBe(1);
   // Text placed on the template appears again on the other slide.
   await add(page, "Text (T)", "Acme", 700, 600);
@@ -164,6 +174,7 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   // On the other slide the copy cannot be picked: clicking it selects the slide beneath.
   await dockPanel(page, "Slides");
   await page.getByTestId("deck").getByRole("button", { name: "1 · Body" }).click();
+  await page.getByRole("button", { name: "Properties", exact: true }).click();
   await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
   await page.keyboard.press("Escape");
   const copies = row(page, "Acme");
@@ -189,10 +200,11 @@ it("draws a template under the deck's slides, where nothing can touch it, and pr
   const copy = last!;
   await page.mouse.click(copy.x + copy.width / 2, copy.y + copy.height / 2);
   await expect.poll(() => page.getByTestId("selection-count").textContent()).toBe("Slide");
-  expect(await page.getByLabel("Object text", { exact: true }).inputValue()).toBe("Body");
+  expect(await page.locator(".inspector-name").textContent()).toBe("Body");
   expect((await exported(page)).objects).toHaveLength(3);
 
   // Presenting skips the template and shows its text on the slide.
+  await dockPanel(page, "Slides");
   await page.getByRole("button", { name: "Present deck", exact: true }).click();
   await page.getByTestId("presenter").waitFor();
   await expect.poll(() => page.getByTestId("slide-position").textContent()).toBe("1 / 1");

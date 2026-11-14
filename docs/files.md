@@ -15,21 +15,23 @@ and imports them; account saving creates a saved workspace. These paths serve di
 
 ## Export an editable document
 
-Choose **File**, then **Export document**. It downloads the canvas in the Arconis canvas language,
+Choose **File**, then **Export document**, review the options and choose **Export document**.
+It downloads the canvas in the Arconis canvas language,
 including pictures, shared metadata and every layer, including layers you have hidden. It is
 readable text, with `arconis 1` as its header. Full documents include the drawing's scale and
 units; selection copies leave the destination's calibration alone. You can keep the file as
 a backup or import it into a new room to continue editing.
 
-**Include markup**, at the foot of the File menu, is checked by default. Uncheck it to omit annotations while retaining drawn
+**Include canvas annotations**, in the export options, is checked by default. These are pen and
+highlighter marks drawn over the canvas. Uncheck it to omit annotations while retaining drawn
 objects and other workspace content. This applies to the portable export, not the room's local
 or account-saved copy.
 
 ## Export a PNG
 
 1. Select the objects you want, or clear the selection to export the whole canvas.
-2. Open **File** and choose whether to **Include markup**.
-3. Choose **Export PNG**.
+2. Open **File → Export PNG** and choose whether to **Include canvas annotations**.
+3. Choose **Export PNG** in the export options.
 
 Selected holders include their contents and internal relationships. Merely overlapping a frame
 does not make an object its content, and slides hold nothing. Export includes the chosen items rather than a
@@ -39,13 +41,13 @@ The PNG's editable copy matches its export selection and markup choice. Objects 
 have hidden are left out of both the pixels and the editable copy. Clipboard pictures and SVG
 exports also omit hidden layers. If every layer with content is hidden, the export reports it.
 Hidden markup can still be included
-when Include markup is checked. A clean export omits annotations from the pixels,
+when Include canvas annotations is checked. A clean export omits annotations from the pixels,
 editable copy and bounds. Text fonts, Markdown styling, math and Drawing fills are rendered into
 the picture.
 
 A PNG needs included items to render. If **Add something to the canvas first** appears while
 only markup is selected and excluded, clear the selection to include the workspace or enable
-Include markup.
+Include canvas annotations.
 
 An Arconis PNG contains source as well as pixels. Its editable copy includes the exported
 objects' text and associated document data, rather than acting as a flattened-only image.

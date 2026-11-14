@@ -115,7 +115,7 @@ it("keeps a placing tool in hand with Q until Escape", async () => {
   await canvas.press("q");
   await page.getByText("Tools stay in hand after placing").waitFor();
   await canvas.press("r");
-  for (const x of [500, 700, 900]) await canvas.click({ position: { x, y: 300 } });
+  for (const x of [480, 650, 800]) await canvas.click({ position: { x, y: 300 } });
   await expect.poll(() => objectCount(page)).toBe(4);
   expect(await rectangle.getAttribute("aria-pressed")).toBe("true");
 
@@ -129,7 +129,7 @@ it("keeps a placing tool in hand with Q until Escape", async () => {
   // Escape puts the tool away and ends keeping it.
   await canvas.press("Escape");
   await rectangle.click();
-  await canvas.click({ position: { x: 1000, y: 700 } });
+  await canvas.click({ position: { x: 700, y: 700 } });
   await expect.poll(() => objectCount(page)).toBe(7);
   expect(await rectangle.getAttribute("aria-pressed")).toBe("false");
   expect((await exported(page)).objects.filter((item) => item.type === "note")).toHaveLength(2);

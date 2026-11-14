@@ -147,7 +147,7 @@ frame panel "Panel" at 100,100 size 400,300 title top fill none {
     .poll(async () => (await exported(peer)).objects.find((i) => i.id === "panel")?.scaleContents)
     .toBe(true);
   const before = await exported(page);
-  await page.getByRole("tab", { name: "Design", exact: true }).click();
+  await page.getByRole("tab", { name: "Arrange", exact: true }).click();
   await resizeDimension(page, "width", "800");
   await resizeDimension(page, "height", "600");
   await expect

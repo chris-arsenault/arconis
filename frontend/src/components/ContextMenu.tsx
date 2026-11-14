@@ -1,11 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { COLORS } from "../document/types";
 import type { EditorController } from "../editor/controller";
-import { chooseRingEntry, menuGroups, ringEntries, type MenuEntry } from "../editor/contextMenu";
-import { commandContext, findCommand, runCommand } from "../editor/registry";
+import { chooseRingEntry, ringEntries, type MenuEntry } from "../editor/contextMenu";
+import { commandContext } from "../editor/registry";
 import { closeMenu } from "../editor/ui";
-import { shortcutLabel } from "../editor/shortcuts";
+import { MenuList } from "./CanvasMenuList";
 import {
   RING_RADIUS,
   RING_INNER,
@@ -150,159 +149,6 @@ function Wedge({
   );
 }
 
-/** One command in the menu, with its shortcut. */
-function MenuItem({ editor, entry }: Readonly<{ editor: EditorController; entry: MenuEntry }>) {
-  const shortcut = findCommand(entry.id).shortcuts?.[0];
-  const { disabled } = entry;
-  return (
-    <li role="none">
-      <button
-        type="button"
-        role="menuitem"
-        aria-disabled={disabled}
-        data-hint={entry.label}
-        data-hint-detail={entry.help}
-        onClick={() => {
-          if (disabled) return;
-          closeMenu(editor);
-          runCommand(editor, entry.id);
-        }}
-      >
-        <span>{entry.label}</span>
-        {shortcut && <kbd>{shortcutLabel(shortcut)}</kbd>}
-      </button>
-    </li>
-  );
-}
-
-/**
- * One level of flyout commands. It flips at the window edge and supports pointer and arrow keys.
- */
-function Submenu({
-  editor,
-  entry,
-  open,
-  onOpen,
-}: Readonly<{
-  editor: EditorController;
-  entry: Extract<MenuEntry, { kind: "submenu" }>;
-  open: boolean;
-  onOpen: (id: string | null) => void;
-}>) {
-  const trigger = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLUListElement>(null);
-  const focusOnOpen = useRef(false);
-  useLayoutEffect(() => {
-    if (open) positionSubmenu(trigger.current, menu.current, focusOnOpen.current);
-  }, [open]);
-  const reveal = (focus: boolean) => {
-    if (entry.disabled) return;
-    focusOnOpen.current = focus;
-    onOpen(entry.id);
-  };
-  return (
-    <li
-      role="none"
-      className="has-submenu"
-      onKeyDown={(event) => {
-        if (!open || !["ArrowLeft", "Escape"].includes(event.key)) return;
-        event.preventDefault();
-        event.stopPropagation();
-        onOpen(null);
-        trigger.current?.focus();
-      }}
-    >
-      <button
-        ref={trigger}
-        type="button"
-        role="menuitem"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-disabled={entry.disabled}
-        data-hint={entry.label}
-        data-hint-detail={entry.help}
-        onPointerEnter={() => reveal(false)}
-        onClick={() => {
-          reveal(true);
-          menu.current
-            ?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
-            ?.focus();
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== "ArrowRight" || entry.disabled) return;
-          event.preventDefault();
-          event.stopPropagation();
-          if (open)
-            menu.current
-              ?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
-              ?.focus();
-          else reveal(true);
-        }}
-      >
-        <span>{entry.label}</span>
-        <ChevronRight size={13} aria-hidden="true" />
-      </button>
-      {open && (
-        <ul ref={menu} className="context-submenu" role="menu" aria-label={entry.label}>
-          {entry.submenu.map((inner) => (
-            <MenuItem key={inner.id} editor={editor} entry={inner} />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-function positionSubmenu(
-  trigger: HTMLButtonElement | null,
-  menu: HTMLUListElement | null,
-  focus: boolean
-) {
-  if (!menu || !trigger) return;
-  const anchor = trigger.getBoundingClientRect();
-  const { top, bottom } = trigger.closest(".canvas-area")?.getBoundingClientRect() ?? {
-    top: 0,
-    bottom: window.innerHeight,
-  };
-  menu.style.maxHeight = `${bottom - top - 16}px`;
-  const box = menu.getBoundingClientRect();
-  const right = anchor.right + 4;
-  const x = right + box.width <= window.innerWidth - 8 ? right : anchor.left - box.width - 4;
-  const y = Math.max(top + 8, Math.min(anchor.top, bottom - box.height - 8));
-  Object.assign(menu.style, { left: `${Math.max(8, x)}px`, top: `${y}px` });
-  if (focus)
-    menu.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')?.focus();
-}
-
-/** Every applicable command, grouped by intent, with longer families folded into submenus. */
-function MenuList({ editor }: Readonly<{ editor: EditorController }>) {
-  const groups = menuGroups(commandContext(editor));
-  const [submenu, setSubmenu] = useState<string | null>(null);
-  return (
-    <ul className="context-menu" role="menu" aria-label="Canvas menu">
-      {groups.map((group, index) => (
-        <li key={group[0].id} className={index ? "menu-group" : ""}>
-          <ul>
-            {group.map((entry) =>
-              entry.kind === "submenu" ? (
-                <Submenu
-                  key={entry.id}
-                  editor={editor}
-                  entry={entry}
-                  open={submenu === entry.id}
-                  onOpen={setSubmenu}
-                />
-              ) : (
-                <MenuItem key={entry.id} editor={editor} entry={entry} />
-              )
-            )}
-          </ul>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /**
  * The right button's ring and menu, placed where it was pressed and kept inside the canvas area.
  * Escape, a click outside and the left button anywhere else close them.
@@ -330,7 +176,7 @@ export function ContextMenu({ editor }: Readonly<{ editor: EditorController }>) 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (document.activeElement?.closest(".context-submenu")) return;
+        if (document.activeElement?.closest(".context-submenu, .context-submenu-page")) return;
         event.preventDefault();
         closeMenu(editor);
         editor.element.focus({ preventScroll: true });

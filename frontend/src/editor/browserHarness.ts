@@ -100,23 +100,6 @@ export function drawnPictures(page: Page) {
     );
 }
 
-const unfolded = new WeakSet<BrowserContext>();
-
-/**
- * Journeys type labels into the property panel's source field, which people find folded. Each
- * context starts with it unfolded, once, so a journey that folds it again sees the fold persist.
- */
-export async function unfoldSource(context: BrowserContext) {
-  if (unfolded.has(context)) return;
-  unfolded.add(context);
-  await context.addInitScript(() => {
-    if (sessionStorage.getItem("journey-source")) return;
-    sessionStorage.setItem("journey-source", "1");
-    const saved = JSON.parse(localStorage.getItem("arconis.inspector") ?? "{}") as object;
-    localStorage.setItem("arconis.inspector", JSON.stringify({ ...saved, source: true }));
-  });
-}
-
 const oriented = new WeakSet<BrowserContext>();
 
 /** Makes a context arrive as a first-time visitor, so the orientation offer appears. */
@@ -143,7 +126,13 @@ export async function more(page: Page, command: string) {
     .locator('button[aria-haspopup="menu"]');
   for (const group of await groups.all()) {
     if (await item.count()) break;
-    await group.hover();
+    if ((await group.getAttribute("aria-disabled")) === "true") continue;
+    if ((page.viewportSize()?.width ?? 1440) > 650) await group.hover();
+    else {
+      await group.click();
+      if (!(await item.count()))
+        await page.getByRole("menuitem", { name: "← Back", exact: true }).click();
+    }
   }
   await item.click();
 }
@@ -156,8 +145,10 @@ export async function fileMenu(page: Page) {
 
 /** Exports the selection or the canvas as a PNG through the File menu. */
 export async function exportPng(page: Page) {
+  await closeTextEditor(page);
   await fileMenu(page);
   await page.getByRole("menuitem", { name: "Export PNG", exact: true }).click();
+  await page.getByRole("button", { name: "Export PNG", exact: true }).click();
 }
 
 export async function open(context: BrowserContext, room = "", join = false, status = "Connected") {
@@ -166,7 +157,6 @@ export async function open(context: BrowserContext, room = "", join = false, sta
     traced.add(context);
   }
   await serveFixtures(context);
-  await unfoldSource(context);
   await skipOrientation(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => {
@@ -189,7 +179,7 @@ export async function open(context: BrowserContext, room = "", join = false, sta
 
 /** Changes the right-button mode through Settings, as a person does. */
 export async function setContextWheel(page: Page, enabled: boolean) {
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await openSettings(page);
   await page
     .getByRole("checkbox", { name: "Enable context wheel", exact: true })
     .setChecked(enabled);
@@ -197,6 +187,34 @@ export async function setContextWheel(page: Page, enabled: boolean) {
     .getByRole("dialog", { name: "Settings", exact: true })
     .getByRole("button", { name: "Done", exact: true })
     .click();
+}
+
+export async function workspaceTools(page: Page) {
+  const menu = page.locator(".header-tools");
+  if (!(await menu.evaluate((node: HTMLDetailsElement) => node.open)))
+    await menu.locator("summary").first().click();
+}
+
+export async function openSettings(page: Page) {
+  await workspaceTools(page);
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+}
+
+/** Open the full editor through its visible launcher. No sidebar source field is used. */
+export async function textEditor(page: Page) {
+  const dialog = page.getByRole("dialog", { name: "Edit text", exact: true });
+  if (!(await dialog.count())) {
+    const inspector = page.getByRole("button", { name: "Edit text", exact: true });
+    if (await inspector.isVisible()) await inspector.click();
+    else await page.getByRole("button", { name: "Open text editor", exact: true }).click();
+    await dialog.waitFor();
+  }
+  return dialog;
+}
+
+export async function closeTextEditor(page: Page) {
+  const dialog = page.getByRole("dialog", { name: "Edit text", exact: true });
+  if (await dialog.count()) await dialog.getByRole("button", { name: "Done", exact: true }).click();
 }
 
 /** Shows one of the left rail's panels: Shapes or Draw. */
@@ -215,16 +233,19 @@ export async function dockPanel(page: Page, name: "Layers" | "Slides" | "Navigat
   if ((await tab.getAttribute("aria-pressed")) !== "true") await tab.click();
 }
 export async function add(page: Page, tool: string, label: string, x: number, y: number) {
+  await closeTextEditor(page);
   if (tool === "Slide") await dockPanel(page, "Slides");
   else await railPanel(page, "Shapes");
   await page
     .getByRole("button", { name: tool === "Slide" ? "Add slide" : tool, exact: true })
     .click();
   await page.getByTestId("canvas").click({ position: { x, y } });
+  const inline = page.getByLabel("Edit canvas text", { exact: true });
+  if (!(await inline.count())) await page.keyboard.press("Enter");
+  await inline.fill(label);
+  await inline.press("ControlOrMeta+Enter");
   if ((page.viewportSize()?.width ?? 1440) <= 1100)
     await page.getByRole("button", { name: "Object properties", exact: true }).click();
-  await page.getByLabel("Object text", { exact: true }).fill(label);
-  await page.getByLabel("Object text", { exact: true }).press("ControlOrMeta+Enter");
 }
 /** An object's label on the canvas. Clicking it selects the object with a real gesture. */
 export function row(page: Page, label: string | RegExp) {
@@ -238,7 +259,10 @@ export async function objectCount(page: Page) {
 }
 export async function selectionLabel(page: Page) {
   const heading = page.getByTestId("selection-count");
-  return (await heading.count()) ? await heading.textContent() : "";
+  if (await heading.count()) return heading.textContent();
+  const type = page.getByLabel("Object type", { exact: true });
+  if (await type.count()) return type.locator("option:checked").textContent();
+  return "";
 }
 async function clickPath(page: Page, stroke: string, modifiers: "Shift"[]) {
   const canvas = page.getByTestId("canvas");
@@ -304,14 +328,22 @@ export async function selectDrawing(
   if (modifiers.length) await page.keyboard.up("Shift");
 }
 
-export async function exported(page: Page): Promise<{
+export async function exported(
+  page: Page,
+  annotations = true
+): Promise<{
   objects: Item[];
   /** The file as downloaded, for importing it again. */
   text: string;
 }> {
+  await closeTextEditor(page);
   const pending = page.waitForEvent("download");
   await fileMenu(page);
   await page.getByRole("menuitem", { name: "Export document", exact: true }).click();
+  await page
+    .getByRole("checkbox", { name: "Include canvas annotations", exact: true })
+    .setChecked(annotations);
+  await page.getByRole("button", { name: "Export document", exact: true }).click();
   const download = await pending;
   const text = await readFile(await download.path(), "utf8");
   // An empty canvas keeps the file's ids, so journeys see the items as the room has them.

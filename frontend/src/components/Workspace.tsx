@@ -31,6 +31,7 @@ import { ContextHelp } from "./ContextHelp";
 import { HelpSurfaces } from "./HelpSurfaces";
 import { TextOverflow } from "./TextOverflow";
 import { ObjectMetadata } from "./ObjectMetadata";
+import { TextEditor } from "./TextEditor";
 
 const subscribeEmpty = () => () => {};
 interface Props {
@@ -45,6 +46,7 @@ interface Props {
   onCreate: () => void;
   onJoin: (id: string) => void;
   onLeave: () => void;
+  onHome: () => void;
 }
 
 /** The room's editor as it arrives, and whether it is presenting, re-rendering as either changes. */
@@ -246,6 +248,7 @@ function EditingOverlays({
       <PresenceOverlays editor={editor} session={session} />
       {editor.ui.menu && <ContextMenu editor={editor} />}
       {editor.ui.comments && <CommentModal editor={editor} author={author} />}
+      {editor.ui.textEditor && <TextEditor editor={editor} />}
       {editor.ui.tagging && <TagPopover editor={editor} />}
       {editor.ui.relating && <RelatePicker editor={editor} />}
       <HelpSurfaces editor={editor} />

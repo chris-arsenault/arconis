@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
 import { quote } from "../language/printer";
 import { browser, dockPanel, errors, open, add, objectCount } from "./browserHarness";
+import { textEditor } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
@@ -11,12 +12,12 @@ it("keeps invalid equations editable and inserts display math from the source se
   await add(page, "Sticky note (N)", "$\\frac{a}{$", 220, 170);
   const canvas = page.getByTestId("canvas");
   const source = page.getByLabel("Object text", { exact: true });
+  await textEditor(page);
   expect(await source.inputValue()).toBe("$\\frac{a}{$");
   expect(await canvas.locator(".katex-error").textContent()).toContain("frac");
   await source.fill("\\frac{a}{b}");
   await source.press("ControlOrMeta+a");
-  const inspector = page.getByRole("complementary", { name: "Object properties" });
-  await inspector.getByText("Markdown tools", { exact: true }).click();
+  const inspector = page.getByRole("dialog", { name: "Edit text", exact: true });
   await inspector.locator("summary", { hasText: /^More$/ }).click();
   await inspector.getByRole("button", { name: "Display equation", exact: true }).click();
   expect(await source.inputValue()).toBe("```math\n\\frac{a}{b}\n```\n");

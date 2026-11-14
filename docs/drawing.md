@@ -148,7 +148,8 @@ crosshair. Select keeps native manipulation cursors. Pan uses an open hand and a
 while dragging. Space temporarily borrows Pan, then restores the tool; the middle mouse button
 also pans temporarily.
 
-- **Include markup** controls whether annotations appear in document and PNG exports.
+- **Include canvas annotations**, in document and PNG export options, controls whether annotations
+  appear in that download.
   Content-layer ink remains included when annotations are omitted.
 - Saved copies retain the complete document. Layers' eyes control each person's visible content;
   canvas files keep every layer.

@@ -6,6 +6,14 @@ All notable user-visible changes are recorded here.
 
 ### Organized canvas controls
 
+- Gave Properties, Layers, Slides and Navigate the full dock height one task at a time. Kept
+  dimensions, connector routing, alignment, order and grouping together under Arrange.
+- Moved text source, subtitle and typography into a larger text editor, available from the
+  selection toolbar and Properties. Quick on-canvas editing remains available.
+- Kept the header on one row, with settings, help and feedback under Tools. Fixed File's home
+  action and narrow-screen bounds; phone context menus use a Back button instead of overlapping
+  flyouts.
+- Moved annotation inclusion into each document or PNG export's options and explained its scope.
 - Shortened right-click menus with one level of grouped commands and side-opening submenus.
 - Moved New canvas, Join room and Back to my canvases into File. New canvas explains that the
   current canvas is kept; grouped the remaining header controls and removed ambiguous new/join icons.

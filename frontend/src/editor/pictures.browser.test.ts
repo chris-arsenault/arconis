@@ -14,7 +14,6 @@ import {
   objectCount,
   open,
   pastePicture,
-  unfoldSource,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -97,7 +96,6 @@ it("keeps a device-only room's pictures off the network, through reload and file
       body: `window.__APP_CONFIG__ = ${JSON.stringify(fixture.config)};`,
     })
   );
-  await unfoldSource(context);
   const page = await context.newPage();
   const uploads = uploadedPictures(page);
   await page.goto(baseUrl());

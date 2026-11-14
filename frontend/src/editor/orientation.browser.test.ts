@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { add, browser, errors, exported, firstVisit, open } from "./browserHarness";
+import { workspaceTools } from "./browserHarness";
 
 const tourPopup = (page: Page) => page.locator(".driver-popover.arconis-tour");
 const nextFocused = (page: Page) =>
@@ -80,7 +81,7 @@ it("offers the orientation once, walks every area without changing the room, and
     expect(
       await page
         .getByRole("navigation", { name: "Document panels" })
-        .locator('[aria-pressed="true"]')
+        .locator('button[aria-pressed="true"]:not([aria-label="Properties"])')
         .count()
     ).toBe(0);
     expect(await page.getByRole("toolbar", { name: "Markup", exact: true }).count()).toBe(0);
@@ -90,6 +91,7 @@ it("offers the orientation once, walks every area without changing the room, and
     expect(await page.getByRole("region", { name: "Tour offer" }).count()).toBe(0);
 
     // Help starts the tour again whenever someone wants it; Escape ends it.
+    await workspaceTools(page);
     await page.getByRole("button", { name: "Help", exact: true }).click();
     await page.getByRole("button", { name: "Take the tour", exact: true }).click();
     await tourPopup(page).waitFor();

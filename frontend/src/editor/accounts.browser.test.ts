@@ -11,6 +11,7 @@ import {
   row,
   pastePicture,
   drawnPictures,
+  workspaceTools,
 } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
@@ -222,6 +223,7 @@ it("inserts a private selection on another device without replacing the destinat
     await expect.poll(() => drawnPictures(source)).toBe(1);
     await source.getByTestId("canvas").click({ position: { x: 620, y: 440 } });
     await source.keyboard.press("Control+a");
+    await workspaceTools(source);
     await source.getByRole("button", { name: "My layouts", exact: true }).click();
     const library = (page: Page) => page.getByRole("dialog", { name: "My layouts", exact: true });
     await library(source).getByLabel("Layout name", { exact: true }).fill("Diagram");
@@ -233,6 +235,7 @@ it("inserts a private selection on another device without replacing the destinat
     await target.getByLabel("Canvas title", { exact: true }).fill("Destination title");
     await target.getByLabel("Canvas title", { exact: true }).press("Enter");
     await add(target, "Sticky note (N)", "Keep me", 300, 240);
+    await workspaceTools(target);
     await target.getByRole("button", { name: "My layouts", exact: true }).click();
     await library(target).getByRole("button", { name: "Insert Diagram", exact: true }).click();
     await row(target, "Reusable idea").waitFor();
@@ -244,6 +247,7 @@ it("inserts a private selection on another device without replacing the destinat
     await target.getByRole("button", { name: "Undo", exact: true }).click();
     await expect.poll(() => objectCount(target)).toBe(1);
     await row(target, "Keep me").waitFor();
+    await workspaceTools(target);
     await target.getByRole("button", { name: "My layouts", exact: true }).click();
     await library(target)
       .getByLabel("Layout name for Diagram", { exact: true })

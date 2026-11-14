@@ -1,5 +1,5 @@
-import { useRef, useState, useSyncExternalStore } from "react";
-import { Shapes } from "lucide-react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Shapes, Menu } from "lucide-react";
 import { HelpButton } from "./HelpSurfaces";
 import { isLocalRoom, type RoomSession } from "../collaboration/room";
 import type { EditorController } from "../editor/controller";
@@ -15,6 +15,7 @@ import { Settings } from "./Settings";
 import { Feedback } from "./Feedback";
 import { ReusableSections } from "./ReusableSections";
 import { FileMenu } from "./FileMenu";
+import { useNarrowLayout } from "./useNarrowLayout";
 
 interface Props {
   session: RoomSession;
@@ -22,6 +23,7 @@ interface Props {
   onName: (name: string) => void;
   onCreate: () => void;
   onLeave: () => void;
+  onHome: () => void;
   onJoin: (id: string) => void;
   editor: EditorController | null;
   onMessage: (message: string) => void;
@@ -35,11 +37,8 @@ const subscribeEmpty = () => () => {};
 
 export function WorkspaceHeader(props: Readonly<Props>) {
   const { session, name, onName, onJoin } = props;
+  const narrow = useNarrowLayout();
   useSyncExternalStore(session.subscribe, session.snapshot);
-  const accountStatus = useSyncExternalStore(
-    props.account?.subscribe ?? subscribeEmpty,
-    () => props.account?.status ?? "out"
-  );
   return (
     <header className="topbar">
       <a className="brand compact" href="/" aria-label="Arconis home" data-hint-detail={HOME_HELP}>
@@ -54,22 +53,16 @@ export function WorkspaceHeader(props: Readonly<Props>) {
         <CanvasTitle key={session.id} document={session.document} />
       </div>
       <div className="topbar-actions">
-        <div className="topbar-group" aria-label="Canvas storage">
-          {props.account && (
-            <SaveWorkspace
-              account={props.account}
-              room={session.saveable}
-              onMessage={props.onMessage}
-            />
-          )}
-          <ChangePassword session={session} />
-          {props.account && props.editor && accountStatus === "in" && (
-            <ReusableSections account={props.account} session={session} editor={props.editor} />
-          )}
-        </div>
+        {props.account && (
+          <SaveWorkspace
+            account={props.account}
+            room={session.saveable}
+            onMessage={props.onMessage}
+          />
+        )}
         <WorkspaceTools {...props} />
-        <div className="topbar-group" aria-label="Collaboration and account">
-          <ParticipantsControl {...props} />
+        <div className="topbar-collaboration" aria-label="Collaboration and account">
+          {!narrow && <ParticipantsControl {...props} />}
           <RoomControls
             onJoin={onJoin}
             name={name}
@@ -162,12 +155,51 @@ function CanvasTitle({ document }: Readonly<{ document: CanvasDocument }>) {
 
 function WorkspaceTools(props: Readonly<Props>) {
   const { editor, session, name, account } = props;
+  const ref = useRef<HTMLDetailsElement>(null);
+  const narrow = useNarrowLayout();
+  useSyncExternalStore(account?.subscribe ?? subscribeEmpty, () => account?.status ?? "out");
+  useEffect(() => {
+    const dismiss = (event: PointerEvent) => {
+      if (document.querySelector("dialog[open]")) return;
+      if (event.target instanceof Node && !ref.current?.contains(event.target) && ref.current)
+        ref.current.open = false;
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !ref.current?.open || document.querySelector("dialog[open]"))
+        return;
+      ref.current.open = false;
+      ref.current.querySelector("summary")?.focus();
+    };
+    window.addEventListener("pointerdown", dismiss);
+    window.addEventListener("keydown", key);
+    return () => {
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("keydown", key);
+    };
+  }, []);
   if (!editor) return null;
   return (
-    <div className="topbar-group" aria-label="Workspace tools">
-      <Settings editor={editor} />
-      <HelpButton editor={editor} />
-      <Feedback session={session} editor={editor} name={name} account={account} />
-    </div>
+    <details className="header-tools" ref={ref}>
+      <summary
+        aria-label="Workspace tools"
+        data-help-id="workspace-tools"
+        data-hint-detail="Open canvas tools, settings, help and feedback."
+      >
+        <Menu size={17} />
+        <span>Tools</span>
+      </summary>
+      <div className="header-tools-list">
+        <h3>Canvas</h3>
+        <Settings editor={editor} />
+        <ChangePassword session={session} />
+        {account?.status === "in" && (
+          <ReusableSections account={account} session={session} editor={editor} />
+        )}
+        {narrow && <ParticipantsControl {...props} />}
+        <h3>Help</h3>
+        <HelpButton editor={editor} />
+        <Feedback session={session} editor={editor} name={name} account={account} />
+      </div>
+    </details>
   );
 }

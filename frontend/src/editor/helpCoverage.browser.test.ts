@@ -10,6 +10,7 @@ import {
   railPanel,
   selectDrawing,
 } from "./browserHarness";
+import { openSettings } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const CONTROLS =
@@ -95,7 +96,7 @@ it("gives every visible control on the main surfaces a help sentence", async () 
     missing.push(...(await unexplained(page, "File menu")));
     await page.keyboard.press("Escape");
 
-    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await openSettings(page);
     missing.push(...(await unexplained(page, "Settings")));
     await page.getByRole("button", { name: "Close settings", exact: true }).click();
 

@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { browser, errors, exported, objectCount, open, row } from "./browserHarness";
+import { textEditor, closeTextEditor } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
@@ -65,13 +66,17 @@ node Store_A "Storage" at 1600,1000 size 180,100 fill #d9e9ff`
     const url = page.url();
     await canvas(page).press("h");
     await canvas(page).getByRole("link", { name: "Read Storage", exact: true }).click();
-    expect(await sourceField(page).inputValue()).toBe(markdown);
+    expect((await exported(page)).objects.find((item) => item.id === "Read_Note")!.name).toBe(
+      markdown
+    );
     await canvas(page).press("v");
     await canvas(page).getByRole("link", { name: "Read Storage", exact: true }).click();
-    await expect.poll(() => sourceField(page).inputValue()).toBe("Storage");
+    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Storage");
     await centered(page, "#d9e9ff");
+    await textEditor(page);
     await sourceField(page).fill("Storage renamed");
     await sourceField(page).press("ControlOrMeta+Enter");
+    await closeTextEditor(page);
     await canvas(page).press("ControlOrMeta+[");
     await centered(page, "#fff0ad");
     await canvas(page).getByRole("link", { name: "Missing", exact: true }).click();
@@ -84,7 +89,7 @@ node Store_A "Storage" at 1600,1000 size 180,100 fill #d9e9ff`
       .toContain("Invalid object link");
     await canvas(page).getByRole("link", { name: "Alias", exact: true }).focus();
     await page.keyboard.press("Enter");
-    await expect.poll(() => sourceField(page).inputValue()).toBe("Storage renamed");
+    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Storage renamed");
     await centered(page, "#d9e9ff");
     expect(page.url()).toBe(url);
     expect(context.pages()).toHaveLength(1);
@@ -150,6 +155,7 @@ node Target "" at 680,330 size 180,90 fill #d9e9ff`
     });
     await search.fill("Target");
     await row(peer, "Read storage").click();
+    await textEditor(peer);
     await sourceField(peer).focus();
     await sourceField(peer).press("Home");
     await sourceField(peer).pressSequentially("Before ");
@@ -168,7 +174,7 @@ node Target "" at 680,330 size 180,90 fill #d9e9ff`
   }
 });
 
-it("inserts a named link at an empty caret from the property panel and follows its preview on touch", async () => {
+it("inserts a named link at an empty caret from the text editor and follows its preview on touch", async () => {
   const context = await browser.newContext({
     viewport: { width: 900, height: 900 },
     hasTouch: true,
@@ -182,12 +188,10 @@ node Target "Database" at 680,330 size 180,90 tags storage fill #d9e9ff`
     );
     await row(page, /^Plan$/).tap();
     await page.getByRole("button", { name: "Object properties", exact: true }).tap();
-    const inspector = page.getByRole("complementary", { name: "Object properties" });
+    const inspector = await textEditor(page);
     await sourceField(page).focus();
     await sourceField(page).press("End");
-    await inspector.getByText("Markdown tools", { exact: true }).tap();
     await inspector.getByRole("button", { name: "Insert canvas object link", exact: true }).tap();
-    await picker(page).getByRole("button", { name: "Search objects", exact: true }).tap();
     await picker(page)
       .getByRole("combobox", { name: "Search canvas objects", exact: true })
       .fill("#storage");
@@ -200,7 +204,7 @@ node Target "Database" at 680,330 size 180,90 tags storage fill #d9e9ff`
       .getByLabel("Markdown preview", { exact: true })
       .getByRole("link", { name: "Database", exact: true })
       .tap();
-    await expect.poll(() => sourceField(page).inputValue()).toBe("Database");
+    await expect.poll(() => page.locator(".inspector-name").textContent()).toBe("Database");
     await centered(page, "#d9e9ff");
     expect(errors).toEqual([]);
   } finally {

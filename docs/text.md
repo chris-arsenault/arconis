@@ -4,15 +4,17 @@ An object's primary label is editable Markdown source. Text controls style the w
 Markdown supplies inline emphasis and structure. Subtitles are separate plain text.
 
 Ordinary objects and sticky notes use 8 units of text padding; free text and frame headers use 4. Change padding
-under **Appearance → Text → Spacing and sizing** when an object needs a different inset.
+under **Edit text… → Spacing and sizing** when an object needs a different inset.
 Padding and text sizes are style values; setting a drawing's scale does not convert them to
 physical units. [Scale and measurement](editing.md#scale-units-and-measurement) applies to
 distances and object geometry.
 
 ## Edit and finish text
 
-Double-click an object or select it and press Enter. You can also edit **Object text** in the
-property panel. Notes and free text open ready for typing when placed.
+Double-click an object or select it and press Enter to type on the canvas. Notes and free text
+open ready for typing when placed. For longer writing, choose **Edit text…** in Properties or
+**Open text editor** in the floating toolbar. The larger editor holds Markdown source, subtitle,
+preview and typography together.
 
 Your source changes immediately in your browser. Finish the edit by leaving the source and
 its tools, pressing Escape, or pressing **Ctrl/Command Enter**. Others receive the completed
@@ -20,8 +22,9 @@ edit, and local persistence retains your work while you type. Escape keeps your 
 Enter by itself adds a line.
 
 The selected object's toolbar changes to Markdown formatting while you edit text. **Code, preview
-and copy** opens the less frequent text actions in that same container. The property panel's source
-editor also offers **Markdown tools**. Actions preserve the source
+and copy** opens the less frequent text actions in that same container. The larger text editor
+shows **Markdown tools** beside its source. **Ctrl/Command Enter** applies the current edit while
+keeping that dialog open; **Done** or Escape returns to the canvas. Actions preserve the source
 selection so you can apply several without restarting the edit. Undo reverses your own changes
 while peers' completed edits continue to merge.
 
@@ -57,6 +60,7 @@ canvas. This works for unnamed objects too. **Search objects** finds destination
 id when they are farther away; use the arrows and Enter to choose a result. Without a text
 selection, insertion uses the destination's name or kind. Escape or right-click cancels picking,
 and middle-drag pans while picking.
+In the larger text editor, **Object** opens search directly; choose a result to insert the link.
 
 Object links use ordinary Markdown: `[Storage](canvas://object-id)`. `local://object-id` is also
 accepted. The id is case-sensitive and stays the same when the object is renamed. Link labels
@@ -107,7 +111,7 @@ Escape a literal dollar sign with a backslash. Dollar signs inside code stay lit
 
 ## Style and size the box
 
-Select an object and open **Text** in the property panel. Choose a bundled sans, serif or
+Select an object and choose **Edit text…**. Choose a bundled sans, serif or
 monospace font, numeric size, color and whole-box emphasis. **Text position** combines horizontal
 and vertical alignment. For multiple selections, mixed values are shown as mixed; changing a
 control applies it to the selection.

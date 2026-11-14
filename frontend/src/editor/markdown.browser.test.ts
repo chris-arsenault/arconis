@@ -2,10 +2,11 @@ import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
 import { browser, errors, open, add, row, exported, objectCount } from "./browserHarness";
+import { textEditor, closeTextEditor } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 const canvas = (page: Page) => page.getByTestId("canvas");
-const inspector = (page: Page) => page.getByRole("complementary", { name: "Object properties" });
+const textDialog = (page: Page) => page.getByRole("dialog", { name: "Edit text", exact: true });
 const source = (page: Page) => page.getByLabel("Object text", { exact: true });
 
 it("renders Markdown, highlighted code and math, and copies their original source", async () => {
@@ -24,15 +25,15 @@ it("renders Markdown, highlighted code and math, and copies their original sourc
   expect(await canvas(page).locator("pre .hljs-keyword").first().textContent()).toBe("def");
   expect(await canvas(page).locator(".katex").count()).toBe(1);
   expect(await canvas(page).locator("sub").first().textContent()).toBe("2");
-  await inspector(page).getByText("Markdown tools", { exact: true }).click();
-  await inspector(page).getByRole("button", { name: "Preview", exact: true }).click();
-  await inspector(page).getByRole("button", { name: "Copy Markdown", exact: true }).click();
+  await textEditor(page);
+  await textDialog(page).getByRole("button", { name: "Preview", exact: true }).click();
+  await textDialog(page).getByRole("button", { name: "Copy Markdown", exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(markdown);
-  await inspector(page).getByRole("button", { name: "Copy code 1 (python)", exact: true }).click();
+  await textDialog(page).getByRole("button", { name: "Copy code 1 (python)", exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     "def hello():\n    return 42\n"
   );
-  await inspector(page).getByRole("button", { name: "Copy plain text", exact: true }).click();
+  await textDialog(page).getByRole("button", { name: "Copy plain text", exact: true }).click();
   const plain = await page.evaluate(() => navigator.clipboard.readText());
   expect(plain).toContain("Plan");
   expect(plain).toContain("E=mc^2");
@@ -48,6 +49,7 @@ it("positions a label at all nine places, changes fonts and undoes whole-box sty
   await add(page, "Sticky note (N)", "Alignment", 220, 170);
   await page.getByLabel("Object width", { exact: true }).fill("360");
   await page.getByLabel("Object height", { exact: true }).fill("260");
+  await textEditor(page);
   const positions: Record<string, { x: number; y: number }> = {};
   for (const vertical of ["top", "middle", "bottom"]) {
     for (const horizontal of ["left", "center", "right"]) {
@@ -69,7 +71,7 @@ it("positions a label at all nine places, changes fonts and undoes whole-box sty
   );
   expect(font).toContain("Source Serif 4");
   await page.getByRole("button", { name: "Underline", exact: true }).click();
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await textDialog(page).getByRole("button", { name: "Undo", exact: true }).click();
   expect(
     await page.getByRole("button", { name: "Underline", exact: true }).getAttribute("aria-pressed")
   ).toBe("false");
@@ -81,6 +83,7 @@ it("edits Markdown with keys and toolbar while list Tab takes precedence over to
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await add(page, "Sticky note (N)", "hello", 220, 170);
+  await textEditor(page);
   await source(page).focus();
   await source(page).press("ControlOrMeta+a");
   await source(page).press("ControlOrMeta+b");
@@ -88,8 +91,7 @@ it("edits Markdown with keys and toolbar while list Tab takes precedence over to
   await source(page).press("ControlOrMeta+z");
   expect(await source(page).inputValue()).toBe("hello");
   await source(page).press("ControlOrMeta+a");
-  await inspector(page).getByText("Markdown tools", { exact: true }).click();
-  await inspector(page).getByRole("button", { name: "Markdown underline", exact: true }).click();
+  await textDialog(page).getByRole("button", { name: "Markdown underline", exact: true }).click();
   expect(await source(page).inputValue()).toBe("<u>hello</u>");
   await source(page).fill("1. First");
   await source(page).press("End");
@@ -102,6 +104,7 @@ it("edits Markdown with keys and toolbar while list Tab takes precedence over to
   expect(await objectCount(page)).toBe(1);
   await source(page).press("Shift+Tab");
   expect(await source(page).inputValue()).toBe("1. First\n2. Second item");
+  await closeTextEditor(page);
   await canvas(page).click({ position: { x: 800, y: 700 } });
   await row(page, "First").dblclick();
   const inline = page.getByLabel("Edit canvas text", { exact: true });
@@ -123,13 +126,13 @@ it("keeps Markdown tools usable with touch input in a narrower viewport", async 
   });
   const page = await open(context, createRoomId());
   await add(page, "Sticky note (N)", "Touch", 180, 200);
-  await inspector(page).getByText("Markdown tools", { exact: true }).tap();
+  await textEditor(page);
   await source(page).focus();
   await source(page).press("ControlOrMeta+a");
-  await inspector(page).getByRole("button", { name: "Markdown bold", exact: true }).tap();
+  await textDialog(page).getByRole("button", { name: "Markdown bold", exact: true }).tap();
   expect(await source(page).inputValue()).toBe("**Touch**");
-  await inspector(page).getByRole("button", { name: "Preview", exact: true }).tap();
-  expect(await inspector(page).getByLabel("Markdown preview", { exact: true }).isVisible()).toBe(
+  await textDialog(page).getByRole("button", { name: "Preview", exact: true }).tap();
+  expect(await textDialog(page).getByLabel("Markdown preview", { exact: true }).isVisible()).toBe(
     true
   );
   expect(errors).toEqual([]);

@@ -19,6 +19,7 @@ it("changes object type across peers and navigates property tabs and shallow men
     expect((await exported(peer)).objects[0]).toMatchObject({ id: before.id, name: before.name });
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await expect.poll(async () => (await exported(peer)).objects[0].stencil).toBe("rectangle");
+    await page.getByRole("tab", { name: "Design", exact: true }).click();
     await page.getByRole("tab", { name: "Design", exact: true }).press("ArrowRight");
     expect(
       await page.getByRole("tab", { name: "Arrange", exact: true }).getAttribute("aria-selected")

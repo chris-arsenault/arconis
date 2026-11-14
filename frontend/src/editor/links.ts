@@ -65,6 +65,7 @@ export function bindMarkdownLinks(editor: EditorController, signal: AbortSignal)
       event.stopPropagation();
       if (editor.tool === "pan") return;
       const href = anchor.getAttribute("href")!;
+      editor.ui.textEditor = null;
       editor.closeEditor();
       followLink(editor, href);
       editor.element.focus({ preventScroll: true });

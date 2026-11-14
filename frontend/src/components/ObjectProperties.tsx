@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { COLORS, type Item, type Look } from "../document/types";
 import type { Appearance } from "../document/appearance";
-import { canColorIcon, canRotate, hasFill, hasLine, hasText } from "../document/capabilities";
+import { canColorIcon, canRotate, hasFill, hasLine } from "../document/capabilities";
 import { Section } from "./ConnectionControls";
 import { NumericInput } from "./NumericInput";
 import {
@@ -60,7 +60,6 @@ export function StyleControls({
   change,
   names,
   onStyle,
-  children,
   appearances,
   mixedStyle,
   paint,
@@ -69,7 +68,6 @@ export function StyleControls({
     item: Item;
     names: string[];
     onStyle: (style: string) => void;
-    children: ReactNode;
     mixedStyle: boolean;
     /** Paint controls of the selection's own kind, shown in place of the general fill and line. */
     paint: ReactNode;
@@ -92,7 +90,6 @@ export function StyleControls({
           />
         </Section>
       )}
-      {hasText(item) && children}
     </>
   );
 }
