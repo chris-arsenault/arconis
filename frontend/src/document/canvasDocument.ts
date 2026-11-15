@@ -7,6 +7,7 @@ import { removalClosure } from "./relations";
 import { canHoldAnything } from "./capabilities";
 import { BASE_LAYER, inLayers, layerOf, orderedLayers, type LayerRecord } from "./layers";
 import { BLANK } from "./itemDefaults";
+import { readSources } from "./sourceReferences";
 import { readArrangement } from "./arrangement";
 import { readClock } from "./clock";
 import { isCalibration, readCalibration, type Calibration } from "./units";
@@ -107,6 +108,7 @@ export class CanvasDocument {
       order: this.nextOrder(),
       markup: type === "highlight",
       tags: [],
+      sources: [],
       properties: {},
       points: [],
       look: {},
@@ -186,6 +188,7 @@ export class CanvasDocument {
       markup: stored.markup ?? stored.type === "highlight",
       arrange: readArrangement(stored.arrange),
       clock: readClock(stored.clock),
+      sources: readSources(stored.sources),
     } as Item;
   }
 

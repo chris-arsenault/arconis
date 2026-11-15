@@ -136,6 +136,18 @@ Any item or line takes these among its attributes, whatever its type; canonical 
 - property <name> "value": a named value the item carries, such as property owner "Ada" or property ticket "ARC-12"; write several. People see them on hover. property <name> none removes one.
 - edited "name" at <milliseconds>: who last changed the item and when. The canvas sets it on every edit by a person or an agent; files carry it.
 
+## Repository source references
+
+Any item or line accepts source "repo/path" with optional anchor "opaque target". Repeat source to name several targets; adding the same path/anchor twice keeps one reference. Paths are relative to the repository root, use / separators and may end in / for folders; absolute paths, URLs, backslashes, empty segments and . or .. segments are refused. Paths and anchors are single-line text. No source existence or symbol check is performed. An omitted anchor names the whole file/folder. Reads and exports sort references by path, then anchor.
+
+  node storage "Storage" source "src/storage/" source "src/schema.ts" anchor "Order"
+  edit storage source "src/schema.ts" anchor "Order" off
+  edit storage source none
+
+source adds one exact path/anchor pair, off removes that exact pair, and source none clears all references. Omission preserves them. An item's ordinary link is separate. Copying/remapping canvas ids leaves source targets unchanged; source comments must be maintained deliberately for the new diagram/item identity.
+
+Bidirectional repository linking also requires a real comment in the relevant source file, containing the repository-relative diagram path, stable item id and relationship context. For example: // Arconis: docs/architecture.arconis#item=storage — persistence boundary. Use the source language's comment syntax and place it beside the relevant declaration, or at module scope for a module-level relationship. For folders, use an appropriate existing entry point or documentation file. Agents edit the diagram through write and the source comments through their normal repository tools; Arconis does not create those comments or open a checkout. Follow a backlink by opening the diagram file with the CLI and reading the named item. No derived reverse index substitutes for the source comment. The browser only sets this metadata; it does not resolve, browse, open, display or edit the referenced source.
+
 ## Changing what exists
 
 - Restate an item by its id to change it: node api "Orders API v2" fill #fff7d6. Only what you write changes.

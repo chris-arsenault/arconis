@@ -7,6 +7,7 @@ import { DEFAULT_TIDY, TREE_DIRECTIONS, type TreeLayoutOptions } from "../docume
 import { isId } from "../document/ids";
 import { CLOCK_KINDS, readClock } from "../document/clock";
 import { DEFAULT_GAP } from "../document/layout";
+import { sourceReferenceProblem } from "../document/sourceReferences";
 
 /** Parsing of the attributes that follow an item, a line or a style. */
 
@@ -152,6 +153,16 @@ function edited(cursor: Cursor): Attribute {
   return { kind: "edited", by, at: cursor.number("the time of the edit in milliseconds") };
 }
 
+function source(cursor: Cursor): Attribute {
+  if (cursor.word("none")) return { kind: "source", edit: { kind: "clear" } };
+  const path = cursor.expectString("a repository-relative source path");
+  const anchor = cursor.word("anchor") ? cursor.expectString("an opaque source anchor") : "";
+  const reference = { path, anchor };
+  const problem = sourceReferenceProblem(reference);
+  if (problem) cursor.fail(problem);
+  return { kind: "source", edit: { kind: cursor.word("off") ? "remove" : "add", reference } };
+}
+
 const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   ...Object.fromEntries(FLAGS.map((name) => [name, flag(name)])),
   tags,
@@ -166,6 +177,7 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   link,
   edited,
   property,
+  source,
   z: (cursor) => {
     const value = cursor.number("a stacking position after z");
     if (!Number.isFinite(value)) cursor.fail("z must be a finite number.");

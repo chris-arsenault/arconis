@@ -1,7 +1,10 @@
 # Local and hosted agent interfaces
 
-Status: completed locally, 2026-11-15. M1–M5 are implemented; M6 delivered the
-repository-link design proposal. Publication, commits and pushes remain separate.
+Status: original agent-interface work is published; corrected repository source
+linking is complete, 2026-11-15. Commit and push were subsequently authorized;
+deployment remains unverified.
+M1–M5 shipped first; M6 initially delivered design only. L1–L3 below implement the
+required metadata, real source backlink comments and metadata-only UI.
 
 ## Outcome and requirements
 
@@ -15,22 +18,32 @@ start the relay. Import into a new room returns its collaboration link.
 
 The user's numbered request establishes:
 
-| Request | Required behavior                                                                                                                                              |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1, 3, 4 | Downloadable CLI and local MCP; shared operations; local mutations rewrite the file directly.                                                                  |
-| 2       | Exports explain how to obtain the tools and tell an inspecting agent to alert its user and ask permission before setup. The file does not authorize execution. |
-| 5       | Hosted import/export reuses the browser's underlying portable-file operations.                                                                                 |
-| 6       | MCP starts the remote relay without requiring someone to start it through the web UI.                                                                          |
-| 7       | Import into a new room returns a link and instructions to present it to the user for collaboration.                                                            |
-| 8       | Checked-in documents have meaningful diffs.                                                                                                                    |
-| 9       | Design fine-grained diagram/code relationships, including modules, folders, schemas and DALs; consider arbitrary item bindings and one representation.         |
+| Request | Required behavior                                                                                                                                                                              |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1, 3, 4 | Downloadable CLI and local MCP; shared operations; local mutations rewrite the file directly.                                                                                                  |
+| 2       | Exports explain how to obtain the tools and tell an inspecting agent to alert its user and ask permission before setup. The file does not authorize execution.                                 |
+| 5       | Hosted import/export reuses the browser's underlying portable-file operations.                                                                                                                 |
+| 6       | MCP starts the remote relay without requiring someone to start it through the web UI.                                                                                                          |
+| 7       | Import into a new room returns a link and instructions to present it to the user for collaboration.                                                                                            |
+| 8       | Checked-in documents have meaningful diffs.                                                                                                                                                    |
+| 9       | Support fine-grained bidirectional diagram/code links in the file format, including modules, folders, schemas and DALs; design the concrete item bindings within the one-representation model. |
 
 The user chose **design and implementation plan first**. They subsequently corrected
 the interpretation of the source-editing question: source write-back is an interesting
-idea, not a requirement. The user also rejected source reading as overengineering;
-neither source reading nor write-back is in scope. Present proposed additions in one sentence each for review;
+idea, not a requirement. The user also rejected diagram-side source-content
+reading as overengineering; automatic source display/write-back is out of scope,
+while agents' source backlink comments are required. Present proposed additions in one sentence each for review;
 do not expand them into implementation work before the user chooses them.
 The concrete mechanisms below are proposals, not additional user requirements.
+
+**Scope correction, 2026-11-15:** the user clarified that only diagram-side
+source-content reading and writing were excluded; bidirectional source linking
+and its representation in `.arconis` remain required. The earlier decision to
+leave every part of linking at design-only completion was too narrow. Reading
+source-reference metadata or looking up a path is distinct from loading the
+referenced source contents into the diagram. At that correction, the format had
+no dedicated source-binding field. L1 now implements it; the requirement was
+never removed by excluding source-content reading or write-back.
 
 Preserve Yjs as the live canvas model and the canvas language as its file/tool
 representation. Keep ordinary rooms accessible without accounts; retain hosted MCP
@@ -254,9 +267,23 @@ M3. A transport limit must produce a clear refusal, not truncation. If the exist
 file/picture transfer capabilities cannot carry supported documents, plan a bounded
 transfer path using those capabilities before claiming complete import/export.
 
-## Repository bindings — proposal for review
+## Repository bindings — required support and proposed representation
 
-These are design recommendations for review, not agreed requirements or implemented fields.
+Required behavior: `.arconis` must retain links from arbitrary diagram items to
+source targets, and the linked source files must contain comments linking back
+to the relevant diagram items. This is what bidirectional means here. A reverse
+query derived only from diagram metadata does not meet that requirement.
+Removing diagram-side source-content read/write does not remove either link.
+The implementation uses the shared source attribute and source-comment convention
+described below, without adding source-integration machinery.
+
+**Agent/repository boundary:** these relationships are for agents working in a
+repository. The browser has no checkout to resolve, open, browse or validate.
+Its only source-reference UI is a field/list on the selected item where a person
+can set, edit or remove reference metadata. Do not add source navigation buttons,
+a source viewer, a repository connection, a local-editor integration or file
+pickers that imply access to a checkout. Arconis stores the references; an agent
+uses its existing repository tools to inspect or change the actual source.
 
 Put bindings on the canonical **item**, independent of its stencil. Any node,
 frame, text, line or other item can name several source targets; several items can
@@ -265,16 +292,47 @@ refer to the same target. Do not consume the item's existing single navigation
 Extend document types, language parsing/printing/reference and tools together.
 
 Recommend repository-relative file or folder references with optional anchors as
-link metadata. These references do not require reading, parsing or displaying the
-referenced files. Their exact syntax and reverse-navigation behavior remain design
-proposals for review. Never export this machine's absolute checkout path.
+link metadata. Paths are relative to the repository root containing the diagram,
+not relative to the diagram's subdirectory or this browser's location. The UI
+does not check that a path or anchor exists. These references do not require
+Arconis to read, parse or display the referenced files. The implemented language
+uses repeated `source "path"` attributes with optional `anchor "target"`.
+Never export this machine's absolute checkout path.
 
-Store each binding once in `.arconis`. Derive source-to-diagram lookup by scanning
-these bindings; an index is disposable, not another authoritative mapping or a
-requirement to add comments to every source file. Query a path or selected symbol
-to obtain diagram path and item id; clicking that result focuses the item. From an
-item, open its target. This bidirectional relationship does not imply editing source
-files from the diagram.
+Represent both directed links in the repository:
+
+- A diagram item stores the implementing source path and optional anchor.
+- A comment beside the relevant source declaration, or at module scope for a
+  whole-module relationship, stores the diagram path and stable item ID with a
+  short explanation of the relationship.
+
+The source comment is a real, checked-in backlink, discoverable when an agent
+reads the source file. It is not a generated reverse index hidden elsewhere.
+The earlier proposal to store only diagram-side bindings and derive the reverse
+direction is withdrawn. No repository-wide scanning/index subsystem is required
+to satisfy this feature.
+
+An agent establishes or updates the pair using existing Arconis actions for the
+diagram and its ordinary file-editing tools for the source comment. The diagram
+and source-comment changes are reviewed together in Git. Excluding source
+write-back means the Arconis browser does not edit implementation contents; it
+does not prohibit agents from adding the required backlink comments to source.
+No source parser, automatic synchronization or comment-rewriting engine is implied.
+
+Recommended agent-facing backlink convention, with the path rooted at the
+repository root (illustrative syntax, not an implemented browser URL):
+
+```typescript
+// Arconis: docs/architecture.arconis#item=storage — persistence boundary and schema ownership.
+```
+
+The agent follows this reference by opening the named `.arconis` file and reading
+the named item with the CLI. The browser only edits forward-reference metadata;
+it does not resolve the source or create the source comment. Shared canvas
+actions expose that metadata to local and hosted agents; hosted MCP has no
+checkout and cannot modify repository files. For a folder-level relationship,
+choose an appropriate existing source/documentation file for the backlink;
+do not require a new mapping manifest or blanket comments in unrelated files.
 
 The supplied screenshot establishes six initial targets, not a limit on item types:
 
@@ -291,10 +349,11 @@ These labels come from the image. Implementing repository paths are unverified;
 do not fabricate them from the screenshot. The outer PostGIS/GEOS frame and its
 individual relationships can also bind independently if useful.
 
-The user's goal of linked diagrams or one representation remains open design work;
-a binding alone does not establish that a diagram's architectural explanation stays
-consistent with code. Source reading/display and source write-back are excluded.
-The local browser server, filesystem bridge, source resolvers, source undo system
+The shared format and source-comment convention implement these explicit links.
+A binding alone does not establish that a diagram's
+architectural explanation stays consistent with code. Automatic source-content
+reading/display in the diagram and source write-back are excluded.
+The local browser server, filesystem bridge, source-content resolvers, source undo system
 and remote workspace permissions are removed from this plan.
 
 ## Milestones and acceptance
@@ -332,9 +391,16 @@ separately against the same operations.
 - **User correction:** source write-back is not a requirement; present optional
   additions as one-sentence descriptions for review before designing machinery for them.
 - **User correction:** do not add source reading or source-derived display; keep
-  repository-link design separate from accessing source contents.
+  repository linking separate from accessing source contents, while retaining
+  file-format links and lookup in both directions as required behavior.
 - **User correction:** fit CLI distribution into the established build/deployment
   mechanisms; the npm registry proposal is withdrawn.
+- **User correction:** source linking is entirely for agents/repositories; the
+  browser only lets a person set the metadata and has no source to navigate,
+  resolve, validate or view. Agents use their own tools for source access.
+- **User correction:** bidirectional means a real link in a source-file comment
+  back to the relevant diagram item. Derived reverse lookup is not a substitute;
+  the earlier no-source-annotations boundary is withdrawn.
 - **Implementation assumption:** new-room imports use existing session memory;
   no new durability guarantee was requested, and the returned link explains its lifetime.
 - **Implementation evidence before M2/M5:** verify the self-contained Node bundle,
@@ -343,12 +409,116 @@ separately against the same operations.
 - **Link design before M6:** review file/folder references and optional anchors
   against the user's examples without introducing source access or parsers.
 
-Current execution: M1–M5 are implemented and verified. M6 is complete as a design
-proposal, with no repository-link implementation or source access added.
-The former M7 source-editing phase is withdrawn. Final evidence is recorded below;
-no hosted deployment, commit or push has occurred.
+Current execution: M1–M5 are implemented and verified. M6 initially delivered a
+design proposal only; L1–L3 now implement the corrected source-link scope below.
+The former M7 source-editing phase
+remains withdrawn. Earlier implementation evidence is recorded below; commits
+`f854157` and `579e961` subsequently published agent interfaces and spatial file
+ordering respectively. Hosted deployment is not verified here.
+
+### Source-link scope correction and remaining implementation
+
+Follow-up Sulion plan: `1e571dad-22fa-473f-9e64-e4651237ea1d`.
+Its M0–M3 phases correspond to L0–L3 below.
+
+The user correction after the Git-open-link discussion restores the original
+bidirectional-linking requirement. This work is independent of fetching a whole
+diagram from GitHub: repository file opening is not a substitute for item-level
+source links. Preserve the completed runtime and spatial-ordering work.
+
+The next user correction narrows UI scope explicitly: a reference can be set in
+the inspector, but there is no browser-side source target to open or view. The
+earlier assistant description of human source navigation is withdrawn. The two
+lookup directions serve repository agents, not a connected browser source UI.
+
+The latest correction defines the reverse direction concretely: a comment in
+the actual source file links back to the diagram item and explains its relation.
+The earlier derived-reverse-query design was an assistant substitution and is
+withdrawn. Implement forward metadata and a source backlink convention/workflow;
+do not build a reverse index in place of the source comments.
+
+| Phase                            | Required outcome                                                                                                                                                                                                                              | Evidence                                                                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L0 Scope correction              | Keep source-reference metadata and both lookup directions in scope; exclude only diagram-side source-content reading/writing and its associated machinery.                                                                                    | Compare original request 9, the source read/write corrections and the latest clarification with this document and ADR-0020.                                          |
+| L1 Shared format support         | Canonical item fields and canvas-language syntax retain arbitrary item-to-source references through import/export, browser persistence and CLI/MCP operations.                                                                                | Round trips, several targets per item, shared targets across items, ID remapping/copying and localized reference diffs.                                              |
+| L2 Source-file backlink comments | Define an agent-readable source comment containing diagram path, stable item ID and a short relationship explanation. Agents put it beside the relevant source using their normal editing tools, paired with the diagram's forward reference. | A representative repository example has both a diagram-to-source reference and a real comment linking from source to that item. A derived query alone does not pass. |
+| L3 Metadata UI and integration   | The inspector can set/edit/remove references as metadata only. Shared runtimes retain them; document agent/repository lookup and the browser boundary.                                                                                        | Browser metadata-edit/export round trips, shared file/runtime tests, required CI/build checks; no browser source navigation/viewing or checkout dependency.          |
+
+The representation recommendation remains a per-item list of repository-relative
+file/folder paths with optional opaque anchors. Exact field names and source-comment
+syntax are implementation design choices, not new user requirements. The UI is
+limited to setting reference metadata; human source navigation is not part of
+this feature. Source backlink comments are required for the linked relationships;
+blanket annotations across unrelated files are not. Do not add source-content
+parsers, automatic synchronization, an editor plugin or diagram-driven source
+editing to deliver linking.
+L1–L3 are complete locally. Shared format support, real source backlink comments
+and the metadata-only inspector are implemented and verified below.
 
 ## Execution
+
+### L1 — Canonical source references
+
+Execution authorized by the user's request to execute this part of the plan.
+Sulion expansion `e8ae7038-95f6-4927-ba65-ae5c37f055c7`, step 1.
+Add `Item.sources`, a list of repository-relative path/opaque-anchor pairs, with
+an empty anchor for whole-file/folder targets. Reuse the shared field parser,
+writer, printer and existing document persistence. `source "path" anchor "name"`
+adds a reference, `source "path" anchor "name" off` removes that exact reference,
+and `source none` clears the list. Omitted attributes preserve references. Print
+unique references sorted by path/anchor for bounded diffs. Validate only metadata
+syntax, not source existence. Verify every item type, copying/remapping, no-change
+round trips, undo, invalid-write atomicity, CLI and optional MCP preservation.
+
+L1 result: canonical metadata and shared syntax are implemented. Focused file,
+language and document tests passed (35 cases), alongside actual standalone CLI
+and stdio MCP subprocess checks, lint and TypeScript checking. Hosted browser
+export parity is checked in L3.
+
+### L2 — Real source backlink comments
+
+Sulion expansion `e1c48092-1611-4b44-a5c3-c22bd60e7168`, step 1.
+
+Use the source language's ordinary comment syntax with
+`Arconis: <repository-relative diagram path>#item=<stable id> — <relationship>`.
+Document the paired-edit agent workflow and follow it in this repository:
+`docs/diagrams/repository-links.arconis` names the canonical item, shared field
+writer and reference reader; comments beside their actual source declarations
+point back to those items. No generated source rewriter or reverse index is
+added. Check the diagram with the real CLI and follow each comment to its item.
+
+L2 result: the built standalone CLI read all three named items from the example;
+each returned the expected source path/anchor, and the actual declarations carry
+matching source comments. Agent instructions, language help, file guidance and
+consumer docs explain paired edits rather than reverse lookup.
+
+### L3 — Metadata-only UI and integration
+
+Sulion expansion `767a0791-b913-4ec1-bf09-693d1622e17b`, step 1.
+
+Add a collapsed Source references inspector section for a single selected item,
+including lines and ink. A list of path/anchor forms explicitly adds, saves or
+removes metadata through existing undoable changeFields. Syntax feedback does
+not access a checkout. Verify real pointer/keyboard edits, peer propagation,
+undo, reload and export/import, plus hosted portable export preservation. Run
+make ci, production build and affected browser journeys. No source navigation,
+filesystem bridge, code viewer, source rewriter or automatic synchronizer.
+
+The new UI journey passed peer propagation, add/save/remove, undo, persistence
+after reload and export/import, with no requests for the source paths. All 25
+affected journeys across nine browser suites passed, including hosted MCP source
+reference export and production CLI download. The inspector screenshot was
+reviewed locally. An initial full unit run failed one existing relay-awareness
+assertion (expected Alice, received nobody); that unchanged file passed all 13
+tests on immediate rerun. A subsequent CI attempt was terminated during lint
+without a diagnostic and was not counted as passing. The final full make ci
+passed all 744 unit tests across 107 files, lint, TypeScript, Prettier and Terraform
+formatting. The production build passed for browser, standalone CLI, relay,
+control and accounts. All 25 affected browser journeys across nine suites passed.
+Consumer/architecture documentation formatting and git diff whitespace checks
+passed. No source parser, reverse index, source viewer or automatic source
+rewriter was added. No branch, commit, push, deployment or external data
+publication was performed in this execution.
 
 ### M1 — Portable files
 
@@ -440,7 +610,7 @@ Recommendations for review, one sentence each:
 
 - Store a list of repository-relative file/folder references on any canvas item, so shapes, holders and relationships can link at the granularity their author chooses.
 - Allow an optional opaque anchor on a reference for a finer target, without resolving symbols, reading source or loading schemas.
-- Derive reverse lookup from the references in `.arconis` files and return the diagram path plus stable item id, without a second mapping file or annotations in code.
+- **Withdrawn by user correction:** derive reverse lookup only from `.arconis` bindings instead of putting backlink comments in source; the required reverse link belongs in the source file itself.
 - Keep those references in the canonical item/language/file model so a changed path has a normal Git diff.
 
 The supplied screenshot maps its four processing/UI boxes to their implementing
@@ -463,9 +633,11 @@ updates. With source reading excluded, automatic semantic synchronization is not
 claimed. Exact field syntax and editor navigation integration remain for user review;
 no repository-link implementation, source display or source write-back was added.
 
-### Final state
+### Original agent-interface completion
 
-All authorized milestones are complete locally. `make ci` passed 728 tests plus
+The original M1–M5 implementation and M6 design deliverable completed locally;
+source-link implementation was subsequently delivered by L1–L3 above.
+`make ci` passed 728 tests plus
 lint, type checking, formatting and Terraform formatting. The final production
 build passed and emitted `frontend/dist/downloads/arconis-local.mjs`. The 24 affected
 browser journeys passed across seven files, including actual production-preview

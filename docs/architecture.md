@@ -19,7 +19,7 @@ items are the canvas language's items field for field ([ADR-0014](adr/0014-one-c
 type, a `Y.Text` name, a subtitle, its holder (`inside`), box, stacking order, a named style and a look
 in plain terms, and by type a stencil, icon, line ends and ports, points, a picture or a deck and slide
 number. Every item, lines included, also carries the fields in `language/fields.ts`: `locked`,
-`collapsed`, `jump`, `tags`, `marker`, `task`, `link` and who last edited it. `CanvasDocument`
+`collapsed`, `jump`, `tags`, `marker`, `task`, `link`, `sources` and who last edited it. `CanvasDocument`
 names its `author` as the editor on every write that changes an item, an agent session names
 itself after each write, and opening a file keeps the editors the file names. Named styles
 and comments sit in maps beside the items. Undo tracks local origins, so remote edits stay
@@ -31,6 +31,15 @@ column or grid arrangement. The peer reader supplies these values for omitted wi
 Authored appearance remains a sparse override map because omission means inheritance; resolving
 it produces a complete semantic appearance. Parser records distinguish preserving text from
 setting it, automatic from named identities, and references from inline declarations.
+
+`sources` holds repository-relative path/opaque-anchor pairs on any item. The
+shared field writer adds/removes them, canonical printing sorts them, and ordinary
+document persistence and portable copies retain them. They are separate from
+the item's navigation `link`. The inspector edits metadata only, with no source
+filesystem or viewer. Repository agents pair each relationship with a real source
+comment naming the diagram path and stable item ID, using their normal editing
+tools; Arconis neither rewrites those comments nor derives a reverse index in
+their place. See [repository links](agents.md#repository-links-for-coding-agents).
 
 - **Geometry.** Box positions and line and drawing points are world coordinates, and only maxGraph
   uses holder-relative geometry ([ADR-0004](adr/0004-canonical-world-geometry.md)). A line's `x` and

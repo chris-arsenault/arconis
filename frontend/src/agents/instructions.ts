@@ -8,6 +8,8 @@ Slides are viewports over existing canvas content: place a slide over content, r
 
 describe_canvas lists layers bottom to top. Use in-layer <id> to put work in the right layer. For a self-contained review or alternative, first declare its own layer (layer review "Review notes") so people can hide, reorder or merge it. Frame/group contents inherit their holder's layer; markup and slides belong to no layer.
 
+Repository relationships use source "repo/path" with optional anchor "target" on any item or line. When establishing or changing a repository link, maintain both explicit references: the item's source attributes, and a comment beside the relevant source declaration containing Arconis: <repo-relative diagram.arconis>#item=<stable id> plus a short relationship explanation. Use your ordinary repository editing tools for that source comment. Paths are rooted at the repository, not the diagram's directory. A derived reverse lookup does not replace the comment. The browser only edits metadata; hosted MCP has no checkout or source-file access. Do not invent a diagram path or claim a backlink was written without actually editing the source file.
+
 People's edits are authoritative. Preserve changes reported since your previous call, rather than restoring your earlier version unless asked. A stale write changes nothing and returns current source: reconsider and resend. An outline locates objects; read returns their actual content. undo reverts this session's own last mutation.
 
 After each substantial batch, use check_layout before further inspection. It reports overlaps, objects outside holders and estimated text overflow. Findings are advisory: preserve intentional overlaps; text estimates are not rendered measurements.

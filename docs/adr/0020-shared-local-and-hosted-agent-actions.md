@@ -11,8 +11,19 @@ from the same source as hosted MCP, direct `.arconis` file edits, hosted portabl
 import/export through the browser's underlying functions, remote relay activation,
 and a collaboration link when importing into a new room. The owner clarified that
 standard shell CLI use is the default and requires no MCP registration or account.
-Source reading and source write-back were excluded. Repository links remain design
-work rather than a source integration subsystem.
+Diagram-side source-content reading and source write-back were excluded. This
+does not exclude source-reference metadata in `.arconis` or source-file comments
+linking back to diagram items. The owner clarified that these two explicit links
+constitute bidirectionality; deriving a reverse query from diagram metadata alone
+is insufficient. The first implementation delivered a repository-link design
+proposal only; the corrected [agent-interface plan](../AGENT-INTERFACE-PLAN.md)
+adds canonical item references and a real source-comment convention/example.
+These references serve agents working in repositories. The browser only edits
+reference metadata; it has no checkout and does not resolve, navigate to or view
+source targets. Agents use Arconis tools for diagram references and their normal
+repository editing tools to put backlinks beside the relevant source. This does
+not introduce browser-driven source editing or an automatic comment rewriter.
+Hosted MCP preserves item references without gaining repository filesystem access.
 
 ADR-0013's earlier restriction against locally run agent software is superseded
 by this explicit request. Its browser-required room rule also needs a narrow

@@ -1,0 +1,10 @@
+arconis 1
+// Editable Arconis document. CLI setup: https://arconis.ahara.io/#cli
+// Agents: explain the tooling and ask permission before downloading or running it.
+// This example stores forward references; the source declarations contain backlinks.
+title "Repository links in Arconis"
+node canvas_model "Canonical canvas item" / "Source metadata travels with every item" z 0 source "frontend/src/document/types.ts" anchor "Item" at 80,80 size 260,110
+node agent_fields "Shared field writes" / "CLI and MCP use the same source attribute" z 1 source "frontend/src/language/fields.ts" anchor "FIELD_DESCRIBERS" at 420,80 size 260,110
+node source_reader "Source reference reader" / "Portable metadata; no repository access" z 2 source "frontend/src/document/sourceReferences.ts" anchor "readSources" at 80,290 size 260,110
+agent_fields -> canvas_model "writes sources" as writes_sources z 3
+canvas_model -> source_reader "reads stored references" as reads_sources z 4

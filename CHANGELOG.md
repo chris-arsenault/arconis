@@ -4,6 +4,16 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Repository source links
+
+- Any item or connection can carry repository-relative source paths with optional
+  anchors through the shared canvas language, `.arconis` files, CLI and MCP.
+- Added metadata-only **Source references** inspector fields for adding, editing
+  and removing those references; the browser does not access source files.
+- Documented source-file backlink comments containing the diagram path, item ID
+  and relationship context, with a working diagram/source-comment example in this
+  repository. Agents maintain both sides with their ordinary editing tools.
+
 ### Spatial file ordering and explicit stacking
 
 - `.arconis` exports and agent reads order objects by Y then X within layers and

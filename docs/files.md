@@ -55,6 +55,12 @@ highlighter marks drawn over the canvas. Uncheck it to omit annotations while re
 objects and other workspace content. This applies to the portable export, not the room's local
 or account-saved copy.
 
+Repository source references travel with the exported items; referenced source
+contents do not. Agents maintain the corresponding backlink comments in the
+repository's source files. See [repository links](agents.md#repository-links-for-coding-agents).
+Older documents without source references still open; reading the new `source`
+attribute requires a current Arconis browser or CLI.
+
 ## Export a PNG
 
 1. Select the objects you want, or clear the selection to export the whole canvas.

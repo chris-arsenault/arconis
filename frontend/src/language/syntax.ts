@@ -7,6 +7,7 @@ import type {
   Marker,
   PathPoint,
   Port,
+  SourceReference,
   TaskState,
 } from "../document/types";
 import type { TreeLayoutOptions } from "../document/treeLayout";
@@ -37,6 +38,7 @@ export const DRAWING_WORDS = new Set([
   "in-layer",
   "scale-contents",
   "z",
+  "source",
 ]);
 
 /** The statements of the canvas language, as parsed. */
@@ -56,6 +58,10 @@ export function requestedId(identity: RequestedId) {
 }
 
 export type Attribute =
+  | {
+      kind: "source";
+      edit: { kind: "clear" } | { kind: "add" | "remove"; reference: SourceReference };
+    }
   | { kind: "z"; value: number }
   | { kind: "word"; word: string }
   | { kind: "look"; look: Look; cleared: (keyof Look)[] }

@@ -20,6 +20,7 @@ import { isWebLink } from "./fields";
 import type { Clock } from "../document/clock";
 import type { Calibration } from "../document/units";
 import { spatialOrder } from "./spatial";
+import { canonicalSources } from "../document/sourceReferences";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -81,6 +82,10 @@ function fieldWords(item: Item) {
   if (item.marker !== "none") parts.push("marker", item.marker);
   if (item.task !== "none") parts.push("task", item.task);
   if (item.link) parts.push("link", isWebLink(item.link) ? quote(item.link) : item.link);
+  for (const { path, anchor } of canonicalSources(item.sources)) {
+    parts.push("source", quote(path));
+    if (anchor) parts.push("anchor", quote(anchor));
+  }
   for (const [key, value] of Object.entries(item.properties).sort(([a], [b]) => a.localeCompare(b)))
     parts.push("property", key, quote(value));
   return parts;

@@ -15,15 +15,17 @@ it("keeps mutable defaults independent between newly built items", () => {
   const first = document.build("note", 0, 0);
   const second = document.build("note", 200, 0);
   first.tags.push("review");
+  first.sources.push({ path: "src/model.ts", anchor: "Model" });
   first.properties.owner = "Ada";
   first.look.fill = "#ffd9da";
   first.points.push([10, 20]);
-  expect(second).toMatchObject({ tags: [], properties: {}, look: {}, points: [] });
+  expect(second).toMatchObject({ tags: [], sources: [], properties: {}, look: {}, points: [] });
   document.insert(first);
   document.insert(second);
   const copy = new CanvasDocument();
   importDocument(copy, serializeDocument(document));
   expect(copy.get(first.id)?.tags).toEqual(["review"]);
+  expect(copy.get(first.id)?.sources).toEqual([{ path: "src/model.ts", anchor: "Model" }]);
   expect(copy.get(second.id)).toMatchObject({ tags: [], properties: {}, look: {} });
   document.destroy();
   copy.destroy();

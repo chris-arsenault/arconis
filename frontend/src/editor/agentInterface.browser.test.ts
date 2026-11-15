@@ -80,7 +80,7 @@ it("imports into a new hosted room, returns its link, and collaborates with two 
       "base64"
     );
     const { hex } = await sha256(bytes);
-    const content = `arconis 1\nnode service "Seeded service" at 100,100 z 10\npicture photo hash ${hex} format image/png at 400,100 size 80,80 z 0\ndata ${hex} image/png "${bytes.toString("base64")}"\n`;
+    const content = `arconis 1\nnode service "Seeded service" at 100,100 z 10 source "src/service.ts" anchor "Service"\npicture photo hash ${hex} format image/png at 400,100 size 80,80 z 0\ndata ${hex} image/png "${bytes.toString("base64")}"\n`;
     const result = await bot.client.callTool({
       name: "import_document",
       arguments: { new_room: true, content },
@@ -118,6 +118,7 @@ it("imports into a new hosted room, returns its link, and collaborates with two 
     const portable = file.structuredContent as { content: string; next_offset: number | null };
     expect(portable.content).toContain("Human revised");
     expect(portable.content).toContain('node service "Human revised" z 10');
+    expect(portable.content).toContain('source "src/service.ts" anchor "Service"');
     expect(portable.content.indexOf("node service")).toBeLessThan(
       portable.content.indexOf("picture photo")
     );

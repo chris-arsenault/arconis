@@ -42,12 +42,14 @@ it("runs normal shell commands outside the repo without dependencies, registrati
     "--create",
     "write",
     "--statements",
-    'node api "Standalone" at 0,100 z -5\nnode earlier "Earlier" at 0,0 z 20'
+    'node api "Standalone" at 0,100 z -5 source "src/api.ts" anchor "API"\nnode earlier "Earlier" at 0,0 z 20 source "src/"'
   );
   expect((await run("--file", path, "read")).stdout).toContain("Standalone");
   const before = await readFile(path, "utf8");
   expect(before.indexOf("node earlier")).toBeLessThan(before.indexOf("node api"));
   expect(before).toContain('node api "Standalone" z -5');
+  expect(before).toContain('source "src/api.ts" anchor "API"');
+  expect((await run("--file", path, "read")).stdout).toContain('source "src/api.ts" anchor "API"');
   await run("--file", path, "write", "--statements", "edit api z -5");
   expect(await readFile(path, "utf8")).toBe(before);
   await expect(run("--file", path, "write", "--statements", "invalid ???")).rejects.toThrow();
@@ -73,13 +75,17 @@ it("offers the same canvas operations through optional stdio MCP and releases it
     expect(listed.tools.map((tool) => tool.name)).toContain("import_document");
     const result = await client.callTool({
       name: "write",
-      arguments: { statements: 'node m "MCP" at 0,100 z -2\nnode n at 0,0 z 5' },
+      arguments: {
+        statements:
+          'node m "MCP" at 0,100 z -2 source "src/model.ts" anchor "Model"\nnode n at 0,0 z 5',
+      },
     });
     expect(result.isError).toBe(false);
     expect(await readFile(path, "utf8")).toContain('node m "MCP"');
     const text = await readFile(path, "utf8");
     expect(text.indexOf("node n")).toBeLessThan(text.indexOf("node m"));
     expect(text).toContain('node m "MCP" z -2');
+    expect(text).toContain('source "src/model.ts" anchor "Model"');
     await client.callTool({ name: "undo", arguments: {} });
     expect(await readFile(path, "utf8")).not.toContain("node m");
   } finally {

@@ -47,6 +47,63 @@ show the instructions, and ask permission before downloading or running it. The
 file itself grants no execution or upload permission. Local CLI actions do not
 upload diagrams or read linked repository source files.
 
+## Repository links for coding agents
+
+Each diagram item can carry several source references. Paths are relative to the
+repository root, including when the diagram is in a subdirectory; a trailing `/`
+can name a folder. An optional anchor is an opaque target such as a type, function
+or schema name. Arconis stores the text without opening the source or resolving
+symbols. The ordinary item hyperlink remains separate.
+
+```text
+edit storage source "src/storage/" source "src/schema.ts" anchor "Order"
+edit storage source "src/schema.ts" anchor "Order" off
+edit storage source none
+```
+
+Adding an existing path/anchor pair does not duplicate it. `off` removes that exact
+pair; `source none` clears all references, and omission preserves them. Canonical
+output sorts references by path/anchor, keeping an ordinary reference edit local
+to the item's statement. Paths use `/` separators and cannot be absolute or contain
+`.` or `..` segments. No source-existence check is performed.
+
+Bidirectional linking means **a reference in each actual file**. Alongside the
+diagram's source attribute, put a comment beside the relevant source declaration
+with the diagram path, stable item ID and a short explanation:
+
+```typescript
+// Arconis: docs/architecture.arconis#item=storage — persistence boundary and schema ownership.
+```
+
+Use the source language's normal comment syntax. For a module-level relationship,
+place it at module scope; for a folder, choose a relevant existing entry point or
+documentation file. The diagram path is also repository-relative. `#item=storage`
+identifies the item for agents; it is not a GitHub-rendered anchor or a deployed
+Arconis URL.
+
+Follow a source comment using the ordinary CLI:
+
+```sh
+node /path/to/arconis.mjs --file docs/architecture.arconis read --args '{"items":["storage"]}'
+```
+
+Agents maintain the diagram through Arconis and edit source comments with their
+normal repository editing tools. Review both changes together in Git. When moving
+files, changing relationships, or copying a diagram/item under a new identity,
+update the appropriate comments deliberately; Arconis does not rewrite source
+files or keep the two references synchronized automatically. A reverse index is
+not a substitute for the source comment.
+
+The inspector's **Source references** fields only set the metadata. They do not
+browse a checkout, check a path exists, open source files, or display code. Hosted
+MCP reads/writes the same metadata but cannot edit repository files. An agent
+without repository access cannot claim it created the source-side backlink.
+
+This repository includes a working [diagram](diagrams/repository-links.arconis)
+with matching comments beside `Item` in `frontend/src/document/types.ts`,
+`FIELD_DESCRIBERS` in `frontend/src/language/fields.ts`, and `readSources` in
+`frontend/src/document/sourceReferences.ts`.
+
 ## Optional local MCP
 
 The same download supports stdio MCP for users who prefer registering a local

@@ -22,7 +22,7 @@ function canvas(text: string) {
 const get = (document: CanvasDocument, id: string) => document.get(id)!;
 
 const FIELDS =
-  'locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000';
+  'locked collapsed tags api, v2 marker circle task open link "https://example.com/a" source "src/model.ts" anchor "Model" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000';
 const FIELD_VALUES: Partial<Item> = {
   locked: true,
   collapsed: true,
@@ -30,6 +30,7 @@ const FIELD_VALUES: Partial<Item> = {
   marker: "circle",
   task: "open",
   link: "https://example.com/a",
+  sources: [{ path: "src/model.ts", anchor: "Model" }],
   properties: { owner: "Ada", ticket: "ARC-1" },
   editedBy: "Ada",
   editedAt: 1700000000000,
@@ -64,10 +65,10 @@ describe("fields on every item type", () => {
     expect(printCanvas(copy)).toBe(text);
     for (const id of ids) expect(get(copy, id), id).toMatchObject(FIELD_VALUES);
     expect(text).toContain(
-      'node n "Node" z 0 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" at 0,0 size 160,90 edited "Ada" at 1700000000000'
+      'node n "Node" z 0 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" source "src/model.ts" anchor "Model" property owner "Ada" property ticket "ARC-1" at 0,0 size 160,90 edited "Ada" at 1700000000000'
     );
     expect(text).toContain(
-      'n -> c as l1 z 11 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000'
+      'n -> c as l1 z 11 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" source "src/model.ts" anchor "Model" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000'
     );
   });
 

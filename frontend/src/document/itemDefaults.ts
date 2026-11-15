@@ -40,6 +40,7 @@ export const BLANK: Omit<Item, "id" | "type"> = {
   marker: "none",
   task: "none",
   link: "",
+  sources: [],
   editedBy: "",
   editedAt: 0,
   properties: {},

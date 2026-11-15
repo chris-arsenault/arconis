@@ -36,6 +36,7 @@ import { TagEditor } from "./TagEditor";
 import { alignSelection, distributeSelection } from "../editor/topics";
 import { hasText } from "../document/capabilities";
 import { TextAlignment } from "./TextAlignment";
+import { SourceReferencesControls } from "./SourceReferencesControls";
 
 /** Selection controls grouped by task; each section retains its own disclosure preference. */
 const PANEL_DEFAULTS = {
@@ -44,6 +45,7 @@ const PANEL_DEFAULTS = {
   appearance: true,
   layout: true,
   slide: true,
+  sources: false,
 };
 
 type Sections = ReturnType<typeof useRailSections>;
@@ -93,6 +95,7 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       </RailSection>
       <RelationsSection {...props} />
       <TagsSection key={`tags ${selectionKey}`} {...props} />
+      <SourcesSection key={`sources ${selectionKey}`} {...props} />
       {single && !isSlide(item) && <CommentsAction editor={editor} item={item} />}
       {single && item.editedBy && (
         <p className="edited-by" data-testid="edited-by">
@@ -232,6 +235,26 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
           />
         </div>
       )}
+    </RailSection>
+  );
+}
+
+function SourcesSection({ editor, selected, sections }: PanelProps) {
+  if (selected.length !== 1) return null;
+  const [item] = selected;
+  return (
+    <RailSection
+      id="sources"
+      title="Source references"
+      count={item.sources.length}
+      detail="Set repository path metadata for agents. Source files are not accessed here."
+      open={sections.open.sources}
+      onToggle={sections.toggle}
+    >
+      <SourceReferencesControls
+        item={item}
+        onChange={(sources) => changeFields(editor.document, [item.id], { sources })}
+      />
     </RailSection>
   );
 }

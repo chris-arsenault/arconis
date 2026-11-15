@@ -1,18 +1,33 @@
 import type { Item } from "../document/types";
 import { isId } from "../document/ids";
 import type { Attribute } from "./syntax";
+import { canonicalSources } from "../document/sourceReferences";
 
 /**
- * The fields every item carries whatever its type: flags, tags, a marker, a task state, a link and
- * who last edited it. Items and lines read and print them the same way.
+ * The fields every item carries: flags, tags, status, links, source references and attribution.
+ * Items and lines read and print them the same way.
  */
 
-type FieldKind = "z" | "flag" | "tags" | "marker" | "task" | "link" | "edited" | "property";
+type FieldKind =
+  "source" | "z" | "flag" | "tags" | "marker" | "task" | "link" | "edited" | "property";
 type FieldAttribute<K extends FieldKind> = Extract<Attribute, { kind: K }>;
 
+// Arconis: docs/diagrams/repository-links.arconis#item=agent_fields — shared field writes used by CLI and MCP.
 export const FIELD_DESCRIBERS: {
   [K in FieldKind]: (item: Item, attribute: FieldAttribute<K>) => void;
 } = {
+  source: (item, { edit }) => {
+    if (edit.kind === "clear") item.sources = [];
+    else {
+      const { path, anchor } = edit.reference;
+      const retained = item.sources.filter(
+        (source) => source.path !== path || source.anchor !== anchor
+      );
+      item.sources = canonicalSources(
+        edit.kind === "add" ? [...retained, edit.reference] : retained
+      );
+    }
+  },
   z: (item, { value }) => {
     item.order = value;
   },

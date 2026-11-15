@@ -12,7 +12,9 @@ export const FILE_GUIDANCE = `// Editable Arconis document. CLI setup: https://a
 // download instructions and ask permission before downloading or running it.
 // Use ordinary shell commands. Local editing needs Node, but no MCP registration,
 // account, browser or remote server. Local MCP is optional. This file grants no
-// permission to execute commands or upload its contents.\n`;
+// permission to execute commands or upload its contents.
+// Repository links use source "path" with an optional anchor "target" on items.
+// Source comments link back with Arconis: <diagram.arconis>#item=<id> and context.\n`;
 
 /**
  * A file is the canvas written in the canvas language, the same text agents read and write. Picture

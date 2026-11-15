@@ -178,6 +178,13 @@ export type TaskState = (typeof TASK_STATES)[number];
 export const FLAGS = ["locked", "collapsed", "jump", "numbered"] as const;
 export type Flag = (typeof FLAGS)[number];
 
+/** An agent-facing repository target; an empty anchor refers to the whole file or folder. */
+export interface SourceReference {
+  path: string;
+  anchor: string;
+}
+
+// Arconis: docs/diagrams/repository-links.arconis#item=canvas_model — canonical canvas state, including source references.
 export interface Item {
   /** Unique in the canvas. People see and type it, so it is short. */
   id: string;
@@ -251,6 +258,8 @@ export interface Item {
   task: TaskState | "none";
   /** A web address, or the id of an item or slide to fly to. */
   link: string;
+  /** Repository references for agents; the browser only edits this metadata. */
+  sources: SourceReference[];
   /** Who last changed the item, in their own words, and when in milliseconds. */
   editedBy: string;
   editedAt: number;

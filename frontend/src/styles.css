@@ -3432,6 +3432,31 @@ input.outline-name {
   flex-wrap: nowrap;
   min-width: 0;
 }
+.source-references,
+.source-reference-form {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.source-reference-form {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.source-reference-form label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.source-reference-form input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.source-reference-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .inspector .property-key {
   flex: 0 0 35%;
   min-width: 0;
