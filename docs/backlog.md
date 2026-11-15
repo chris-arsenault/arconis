@@ -12,6 +12,11 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 - Let a person grant an assistant read-only access to a room.
 - Let connectors register through client metadata documents as well as dynamic client registration,
   once a released Auth0 Terraform provider sets dynamic registration by metadata document.
+- Check a diagram's repository links from the CLI: report `source` paths missing from the checkout,
+  linked items with no matching `Arconis:` backlink comment, and backlink comments that name an
+  item or diagram that no longer exists, so a repository can run the check in CI.
+- Serve the current CLI at a stable download address an agent can fetch directly, and answer
+  unknown `/downloads/` paths with 404 rather than the application page.
 
 ## Canvas
 
@@ -38,6 +43,8 @@ Planned-but-not-built work. Each item is a positive assertion of future-state be
 
 - Read PlantUML activity diagrams as native items.
 - Carry icons and notes across when importing a diagram.
+- Place a document imported into an occupied room clear of the existing content, or at an offset
+  the importer gives, instead of over it at the file's own coordinates.
 
 ## Sheet view
 
