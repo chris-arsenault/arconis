@@ -114,6 +114,37 @@ clients -> cloud as incoming
   }
 });
 
+it("lets badges step aside during a wheel zoom and reattaches them when it settles", async () => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  try {
+    const page = await open(context, createRoomId());
+    await page.getByLabel("Import file").setInputFiles({
+      name: "zoomed-details.arconis",
+      mimeType: "text/plain",
+      buffer: Buffer.from(`arconis 1
+node cloud "Edge" cloud at 100,120 size 260,160 fill #fff0ad tags edge marker star
+node app "Application" at 530,140 size 160,90
+`),
+    });
+    await expect.poll(() => objectCount(page)).toBe(2);
+    await page.getByRole("button", { name: "Dismiss", exact: true }).click();
+    const strip = page.locator('.object-metadata[data-object-id="cloud"]');
+    await strip.waitFor();
+    const area = (await page.getByTestId("canvas").boundingBox())!;
+    await page.mouse.move(area.x + area.width / 2, area.y + area.height / 2);
+    // Each zoom step redraws the canvas; measuring every badge on every step made zoom stutter.
+    await page.keyboard.down("Control");
+    for (let step = 0; step < 4; step++) await page.mouse.wheel(0, -60);
+    await expect.poll(() => strip.count(), { interval: 10 }).toBe(0);
+    await page.keyboard.up("Control");
+    await strip.waitFor();
+    await checkCloudAttachment(page);
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 it("keeps attached badges and connected-copy handles clickable without reserving a metadata lane", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   try {

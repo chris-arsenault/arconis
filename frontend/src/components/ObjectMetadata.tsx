@@ -1,6 +1,6 @@
 import { CheckSquare, GitBranch, LockKeyhole, MessageSquare, Square, Tags } from "lucide-react";
 import { Rectangle, type CellState } from "@maxgraph/core";
-import { useMemo, useSyncExternalStore } from "react";
+import { useLayoutEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { EditorController } from "../editor/controller";
 import { listComments, openThreadCounts } from "../document/comments";
 import { referenceCounts, taskCounts } from "../document/relations";
@@ -9,12 +9,13 @@ import { MARKER_SIGNS } from "../editor/marks";
 import { MARKER_LABELS } from "../editor/fieldCommands";
 import { filterMatches, isEmptyFilter, toggled } from "../editor/filter";
 import { showComments, showFilter } from "../editor/ui";
+import { viewportSize } from "../editor/zoom";
 import {
   displayPreferences,
   indicatorVisible,
   type IndicatorVisibility,
 } from "../editor/displayPreferences";
-import { ObjectMetadataLayer } from "./ObjectMetadataLayer";
+import { MetadataPlacement, ObjectMetadataLayer } from "./ObjectMetadataLayer";
 import "./objectMetadata.css";
 
 type DetailCounts = {
@@ -23,12 +24,14 @@ type DetailCounts = {
   tasks: { done: number; total: number } | null;
 };
 
-function metadataBounds(editor: EditorController, item: Item) {
+type Viewport = { width: number; height: number };
+
+function metadataBounds(editor: EditorController, item: Item, viewport: Viewport) {
   const cell = editor.graph.getDataModel().getCell(item.id);
   const state = cell ? editor.graph.view.getState(cell) : null;
   if (!state) return null;
   const bounds = cell!.isEdge() ? (state.text?.boundingBox ?? state) : vertexBounds(editor, state);
-  return outsideViewport(editor, bounds) ? null : bounds;
+  return outsideViewport(viewport, bounds) ? null : bounds;
 }
 
 function vertexBounds(editor: EditorController, state: CellState) {
@@ -58,12 +61,12 @@ function paintedBounds(editor: EditorController, node: Element | null) {
   );
 }
 
-function outsideViewport(editor: EditorController, bounds: Rectangle) {
+function outsideViewport(viewport: Viewport, bounds: Rectangle) {
   return (
     bounds.x + bounds.width < 0 ||
     bounds.y + bounds.height < 0 ||
-    bounds.x > editor.element.clientWidth ||
-    bounds.y > editor.element.clientHeight ||
+    bounds.x > viewport.width ||
+    bounds.y > viewport.height ||
     Math.max(bounds.width, bounds.height) < 24
   );
 }
@@ -74,7 +77,12 @@ export function ObjectMetadata({ editor }: Readonly<{ editor: EditorController }
     displayPreferences.subscribe,
     displayPreferences.snapshot
   );
-  if (editor.ui.dragging || editor.editId) return null;
+  const [placement] = useState(() => new MetadataPlacement());
+  const viewport = viewportSize(editor.element);
+  // Children's layout effects run first and queue their badges; this places them all at once.
+  useLayoutEffect(() => placement.flush(viewport));
+  // Badges keep their screen size, so they wait out a zoom instead of being measured each step.
+  if (editor.ui.dragging || editor.ui.zooming || editor.editId) return null;
   const comments = openThreadCounts(listComments(editor.document));
   const references = referenceCounts(editor.document.list());
   const tasks = taskCounts(editor.document.list());
@@ -93,6 +101,9 @@ export function ObjectMetadata({ editor }: Readonly<{ editor: EditorController }
         references={references.get(item.id) ?? 0}
         tasks={tasks.get(item.id) ?? null}
         dimmed={bright !== null && !bright.has(item.id)}
+        viewportWidth={viewport.width}
+        viewportHeight={viewport.height}
+        placement={placement}
       />
     ));
 }
@@ -105,6 +116,9 @@ function MetadataItem({
   tasks,
   dimmed,
   preferences,
+  viewportWidth,
+  viewportHeight,
+  placement,
 }: Readonly<{
   editor: EditorController;
   item: Item;
@@ -113,12 +127,15 @@ function MetadataItem({
   tasks: DetailCounts["tasks"];
   dimmed: boolean;
   preferences: IndicatorVisibility;
+  viewportWidth: number;
+  viewportHeight: number;
+  placement: MetadataPlacement;
 }>) {
   const cell = editor.graph.getDataModel().getCell(item.id);
   const selected = cell !== null && editor.graph.isCellSelected(cell);
   const counts = useMemo(() => ({ comments, references, tasks }), [comments, references, tasks]);
   if (!indicatorVisible(preferences, selected) || !hasMetadata(item, counts)) return null;
-  const bounds = metadataBounds(editor, item);
+  const bounds = metadataBounds(editor, item, { width: viewportWidth, height: viewportHeight });
   if (!bounds) return null;
   return (
     <ObjectMetadataLayer
@@ -128,6 +145,9 @@ function MetadataItem({
       dimmed={dimmed}
       label={`Details on ${item.name || typeLabel(item)}`}
       bounds={bounds}
+      viewportWidth={viewportWidth}
+      viewportHeight={viewportHeight}
+      placement={placement}
     >
       <MetadataBadges editor={editor} item={item} counts={counts} selected={selected} />
     </ObjectMetadataLayer>

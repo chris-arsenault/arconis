@@ -20,7 +20,7 @@ import { previewBoxes, type PreviewBox } from "./preview";
 import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
-import { observeGraphViewport, worldPointOf, zoomAt } from "./zoom";
+import { observeGraphViewport, worldPointOf, zoomAt, ZoomGesture } from "./zoom";
 import { placedFactor, windowCentre } from "./creationScale";
 import { keepsTool } from "./stickyTool";
 import { configureCulling } from "./culling";
@@ -68,6 +68,7 @@ export class EditorController {
   /** The deck the last slide placed here joined, which the next one joins too. */
   lastDeck = "";
   readonly ui: EditorUi = initialUi();
+  readonly zoomGesture = new ZoomGesture(this.ui, () => this.emit());
   /** Where the pointer last was over the canvas, in screen coordinates, if it is there. */
   pointer: { clientX: number; clientY: number } | null = null;
   /** The room this editor works in, for commands that reach its files and pictures. */

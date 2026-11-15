@@ -10,6 +10,31 @@ const MAJOR_LINE_EVERY = 10;
 type ViewportElement = Pick<HTMLElement, "clientWidth" | "clientHeight">;
 const viewportSizes = new WeakMap<ViewportElement, { width: number; height: number }>();
 
+/** How long a zoom must rest before it counts as finished. */
+const ZOOM_SETTLE_MS = 150;
+
+/**
+ * Marks a continuous zoom as under way until it rests for a moment. Every zoom step redraws the
+ * whole canvas, so chrome that measures the page, such as object badges, waits until it settles.
+ */
+export class ZoomGesture {
+  private timer = 0;
+
+  constructor(
+    private readonly ui: { zooming: boolean },
+    private readonly settled: () => void
+  ) {}
+
+  mark() {
+    this.ui.zooming = true;
+    window.clearTimeout(this.timer);
+    this.timer = window.setTimeout(() => {
+      this.ui.zooming = false;
+      this.settled();
+    }, ZOOM_SETTLE_MS);
+  }
+}
+
 /** Keep layout reads out of view-update consumers after the graph has changed the DOM. */
 export function viewportSize(element: ViewportElement) {
   return viewportSizes.get(element) ?? { width: element.clientWidth, height: element.clientHeight };

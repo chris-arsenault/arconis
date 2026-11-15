@@ -309,6 +309,7 @@ function wheelHandler(editor: EditorController, signal: AbortSignal) {
     if (signal.aborted) return;
     const view = editor.graph.view;
     if (zoomDelta) {
+      editor.zoomGesture.mark();
       const point = editor.worldPoint(pointer);
       const scale = clampScale(view.scale * Math.exp(-zoomDelta * 0.002));
       const ratio = view.scale / scale;

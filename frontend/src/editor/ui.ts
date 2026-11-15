@@ -43,6 +43,8 @@ export interface EditorUi {
   relating: string | null;
   /** Whether a native move or resize is in progress, when floating controls step aside. */
   dragging: boolean;
+  /** Whether a wheel or pinch zoom is under way; chrome that measures the page waits for it. */
+  zooming: boolean;
   /** The help reference, open at a topic: a guide id, `guide#anchor`, or `commands`. */
   help: string | null;
   /** The shape the ring's Add mode arms: the last one chosen for placing. */
@@ -69,6 +71,7 @@ export function initialUi(): EditorUi {
     tagging: false,
     relating: null,
     dragging: false,
+    zooming: false,
     help: null,
     lastShape: "note",
   };

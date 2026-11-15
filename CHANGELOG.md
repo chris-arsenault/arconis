@@ -4,6 +4,12 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Smoother zoom
+
+- Fixed stuttering wheel and trackpad zoom on canvases with many tagged, marked or related
+  objects. Object badges now step aside while a zoom is under way and reattach when it settles,
+  and are placed in one pass instead of forcing the page to lay out once per badge.
+
 ### Repository source links
 
 - Any item or connection can carry repository-relative source paths with optional
