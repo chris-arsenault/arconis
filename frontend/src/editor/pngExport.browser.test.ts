@@ -62,7 +62,7 @@ async function buildCanvas(page: Page) {
   await expect.poll(() => objectCount(page)).toBe(3);
 }
 
-it("exports the whole canvas as a picture that loads back in another room", async () => {
+it("exports the whole canvas and a selection through files and clipboard, and reopens both in another room", async () => {
   const page = await open(
     await browser.newContext({ ...VIEWPORT, permissions: ["clipboard-read", "clipboard-write"] }),
     createRoomId()
@@ -106,28 +106,28 @@ it("exports the whole canvas as a picture that loads back in another room", asyn
   const other = await open(await browser.newContext(VIEWPORT), createRoomId());
   await load(other, "canvas.png", png);
   await expect.poll(() => objectCount(other)).toBe(3);
-  const labels = (await exported(other)).objects.map((item) => item.name);
+  const restored = (await exported(other)).objects;
+  const labels = restored.map((item) => item.name);
   expect(labels).toEqual(expect.arrayContaining(["", "First box", "Second note"]));
-  const edge = (await exported(other)).objects.find((item) => item.type === "line")!;
+  const edge = restored.find((item) => item.type === "line")!;
   expect(edge.from && edge.to).toBeTruthy();
+  await selectionExport(page, other, width);
   expect(errors).toEqual([]);
 });
 
-it("exports only the selection, in the picture and in its copy", async () => {
-  const page = await open(await browser.newContext(VIEWPORT), createRoomId());
-  await buildCanvas(page);
-  const whole = await inspect(page, await exportPng(page, "export-whole"));
+async function selectionExport(page: Page, other: Page, wholeWidth: number) {
   await row(page, "First box").click();
   const png = await exportPng(page, "export-selection");
   const part = await inspect(page, png);
-  expect(part.width).toBeLessThan(whole.width);
+  expect(part.width).toBeLessThan(wholeWidth);
 
-  const other = await open(await browser.newContext(VIEWPORT), createRoomId());
+  await other.getByTestId("canvas").press("ControlOrMeta+a");
+  await other.keyboard.press("Delete");
+  await expect.poll(() => objectCount(other)).toBe(0);
   await load(other, "part.png", png);
   await expect.poll(() => objectCount(other)).toBe(1);
   expect((await exported(other)).objects[0].name).toBe("First box");
-  expect(errors).toEqual([]);
-});
+}
 
 it("draws icons in the picture", async () => {
   const page = await open(await browser.newContext(VIEWPORT), createRoomId());

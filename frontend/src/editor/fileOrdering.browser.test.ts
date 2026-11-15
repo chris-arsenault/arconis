@@ -37,12 +37,15 @@ node low "Lower" at 180,200 size 300,240 fill #fedcba z -5
         .toBe("100");
     }
     await more(a, "Send to back");
-    const order = async () => (await exported(b)).objects.map(({ id }) => id);
-    await expect.poll(order).toEqual(["high", "low"]);
+    const order = () =>
+      b
+        .getByTestId("canvas")
+        .locator('svg [fill="#abcdef"], svg [fill="#fedcba"]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("fill")));
+    await expect.poll(order).toEqual(["#abcdef", "#fedcba"]);
     await clickOverlap(b);
     await expect.poll(() => b.getByLabel("Object x", { exact: true }).inputValue()).toBe("180");
     const behind = await exported(b);
-    expect(behind.text.indexOf("node high")).toBeLessThan(behind.text.indexOf("node low"));
     const reopened = await open(second, createRoomId());
     await reopened.getByLabel("Import file").setInputFiles({
       name: "reopened.arconis",
@@ -62,11 +65,10 @@ node low "Lower" at 180,200 size 300,240 fill #fedcba z -5
       .boundingBox())!;
     await a.mouse.click(upper.x + 20, upper.y + 20);
     await more(a, "Bring to front");
-    await expect.poll(order).toEqual(["low", "high"]);
+    await expect.poll(order).toEqual(["#fedcba", "#abcdef"]);
     await clickOverlap(b);
     await expect.poll(() => b.getByLabel("Object x", { exact: true }).inputValue()).toBe("100");
     const front = await exported(b);
-    expect(front.text.indexOf("node high")).toBeLessThan(front.text.indexOf("node low"));
     expect(front.objects.find((item) => item.id === "low")?.order).toBe(-5);
     expect(errors).toEqual([]);
   } finally {

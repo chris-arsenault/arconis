@@ -179,16 +179,15 @@ it("keeps the drawn shape of a freehand stroke without per-point handles", async
   }
   await page.mouse.up();
   await expect.poll(() => objectCount(page)).toBe(1);
-  const stroke = (await exported(page)).objects.find((item) => item.type === "drawing")!;
-  const points = stroke.points;
-  expect(points.length).toBeGreaterThan(12);
-  expect(points.length).toBeLessThan(81);
-  const xs = points.map(([x]) => x);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-  const ys = points.map(([, y]) => y);
-  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-  for (const [x, y] of points)
-    expect(Math.abs(Math.hypot(x - cx, y - cy) - radius)).toBeLessThan(2);
+  const painted = await canvas(page)
+    .locator('path[stroke="#6554c0"]')
+    .first()
+    .evaluate((path: SVGGraphicsElement) => {
+      const { width, height } = path.getBBox();
+      return { width, height };
+    });
+  expect(painted.width).toBeCloseTo(radius * 2, 0);
+  expect(painted.height).toBeCloseTo(radius * 2, 0);
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
   await selectDrawing(page);
   await page.getByTestId("selection-frame").waitFor();

@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, afterEach, expect } from "vitest";
+import { beforeAll, beforeEach, afterAll, afterEach, expect } from "vitest";
 import {
   chromium,
   firefox,
@@ -19,6 +19,9 @@ let server: ViteDevServer;
 let siteUrl = "";
 export const baseUrl = () => siteUrl;
 export const errors: string[] = [];
+beforeEach(() => {
+  errors.length = 0;
+});
 const engines = { chromium, firefox, webkit };
 const traced = new WeakSet<BrowserContext>();
 export let fixture: Awaited<ReturnType<typeof startRelayFixture>>;
@@ -40,13 +43,21 @@ afterAll(async () => {
   await fixture?.close();
 });
 afterEach(async ({ task }) => {
-  if (task.result?.state !== "fail") return;
-  for (const [index, context] of browser.contexts().entries()) {
-    for (const [pageIndex, page] of context.pages().entries())
-      await page.screenshot({ path: `test-results/failure-${task.id}-${index}-${pageIndex}.png` });
-    if (traced.has(context))
-      await context.tracing.stop({ path: `test-results/failure-${task.id}-${index}.zip` });
-    traced.delete(context);
+  try {
+    if (task.result?.state !== "fail" && errors.length === 0) return;
+    for (const [index, context] of browser.contexts().entries()) {
+      for (const [pageIndex, page] of context.pages().entries())
+        await page.screenshot({
+          path: `test-results/failure-${task.id}-${index}-${pageIndex}.png`,
+        });
+      if (traced.has(context))
+        await context.tracing.stop({ path: `test-results/failure-${task.id}-${index}.zip` });
+      traced.delete(context);
+    }
+    expect(errors).toEqual([]);
+  } finally {
+    // Some journeys close their contexts; every remaining page must also stop before the next test.
+    await Promise.all(browser.contexts().map((context) => context.close()));
   }
 });
 
@@ -152,7 +163,9 @@ export async function exportPng(page: Page) {
 }
 
 export async function open(context: BrowserContext, room = "", join = false, status = "Connected") {
-  if (!traced.has(context)) {
+  // Continuous screenshots and DOM snapshots slow every action, even in successful journeys.
+  // Keep failure screenshots by default; opt in to full traces when investigating a failure.
+  if (process.env.BROWSER_TRACE === "1" && !traced.has(context)) {
     await context.tracing.start({ screenshots: true, snapshots: true });
     traced.add(context);
   }
@@ -160,8 +173,8 @@ export async function open(context: BrowserContext, room = "", join = false, sta
   await skipOrientation(context);
   const page = await context.newPage();
   page.on("pageerror", (error) => {
-    errors.push(error.message);
-    console.error("Browser error:", error.message);
+    errors.push(error.stack || error.message);
+    console.error("Browser error:", error.stack || error.message);
   });
   await page.goto(join ? siteUrl : `${siteUrl}#room=${room}`);
   if (join) {

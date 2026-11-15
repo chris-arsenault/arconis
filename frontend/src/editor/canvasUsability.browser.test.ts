@@ -65,6 +65,7 @@ it("shows the first search match first", async () => {
   const context = await browser.newContext(VIEWPORT);
   const page = await open(context, createRoomId());
   await add(page, "Sticky note (N)", "Agenda first", 200, 250);
+  const firstX = await page.getByLabel("Object x", { exact: true }).inputValue();
   await add(page, "Sticky note (N)", "Agenda second", 500, 250);
   await page.getByTestId("canvas").click({ position: { x: 850, y: 750 } });
   await page.keyboard.press("ControlOrMeta+f");
@@ -73,7 +74,7 @@ it("shows the first search match first", async () => {
   expect(await page.getByTestId("find-count").textContent()).toBe("2 matches");
   await input.press("Enter");
   expect(await page.getByTestId("find-count").textContent()).toBe("1 of 2");
-  expect(await row(page, /^Agenda first$/).count()).toBe(1);
+  await expect.poll(() => page.getByLabel("Object x", { exact: true }).inputValue()).toBe(firstX);
   await input.press("Escape");
   expect(errors).toEqual([]);
   await context.close();

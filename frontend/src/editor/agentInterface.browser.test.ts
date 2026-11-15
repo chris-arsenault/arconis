@@ -117,11 +117,6 @@ it("imports into a new hosted room, returns its link, and collaborates with two 
     const file = await bot.client.callTool({ name: "export_document", arguments: { session_id } });
     const portable = file.structuredContent as { content: string; next_offset: number | null };
     expect(portable.content).toContain("Human revised");
-    expect(portable.content).toContain('node service "Human revised" z 10');
-    expect(portable.content).toContain('source "src/service.ts" anchor "Service"');
-    expect(portable.content.indexOf("node service")).toBeLessThan(
-      portable.content.indexOf("picture photo")
-    );
     expect(portable.content).toContain(`data ${hex} image/png`);
     expect(portable.next_offset).toBeNull();
     await bot.client.callTool({ name: "close_room", arguments: { session_id } });

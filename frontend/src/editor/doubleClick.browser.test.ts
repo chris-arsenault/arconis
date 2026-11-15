@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import type { Page } from "playwright";
 import { createRoomId } from "../collaboration/room";
-import { browser, errors, open, row } from "./browserHarness";
+import { browser, errors, objectCount, open, row } from "./browserHarness";
 
 const VIEWPORT = { viewport: { width: 1440, height: 1000 } };
 
@@ -34,24 +34,32 @@ const CASES: [string, string][] = [
   ["a slide", 'slide f "Panel" at 0,0\nnote n "Sticky" at 100,100 fill #ff0000'],
 ];
 
-for (const [under, text] of CASES)
-  it(`edits a sticky note's text on a double-click when it lies over ${under}`, async () => {
-    const context = await browser.newContext(VIEWPORT);
+it("double-clicks the note over frames, shapes, groups and slides without editing what is underneath", async () => {
+  const context = await browser.newContext(VIEWPORT);
+  try {
     const page = await open(context, createRoomId());
-    await page.getByLabel("Import file").setInputFiles({
-      name: "over.arconis",
-      mimeType: "text/plain",
-      buffer: Buffer.from(`arconis 1\n${text}`),
-    });
-    await shape(page, "#ff0000").waitFor();
-    await page.getByTestId("canvas").press("Escape");
-    const at = await centre(page, "#ff0000");
-    await page.mouse.dblclick(at.x, at.y);
-    await page.locator(".inline-editor").waitFor({ timeout: 5000 });
-    // The note is the one being typed into, and it is still the selection afterwards.
-    await page.keyboard.type("!");
-    await page.keyboard.press("Escape");
-    await expect.poll(() => row(page, /!/).count()).toBe(1);
+    for (const [under, text] of CASES) {
+      await page.getByLabel("Import file").setInputFiles({
+        name: "over.arconis",
+        mimeType: "text/plain",
+        buffer: Buffer.from(`arconis 1\n${text}`),
+      });
+      await shape(page, "#ff0000").waitFor();
+      await page.getByTestId("canvas").press("Escape");
+      const at = await centre(page, "#ff0000");
+      await page.mouse.dblclick(at.x, at.y);
+      await page.locator(".inline-editor").waitFor({ timeout: 5000 });
+      // The note is the one being typed into, and it is still the selection afterwards.
+      await page.keyboard.type("!");
+      await page.keyboard.press("Escape");
+      await expect.poll(() => row(page, /!/).count(), { message: under }).toBe(1);
+      // Reuse the page and exercise selection/deletion before the next overlap fixture.
+      await page.getByTestId("canvas").press("ControlOrMeta+a");
+      await page.keyboard.press("Delete");
+      await expect.poll(() => objectCount(page)).toBe(0);
+    }
     expect(errors).toEqual([]);
+  } finally {
     await context.close();
-  });
+  }
+});

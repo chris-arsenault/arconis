@@ -119,4 +119,20 @@ it("reduces redundant freehand samples within the tolerance", () => {
     [4, 0],
     [4, 5],
   ]);
+  const radius = 40;
+  const circle: [number, number][] = Array.from({ length: 81 }, (_, step) => {
+    const angle = (step / 80) * Math.PI * 2;
+    return [radius * Math.cos(angle), radius * Math.sin(angle)];
+  });
+  const reduced = simplifyPath(circle, 0.3);
+  expect(reduced.length).toBeGreaterThan(12);
+  expect(reduced.length).toBeLessThan(circle.length);
+  expect(reduced[0]).toEqual(circle[0]);
+  expect(reduced.at(-1)).toEqual(circle.at(-1));
+  // Check the curve between retained samples, not only samples lying on the circle.
+  for (let index = 1; index < reduced.length; index++) {
+    const [ax, ay] = reduced[index - 1],
+      [bx, by] = reduced[index];
+    expect(radius - Math.hypot((ax + bx) / 2, (ay + by) / 2)).toBeLessThan(0.3);
+  }
 });

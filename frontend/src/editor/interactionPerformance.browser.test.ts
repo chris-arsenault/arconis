@@ -1,9 +1,10 @@
 import { expect, it } from "vitest";
 import { readFile, writeFile } from "node:fs/promises";
+import type { Page } from "playwright";
 import { CanvasDocument } from "../document/canvasDocument";
 import { serializeDocument } from "../files/canvasFile";
 import { createRoomId } from "../collaboration/room";
-import { browser, open, objectCount, exported } from "./browserHarness";
+import { browser, errors, open, objectCount, exported, row } from "./browserHarness";
 import { textEditor, closeTextEditor } from "./browserHarness";
 
 function mixedCanvas() {
@@ -41,16 +42,7 @@ function mixedCanvas() {
   return text;
 }
 
-it("reuses HTML label contents while panning and zooming a 500-item canvas", async () => {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  const page = await open(context, createRoomId());
-  await page.getByLabel("Import file").setInputFiles({
-    name: "performance.arconis",
-    mimeType: "text/plain",
-    buffer: Buffer.from(mixedCanvas()),
-  });
-  await expect.poll(() => objectCount(page)).toBe(500);
-  await page.getByRole("button", { name: "Dismiss", exact: true }).click();
+async function navigate(page: Page) {
   // Import fits the document. Return to readable labels before tracking the existing DOM.
   await page.getByTestId("zoom-level").click();
   const zoom = page.getByLabel("Zoom multiplier", { exact: true });
@@ -79,11 +71,9 @@ it("reuses HTML label contents while panning and zooming a 500-item canvas", asy
       "wheel",
       () => {
         const began = performance.now();
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() =>
-            performance.measure("canvas-navigation", { start: began, end: performance.now() })
-          )
-        );
+        const measured = () =>
+          performance.measure("canvas-navigation", { start: began, end: performance.now() });
+        requestAnimationFrame(() => requestAnimationFrame(measured));
       },
       { capture: true }
     );
@@ -107,10 +97,9 @@ it("reuses HTML label contents while panning and zooming a 500-item canvas", asy
     "test-results/navigation-performance.json",
     JSON.stringify({ objects: 500, wheelToTwoAnimationFramesMs: navigation })
   );
-  await context.close();
-});
+}
 
-it("edits a 500-item canvas through real input and converges with an independent browser", async () => {
+it("reuses labels during navigation, edits and converges on a 500-item canvas, then exports the full scene", async () => {
   const first = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const second = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const room = createRoomId();
@@ -122,6 +111,7 @@ it("edits a 500-item canvas through real input and converges with an independent
   });
   await expect.poll(() => objectCount(page)).toBe(500);
   await page.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await navigate(page);
   const peer = await open(second, room);
   await expect.poll(() => objectCount(peer)).toBe(500);
   await page.getByTestId("zoom-level").click();
@@ -143,12 +133,22 @@ it("edits a 500-item canvas through real input and converges with an independent
   await field.press("Tab");
   await closeTextEditor(page);
   await page.getByLabel("Object width", { exact: true }).fill("200");
+  await page.getByLabel("Object width", { exact: true }).press("Enter");
   await page
     .getByRole("toolbar", { name: "Selection toolbar", exact: true })
     .getByRole("button", { name: "Fill #d9e9ff", exact: true })
     .click();
+  await row(peer, "Service 1 edited").click();
+  await expect
+    .poll(() => peer.getByLabel("Object width", { exact: true }).inputValue())
+    .toBe("200");
+  await expect
+    .poll(() => peer.getByTestId("canvas").locator('[fill="#d9e9ff"]').count())
+    .toBeGreaterThan(0);
+  const editingAndConvergenceMs = performance.now() - started;
   const own = await exported(page);
-  await expect.poll(async () => (await exported(peer)).text).toBe(own.text);
+  const other = await exported(peer);
+  expect(other.text).toBe(own.text);
   expect(own.objects.find((item) => item.id === "service-0")).toMatchObject({
     name: "Service 1 edited",
     width: 200,
@@ -156,7 +156,7 @@ it("edits a 500-item canvas through real input and converges with an independent
   });
   await writeFile(
     "test-results/interaction-performance.json",
-    JSON.stringify({ objects: 500, editingAndConvergenceMs: performance.now() - started })
+    JSON.stringify({ objects: 500, editingAndConvergenceMs })
   );
   // An export must paint the full scene even when most objects are outside this view.
   const canvas = page.getByTestId("canvas");
@@ -172,6 +172,7 @@ it("edits a 500-item canvas through real input and converges with an independent
     return [...parsed.querySelectorAll(".canvas-markdown")].map((label) => label.textContent);
   }, svg);
   expect(painted).toEqual(expect.arrayContaining(["Service 100", "Worker 100"]));
+  expect(errors).toEqual([]);
   await first.close();
   await second.close();
 });

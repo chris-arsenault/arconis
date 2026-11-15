@@ -83,6 +83,9 @@ draws. A feature's logic, including each command's behavior on a document, is un
 beside its module, and the browser suite does not repeat it.
 Cover related outcomes in one journey and reuse its setup and browser contexts. A regression
 does not need a separate browser journey when unit coverage or an existing journey can validate it.
+Poll rendered geometry, visible fields or peer labels for convergence. Do not repeatedly open
+the export dialog and download a file just to observe an edit. Keep actual downloads for file
+interoperability checks, and keep parser, ordering and geometry algorithms in unit tests.
 
 ## Browser setup and lifecycle
 
@@ -97,12 +100,17 @@ Each browser run starts a temporary Vite server and the real local relay, with l
 for external services, and closes them afterward. A separately running development server is
 unnecessary. Contexts have independent browser storage; journeys use real pointer and keyboard
 input. Automated tests use local fixtures only ([ADR-0006](adr/0006-automated-tests-use-local-fixtures.md)).
+The harness closes any remaining browser contexts after every test, including failures, so old
+pages, sockets and timers cannot carry into the next scenario.
 
 The harness defaults to Chromium. `BROWSER=firefox` or `BROWSER=webkit` selects another engine;
 install that engine and its supported host dependencies first. An engine that cannot launch
 provides no behavior evidence for that browser.
 
-Failure screenshots, traces, logs and performance observations belong in ignored
+Failure screenshots are captured by default. To record full Playwright traces as well, rerun a
+focused journey with `BROWSER_TRACE=1 pnpm test:browser src/editor/drawingReview.browser.test.ts`.
+Continuous screenshots and DOM snapshots add overhead, so successful routine runs do not record
+them. Failure screenshots, opted-in traces, logs and performance observations belong in ignored
 `frontend/test-results/`. Performance journeys record their workload and measurements rather
 than enforcing object limits or runtime timing budgets.
 
@@ -115,8 +123,9 @@ CommonJS bundle with a local signing-key service and a real peer socket, then op
 a room through HTTP MCP.
 
 [drawingMcp.browser.test.ts](../frontend/src/editor/drawingMcp.browser.test.ts) uses HTTP MCP
-alongside independent browser contexts. It verifies editable authoring, transform/Undo behavior,
-atomic refusals and exported content through production owners.
+alongside independent browser contexts. It verifies rendered authoring, human edits surviving
+agent Undo, exported pixels and layer visibility. Scaling mathematics and atomic markup refusals
+are covered by [drawing.test.ts](../frontend/src/language/drawing.test.ts), without browsers.
 
 To test an already-downloaded relay bundle, set `RELAY_TEST_BUNDLE` to its path relative to
 `frontend/` when running the bundled test. With no override, it builds current source.

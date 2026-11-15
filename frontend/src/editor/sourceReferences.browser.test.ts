@@ -4,7 +4,12 @@ import { createRoomId } from "../collaboration/room";
 import { browser, errors, exported, objectCount, open, row } from "./browserHarness";
 
 async function references(page: Page) {
-  return (await exported(page)).objects.find((item) => item.id === "box")!.sources;
+  return page.locator(".source-reference-form").evaluateAll((forms) =>
+    forms.slice(0, -1).map((form) => ({
+      path: form.querySelector<HTMLInputElement>('input[aria-label^="Source path"]')!.value,
+      anchor: form.querySelector<HTMLInputElement>('input[aria-label^="Source anchor"]')!.value,
+    }))
+  );
 }
 
 async function sourcePanel(page: Page) {
@@ -43,8 +48,8 @@ it("sets source metadata without accessing source files, collaborates, undoes an
       await a.getByRole("button", { name: "Add source reference", exact: true }).isDisabled()
     ).toBe(true);
     await addReference(a, "repo-only/a.ts", "A");
-    await expect.poll(() => references(b)).toEqual([{ path: "repo-only/a.ts", anchor: "A" }]);
     await sourcePanel(b);
+    await expect.poll(() => references(b)).toEqual([{ path: "repo-only/a.ts", anchor: "A" }]);
     expect(await b.getByLabel("Source path 1", { exact: true }).inputValue()).toBe(
       "repo-only/a.ts"
     );
@@ -62,10 +67,10 @@ it("sets source metadata without accessing source files, collaborates, undoes an
     await a.getByRole("button", { name: "Undo", exact: true }).click();
     await expect.poll(() => references(b)).toEqual(expected);
     const saved = await exported(a);
-    expect(saved.text).toContain('source "repo-only/a.ts" anchor "UpdatedA"');
+    expect(saved.objects.find((item) => item.id === "box")!.sources).toEqual(expected);
     await a.screenshot({ path: "test-results/source-reference-controls.png" });
     await a.reload();
-    await row(a, "Linked item").waitFor();
+    await sourcePanel(a);
     await expect.poll(() => references(a)).toEqual(expected);
     const copy = await open(second, createRoomId());
     await copy.getByLabel("Import file").setInputFiles({
@@ -74,6 +79,7 @@ it("sets source metadata without accessing source files, collaborates, undoes an
       buffer: Buffer.from(saved.text),
     });
     await expect.poll(() => objectCount(copy)).toBe(1);
+    await sourcePanel(copy);
     expect(await references(copy)).toEqual(expected);
     expect(sourceRequests).toEqual([]);
     expect(errors).toEqual([]);
