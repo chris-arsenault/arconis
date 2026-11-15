@@ -192,7 +192,7 @@ export interface Item {
   y: number;
   width: number;
   height: number;
-  /** Stacking position, back to front; ties break by id so every peer draws the same order. */
+  /** Stacking position (language `z`), back to front within layers/holders; ties break by id. */
   order: number;
   /** A named style from the canvas's styles, applied under the item's own look. */
   style: string;

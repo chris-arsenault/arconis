@@ -27,7 +27,7 @@ describe("arrows at both ends", () => {
     expect(get(document, "one").look).toEqual({ startArrow: "open" });
     const text = printCanvas(document);
     expect(text).toContain("a <-> b as both");
-    expect(text).toContain("a -> b as one start-arrow open");
+    expect(text).toContain("a -> b as one z 3 start-arrow open");
   });
 });
 
@@ -89,7 +89,7 @@ describe("routing around items", () => {
     // A cornered line keeps a point mid-way along each segment; one passes above or below the wall.
     expect(line.points.some(([, y]) => y < -100 || y > 200)).toBe(true);
     const text = printCanvas(document);
-    expect(text).toMatch(/a\.right -> b\.left as l via /);
+    expect(text).toMatch(/a\.right -> b\.left as l z 3 via /);
     expect(text).not.toContain("around");
   });
 
@@ -116,7 +116,7 @@ describe("arranged frames", () => {
   it("keep their arrangement, and print it", () => {
     const document = canvas(ROW);
     expect(get(document, "f").arrange).toEqual({ how: "row", gap: 20, align: "center" });
-    expect(printCanvas(document)).toMatch(/frame f "Row" row gap 20 at /);
+    expect(printCanvas(document)).toMatch(/frame f "Row" row gap 20 z 0 at /);
   });
 
   it("place new members after the rest and close gaps when one goes", () => {
@@ -143,7 +143,10 @@ describe("arranged frames", () => {
   it("stay as a file wrote them, and free stops arranging", () => {
     const document = canvas(ROW);
     get(document, "a");
-    const text = printCanvas(document).replace(/node a "A" at -?[\d.]+,/, 'node a "A" at 900,');
+    const text = printCanvas(document).replace(
+      /node a "A" z 1 at -?[\d.]+,/,
+      'node a "A" z 1 at 900,'
+    );
     const copy = new CanvasDocument();
     importDocument(copy, text);
     expect(get(copy, "a").x).toBe(900);

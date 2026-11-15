@@ -7,6 +7,10 @@ import { CanvasFiles } from "./canvasFiles";
 import { importDocument } from "./canvasFile";
 import { addComment, listComments } from "../document/comments";
 import { sha256 } from "../document/pictures";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 
 const BYTES = new Uint8Array([1, 2, 3]);
 const TEST_CODEC: PictureCodec = {
@@ -64,6 +68,57 @@ it("round trips stable files and limits a label edit to its item's line", async 
   const differences = original.split("\n").filter((line, index) => line !== changed[index]);
   expect(differences).toHaveLength(1);
   expect(differences[0]).toContain("node a");
+});
+
+it("round trips a mixed spatial document and merges disjoint label edits without touching pictures or stacking", async () => {
+  const source = workspace();
+  importDocument(
+    source.document,
+    `arconis 1
+layer services "Services"
+frame f "Region" at 0,0 size 800,400 in-layer services z 10 {
+  node a "API" at 100,100 z 40
+  node b "Database" at 200,120 z 20
+  node c "Worker" at 400,100 z 30
+}
+a -> b as wire in f z 15
+note n "Review" at 0,500 z 50
+drawing mark markup points 30,30 80,80 z 60`
+  );
+  const hash = await source.pictures.add(PIXEL, "image/png");
+  source.document.create("picture", 1000, 100, {
+    id: "photo",
+    picture: { hash, format: "image/png", stored: false },
+  });
+  addComment(source.document, { on: "a", author: "Author", text: "Check this contract" });
+  const original = await source.files.canvas();
+  const copy = workspace();
+  await copy.files.import(new File([original], "mixed.arconis"));
+  expect(await copy.files.canvas()).toBe(original);
+  expect(copy.document.list()).toEqual(source.document.list());
+  source.document.patch("a", { name: "Orders API" });
+  copy.document.patch("n", { name: "Reviewed" });
+  const left = await source.files.canvas();
+  const right = await copy.files.canvas();
+  const folder = await mkdtemp(join(tmpdir(), "arconis-merge-"));
+  try {
+    const paths = ["left", "base", "right"].map((name) => join(folder, name));
+    await Promise.all(paths.map((path, index) => writeFile(path, [left, original, right][index])));
+    // eslint-disable-next-line sonarjs/no-os-command-from-path -- Fixed Git command over temporary test fixtures; no shell or user arguments.
+    const merged = execFileSync("git", ["merge-file", "--stdout", ...paths], { encoding: "utf8" });
+    const restored = workspace();
+    await restored.files.import(new File([merged], "merged.arconis"));
+    expect(restored.document.get("a")?.name).toBe("Orders API");
+    expect(restored.document.get("n")?.name).toBe("Reviewed");
+    expect(restored.document.list().map(({ id, order }) => [id, order])).toEqual(
+      source.document.list().map(({ id, order }) => [id, order])
+    );
+    const data = (text: string) => text.split("\n").filter((line) => line.startsWith("data "));
+    expect(data(merged)).toEqual(data(original));
+    expect(await restored.files.canvas()).toBe(merged);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
 });
 
 it("inserts independent library sections with pictures and internal references without replacing destination metadata", async () => {

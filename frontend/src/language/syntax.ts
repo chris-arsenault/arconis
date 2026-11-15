@@ -36,6 +36,7 @@ export const DRAWING_WORDS = new Set([
   "property",
   "in-layer",
   "scale-contents",
+  "z",
 ]);
 
 /** The statements of the canvas language, as parsed. */
@@ -55,6 +56,7 @@ export function requestedId(identity: RequestedId) {
 }
 
 export type Attribute =
+  | { kind: "z"; value: number }
   | { kind: "word"; word: string }
   | { kind: "look"; look: Look; cleared: (keyof Look)[] }
   | { kind: "icon"; icon: string }

@@ -4,6 +4,15 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Spatial file ordering and explicit stacking
+
+- `.arconis` exports and agent reads order objects by Y then X within layers and
+  holders, with connections after their referenced objects.
+- Items and connections carry explicit `z` values, also editable through the
+  canvas language, so file order and visual stacking are independent.
+- Ordinary exports preserve stacking numbers; imports into occupied canvases
+  retain the imported stack above existing content, including remapped IDs.
+
 ### Local agent CLI and portable transfers
 
 - Added a downloadable Node CLI for reading and editing local `.arconis` files

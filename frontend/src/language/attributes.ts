@@ -166,6 +166,11 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   link,
   edited,
   property,
+  z: (cursor) => {
+    const value = cursor.number("a stacking position after z");
+    if (!Number.isFinite(value)) cursor.fail("z must be a finite number.");
+    return { kind: "z", value };
+  },
   markup: () => ({ kind: "markup", value: true }),
   workspace: () => ({ kind: "markup", value: false }),
   "scale-contents": (cursor) => {

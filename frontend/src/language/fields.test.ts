@@ -64,10 +64,10 @@ describe("fields on every item type", () => {
     expect(printCanvas(copy)).toBe(text);
     for (const id of ids) expect(get(copy, id), id).toMatchObject(FIELD_VALUES);
     expect(text).toContain(
-      'node n "Node" locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" at 0,0 size 160,90 edited "Ada" at 1700000000000'
+      'node n "Node" z 0 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" at 0,0 size 160,90 edited "Ada" at 1700000000000'
     );
     expect(text).toContain(
-      'n -> c as l1 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000'
+      'n -> c as l1 z 11 locked collapsed tags api, v2 marker circle task open link "https://example.com/a" property owner "Ada" property ticket "ARC-1" edited "Ada" at 1700000000000'
     );
   });
 
@@ -76,7 +76,7 @@ describe("fields on every item type", () => {
       'node a "A" at 0,0\nnode b "B" decision tags todo link a fill #ffd9da at 300,0 size 160,90'
     );
     expect(itemStatement(get(document, "b"))).toBe(
-      'node b "B" decision tags todo link a fill #ffd9da at 300,0 size 160,90'
+      'node b "B" decision z 1 tags todo link a fill #ffd9da at 300,0 size 160,90'
     );
   });
 
@@ -125,7 +125,7 @@ describe("fields on every item type", () => {
     expect(get(document, "tags").tags).toEqual([]);
     expect(get(document, "other").locked).toBe(true);
     const text = printCanvas(document);
-    expect(text).toContain('node tags "" at 300,0');
+    expect(text).toContain('node tags "" z 1 at 300,0');
     const copy = new CanvasDocument();
     importDocument(copy, text);
     expect(get(copy, "tags").tags).toEqual([]);

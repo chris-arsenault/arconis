@@ -19,6 +19,7 @@ import { renamePictures } from "../document/pictures";
 import { isWebLink } from "./fields";
 import type { Clock } from "../document/clock";
 import type { Calibration } from "../document/units";
+import { spatialOrder } from "./spatial";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -68,7 +69,12 @@ function clockWords(clock: Clock | null) {
 
 /** Shared item fields in their canonical printed order. */
 function fieldWords(item: Item) {
-  const parts: string[] = [...FLAGS.filter((flag) => item[flag]), ...layerWords(item)];
+  const parts: string[] = [
+    "z",
+    number(item.order),
+    ...FLAGS.filter((flag) => item[flag]),
+    ...layerWords(item),
+  ];
   if (item.scaleContents) parts.push("scale-contents");
   parts.push(...tidyWords(item.tidy), ...clockWords(item.clock));
   if (item.tags.length) parts.push("tags", item.tags.join(", "));
@@ -226,7 +232,8 @@ export function itemStatement(item: Item, standalone = false) {
   return parts.join(" ");
 }
 
-function printTree(items: Item[], lines: string[]) {
+function printTree(items: Item[], lines: string[], layers: Layer[], contextItems = items) {
+  const compare = spatialOrder(items, layers, itemStatement, contextItems);
   const present = new Set(items.map((item) => item.id));
   const children = new Map<string, Item[]>();
   for (const item of items) {
@@ -235,7 +242,7 @@ function printTree(items: Item[], lines: string[]) {
     children.set(holder, [...(children.get(holder) ?? []), item]);
   }
   const visit = (item: Item, depth: number) => {
-    const held = children.get(item.id) ?? [];
+    const held = (children.get(item.id) ?? []).sort(compare);
     const statement = INDENT.repeat(depth) + itemStatement(item);
     if (!held.length) {
       lines.push(statement);
@@ -245,8 +252,11 @@ function printTree(items: Item[], lines: string[]) {
     held.forEach((child) => visit(child, depth + 1));
     lines.push(`${INDENT.repeat(depth)}}`);
   };
-  (children.get("") ?? []).forEach((item) => visit(item, 0));
-  items.filter(isLink).forEach((item) => lines.push(linkStatement(item, present)));
+  (children.get("") ?? []).sort(compare).forEach((item) => visit(item, 0));
+  items
+    .filter(isLink)
+    .sort(compare)
+    .forEach((item) => lines.push(linkStatement(item, present)));
 }
 
 export function discussionStatements(comments: CanvasComment[]) {
@@ -294,10 +304,10 @@ function layerWordsOf(layer: Layer, below: string) {
   return words;
 }
 
-/** Items in stacking order, nested by what holds them, with their links after. */
-export function printItems(items: Item[]) {
+/** Items in spatial order, nested by what holds them, with their links after. */
+export function printItems(items: Item[], layers: Layer[] = [], contextItems = items) {
   const lines: string[] = [];
-  printTree(items, lines);
+  printTree(items, lines, layers, contextItems);
   return lines.join("\n");
 }
 
@@ -338,7 +348,7 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   // The room's own settings, its default layer and opening view, travel only with the whole canvas.
   const defaultLayer = whole ? document.defaultLayer() : BASE_LAYER;
   lines.push(...layerStatements(layers, whole ? undefined : layersUsed, defaultLayer));
-  printTree(chosen, lines);
+  printTree(chosen, lines, layers, all);
   // After the items, so the object it names has been declared when the file is read.
   if (whole && document.opening()) lines.push(`opening ${document.opening()}`);
   lines.push(...discussionStatements(listComments(document).filter((c) => ids.has(c.on))));

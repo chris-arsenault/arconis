@@ -136,6 +136,7 @@ class Writer {
     }
     checkDrawings(draft);
     checkLayers(draft);
+    draft.stackImported(this.options.importing);
     return { ...draft.commit(), pictures: this.pictures };
   }
 

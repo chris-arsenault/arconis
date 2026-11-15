@@ -79,7 +79,7 @@ it("keeps explicit false flags and clears value attributes back to sparse author
   ).toContain("Done");
   expect(session.write("edit doc font default")).toContain("Done");
   expect(document.get("doc")?.look).toEqual({ bold: false });
-  expect(printCanvas(document)).toContain('text doc "Text" strong bold off');
+  expect(printCanvas(document)).toContain('text doc "Text" strong z 0 bold off');
 });
 
 it("routes ordered description and layout passes while preserving intentionally unused layout attributes", () => {

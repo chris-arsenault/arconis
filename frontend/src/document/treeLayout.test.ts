@@ -71,7 +71,7 @@ describe("laying out a tree", () => {
       /sides\|balanced\|right\|left\|down/
     );
     expect(get("root").tidy).toEqual({ direction: "down", compact: false, sorted: true });
-    expect(printCanvas(document)).toContain('node root "Root" tidy down sorted');
+    expect(printCanvas(document)).toContain('node root "Root" z 0 tidy down sorted');
     // A bare tidy lays the tree out the remembered way, wherever its branches were dragged.
     document.patch("a", { x: get("root").x - 900, y: get("root").y - 900 });
     document.doc.transact(

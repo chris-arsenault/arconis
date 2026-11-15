@@ -29,6 +29,13 @@ one JSON object per line, such as
 commands do not retain another process's history. All sessions use the same
 canvas operations as hosted MCP.
 
+Reads and exports use spatial Y/X ordering within layers and holders; `z` records
+visual stacking independently of statement order. For example, `edit api z 20`
+puts the item at stacking position 20 within its existing layer/container rules.
+Omitting `z` on an edit preserves its value. Files retain stored stacking values
+on ordinary edits; imports into an occupied canvas add the imported stack above
+existing content. See [portable files](files.md) for ordering and diff behavior.
+
 Arconis locks the file for cooperating CLI sessions and refuses external-file
 changes instead of overwriting them. Close and reopen after an external edit.
 After a crash, remove a leftover `.lock` file only once no Arconis process is using

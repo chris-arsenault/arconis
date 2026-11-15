@@ -141,6 +141,7 @@ export function describeItem(item: Item, attributes: Attribute[], context: Descr
     const apply = DESCRIBE[attribute.kind] as Describer<Described["kind"]>;
     apply(item, attribute, context);
   }
+  context.draft.reserveOrder(item.order);
 }
 
 /** A named look, which items use by name. Restating a style replaces it. */

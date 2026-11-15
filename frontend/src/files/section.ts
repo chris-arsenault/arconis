@@ -19,11 +19,13 @@ export function sectionForInsertion(source: string, destination: CanvasDocument)
       used.add(fresh);
       ids.set(item.id, fresh);
     }
-    const items = copy.list().map((item) => ({
+    const items = copy.list().map((item, index) => ({
       ...renameItem(item, ids),
       style: "",
       look: authoredLook(item, copy.styles.get(item.style)),
       layer: destination.activeLayer,
+      // A library copy remaps every id; keep equal-z source ties in their original stack.
+      order: index,
     }));
     const comments = listComments(copy);
     const commentIds = new Map(

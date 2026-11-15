@@ -235,8 +235,8 @@ describe("working in a room", () => {
     const move = { statements: "edit box by 100,0" };
     const refused = await call("write", move);
     expect(refused).toMatch(/^\/\/ Nothing was changed\. Since you last saw them/);
-    expect(refused).toMatch(/node box "Box" at 0,500/);
-    expect(refused).toMatch(/Others changed since your last call:\nnode box "Box" at 0,500/);
+    expect(refused).toMatch(/node box "Box" z 0 at 0,500/);
+    expect(refused).toMatch(/Others changed since your last call:\nnode box "Box" z 0 at 0,500/);
     expect(alice.document.list()[0].x).toBe(0);
     // Having been shown the change, the agent resends and the move composes with it.
     expect(await call("write", move)).toMatch(/Done/);

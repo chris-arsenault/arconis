@@ -7,12 +7,15 @@ import type { Attribute } from "./syntax";
  * who last edited it. Items and lines read and print them the same way.
  */
 
-type FieldKind = "flag" | "tags" | "marker" | "task" | "link" | "edited" | "property";
+type FieldKind = "z" | "flag" | "tags" | "marker" | "task" | "link" | "edited" | "property";
 type FieldAttribute<K extends FieldKind> = Extract<Attribute, { kind: K }>;
 
 export const FIELD_DESCRIBERS: {
   [K in FieldKind]: (item: Item, attribute: FieldAttribute<K>) => void;
 } = {
+  z: (item, { value }) => {
+    item.order = value;
+  },
   flag: (item, { flag, value }) => {
     item[flag] = value;
   },

@@ -111,7 +111,7 @@ export class LanguageSession {
       const comments = listComments(this.document).filter((comment) => ids.has(comment.on));
       const lines = [
         scaleStatement(this.document.calibration()),
-        printItems(chosen),
+        printItems(chosen, this.document.layerList(), this.document.list()),
         ...discussionStatements(comments),
       ];
       const notes = this.overlapNotes(

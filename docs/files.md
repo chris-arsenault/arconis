@@ -32,6 +32,24 @@ stacking order survive round trips; exporting alone does not restamp every item.
 Pictures remain embedded under their content hashes, so editing a label leaves
 unrelated picture data unchanged. A genuine item edit can update its attribution.
 
+Object statements are grouped by layer and holder, then sorted top-to-bottom
+(Y), left-to-right (X). Connections follow their referenced objects and use their
+endpoint/bend bounds for spatial ordering. Drawing paths use their bounds and
+highlights use their target's position. Coincident objects sort by type, label,
+stacking value and remaining content; completely identical ties retain drawing
+order. Random IDs and creation order do not determine ordinary file order.
+
+Each item and connection carries an explicit `z` value: larger values draw in
+front within the existing layer/container rules. Statement order does not control
+that stacking. Export preserves these numbers, so moving or renaming one object
+does not renumber the others. Moving past another object's position can relocate
+its statement. The first export using spatial ordering may produce a larger diff.
+
+Import into an empty canvas retains the stored values. Import into an occupied
+canvas puts the incoming stack above existing content, keeping its relative order.
+Files without `z` still use declaration order to establish their initial stack;
+older Arconis versions that do not know `z` cannot read the new output.
+
 **Include canvas annotations**, in the export options, is checked by default. These are pen and
 highlighter marks drawn over the canvas. Uncheck it to omit annotations while retaining drawn
 objects and other workspace content. This applies to the portable export, not the room's local

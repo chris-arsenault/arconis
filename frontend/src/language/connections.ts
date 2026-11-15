@@ -67,6 +67,7 @@ export function describeLink(draft: Draft, item: Item, attributes: Attribute[], 
       item.y = attribute.y;
     } else describeLinkField(draft, item, attribute, line);
   }
+  draft.reserveOrder(item.order);
 }
 
 /** The fields a line carries as every item does, and its layer. */

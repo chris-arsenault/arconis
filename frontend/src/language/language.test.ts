@@ -255,7 +255,7 @@ describe("slides", () => {
       edit s1 deck pitch
     `);
     const text = printCanvas(document);
-    expect(text).toContain('slide s1 "Problem" deck pitch 3 at 0,0 size 1280,720\n');
+    expect(text).toContain('slide s1 "Problem" deck pitch 3 z 0 at 0,0 size 1280,720\n');
     const copy = new CanvasDocument();
     importDocument(copy, text);
     expect(get(copy, "s1")).toMatchObject({ deck: "pitch", slide: 3, width: 1280, height: 720 });
@@ -284,9 +284,7 @@ describe("files", () => {
     const copy = new CanvasDocument();
     importDocument(copy, text);
     expect(printCanvas(copy)).toBe(text);
-    // A file keeps stacking as the order of its statements, so only the order numbers change.
-    const withoutOrder = (items: Item[]) => items.map((item) => ({ ...item, order: 0 }));
-    expect(withoutOrder(copy.list())).toEqual(withoutOrder(document.list()));
+    expect(copy.list()).toEqual(document.list());
   });
 
   it("keeps a file's ids where they are free and renames the rest", () => {

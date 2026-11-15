@@ -23,7 +23,7 @@ describe("an agent's session", () => {
       a -> b "jobs"
     `);
     expect(reply).toMatch(/Done: 4 created/);
-    expect(reply).toMatch(/node a "API" service at \d+,\d+ size 160,90 in f/);
+    expect(reply).toMatch(/node a "API" service z 1 at \d+,\d+ size 160,90 in f/);
   });
 
   it("refuses an edit to an item someone changed since the agent saw it", () => {
@@ -33,7 +33,7 @@ describe("an agent's session", () => {
     personWrites(document, "edit box by 0,-200");
     const reply = session.write("edit box by -100,0");
     expect(reply).toMatch(/Nothing was changed/);
-    expect(reply).toMatch(/node box "Box" at 0,-200/);
+    expect(reply).toMatch(/node box "Box" z 0 at 0,-200/);
     expect(document.get("box")).toMatchObject({ x: 0, y: -200 });
     // Having been told, the agent can now act on the current state.
     expect(session.write("edit box by -100,0")).toMatch(/Done/);
@@ -47,7 +47,7 @@ describe("an agent's session", () => {
     personWrites(document, "edit box at 400,400");
     const reply = session.write('node label "Label" below box');
     expect(reply).toMatch(/Done/);
-    expect(reply).toMatch(/Others changed since your last call:\nnode box "Box" at 400,400/);
+    expect(reply).toMatch(/Others changed since your last call:\nnode box "Box" z 0 at 400,400/);
     expect(document.get("label")!.y).toBe(400 + 90 + 40);
   });
 
@@ -65,7 +65,7 @@ describe("an agent's session", () => {
     const session = new LanguageSession(document, "Agent");
     session.write('node a "A" at 0,0\nnode b "B" at 100,0\ncomment on a "Too close to b?"');
     const read = session.read({ items: ["a"] });
-    expect(read).toMatch(/node a "A" at 0,0 size 160,90/);
+    expect(read).toMatch(/node a "A" z 0 at 0,0 size 160,90/);
     expect(read).toMatch(
       /discussion on a \{\n {2}comment \w+ "Agent" at \d+ "Too close to b\?"\n\}/
     );

@@ -72,6 +72,26 @@ export class Draft {
     return this.order++;
   }
 
+  reserveOrder(value: number) {
+    this.order = Math.max(this.order, value + 1);
+  }
+
+  /** A portable copy adds above existing content, keeping source ties before ids are remapped. */
+  stackImported(importing: boolean | undefined) {
+    if (!importing || !this.original.size) return;
+    const sourceIds = new Map([...this.aliases].map(([source, target]) => [target, source]));
+    const incoming = this.created
+      .map((id) => this.items.get(id))
+      .filter((item) => item !== undefined);
+    incoming.sort(
+      (a, b) =>
+        a.order - b.order ||
+        (sourceIds.get(a.id) ?? a.id).localeCompare(sourceIds.get(b.id) ?? b.id)
+    );
+    let order = this.document.nextOrder();
+    for (const item of incoming) item.order = order++;
+  }
+
   /** A declaration starts from complete domain state before its attributes are interpreted. */
   declare(statement: ItemStatement, inside: string): Item {
     const requested = requestedId(statement.identity);
