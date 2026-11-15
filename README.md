@@ -74,6 +74,10 @@ editable canvas objects, and you can keep working alongside it.
 
 [Connect an assistant](docs/agents.md)
 
+Coding agents can also [download the CLI](https://arconis.ahara.io/#cli) and edit a
+local `.arconis` file through ordinary shell commands, with no account or MCP setup.
+The same download offers optional local MCP.
+
 ## Start your first canvas
 
 1. Open **[Arconis](https://arconis.ahara.io)**, enter a display name and choose **Create a room**.

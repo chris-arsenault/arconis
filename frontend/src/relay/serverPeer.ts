@@ -3,7 +3,12 @@ import type { ConnectionState, FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { Relay, RelaySocket } from "./relay";
 import { LockedTransport } from "../collaboration/lockedTransport";
-import { DEFAULT_PASSWORD, openEnvelope } from "../collaboration/roomKey";
+import {
+  DEFAULT_PASSWORD,
+  openEnvelope,
+  defaultRoomKey,
+  createEnvelope,
+} from "../collaboration/roomKey";
 
 /** How long a new peer waits for someone in the room to send the canvas. */
 export const SYNC_TIMEOUT_MS = 10_000;
@@ -21,6 +26,27 @@ export class ServerPeer {
   private transport: LockedTransport;
   /** An envelope requiring an explicit password keeps this room browser-owned. */
   locked = false;
+  private roomKey: CryptoKey | null = null;
+
+  get key() {
+    if (!this.roomKey) throw new Error("Room key is unavailable.");
+    return this.roomKey;
+  }
+
+  get retained() {
+    return this.relay.agentRoomActive(this.roomId);
+  }
+
+  /** A new ordinary room starts with the same key and envelope as a browser-created room. */
+  async seed() {
+    const key = await defaultRoomKey(this.roomId);
+    const envelope = await createEnvelope(DEFAULT_PASSWORD, key, 1);
+    this.roomKey = key;
+    this.transport.shareEnvelope = () => envelope;
+    this.transport.envelopeKnown();
+    this.transport.unlock(key);
+    this.provider.connect();
+  }
 
   constructor(
     private relay: Relay,
@@ -32,6 +58,7 @@ export class ServerPeer {
     this.transport.onEnvelope = (envelope) => {
       void openEnvelope(DEFAULT_PASSWORD, envelope)
         .then((key) => {
+          this.roomKey = key;
           this.transport.shareEnvelope = () => envelope;
           this.transport.unlock(key);
         })
@@ -45,7 +72,7 @@ export class ServerPeer {
 
   /** Joins and waits for the canvas from someone in the room. */
   async start(timeout = SYNC_TIMEOUT_MS): Promise<PeerReadiness> {
-    if (!this.relay.peopleIn(this.roomId)) return "nobody";
+    if (!this.relay.peopleIn(this.roomId) && !this.retained) return "nobody";
     this.provider.connect();
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {

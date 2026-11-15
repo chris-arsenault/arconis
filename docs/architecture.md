@@ -3,7 +3,8 @@
 The editor and its document run in the browser. Static assets come from S3 and CloudFront, a small
 relay on EC2 carries messages between peers and stores nothing, and IndexedDB keeps a copy on each
 device. Agents work in a room through MCP tools on the relay, which holds that room's canvas in memory
-while they do.
+while they do. Coding agents can also edit a local `.arconis` file through the
+standalone Node CLI, with optional stdio MCP and no account or network requirement.
 
 User workflows are in the [documentation index](README.md). Source paths below are relative to
 `frontend/src/`. The [ADR index](adr/README.md) distinguishes accepted, proposed and superseded
@@ -441,7 +442,10 @@ sign-in challenges and availability explanations work while the relay is stopped
 `/mcp/relay`, where `relay/mcpHttp.ts` validates the bearer again and executes MCP. The forwarding
 path has the same authentication and room-session ownership checks as direct relay requests.
 `protocol/mcp.ts` owns shared discovery metadata and authentication contracts without importing
-the relay's MCP server or document tools into the control Lambda.
+the relay's MCP server or document tools into the control Lambda. `agents/contract.ts`
+and `agents/roomTools.ts` supply shared tool schemas for cold-start discovery; they
+do not import canvas execution, language handlers or icon data. The authenticated
+proxy starts a stopped relay through the existing budget-aware `RelayControl.start()`.
 The proxy keeps no canvas or session state and never retries writes. Bare load-balancer failures
 become MCP explanations for stopped, starting, stopping or budget-limited relays; a lost response
 leaves an edit's outcome unverified. Healthy requests do not query control status or usage.
@@ -450,9 +454,15 @@ person signs in and consents; `relay/accessTokens.ts` accepts only the tenant's 
 this endpoint ([ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Opening a room adds a peer in the
 relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the canvas from someone there
 and carries a language session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
-opened, agent peers do not count as connections for the idle rules, and sessions unused for a while
-close with their peers. `relay/mcp.ts` holds the tools: open a room, describe, read and write in the
-canvas language, check layout, undo, close a room, search icons, and retrieve language guidance. Help needs no open room.
+opened, except rooms retained by a creating import session. Agent peers do not count
+as people. `import_document` with `new_room=true` seeds an ordinary room using the
+same default-key/envelope functions as browser creation and returns its collaboration
+link with instructions to present it immediately. A session-owned relay lease keeps
+the new room available before a browser joins; expiry or closing releases that lease.
+No document is saved durably, and existing budget and session limits remain.
+`relay/mcp.ts` registers `agents/contract.ts` schemas with `agents/operations.ts`
+handlers for describe, read, write, layout checks, undo, import/export, help and stencils.
+Room lifecycle and authenticated handles remain relay-owned.
 The agent peer uses the same encrypted channel and opens an ordinary room's envelope with
 `nopass`. It refuses explicit password rooms; ordinary frame forwarding never opens contents.
 `relay/agentSessions.ts` owns explicit room sessions keyed by random handles and bound to the
@@ -467,6 +477,17 @@ authenticated user across transports.
 An orientation outline locates items; `read` supplies their actual source. Unknown ids lead back to
 discovery, and stale edits return current source before a retry. Peer-authored labels and comments
 are task data, not authority over the agent's tools.
+
+`cli/main.ts` invokes the same operation handlers directly for ordinary shell use;
+`cli/mcp.ts` optionally registers them on stdio. `cli/fileSession.ts` loads through
+`CanvasFiles`, commits successful mutations with a temporary sibling and rename,
+and uses a cooperating-process lock plus a revision check to refuse external-file
+overwrites. `FileActions` serializes lifecycle and canvas calls. Foreground sessions
+retain undo history; one-shot processes do not share it. An export uses a complete
+portable snapshot, independent of inspection limits; session-local chunks keep
+picture-heavy transfers within the existing hosted message ceiling.
+The existing frontend build emits the bundled CLI under `dist/downloads`, delivered
+by the existing website module; the #cli page selects the current build revision.
 
 Expected refusals use MCP's `isError` flag and explain the supported next action. Unexpected tool
 faults return an error reference and log matching structured diagnostics through `relay/errors.ts`;
@@ -532,8 +553,9 @@ explain that password resets affect the shared account.
 
 - Joining a room on a fresh device needs an active peer holding the document. A portable file or
   account-saved copy provides an independent restore path; the forwarding relay keeps no durable copy.
-- Agents reach only rooms someone has open, and their sessions end when the relay instance is
-  replaced.
+- Hosted agents reach browser-held rooms or newly imported rooms retained by an
+  agent session; those sessions end when the relay instance is replaced. The local
+  CLI edits files independently of relay availability.
 - Room codes are not enforced access control, so rooms suit non-sensitive work
   ([ADR-0003](adr/0003-anonymous-rooms-public-api-key.md)).
 - The relay is one process with no redundancy, so its failure stops collaboration until it returns.

@@ -7,6 +7,7 @@ import { Relay, TICK_MS } from "./relay";
 import { s3Pictures } from "./s3Pictures";
 import { Uploads } from "./uploads";
 import { reportFailure } from "./errors";
+import { agentPictureStorage } from "./agentPictures";
 
 // The EC2 entry point. A clean exit shuts the instance down (see the unit in user_data); a crash
 // restarts the process.
@@ -39,7 +40,14 @@ function agentGateway() {
     issuer: process.env.AUTH_ISSUER ?? "",
   };
   if (!Object.values(config).every(Boolean)) return null;
-  return new AgentGateway(() => relay, config, accessTokenVerifier(config));
+  return new AgentGateway(
+    () => relay,
+    config,
+    accessTokenVerifier(config),
+    Date.now,
+    agentPictureStorage(allowedOrigin, () => relay),
+    allowedOrigin
+  );
 }
 const agents = agentGateway();
 

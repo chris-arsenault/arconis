@@ -49,6 +49,41 @@ it("keeps discovery and sign-in challenges available without a running relay", a
   expect(upstream).not.toHaveBeenCalled();
 });
 
+it("starts through existing control and serves discovery while the relay boots", async () => {
+  const upstream = vi.fn<typeof fetch>(() =>
+    Promise.resolve(new Response("Unavailable", { status: 503 }))
+  );
+  const start = vi.fn(() => Promise.resolve("starting" as const));
+  const proxy = new McpProxy(config, verify, () => Promise.resolve("stopped"), upstream, start);
+  const initialize = await proxy.handle(event("initialize", { protocolVersion: "2025-11-25" }));
+  expect(JSON.parse(initialize!.body)).toMatchObject({
+    result: { protocolVersion: "2025-11-25", capabilities: { tools: {} } },
+  });
+  const listed = await proxy.handle(event("tools/list"));
+  const tools = ListToolsResultSchema.parse(resultOf(listed!.body)).tools;
+  expect(tools.map((tool) => tool.name)).toContain("export_document");
+  const opened = await proxy.handle(
+    event("tools/call", { name: "open_room", arguments: { room: ROOM } })
+  );
+  expect(toolText(opened!.body)).toContain("starting automatically");
+  expect(start).toHaveBeenCalledTimes(3);
+  expect(upstream).toHaveBeenCalledTimes(3);
+});
+
+it("does not activate through unauthenticated, budget-limited or ambiguous requests", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const start = vi.fn(() => Promise.resolve("starting" as const));
+  const unavailable: typeof fetch = () =>
+    Promise.resolve(new Response("Unavailable", { status: 503 }));
+  const proxy = new McpProxy(config, verify, () => Promise.resolve("limit"), unavailable, start);
+  expect((await proxy.handle({ ...event(), headers: {} }))!.statusCode).toBe(401);
+  expect(toolText((await proxy.handle(event()))!.body)).toContain("monthly spending limit");
+  const lost: typeof fetch = () => Promise.reject(new Error("Lost response"));
+  const ambiguous = new McpProxy(config, verify, () => Promise.resolve("stopped"), lost, start);
+  expect(toolText((await ambiguous.handle(event()))!.body)).toContain("unverified");
+  expect(start).not.toHaveBeenCalled();
+});
+
 it.each<RelayStatus>(["stopped", "starting", "stopping", "running", "limit"])(
   "explains %s availability through MCP instead of an ALB error page",
   async (state) => {

@@ -107,6 +107,7 @@ function control(type: string, reason?: StopReason) {
 
 export class Relay {
   private rooms = new Map<string, Room>();
+  private agentRooms = new Map<string, Set<symbol>>();
   private connections = 0;
   private lastContent: number;
   private noConnectionsSince: number;
@@ -121,6 +122,31 @@ export class Relay {
 
   get connectionCount() {
     return this.connections;
+  }
+
+  /** A seeded room needs an agent owner while waiting for a browser. */
+  retainAgentRoom(roomId: string) {
+    if (this.stopped) throw new Error("The relay is stopping. Retry after it restarts.");
+    const leases = this.agentRooms.get(roomId) ?? new Set<symbol>();
+    const lease = Symbol("seeded room session");
+    leases.add(lease);
+    this.agentRooms.set(roomId, leases);
+    return () => {
+      if (!leases.delete(lease)) return;
+      if (!leases.size) this.agentRooms.delete(roomId);
+      if (!this.connections) this.noConnectionsSince = this.options.now();
+    };
+  }
+
+  agentRoomActive(roomId: string) {
+    return !this.stopped && this.agentRooms.has(roomId);
+  }
+
+  prepareUpload(request: UploadRequest): Promise<UploadReply> {
+    return (
+      this.options.uploads?.prepare(request) ??
+      Promise.resolve({ status: "refused", hash: request.hash, reason: "unavailable" })
+    );
   }
 
   /** Whether another socket fits in this room. */
@@ -249,6 +275,7 @@ export class Relay {
   }
 
   private idle(now: number) {
+    if (this.agentRooms.size) return false;
     if (!this.connections) return now - this.noConnectionsSince >= IDLE_NO_CONNECTIONS_MS;
     return now - this.lastContent >= IDLE_NO_CONTENT_MS;
   }

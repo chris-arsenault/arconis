@@ -50,6 +50,8 @@ export function Welcome(props: Readonly<Props>) {
           No account required. Share a link and start thinking together.
           <br />
           Your browser keeps a local copy. Use rooms for non-sensitive work.
+          <br />
+          <a href="#cli">Download the CLI for coding agents</a>
         </p>
       </section>
       {!rooms.length && (

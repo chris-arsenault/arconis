@@ -83,11 +83,21 @@ combine diagrams, sticky notes, topic trees, drawings and slides in one document
 
 ## Assistants
 
+Coding agents can download the Node CLI and edit local `.arconis` files through
+their ordinary shell tool. Local editing needs no account, browser or MCP setup;
+local stdio MCP is optional. The CLI and hosted MCP share canvas operations and
+the browser's portable file import/export path.
+
 Signed-in people connect a remote MCP client using the server address in the account panel.
 An assistant joins an ordinary room someone has open and reads and writes the same canonical
 canvas language as files and browser edits. It can create diagrams, arrangements, topic trees,
 text, slides, drawings and discussions in atomic writes, discover syntax on demand and undo its
 own changes. Password rooms and device-only rooms remain browser-owned.
+
+Hosted MCP can start the relay and import/export portable files including pictures.
+Import into a new room returns a collaboration link and retains that room in the
+creating agent session's memory until people join. It adds no durable canvas store;
+the session's returned lifetime information explains when that working copy ends.
 
 ## Scope and references
 

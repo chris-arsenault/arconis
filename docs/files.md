@@ -22,6 +22,16 @@ readable text, with `arconis 1` as its header. Full documents include the drawin
 units; selection copies leave the destination's calibration alone. You can keep the file as
 a backup or import it into a new room to continue editing.
 
+Exports include a short comment telling coding agents where to obtain the
+[CLI](https://arconis.ahara.io/#cli) and to ask your permission before downloading
+or running it. Local CLI editing needs no MCP registration or Arconis account.
+The guidance is not authorization to run commands or upload the document.
+
+`.arconis` files are readable text suitable for Git. Item ids and meaningful
+stacking order survive round trips; exporting alone does not restamp every item.
+Pictures remain embedded under their content hashes, so editing a label leaves
+unrelated picture data unchanged. A genuine item edit can update its attribution.
+
 **Include canvas annotations**, in the export options, is checked by default. These are pen and
 highlighter marks drawn over the canvas. Uncheck it to omit annotations while retaining drawn
 objects and other workspace content. This applies to the portable export, not the room's local

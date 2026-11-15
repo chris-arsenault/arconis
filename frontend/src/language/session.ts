@@ -181,6 +181,16 @@ export class LanguageSession {
     });
   }
 
+  /** File preparation is asynchronous; capture feedback around its synchronous canvas commit. */
+  importDocument(write: () => string[]) {
+    let created: string[] = [];
+    const result = this.call(() => {
+      created = write();
+      return `// Imported ${created.length} items. Use describe_canvas or read to inspect them.`;
+    });
+    return { created, result };
+  }
+
   /** Reverts this session's most recent change, leaving everyone else's alone. */
   undoLast() {
     return this.call(() => {

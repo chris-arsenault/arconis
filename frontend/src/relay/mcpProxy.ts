@@ -8,6 +8,12 @@ import {
   type TokenVerifier,
 } from "../protocol/mcp";
 import { reportFailure } from "./errors";
+import { hostedToolsMetadata } from "../agents/roomTools";
+import { AGENT_INSTRUCTIONS } from "../agents/instructions";
+import {
+  LATEST_PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from "@modelcontextprotocol/sdk/types.js";
 
 interface AlbFields {
   path: string;
@@ -22,6 +28,7 @@ export type AlbRequest = Pick<AlbFields, "path" | "httpMethod"> &
 type RpcRequest = {
   jsonrpc: "2.0";
   method: string;
+  params: unknown;
 } & ({ kind: "notification" } | { kind: "request"; id: string | number });
 
 interface AlbResponse {
@@ -59,7 +66,7 @@ function parseRequest(raw: string): RpcRequest | null {
   try {
     const request = JSON.parse(raw) as Record<string, unknown>;
     if (request?.jsonrpc !== "2.0" || typeof request.method !== "string") return null;
-    const content = { jsonrpc: "2.0" as const, method: request.method };
+    const content = { jsonrpc: "2.0" as const, method: request.method, params: request.params };
     return typeof request.id === "string" || typeof request.id === "number"
       ? { ...content, kind: "request", id: request.id }
       : { ...content, kind: "notification" };
@@ -88,7 +95,8 @@ export class McpProxy {
     private config: McpConfig,
     private verify: TokenVerifier,
     private status: () => Promise<RelayStatus>,
-    private upstream: typeof fetch = fetch
+    private upstream: typeof fetch = fetch,
+    private start: (() => Promise<RelayStatus>) | null = null
   ) {}
 
   async handle(input: AlbRequest) {
@@ -110,8 +118,15 @@ export class McpProxy {
     if (!request) return reply(400, { error: "Expected an MCP JSON-RPC request." });
     const response = await this.forward(request, raw, headers);
     if (response) return response;
+    return this.availabilityReply(request);
+  }
+
+  private async availabilityReply(request: RpcRequest) {
     try {
-      return this.unavailable(request, AVAILABILITY[await this.status()]);
+      let state = await this.status();
+      if (state === "stopped" && this.start) state = await this.start();
+      if (this.start && state !== "limit") return this.startingReply(request, state);
+      return this.unavailable(request, AVAILABILITY[state]);
     } catch (error) {
       const errorId = reportFailure("mcp_availability", error);
       return this.unavailable(
@@ -119,6 +134,36 @@ export class McpProxy {
         `The Arconis relay is unavailable and its status could not be checked. Retry later. Error reference: ${errorId}.`
       );
     }
+  }
+
+  private startingReply(request: RpcRequest, state: RelayStatus) {
+    if (request.kind === "notification") return reply(202, undefined);
+    const envelope = { jsonrpc: "2.0", id: request.id };
+    if (request.method === "tools/list")
+      return reply(200, { ...envelope, result: { tools: hostedToolsMetadata() } });
+    if (request.method === "initialize") {
+      const params = request.params as { protocolVersion: unknown } | null;
+      const version =
+        typeof params?.protocolVersion === "string" &&
+        SUPPORTED_PROTOCOL_VERSIONS.includes(params.protocolVersion)
+          ? params.protocolVersion
+          : LATEST_PROTOCOL_VERSION;
+      return reply(200, {
+        ...envelope,
+        result: {
+          protocolVersion: version,
+          capabilities: { tools: {} },
+          serverInfo: { name: "arconis", version: "3.0.0" },
+          instructions: `${AGENT_INSTRUCTIONS}\nThe relay is ${state}; retry room tools shortly. No browser activation step is needed.`,
+        },
+      });
+    }
+    return this.unavailable(
+      request,
+      state === "starting"
+        ? "The Arconis relay is starting automatically. Retry shortly; no browser activation step is needed."
+        : AVAILABILITY[state]
+    );
   }
 
   private async authenticate(authorization: string) {

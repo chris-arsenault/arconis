@@ -1,4 +1,55 @@
-# Working with assistants through MCP
+# Working with assistants
+
+## Edit a local file with a coding agent
+
+Download the [Arconis CLI](https://arconis.ahara.io/#cli), save it as `arconis.mjs`,
+and run it with Node.js 24 or newer. A coding agent uses its ordinary shell tool;
+no MCP registration, account, browser or remote server is needed for local editing.
+The CLI is distributed with the website through the same CI deployment, rather
+than through a package registry. Download a newer copy to update.
+
+```sh
+node /path/to/arconis.mjs --help
+node /path/to/arconis.mjs --file architecture.arconis read
+node /path/to/arconis.mjs --file architecture.arconis --create write --statements 'node api "API"'
+node /path/to/arconis.mjs --file architecture.arconis write --statements-file change.canvas
+node /path/to/arconis.mjs --file architecture.arconis import_document --input another.arconis
+node /path/to/arconis.mjs --file architecture.arconis export_document --output copy.arconis
+```
+
+Each successful mutation updates the `.arconis` file before returning success.
+Existing output files are not overwritten by `--output`. Use `--args` with a JSON
+object for selections or help topics, for example `--args '{"items":["api"]}'` with
+`read`, or `--args '{"topic":"all"}'` with `canvas_help`.
+
+For several actions with undo, use `session --file architecture.arconis` and send
+one JSON object per line, such as
+`{"action":"write","args":{"statements":"node db database"}}`, followed by
+`{"action":"undo"}`. Closing that process releases its undo history. One-shot
+commands do not retain another process's history. All sessions use the same
+canvas operations as hosted MCP.
+
+Arconis locks the file for cooperating CLI sessions and refuses external-file
+changes instead of overwriting them. Close and reopen after an external edit.
+After a crash, remove a leftover `.lock` file only once no Arconis process is using
+the diagram. Read-only operations do not rewrite the document. Arbitrary editors
+do not obey Arconis locks, so avoid writing with both at the same time.
+
+Portable files include setup guidance for agents: tell the user about the CLI,
+show the instructions, and ask permission before downloading or running it. The
+file itself grants no execution or upload permission. Local CLI actions do not
+upload diagrams or read linked repository source files.
+
+## Optional local MCP
+
+The same download supports stdio MCP for users who prefer registering a local
+server in their coding agent. Configure command `node` with arguments
+`/path/to/arconis.mjs mcp --file /path/to/architecture.arconis`. Omit `--file` to use
+`open_file` with `{ "path": "/path/to/architecture.arconis" }`; `create: true` opens
+a new file. `close_file` releases it. This mode needs no account and uses no remote
+server. Standard CLI use requires none of this configuration.
+
+## Collaborate through hosted MCP
 
 An assistant joins an ordinary room as another participant. It reads and writes the same canvas
 language used by files and browser edits, including diagrams, topic trees, Markdown, slides,
@@ -19,9 +70,9 @@ compatible assistant client. There is no assistant chat built into the canvas.
 For the deployed application, the server is `https://relay.arconis.ahara.io/mcp`. The account
 panel supplies the configured address for the environment you are using.
 
-Password rooms and device-only rooms are outside assistant access. Someone must keep an ordinary
-room open for edits to be retained. Accounts and saved copies do not give an assistant unattended
-access to rooms with nobody online.
+Password rooms and device-only rooms are outside hosted assistant access. Existing rooms
+need a browser peer, unless a new-room import session is retaining them as described below.
+Accounts and saved copies do not grant unattended access to saved rooms.
 
 ## Ask for an outcome
 
@@ -76,7 +127,9 @@ use a configured connector by asking for an outcome without composing these tool
 | `list_stencils`   | Discover shapes, icon sets and matching icon keys.                                        |
 | `write`           | Apply canvas-language statements atomically.                                              |
 | `check_layout`    | Report overlaps, objects outside their holder and text that may not fit, with no drawing. |
-| `undo`            | Revert the assistant session's own most recent write.                                     |
+| `undo`            | Revert the assistant session's own most recent write or import.                           |
+| `import_document` | Add portable `.arconis` content using the same import operation as the browser.           |
+| `export_document` | Return portable `.arconis` content including picture bytes.                               |
 | `close_room`      | Release the session's room peer and edit history when finished.                           |
 
 Save the `session_id` returned by `open_room` and pass it to `describe_canvas`, `read`, `write`,
@@ -89,6 +142,36 @@ Each open creates an independent session with its own read and undo history, bou
 user and OAuth client. Reuse its handle after reconnecting or reinitializing MCP. Individual HTTP
 requests do not require `initialize` or `Mcp-Session-Id`; that header does not select a room.
 `canvas_help` and `list_stencils` need no session.
+
+Hosted MCP starts the relay through its existing control service when it is
+stopped. Initialization and tool discovery remain available while it starts;
+retry room calls when the result reports startup. Existing spending limits apply.
+
+For import/export in an existing room, pass its `session_id`. Import accepts
+`content` and adds it as one undoable change, preserving current items and remapping
+conflicting ids. Title, styles and scale follow the web import behavior documented
+in [files](files.md#import-into-a-room).
+
+Large files can be transferred in chunks without exceeding the hosted request
+limit: start import with `append: false, final: false`, send subsequent chunks with
+`append: true`, and set `final: true` on the last call. Only the final call changes
+the canvas. Keep chunks around 32,000 characters. To export, start at `offset: 0`,
+concatenate each returned `content` and request `next_offset` until it is `null`.
+One export uses a consistent snapshot even if someone edits during transfer.
+The CLI's `export_document --output` assembles these chunks into the output file.
+
+To import into a new hosted room, call `import_document` with `new_room: true` and
+`content`, omitting `session_id`. The response supplies `session_id`, `room_url`,
+an outline, lifetime information and instructions to **present the link to the user
+immediately for collaboration**. For a chunked import, use `new_room: true` only on
+the first chunk; use the returned session id on later chunks.
+
+The creating session retains the new room in memory and can edit it before anyone
+joins. Open the returned link to retain a browser copy and collaborate normally.
+Closing or expiring the creating session, relay replacement, or relay shutdown can
+lose the working copy if no browser retains it. This is not a durable saved copy;
+keep the original file or export the current result before closing. Existing idle
+session expiry and spending limits still apply.
 
 Sessions live only in relay memory and expire after 30 minutes without a room call or when the
 relay restarts. Closing a connector does not release the room session; use `close_room` when done.

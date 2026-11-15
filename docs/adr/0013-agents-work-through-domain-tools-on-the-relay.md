@@ -1,10 +1,14 @@
 # 0013 — Agents work through domain tools on the relay
 
-- Status: Accepted; amended by ADR-0014; agent sign-in superseded by ADR-0015
+- Status: Accepted; amended by ADR-0014 and ADR-0020; agent sign-in superseded by ADR-0015
 - Date: 2026-11-07
 - Amends: ADR-0009
 
 ## Context
+
+The local-runtime and browser-required restrictions below record the original
+decision; [ADR-0020](0020-shared-local-and-hosted-agent-actions.md) amends them for
+the later CLI and new-room import request.
 
 The owner asked for an MCP server that works on the document with domain-native tools, following Ahara's
 domain-native work surfaces practice, and for an agent-friendly file format that would follow from the same

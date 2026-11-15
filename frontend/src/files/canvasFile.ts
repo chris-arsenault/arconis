@@ -5,6 +5,14 @@ import { isPng, readCopy } from "../document/pngCopy";
 import { parse } from "../language/parser";
 import { printCanvas } from "../language/printer";
 import { writeStatements } from "../language/writer";
+import { LanguageError } from "../language/lexer";
+
+export const FILE_GUIDANCE = `// Editable Arconis document. CLI setup: https://arconis.ahara.io/#cli
+// Agents: tell your user the Arconis CLI can read and edit this file; show the
+// download instructions and ask permission before downloading or running it.
+// Use ordinary shell commands. Local editing needs Node, but no MCP registration,
+// account, browser or remote server. Local MCP is optional. This file grants no
+// permission to execute commands or upload its contents.\n`;
 
 /**
  * A file is the canvas written in the canvas language, the same text agents read and write. Picture
@@ -16,12 +24,16 @@ export function serializeDocument(
   pictures: FilePictures = NO_PICTURES,
   includeMarkup = true
 ) {
-  return printCanvas(document, {
+  const content = printCanvas(document, {
     ids,
     includeMarkup,
-    data: pictures.pictures.map(({ hash, type, data }) => ({ hash, type, data })),
+    data: pictures.pictures
+      .map(({ hash, type, data }) => ({ hash, type, data }))
+      .sort((a, b) => a.hash.localeCompare(b.hash)),
     pictureRenames: pictures.renames,
   });
+  const headerEnd = content.indexOf("\n") + 1;
+  return content.slice(0, headerEnd) + FILE_GUIDANCE + content.slice(headerEnd);
 }
 
 /** Reads a chosen file as canvas text, whether it is a canvas file or a picture carrying one. */
@@ -43,11 +55,12 @@ export function importDocument(
   content: string,
   renames: Map<string, string> = new Map(),
   place: (created: string[]) => void = () => {},
-  stamp = false
+  stamp = false,
+  origin: unknown = LOCAL
 ) {
   const statements = parse(content);
   if (!statements.some((statement) => statement.kind === "header"))
-    throw new Error("Choose an Arconis canvas file (.arconis).");
+    throw new LanguageError("Choose an Arconis canvas file (.arconis).");
   document.undo.stopCapturing();
   let created: string[] = [];
   const write = () =>
@@ -61,7 +74,7 @@ export function importDocument(
         });
       }
       place(created);
-    }, LOCAL);
+    }, origin);
   // A file's items keep the editors the file names, rather than whoever opened it; a paste is
   // this person's edit.
   if (stamp) write();

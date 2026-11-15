@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { AgentSessions } from "./agentSessions";
 import { createMcpServer } from "./mcp";
+import type { AgentPictureStorage } from "./agentPictures";
 import type { Relay } from "./relay";
 import { reportEvent, reportFailure, requestLogContext } from "./errors";
 import {
@@ -97,9 +98,11 @@ export class AgentGateway {
     relay: () => Relay,
     private config: McpConfig,
     private verify: TokenVerifier,
-    private now: () => number = Date.now
+    private now: () => number = Date.now,
+    pictures: AgentPictureStorage | null = null,
+    siteOrigin = "https://arconis.ahara.io"
   ) {
-    this.rooms = new AgentSessions(relay, now);
+    this.rooms = new AgentSessions(relay, now, pictures, siteOrigin);
   }
 
   private get origin() {

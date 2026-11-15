@@ -11,6 +11,7 @@ import { parse } from "../language/parser";
 import { importDocument, readDocumentFile, serializeDocument } from "./canvasFile";
 import { exportItems } from "../document/exportItems";
 import { sectionForInsertion } from "./section";
+import { LOCAL } from "../document/types";
 
 interface FilePictureStore {
   add(bytes: Uint8Array, type: string): Promise<string>;
@@ -26,13 +27,19 @@ export class CanvasFiles {
     private imported: () => void
   ) {}
 
-  async import(file: File) {
+  async import(
+    file: File,
+    origin: unknown = LOCAL,
+    apply: (write: () => string[]) => string[] = (write) => write()
+  ) {
     this.signal.throwIfAborted();
     const content = await readDocumentFile(file);
     this.signal.throwIfAborted();
     const renames = await this.preparePictures(content);
     this.signal.throwIfAborted();
-    const created = importDocument(this.document, content, renames);
+    const created = apply(() =>
+      importDocument(this.document, content, renames, () => {}, false, origin)
+    );
     this.imported();
     return created.length;
   }
@@ -76,13 +83,14 @@ export class CanvasFiles {
     const found = await Promise.all(
       pictureHashes(items).map(async (hash) => {
         const picture = await this.pictures.readOpen(hash);
-        if (!picture) return null;
+        if (!picture)
+          throw new Error(`Picture ${hash} is unavailable; a complete export cannot be made.`);
         const { hex } = await sha256(picture.bytes);
         if (hex !== hash) renames.set(hash, hex);
         return encodePicture(hex, picture.type, picture.bytes);
       })
     );
-    return { pictures: found.filter((picture) => picture !== null), renames };
+    return { pictures: found, renames };
   }
 
   /** Incoming pictures are kept through the destination store's plain or encrypted codec. */

@@ -3,6 +3,7 @@ import { LanguageError } from "../language/lexer";
 import { AgentSession } from "./agentSession";
 import { reportEvent } from "./errors";
 import type { Relay } from "./relay";
+import type { AgentPictureStorage } from "./agentPictures";
 
 export const SESSION_IDLE_MS = 30 * 60_000;
 export const MAX_SESSIONS = 50;
@@ -25,8 +26,14 @@ export class AgentSessions {
 
   constructor(
     private relay: () => Relay,
-    private now: () => number = Date.now
+    private now: () => number = Date.now,
+    private pictures: AgentPictureStorage | null = null,
+    private siteOrigin = "https://arconis.ahara.io"
   ) {}
+
+  roomLink(roomId: string) {
+    return new URL(`/#room=${roomId}`, this.siteOrigin).href;
+  }
 
   create(owner: SessionOwner, name: string) {
     this.sweep();
@@ -34,7 +41,7 @@ export class AgentSessions {
     if (this.rooms.size >= MAX_SESSIONS || own >= MAX_SESSIONS_PER_USER)
       throw new LanguageError("Too many room sessions are open; use close_room on one and retry.");
     const id = randomUUID();
-    const agent = new AgentSession(this.relay, name);
+    const agent = new AgentSession(this.relay, name, this.pictures);
     this.rooms.set(id, { owner, agent, lastUsed: this.now() });
     reportEvent("room_session_created", { session: agent.logId, activeSessions: this.rooms.size });
     return { id, agent };

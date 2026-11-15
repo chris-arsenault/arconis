@@ -29,7 +29,7 @@ the app's Help, where you can search them without leaving your canvas.
 | Sign in, save across devices and recover recent versions | [Accounts and saved work](accounts.md)                   |
 | Keep reusable selections in a personal library           | [My layouts](accounts.md#keep-reusable-layouts)          |
 | Add pictures or exchange editable documents and PNGs     | [Import and export](files.md#import-into-a-room)         |
-| Connect an assistant through MCP                         | [Assistants and MCP](agents.md)                          |
+| Use a coding agent CLI or connect through MCP            | [Assistants and CLI/MCP](agents.md)                      |
 | Report a problem or confusing interaction                | [Usability feedback](editing.md#send-usability-feedback) |
 
 ## Contributor and operator reference

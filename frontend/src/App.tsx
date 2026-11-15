@@ -12,6 +12,7 @@ import { parseRoom } from "./protocol/room";
 import { Welcome } from "./components/Welcome";
 import { Workspace } from "./components/Workspace";
 import { rememberRoom } from "./collaboration/recentRooms";
+import { CliDownload } from "./components/CliDownload";
 
 const NAME_KEY = "arconis:name";
 
@@ -88,8 +89,14 @@ function returnToRoom(room: string | null) {
   location.hash = room ? roomHash(room) : "";
 }
 
+function subscribeAddress(changed: () => void) {
+  window.addEventListener("hashchange", changed);
+  return () => window.removeEventListener("hashchange", changed);
+}
+
 export function App() {
-  const [room, setRoom] = useState(() => parseRoom(location.hash.slice(1)));
+  const address = useSyncExternalStore(subscribeAddress, () => location.hash);
+  const room = parseRoom(address.slice(1));
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "Guest");
   const [askName, setAskName] = useState(() => !localStorage.getItem(NAME_KEY));
   const [created, setCreated] = useState("");
@@ -97,11 +104,6 @@ export function App() {
   const previousRoom = useRef<string | null>(null);
   const { session, error, setError } = useRoomSession(room, createdRoom);
   const accountName = useAccountName(session);
-  useEffect(() => {
-    const onHash = () => setRoom(parseRoom(location.hash.slice(1)));
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
   const open = (id: string) => {
     if (id !== room) previousRoom.current = room;
     setError("");
@@ -133,6 +135,7 @@ export function App() {
     changeName(name);
     go();
   };
+  if (address === "#cli") return <CliDownload />;
   if (!session || session.id !== room)
     return (
       <Welcome

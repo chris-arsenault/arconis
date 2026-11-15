@@ -107,7 +107,13 @@ const mcpConfig = {
   resource: process.env.MCP_RESOURCE ?? "",
   issuer: process.env.AUTH_ISSUER ?? "",
 };
-const mcp = new McpProxy(mcpConfig, accessTokenVerifier(mcpConfig), () => control.status());
+const mcp = new McpProxy(
+  mcpConfig,
+  accessTokenVerifier(mcpConfig),
+  () => control.status(),
+  fetch,
+  () => control.start()
+);
 
 function reply(statusCode: number, body: object) {
   return {

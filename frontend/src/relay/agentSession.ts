@@ -1,12 +1,11 @@
 import { LanguageError } from "../language/lexer";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { LanguageSession, type ReadRequest } from "../language/session";
-import { ICON_VENDORS } from "../document/geometry";
-import { STENCILS } from "../document/types";
-import { loadAllVendors, loadIcons, searchIcons } from "../assets/icons/catalog";
 import type { Relay } from "./relay";
 import { ServerPeer, type PeerReadiness } from "./serverPeer";
 import { parseRoom } from "../protocol/room";
+import { roomFiles, type AgentPictureStorage } from "./agentPictures";
+import type { CanvasFiles } from "../files/canvasFiles";
 
 /** A room an agent may open: an ordinary room's link or code. */
 function parseRoomLink(value: string): string {
@@ -35,11 +34,15 @@ export class AgentSession {
   readonly logId = randomUUID();
   private peer: ServerPeer | null = null;
   private domain: LanguageSession | null = null;
+  private files: CanvasFiles | null = null;
+  private lifetime = new AbortController();
+  private releaseRoom = () => {};
 
   constructor(
     private relay: () => Relay,
     /** How the agent appears to people, and signs its comments. */
-    readonly name: string
+    readonly name: string,
+    private pictureStorage: AgentPictureStorage | null = null
   ) {}
 
   get hasRoom() {
@@ -56,7 +59,7 @@ export class AgentSession {
       if (this.peer !== peer)
         throw new LanguageError("This room session ended while opening. Call open_room again.");
       if (readiness !== "ready") throw new LanguageError(REFUSALS[readiness]);
-      this.domain = new LanguageSession(peer.document, this.name);
+      this.prepare(peer);
       return this.describe();
     } catch (error) {
       this.leave();
@@ -69,6 +72,37 @@ export class AgentSession {
     return domain.describe(peer.present());
   }
 
+  async createRoom() {
+    this.leave();
+    const relay = this.relay();
+    const roomId = randomBytes(24).toString("hex");
+    const peer = new ServerPeer(relay, roomId, this.name);
+    this.peer = peer;
+    this.releaseRoom = relay.retainAgentRoom(roomId);
+    try {
+      await peer.seed();
+      if (this.peer !== peer) throw new LanguageError("Room session ended while opening.");
+      if (relay.stopping)
+        throw new LanguageError("The relay is stopping. Retry after it restarts.");
+      this.prepare(peer);
+      return roomId;
+    } catch (error) {
+      this.leave();
+      throw error;
+    }
+  }
+
+  private prepare(peer: ServerPeer) {
+    this.domain = new LanguageSession(peer.document, this.name);
+    this.lifetime = new AbortController();
+    this.files = roomFiles(
+      peer.document,
+      () => peer.key,
+      this.pictureStorage,
+      this.lifetime.signal
+    );
+  }
+
   read(request: ReadRequest) {
     return this.require().domain.read(request);
   }
@@ -78,10 +112,10 @@ export class AgentSession {
     return this.require().domain.checkLayout(request);
   }
 
-  /** Edits only reach the canvas through people's browsers, so they need someone in the room. */
+  /** Existing rooms need browsers; a seeded room is retained by its creating session. */
   write(text: string) {
     const { domain, peer } = this.require();
-    if (!peer.people)
+    if (!peer.people && !peer.retained)
       throw new LanguageError(
         "Everyone has left the room, so nothing would be kept. Ask someone to open it again."
       );
@@ -90,22 +124,44 @@ export class AgentSession {
 
   undo() {
     const { domain, peer } = this.require();
-    if (!peer.people)
+    if (!peer.people && !peer.retained)
       throw new LanguageError("Everyone has left the room, so nothing would be kept.");
     return domain.undoLast();
   }
 
+  async importDocument(content: string) {
+    const { domain, peer, files } = this.require();
+    if (!peer.people && !peer.retained)
+      throw new LanguageError("Everyone has left the room; ask someone to open it again.");
+    let result = "";
+    await files.import(new File([content], "canvas.arconis"), domain.origin, (write) => {
+      const imported = domain.importDocument(write);
+      result = imported.result;
+      return imported.created;
+    });
+    return result;
+  }
+
+  exportDocument(ids: string[], includeMarkup: boolean) {
+    return this.require().files.canvas(ids, includeMarkup);
+  }
+
   private require() {
-    if (!this.domain || !this.peer) throw new LanguageError("Open a room first with open_room.");
+    if (!this.domain || !this.peer || !this.files)
+      throw new LanguageError("Open a room first with open_room.");
     if (this.peer.locked) throw new LanguageError(REFUSALS.locked);
-    return { domain: this.domain, peer: this.peer };
+    return { domain: this.domain, peer: this.peer, files: this.files };
   }
 
   leave() {
+    this.lifetime.abort();
+    this.files = null;
     this.domain?.destroy();
     this.peer?.close();
     this.domain = null;
     this.peer = null;
+    this.releaseRoom();
+    this.releaseRoom = () => {};
   }
 }
 
@@ -118,37 +174,4 @@ export function agentName(value: string) {
   return `${name || "Agent"} (agent)`;
 }
 
-/** Stencils, and icon keys matching a search, for the icon stencil. */
-export async function stencils(query: string | undefined) {
-  if (!query?.trim())
-    return {
-      stencils: STENCILS,
-      iconSets: ["lucide", "brand", ...ICON_VENDORS],
-      iconHint: "Search with a query, such as 'lock server database', to find icon keys.",
-    };
-  await Promise.all([loadIcons(), loadAllVendors()]);
-  // Each word is its own search, so one call can look for several things at once.
-  const words = [
-    ...new Set(
-      query
-        .toLowerCase()
-        .split(/[\s,]+/)
-        .filter(Boolean)
-    ),
-  ].slice(0, 8);
-  return {
-    icons: Object.fromEntries(
-      words.map((word) => {
-        const found = searchIcons(word, ICONS_PER_WORD + 1);
-        return [
-          word,
-          {
-            matches: found.slice(0, ICONS_PER_WORD).map(({ key, title }) => ({ key, title })),
-            more: found.length > ICONS_PER_WORD,
-          },
-        ];
-      })
-    ),
-  };
-}
-const ICONS_PER_WORD = 12;
+export { stencils } from "../agents/stencils";

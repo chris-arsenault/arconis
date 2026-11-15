@@ -6,7 +6,8 @@
   "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build && pnpm build:relay && pnpm build:control && pnpm build:accounts",
+    "build": "tsc --noEmit && vite build && pnpm build:cli && pnpm build:relay && pnpm build:control && pnpm build:accounts",
+    "build:cli": "node build-cli.mjs",
     "build:accounts": "esbuild src/accounts/lambda.ts --bundle --minify --platform=node --target=node24 --format=cjs --external:@aws-sdk/* --outfile=dist-relay/accounts/index.js",
     "build:relay": "esbuild src/relay/server.ts --bundle --minify --platform=node --target=node24 --format=cjs --outfile=dist-relay/server.cjs",
     "build:control": "esbuild src/relay/lambda.ts --bundle --minify --platform=node --target=node24 --format=cjs --external:@aws-sdk/* --outfile=dist-relay/control/index.js",

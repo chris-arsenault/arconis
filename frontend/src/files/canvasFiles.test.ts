@@ -50,6 +50,22 @@ function workspace(codec: PictureCodec = TEST_CODEC) {
   return { document, pictures, files, lifetime, imported, shelf };
 }
 
+it("round trips stable files and limits a label edit to its item's line", async () => {
+  const source = workspace();
+  source.document.create("node", 10, 20, { id: "a", name: "Before" });
+  source.document.create("node", 50, 20, { id: "b", name: "Retained" });
+  const original = await source.files.canvas();
+  expect(await source.files.canvas()).toBe(original);
+  const copy = workspace();
+  await copy.files.import(new File([original], "stable.arconis"));
+  expect(await copy.files.canvas()).toBe(original);
+  copy.document.patch("a", { name: "After" });
+  const changed = (await copy.files.canvas()).split("\n");
+  const differences = original.split("\n").filter((line, index) => line !== changed[index]);
+  expect(differences).toHaveLength(1);
+  expect(differences[0]).toContain("node a");
+});
+
 it("inserts independent library sections with pictures and internal references without replacing destination metadata", async () => {
   const source = workspace();
   const target = workspace();

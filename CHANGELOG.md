@@ -4,6 +4,19 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Local agent CLI and portable transfers
+
+- Added a downloadable Node CLI for reading and editing local `.arconis` files
+  through normal shell commands, with optional local stdio MCP and shared hosted
+  MCP actions. Local editing requires no account or MCP registration.
+- Portable exports include permission-seeking setup guidance; repeated exports
+  preserve identities, attribution and unrelated picture data for meaningful diffs.
+- Hosted agents can import/export portable files including pictures, with chunked
+  transfers for larger documents. MCP requests can start the relay automatically.
+- Importing into a new hosted room returns a collaboration link for the assistant
+  to present immediately; the creating session retains the room in memory until
+  people join, without adding durable server storage.
+
 ### Separator lines and soft snapping
 
 - Added **Separator** to Basics in Shapes: a straight horizontal or vertical rule with no text,
