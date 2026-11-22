@@ -53,20 +53,29 @@ it("keeps object tools and expanded text options inside a narrow canvas", async 
     await add(page, "Sticky note (N)", "Small screen", 70, 260);
     await page.getByRole("button", { name: "Close properties", exact: true }).click();
     const tools = page.getByRole("region", { name: "Object tools", exact: true });
-    const checkBounds = async () => {
-      const bounds = (await tools.boundingBox())!;
-      const canvas = (await page.getByTestId("canvas").boundingBox())!;
-      expect(bounds.x).toBeGreaterThanOrEqual(canvas.x + 7);
-      expect(bounds.x + bounds.width).toBeLessThanOrEqual(canvas.x + canvas.width - 7);
-      expect(bounds.y).toBeGreaterThanOrEqual(canvas.y + 7);
-      expect(bounds.y + bounds.height).toBeLessThanOrEqual(canvas.y + canvas.height - 7);
-    };
+    const canvas = page.getByTestId("canvas");
+    // Preview changes the toolbar size. Its ResizeObserver repositions it after rendering.
+    const checkBounds = () =>
+      expect
+        .poll(async () => {
+          const [bounds, area] = await Promise.all([tools.boundingBox(), canvas.boundingBox()]);
+          if (!bounds || !area) return -Infinity;
+          return Math.min(
+            bounds.x - area.x,
+            area.x + area.width - (bounds.x + bounds.width),
+            bounds.y - area.y,
+            area.y + area.height - (bounds.y + bounds.height)
+          );
+        })
+        .toBeGreaterThanOrEqual(7);
     await checkBounds();
     await row(page, /^Small screen$/).dblclick();
     await tools.getByText("Code, preview and copy", { exact: true }).click();
     await tools.getByRole("button", { name: "Preview", exact: true }).click();
+    await tools.getByLabel("Markdown preview", { exact: true }).waitFor();
     await checkBounds();
     await tools.getByRole("button", { name: "Finish editing text", exact: true }).click();
+    await tools.getByRole("toolbar", { name: "Selection toolbar", exact: true }).waitFor();
     await checkBounds();
     await page.screenshot({ path: "test-results/contextual-tools-mobile.png" });
     expect(errors).toEqual([]);
