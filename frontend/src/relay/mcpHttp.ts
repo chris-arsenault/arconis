@@ -4,6 +4,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { AgentSessions } from "./agentSessions";
 import { createMcpServer } from "./mcp";
 import type { AgentPictureStorage } from "./agentPictures";
+import type { AgentWorkspaceStorage } from "./agentWorkspaceStorage";
 import type { Relay } from "./relay";
 import { reportEvent, reportFailure, requestLogContext } from "./errors";
 import {
@@ -100,7 +101,8 @@ export class AgentGateway {
     private verify: TokenVerifier,
     private now: () => number = Date.now,
     pictures: AgentPictureStorage | null = null,
-    siteOrigin = "https://arconis.ahara.io"
+    siteOrigin = "https://arconis.ahara.io",
+    private workspaces: AgentWorkspaceStorage | null = null
   ) {
     this.rooms = new AgentSessions(relay, now, pictures, siteOrigin);
   }
@@ -205,7 +207,7 @@ export class AgentGateway {
     response: ServerResponse,
     body: unknown
   ) {
-    const server = createMcpServer(this.rooms, caller);
+    const server = createMcpServer(this.rooms, caller, this.workspaces);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

@@ -8,6 +8,7 @@ import { s3Pictures } from "./s3Pictures";
 import { Uploads } from "./uploads";
 import { reportFailure } from "./errors";
 import { agentPictureStorage } from "./agentPictures";
+import { lambdaWorkspaceStorage } from "./agentWorkspaceStorage";
 
 // The EC2 entry point. A clean exit shuts the instance down (see the unit in user_data); a crash
 // restarts the process.
@@ -15,6 +16,7 @@ const port = Number(process.env.PORT ?? 8080);
 const controlUrl = process.env.CONTROL_URL ?? "";
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "";
 const pictureBucket = process.env.PICTURE_BUCKET ?? "";
+const accountsFunction = process.env.ACCOUNTS_FUNCTION;
 if (!controlUrl || !allowedOrigin) throw new Error("CONTROL_URL and ALLOWED_ORIGIN are required.");
 
 const FLUSH_BEFORE_EXIT_MS = 1000;
@@ -46,7 +48,8 @@ function agentGateway() {
     accessTokenVerifier(config),
     Date.now,
     agentPictureStorage(allowedOrigin, () => relay),
-    allowedOrigin
+    allowedOrigin,
+    accountsFunction ? lambdaWorkspaceStorage(accountsFunction) : null
   );
 }
 const agents = agentGateway();

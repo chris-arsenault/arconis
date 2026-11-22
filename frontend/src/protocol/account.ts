@@ -28,6 +28,14 @@ export interface PublishWorkspaceRequest extends SaveWorkspaceRequest {
 export type AccountRequestBody =
   UpdateProfileRequest | SaveWorkspaceRequest | PublishWorkspaceRequest | LibraryRequest;
 
+export interface WorkspaceInvocation {
+  arconisWorkspace: true;
+  user: string;
+  method: "GET" | "PUT" | "POST";
+  path: string;
+  body: SaveWorkspaceRequest | PublishWorkspaceRequest | null;
+}
+
 export interface WorkspaceUploadReply {
   url: string;
   revision: string;

@@ -106,7 +106,7 @@ it("seeds a new room without a browser and returns a collaboration link and life
   };
   const room = parseRoom(opened.room_url)!;
   expect(room).toMatch(/^[a-f0-9]{48}$/);
-  expect(opened.instructions).toContain("Present room_url to the user now");
+  expect(opened.instructions).toContain("save_workspace");
   expect(opened.lifetime).toContain("not a durable saved copy");
   expect(relay.peopleIn(room)).toBe(0);
   expect(relay.agentRoomActive(room)).toBe(true);

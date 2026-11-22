@@ -2,7 +2,12 @@
  * The accounts API behind the ALB, which validates each request's token first. It holds profiles and
  * workspace records, and signs storage links. Saved room copies arrive sealed under their room key.
  */
-import type { AccountFailure, AccountProfile, AccountReply } from "../protocol/account";
+import type {
+  AccountFailure,
+  AccountProfile,
+  AccountReply,
+  WorkspaceInvocation,
+} from "../protocol/account";
 import { LibraryApi, type LibraryTable } from "./library";
 import type { LibraryReply } from "../protocol/library";
 import { WorkspacesApi, type WorkspaceTable } from "./workspaces";
@@ -76,6 +81,15 @@ export class AccountsApi {
     if (/^api\/workspaces(?:\/|$)/.test(route))
       return this.workspaces.handle(user, method, route, parseBody(body));
     return notFound;
+  }
+
+  /** Direct IAM-authenticated relay calls share the browser's workspace rules. */
+  handleWorkspaceInvocation({ user, path, method, body }: WorkspaceInvocation) {
+    const collection = path === "workspaces" && method === "GET";
+    const workspace = /^workspaces\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(path);
+    if (!user || !(collection || (workspace && ["GET", "PUT", "POST"].includes(method))))
+      return Promise.resolve(invalid("Invalid workspace request."));
+    return this.handle(user, method, `/api/${path}`, body ? JSON.stringify(body) : "");
   }
 
   private async me(user: string, method: string, body: Record<string, unknown>) {

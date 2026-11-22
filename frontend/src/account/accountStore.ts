@@ -1,17 +1,14 @@
 import { sha256 } from "../document/pictures";
 import type { Auth } from "./auth";
 import { libraryListSchema, type LibrarySave } from "../protocol/library";
-import { encodeSavedCopy, decodeSavedCopy, type SavedCopy } from "./workspaceFile";
+import type { SavedCopy } from "./workspaceFile";
+import { WorkspaceConflict, WorkspaceStorage, workspaceLink } from "./workspaceStorage";
 import type {
   AccountProfile,
   AccountRequestBody,
-  SaveWorkspaceRequest,
-  PublishWorkspaceRequest,
   UpdateProfileRequest,
-  WorkspaceDownloadReply,
   WorkspaceListReply,
   WorkspaceRecord,
-  WorkspaceUploadReply,
 } from "../protocol/account";
 
 /** deleting: authenticated, with unfinished deletion that can be retried. */
@@ -20,7 +17,7 @@ export type AccountStatus = "loading" | "out" | "in" | "deleting";
 export type SavedWorkspace = WorkspaceRecord;
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
-export class WorkspaceConflict extends Error {}
+export { WorkspaceConflict } from "./workspaceStorage";
 class AccountDeleting extends Error {}
 
 function accountFailure(value: unknown) {
@@ -70,15 +67,6 @@ function workspaceList(value: unknown): WorkspaceListReply {
   if (!isRecord(value) || !Array.isArray(value.workspaces)) return malformedReply();
   return { workspaces: value.workspaces.map(workspaceRecord) };
 }
-/** Download metadata has more fields, but loading uses the same signed-link projection. */
-function workspaceLink(
-  value: unknown
-): WorkspaceUploadReply & Pick<WorkspaceDownloadReply, "url" | "revision"> {
-  if (!isRecord(value) || typeof value.url !== "string" || typeof value.revision !== "string")
-    return malformedReply();
-  return { url: value.url, revision: value.revision };
-}
-
 export class AccountStore {
   status: AccountStatus = "loading";
   name = "";
@@ -88,12 +76,15 @@ export class AccountStore {
   deletionPending = false;
   private listeners = new Set<() => void>();
   version = 0;
+  private workspacesStorage: WorkspaceStorage;
 
   constructor(
     private auth: Auth,
     private apiUrl: string,
     private request: Fetcher = (url, init) => fetch(url, init)
-  ) {}
+  ) {
+    this.workspacesStorage = new WorkspaceStorage(this.api.bind(this), this.request);
+  }
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -248,34 +239,13 @@ export class AccountStore {
 
   /** Stores a saved copy under an existing or new identifier. */
   async save(id: string, name: string, copy: SavedCopy, expectedRevision: string) {
-    const bytes = encodeSavedCopy(copy);
-    const { base64: checksum } = await sha256(bytes);
-    const metadata = {
-      size: bytes.length,
-      checksum,
-      name,
-      roomId: copy.roomId,
-      expectedRevision,
-    } satisfies SaveWorkspaceRequest;
-    const reply = await this.api("PUT", `workspaces/${id}`, metadata);
-    if (reply === null) throw new Error("The workspace could not be saved.");
-    const signed = workspaceLink(reply);
-    const uploaded = await this.request(signed.url, {
-      method: "PUT",
-      body: new Blob([new Uint8Array(bytes)], { type: "application/octet-stream" }),
-      headers: { "content-type": "application/octet-stream", "x-amz-checksum-sha256": checksum },
-    });
-    if (!uploaded.ok) throw new Error("The workspace could not be saved.");
-    await this.api("POST", `workspaces/${id}`, {
-      ...metadata,
-      revision: signed.revision,
-    } satisfies PublishWorkspaceRequest);
+    const revision = await this.workspacesStorage.save(id, name, copy, expectedRevision);
     this.changed();
-    return signed.revision;
+    return revision;
   }
 
   async load(id: string) {
-    return this.loadWorkspace(`workspaces/${id}`);
+    return this.workspacesStorage.load(`workspaces/${id}`);
   }
 
   async history(id: string) {
@@ -283,17 +253,7 @@ export class AccountStore {
   }
 
   async loadRevision(id: string, revision: string) {
-    return this.loadWorkspace(`workspaces/${id}/revisions/${revision}`);
-  }
-
-  private async loadWorkspace(path: string) {
-    const reply = await this.api("GET", path);
-    if (reply === null) throw new Error("This workspace no longer exists.");
-    const record = workspaceLink(reply);
-    const response = await this.request(record.url);
-    if (!response.ok) throw new Error("This workspace could not be loaded.");
-    const copy = decodeSavedCopy(new Uint8Array(await response.arrayBuffer()));
-    return { copy, revision: record.revision };
+    return this.workspacesStorage.load(`workspaces/${id}/revisions/${revision}`);
   }
 
   async removeWorkspace(id: string) {

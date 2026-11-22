@@ -1,6 +1,6 @@
 import { CanvasFiles } from "../files/canvasFiles";
 import type { CanvasDocument } from "../document/canvasDocument";
-import { sha256, pictureKey } from "../document/pictures";
+import { decodePicture, sha256, pictureKey, type PortablePicture } from "../document/pictures";
 import { seal, unseal } from "../collaboration/roomKey";
 import { putToStorage } from "../collaboration/pictureUploads";
 import type { Relay } from "./relay";
@@ -33,7 +33,8 @@ export function roomFiles(
   document: CanvasDocument,
   key: () => CryptoKey,
   storage: AgentPictureStorage | null,
-  signal: AbortSignal
+  signal: AbortSignal,
+  fromWorkspace: ReadonlyMap<string, PortablePicture>
 ) {
   const opened = new Map<string, { bytes: Uint8Array; type: string }>();
   const files = new CanvasFiles(
@@ -48,6 +49,8 @@ export function roomFiles(
       readOpen: async (hash) => {
         const cached = opened.get(hash);
         if (cached) return cached;
+        const portable = fromWorkspace.get(hash);
+        if (portable) return decodePicture(portable);
         const bytes = await storage?.read(hash);
         if (!bytes || (await sha256(bytes)).hex !== hash) return null;
         const type = document.list().find((item) => item.picture?.hash === hash)?.picture?.format;

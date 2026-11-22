@@ -64,6 +64,8 @@ Environment=PORT=${port}
 Environment=CONTROL_URL=${control_url}
 Environment=ALLOWED_ORIGIN=${allowed_origin}
 Environment=PICTURE_BUCKET=${picture_bucket}
+Environment=ACCOUNTS_FUNCTION=${accounts_function}
+Environment=AWS_REGION=${region}
 Environment=MCP_RESOURCE=${mcp_resource}
 Environment=AUTH_ISSUER=${auth_issuer}
 ExecStartPre=+/usr/bin/aws s3 cp s3://${bucket}/${key} /opt/arconis/server.cjs

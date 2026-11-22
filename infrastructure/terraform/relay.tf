@@ -113,6 +113,10 @@ locals {
 
 data "aws_iam_policy_document" "relay" {
   statement {
+    actions   = ["lambda:InvokeFunction"]
+    resources = [module.accounts_api.function_arn]
+  }
+  statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.relay.arn}/*"]
   }
@@ -217,6 +221,7 @@ resource "aws_launch_template" "relay" {
     control_url        = "https://${local.relay_hostname}"
     allowed_origin     = local.site_origin
     picture_bucket     = module.frontend.bucket_name
+    accounts_function  = module.accounts_api.function_name
     max_uptime_minutes = local.max_uptime_minutes
     mcp_resource       = local.mcp_resource
     auth_issuer        = local.auth0_issuer

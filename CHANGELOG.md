@@ -4,6 +4,11 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Saved workspaces for hosted assistants
+
+- Assistants can save ordinary diagrams to the connected Arconis account and reopen
+  them by workspace UUID or room link after the relay session ends.
+
 ### Smoother zoom
 
 - Fixed stuttering wheel and trackpad zoom on canvases with many tagged, marked or related

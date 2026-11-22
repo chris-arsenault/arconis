@@ -6,6 +6,10 @@ import { ServerPeer, type PeerReadiness } from "./serverPeer";
 import { parseRoom } from "../protocol/room";
 import { roomFiles, type AgentPictureStorage } from "./agentPictures";
 import type { CanvasFiles } from "../files/canvasFiles";
+import type { SavedCopy } from "../account/workspaceFile";
+import { pictureHashes, type PortablePicture } from "../document/pictures";
+import { WorkspaceConflict } from "../account/workspaceStorage";
+import type { WorkspaceAccount } from "./agentWorkspaceStorage";
 
 /** A room an agent may open: an ordinary room's link or code. */
 function parseRoomLink(value: string): string {
@@ -37,6 +41,9 @@ export class AgentSession {
   private files: CanvasFiles | null = null;
   private lifetime = new AbortController();
   private releaseRoom = () => {};
+  private workspacePictures = new Map<string, PortablePicture>();
+  private workspaceId: string | null = null;
+  private newWorkspaceId = randomUUID();
 
   constructor(
     private relay: () => Relay,
@@ -92,6 +99,77 @@ export class AgentSession {
     }
   }
 
+  async openWorkspace(workspaceId: string, copy: SavedCopy) {
+    const roomId = parseRoomLink(copy.roomId);
+    const relay = this.relay();
+    if (relay.peopleIn(roomId) || relay.agentRoomActive(roomId)) {
+      await this.openRoom(roomId);
+      const { peer } = this.require();
+      await this.mergeCopy(peer, copy);
+      this.releaseRoom = relay.retainAgentRoom(roomId);
+    } else {
+      this.leave();
+      const peer = new ServerPeer(relay, roomId, this.name);
+      this.peer = peer;
+      this.lifetime = new AbortController();
+      this.releaseRoom = relay.retainAgentRoom(roomId);
+      try {
+        await this.mergeCopy(peer, copy);
+        this.prepare(peer);
+      } catch (error) {
+        this.leave();
+        throw error;
+      }
+    }
+    this.workspaceId = workspaceId;
+    return { canvas: this.describe(), title: this.require().peer.document.title() };
+  }
+
+  private async mergeCopy(peer: ServerPeer, copy: SavedCopy) {
+    const pictures = await peer.mergeCopy(copy, this.lifetime.signal);
+    for (const picture of pictures) this.workspacePictures.set(picture.hash, picture);
+  }
+
+  async saveWorkspace(
+    account: WorkspaceAccount,
+    retry = true
+  ): Promise<{ id: string; roomId: string; title: string }> {
+    const { peer } = this.require();
+    const signal = this.lifetime.signal;
+    const roomId = peer.roomId;
+    const { id, saved } = await this.workspaceToSave(account, roomId);
+    signal.throwIfAborted();
+    if (saved) await this.mergeCopy(peer, saved.copy);
+    const pictures = pictureHashes(
+      peer.document.list().filter((item) => item.picture && !item.picture.stored)
+    ).map((hash) => {
+      const picture = this.workspacePictures.get(hash);
+      if (!picture)
+        throw new LanguageError(
+          "A picture has not reached shared storage. Save this room in the browser."
+        );
+      return picture;
+    });
+    const copy = await peer.captureCopy(pictures);
+    const title = peer.document.title();
+    try {
+      await account.save(id, title, copy, saved?.revision ?? "", signal);
+    } catch (error) {
+      if (!(error instanceof WorkspaceConflict)) throw error;
+      if (retry) return this.saveWorkspace(account, false);
+      throw new LanguageError(
+        "The workspace changed during save. Retry after the workspace settles."
+      );
+    }
+    this.workspaceId = id;
+    return { id, roomId, title };
+  }
+
+  private async workspaceToSave(account: WorkspaceAccount, roomId: string) {
+    const id = this.workspaceId ?? (await account.idForRoom(roomId));
+    return id ? { id, saved: await account.open(id) } : { id: this.newWorkspaceId, saved: null };
+  }
+
   private prepare(peer: ServerPeer) {
     this.domain = new LanguageSession(peer.document, this.name);
     this.lifetime = new AbortController();
@@ -99,7 +177,8 @@ export class AgentSession {
       peer.document,
       () => peer.key,
       this.pictureStorage,
-      this.lifetime.signal
+      this.lifetime.signal,
+      this.workspacePictures
     );
   }
 
@@ -156,6 +235,9 @@ export class AgentSession {
   leave() {
     this.lifetime.abort();
     this.files = null;
+    this.workspacePictures.clear();
+    this.workspaceId = null;
+    this.newWorkspaceId = randomUUID();
     this.domain?.destroy();
     this.peer?.close();
     this.domain = null;

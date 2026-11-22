@@ -18,6 +18,24 @@ export const CLOSE_ROOM_TOOL = {
   inputSchema: ROOM_SESSION_SHAPE,
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 };
+export const OPEN_WORKSPACE_TOOL = {
+  title: "Reopen a saved Arconis workspace",
+  description:
+    "Open an ordinary workspace in the signed-in Arconis account by saved UUID or room link, even with no browser in the room. Returns a new session_id, the diagram identity and canvas outline. Save any edits with save_workspace.",
+  inputSchema: {
+    workspace_id: z.uuid().optional(),
+    room: z.string().optional().describe("Room link or code if you do not know the workspace UUID"),
+    name: z.string().min(1).max(40).optional(),
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+};
+export const SAVE_WORKSPACE_TOOL = {
+  title: "Save an Arconis diagram to your account",
+  description:
+    "Save this session's ordinary room as an encrypted workspace in the signed-in Arconis account. Returns a durable workspace_id and room_id for later use, including registration with Sulion Plan. Reuses any saved workspace for this room.",
+  inputSchema: ROOM_SESSION_SHAPE,
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+};
 
 interface HostedCanvasTool {
   name: string;
@@ -77,5 +95,13 @@ export function hostedToolsMetadata() {
       ...CLOSE_ROOM_TOOL,
       inputSchema: z.toJSONSchema(z.object(CLOSE_ROOM_TOOL.inputSchema), { io: "input" }),
     },
+    ...Object.entries({
+      open_workspace: OPEN_WORKSPACE_TOOL,
+      save_workspace: SAVE_WORKSPACE_TOOL,
+    }).map(([name, tool]) => ({
+      ...tool,
+      name,
+      inputSchema: z.toJSONSchema(z.object(tool.inputSchema), { io: "input" }),
+    })),
   ];
 }

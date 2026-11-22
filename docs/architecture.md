@@ -462,13 +462,17 @@ Protected-resource metadata points MCP clients at the Ahara Auth0 tenant. Connec
 person signs in and consents; `relay/accessTokens.ts` accepts only the tenant's tokens whose audience is
 this endpoint ([ADR-0015](adr/0015-auth0-accounts-and-connector-sign-in.md)). Opening a room adds a peer in the
 relay's memory (`relay/serverPeer.ts`) that joins like a browser, receives the canvas from someone there
-and carries a language session (`relay/agentSession.ts`). Only ordinary rooms with people in them can be
-opened, except rooms retained by a creating import session. Agent peers do not count
+and carries a language session (`relay/agentSession.ts`). `open_room` joins ordinary rooms
+with a peer or a retained agent session. Agent peers do not count
 as people. `import_document` with `new_room=true` seeds an ordinary room using the
 same default-key/envelope functions as browser creation and returns its collaboration
 link with instructions to present it immediately. A session-owned relay lease keeps
 the new room available before a browser joins; expiry or closing releases that lease.
-No document is saved durably, and existing budget and session limits remain.
+For durability, `save_workspace` seals the current ordinary room using the existing workspace
+format and publishes it to the authenticated Arconis account. `open_workspace` can seed a room
+from that account's saved copy and retain it until the agent closes the session. When a peer is
+present it joins and merges the saved Yjs state. Save merges the latest account revision before
+publication and retries a revision conflict after reading it again.
 `relay/mcp.ts` registers `agents/contract.ts` schemas with `agents/operations.ts`
 handlers for describe, read, write, layout checks, undo, import/export, help and stencils.
 Room lifecycle and authenticated handles remain relay-owned.
@@ -533,6 +537,9 @@ upload, then conditionally publishes metadata through `accounts/workspaceTable.t
 updates the latest pointer, history and existing account/service quotas together. Five successful
 revisions remain; failed uploads never publish or prune the last usable copy. WorkspaceSaver merges
 newer copies before saving and retries a concurrent publication conflict after merging again.
+The MCP relay invokes the accounts Lambda through its IAM role with the verified Arconis subject.
+The invocation can use the workspace list, read, and save operations and goes through the same
+account checks as the browser. The relay transfers sealed bytes with the same signed-link client.
 Password-only changes also schedule a save of the current key envelope. Deleting the active
 account copy returns the room to an unsaved state, so a later explicit save creates a new copy.
 History recovery creates a separate room. For an automatic `nopass` room it reseals the document

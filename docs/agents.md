@@ -129,14 +129,15 @@ compatible assistant client. There is no assistant chat built into the canvas.
 2. Under **Connect Claude or ChatGPT**, copy **Server address**.
 3. Add a custom remote MCP connector in your assistant client using that address. Leave manual
    OAuth settings empty; follow Ahara's sign-in and consent prompts.
-4. Keep an ordinary Arconis room open in a browser and give the assistant its room link or code.
+4. Give the assistant an ordinary room link, ask it to open an existing saved workspace, or ask it
+   to create a diagram.
 
 For the deployed application, the server is `https://relay.arconis.ahara.io/mcp`. The account
 panel supplies the configured address for the environment you are using.
 
-Password rooms and device-only rooms are outside hosted assistant access. Existing rooms
-need a browser peer, unless a new-room import session is retaining them as described below.
-Accounts and saved copies do not grant unattended access to saved rooms.
+Password rooms and device-only rooms remain browser-only. To join a live room by link, someone
+needs to retain the room. For a saved ordinary workspace in the connected account,
+`open_workspace` can load the saved copy even when nobody has the room open.
 
 ## Ask for an outcome
 
@@ -185,6 +186,8 @@ use a configured connector by asking for an outcome without composing these tool
 | Tool              | Use                                                                                       |
 | ----------------- | ----------------------------------------------------------------------------------------- |
 | `open_room`       | Join by room link or code; return `session_id` and a canvas orientation.                  |
+| `open_workspace`  | Load a saved ordinary workspace by UUID or room link.                                     |
+| `save_workspace`  | Save the session's diagram to your account and return its workspace and room IDs.          |
 | `describe_canvas` | Discover ids, the outline, styles, discussions and decks.                                 |
 | `read`            | Read actual items, a holder's contents or an area before editing.                         |
 | `canvas_help`     | Discover language topics; retrieve a complete topic or `all`. Available before joining.   |
@@ -196,7 +199,7 @@ use a configured connector by asking for an outcome without composing these tool
 | `export_document` | Return portable `.arconis` content including picture bytes.                               |
 | `close_room`      | Release the session's room peer and edit history when finished.                           |
 
-Save the `session_id` returned by `open_room` and pass it to `describe_canvas`, `read`, `write`,
+Save the `session_id` returned by `open_room` or `open_workspace` and pass it to `describe_canvas`, `read`, `write`,
 `check_layout`, `undo` and `close_room`. The result includes `{ "session_id": "…", "canvas": "…" }` in both
 structured content and text. For example, call `read` with `{ "session_id": "…" }`, then
 `write` with `{ "session_id": "…", "statements": "node api \"API\" at 100,100" }`.
@@ -230,12 +233,15 @@ an outline, lifetime information and instructions to **present the link to the u
 immediately for collaboration**. For a chunked import, use `new_room: true` only on
 the first chunk; use the returned session id on later chunks.
 
-The creating session retains the new room in memory and can edit it before anyone
-joins. Open the returned link to retain a browser copy and collaborate normally.
-Closing or expiring the creating session, relay replacement, or relay shutdown can
-lose the working copy if no browser retains it. This is not a durable saved copy;
-keep the original file or export the current result before closing. Existing idle
-session expiry and spending limits still apply.
+The creating session can edit the room before anyone joins. Use `save_workspace` when
+the diagram should survive the session. In a later conversation, use `open_workspace`
+with its workspace UUID or room link and `save_workspace` again after editing.
+You can also open the room in Arconis or export a portable copy.
+
+With the Sulion Plan connector enabled, ask the assistant to put a Sulion phase URL
+on each linked object. It can then save the workspace, register it with Sulion by
+repo, and attach it to a plan using the workspace UUID and object IDs it linked.
+The same workspace can link to phases in several plans.
 
 Sessions live only in relay memory and expire after 30 minutes without a room call or when the
 relay restarts. Closing a connector does not release the room session; use `close_room` when done.

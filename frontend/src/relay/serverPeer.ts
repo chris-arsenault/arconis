@@ -1,3 +1,4 @@
+import * as Y from "yjs";
 import { CollaborationProvider } from "../collaboration/provider";
 import type { ConnectionState, FrameChannel } from "../collaboration/channel";
 import { CanvasDocument } from "../document/canvasDocument";
@@ -8,7 +9,15 @@ import {
   openEnvelope,
   defaultRoomKey,
   createEnvelope,
+  envelopeMatches,
+  seal,
+  unseal,
+  WrongPassword,
+  type Envelope,
 } from "../collaboration/roomKey";
+import { decodeContents, encodeContents, type SavedCopy } from "../account/workspaceFile";
+import type { PortablePicture } from "../document/pictures";
+import { LanguageError } from "../language/lexer";
 
 /** How long a new peer waits for someone in the room to send the canvas. */
 export const SYNC_TIMEOUT_MS = 10_000;
@@ -27,6 +36,7 @@ export class ServerPeer {
   /** An envelope requiring an explicit password keeps this room browser-owned. */
   locked = false;
   private roomKey: CryptoKey | null = null;
+  private envelope: Envelope | null = null;
 
   get key() {
     if (!this.roomKey) throw new Error("Room key is unavailable.");
@@ -41,11 +51,55 @@ export class ServerPeer {
   async seed() {
     const key = await defaultRoomKey(this.roomId);
     const envelope = await createEnvelope(DEFAULT_PASSWORD, key, 1);
-    this.roomKey = key;
-    this.transport.shareEnvelope = () => envelope;
+    this.unlock(key, envelope);
     this.transport.envelopeKnown();
-    this.transport.unlock(key);
     this.provider.connect();
+  }
+
+  private unlock(key: CryptoKey, envelope: Envelope) {
+    this.roomKey = key;
+    this.envelope = envelope;
+    this.transport.unlock(key);
+  }
+
+  async mergeCopy(copy: SavedCopy, signal: AbortSignal): Promise<PortablePicture[]> {
+    if (copy.roomId !== this.roomId)
+      throw new LanguageError("The workspace belongs to another room.");
+    const key = await this.openCopyKey(copy.envelope);
+    const contents = decodeContents(await unseal(this.roomKey ?? key, copy.sealed));
+    if (contents.roomId !== this.roomId)
+      throw new LanguageError("The workspace room ID does not match.");
+    signal.throwIfAborted();
+    if (this.locked) throw new LanguageError("A password is required to open this workspace.");
+    Y.applyUpdate(this.document.doc, contents.update);
+    if (!this.roomKey) {
+      this.unlock(key, copy.envelope);
+      this.transport.envelopeKnown();
+      this.provider.connect();
+    } else if (copy.envelope.revision > (this.envelope?.revision ?? 0)) {
+      this.unlock(this.roomKey, copy.envelope);
+    }
+    return contents.pictures;
+  }
+
+  private async openCopyKey(envelope: Envelope) {
+    try {
+      return await openEnvelope(DEFAULT_PASSWORD, envelope);
+    } catch (error) {
+      if (error instanceof WrongPassword)
+        throw new LanguageError("Password workspaces must be opened in the browser.");
+      throw error;
+    }
+  }
+
+  async captureCopy(pictures: PortablePicture[]): Promise<SavedCopy> {
+    const envelope = this.envelope;
+    if (!envelope || this.locked) throw new LanguageError("This room cannot be saved by an agent.");
+    const update = Y.encodeStateAsUpdate(this.document.doc);
+    const sealed = await seal(this.key, encodeContents({ roomId: this.roomId, update, pictures }));
+    if (this.locked || this.envelope !== envelope)
+      throw new LanguageError("The room key changed during save. Reopen the room.");
+    return { roomId: this.roomId, envelope, sealed };
   }
 
   constructor(
@@ -55,19 +109,22 @@ export class ServerPeer {
   ) {
     const id = crypto.randomUUID();
     this.transport = new LockedTransport(new InProcessTransport(relay, roomId), id);
-    this.transport.onEnvelope = (envelope) => {
-      void openEnvelope(DEFAULT_PASSWORD, envelope)
-        .then((key) => {
-          this.roomKey = key;
-          this.transport.shareEnvelope = () => envelope;
-          this.transport.unlock(key);
-        })
-        .catch(() => {
-          this.locked = true;
-        });
-    };
+    this.transport.shareEnvelope = () => (this.locked ? null : this.envelope);
+    this.transport.onEnvelope = (envelope) => void this.adoptEnvelope(envelope);
     this.provider = new CollaborationProvider(this.document.doc, this.transport, () => {}, id);
     this.provider.awareness.setLocalStateField("user", { name, color: AGENT_COLOR, agent: true });
+  }
+
+  private async adoptEnvelope(envelope: Envelope) {
+    const current = this.envelope;
+    if (current && current.revision >= envelope.revision) return;
+    if (this.roomKey && !(await envelopeMatches(this.roomKey, envelope))) return;
+    try {
+      const key = await openEnvelope(DEFAULT_PASSWORD, envelope);
+      if (this.envelope === current) this.unlock(key, envelope);
+    } catch {
+      if (this.envelope === current) this.locked = true;
+    }
   }
 
   /** Joins and waits for the canvas from someone in the room. */

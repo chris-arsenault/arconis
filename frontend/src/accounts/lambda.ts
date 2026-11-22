@@ -11,6 +11,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { AccountsApi, tokenSubject, type AccountTable } from "./api";
 import { dynamoLibrary } from "./libraryTable";
 import { dynamoWorkspaces } from "./workspaceTable";
+import type { WorkspaceInvocation } from "../protocol/account";
 
 const TableName = process.env.TABLE_NAME ?? "";
 const Bucket = process.env.BUCKET_NAME ?? "";
@@ -141,7 +142,8 @@ function response(statusCode: number, body: object) {
   };
 }
 
-export async function handler(input: AlbInput) {
+export async function handler(input: AlbInput | WorkspaceInvocation) {
+  if ("arconisWorkspace" in input) return api.handleWorkspaceInvocation(input);
   const event: AlbEvent = { headers: {}, body: "", isBase64Encoded: false, ...input };
   const user = tokenSubject(event.headers.authorization);
   if (!user) return response(401, { error: "Sign in again." });
