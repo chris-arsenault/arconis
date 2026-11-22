@@ -303,6 +303,18 @@ it("keeps long names inside the rail and titles inside their frames, in panels t
   const mark = page.getByRole("button", { name: "Mark selection", exact: true });
   await jumps.locator("summary").click();
   await expect.poll(() => mark.isVisible()).toBe(false);
+  // The native disclosure closes before its toggle event persists the preference.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const saved = JSON.parse(localStorage.getItem("arconis.rail") ?? "{}") as Record<
+          string,
+          boolean
+        >;
+        return saved.jumps;
+      })
+    )
+    .toBe(false);
   // The undo history does not survive a reload, so only the jump points panel is there to check.
   await page.reload();
   await page.getByRole("button", { name: "Rectangle (R)", exact: true }).waitFor();

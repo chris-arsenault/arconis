@@ -133,7 +133,7 @@ async function importNewRoom(
       canvas: opened.agent.describe(),
       import: result,
       instructions:
-        "Use save_workspace to keep this diagram in your account before closing the session. Present room_url to the user so they can open Arconis and collaborate.",
+        "Present room_url to the user now so they can open Arconis and collaborate. Use save_workspace to keep this diagram in your account before closing the session.",
       lifetime:
         "Held only in this agent session's memory; expires after 30 minutes unused, close_room, relay replacement or shutdown. This is not a durable saved copy. The original file remains the restore copy.",
     };
