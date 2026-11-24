@@ -51,7 +51,7 @@ const workFields = {
   anchors: refs,
   retired: z.boolean(),
 };
-export const workEdit = z.strictObject(workFields).partial();
+export const workEdit = z.strictObject({ ...workFields, parent: z.string().nullable() }).partial();
 export const workSchema = z.strictObject({ id, ...workFields });
 export type Work = z.infer<typeof workSchema>;
 export function newWork(id: string, title: string, parent: string | null): Work {
@@ -94,7 +94,14 @@ const entryFields = {
   retired: z.boolean(),
   successors: refs,
 };
-export const entryEdit = z.strictObject(entryFields).partial();
+export const entryEdit = z
+  .strictObject({
+    ...entryFields,
+    answer: z.string().nullable(),
+    goal: z.string().nullable(),
+    illustrates: z.string().nullable(),
+  })
+  .partial();
 export const entrySchema = z.strictObject({ id, item: id, ...entryFields });
 export type Entry = z.infer<typeof entrySchema>;
 export function newEntry(id: string, item: string, kind: Entry["kind"], text: string): Entry {
@@ -130,9 +137,19 @@ export type Relation = z.infer<typeof relation>;
 const stamp = { id, at: z.iso.datetime(), actor: z.string().min(1) };
 export const event = z.discriminatedUnion("type", [
   z.strictObject({ ...stamp, type: z.literal("work.add"), item: workSchema }),
-  z.strictObject({ ...stamp, type: z.literal("work.edit"), item: id, changes: workEdit }),
+  z.strictObject({
+    ...stamp,
+    type: z.literal("work.edit"),
+    item: id,
+    changes: z.strictObject(workFields).partial(),
+  }),
   z.strictObject({ ...stamp, type: z.literal("entry.add"), entry: entrySchema }),
-  z.strictObject({ ...stamp, type: z.literal("entry.edit"), entry: id, changes: entryEdit }),
+  z.strictObject({
+    ...stamp,
+    type: z.literal("entry.edit"),
+    entry: id,
+    changes: z.strictObject(entryFields).partial(),
+  }),
   z.strictObject({
     ...stamp,
     type: z.literal("result"),

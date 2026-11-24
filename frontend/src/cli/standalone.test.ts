@@ -141,6 +141,7 @@ it("carries a linked work handoff, screenshot and guidance to another offline di
   expect((await run("current", "--context", "designer")).stdout).toContain(
     "Full district coverage"
   );
+  await checkNumberedEntry(run);
   const before = await readFile(join(project, "delivery.json"), "utf8");
   await expect(
     run("batch", 'work edit Districts --next "Invalid batch"\nwork read Missing')
@@ -158,3 +159,19 @@ it("carries a linked work handoff, screenshot and guidance to another offline di
   expect(view).toContain('"remaining": "Parks"');
   expect(view).toContain("Full district coverage");
 });
+async function checkNumberedEntry(run: (...args: string[]) => Promise<{ stdout: string }>) {
+  await run("entry", "add", "requirement", "Distinct neighborhoods", "--target", "Districts");
+  await run(
+    "entry",
+    "add",
+    "example",
+    "Market ward",
+    "--illustrates",
+    "#2",
+    "--target",
+    "Districts"
+  );
+  const review = (await run("work", "read", "Districts")).stdout;
+  expect(review).toContain("Distinct neighborhoods");
+  expect(review).toContain("Market ward");
+}
