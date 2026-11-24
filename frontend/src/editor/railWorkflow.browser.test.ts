@@ -58,6 +58,9 @@ it("gives libraries a consistent disclosure and keeps document navigation in its
   expect(await page.getByRole("button", { name: "Add slide", exact: true }).count()).toBe(0);
   const architecture = page.locator("details[aria-label='Architecture']");
   await architecture.locator("summary").click();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("arconis.libraries")))
+    .toContain('"Architecture":false');
   await page.reload();
   expect(await architecture.evaluate((node: HTMLDetailsElement) => node.open)).toBe(false);
   await architecture.locator("summary").click();
