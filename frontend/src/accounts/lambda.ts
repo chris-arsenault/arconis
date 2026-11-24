@@ -12,14 +12,31 @@ import { AccountsApi, tokenSubject, type AccountTable } from "./api";
 import { dynamoLibrary } from "./libraryTable";
 import { dynamoWorkspaces } from "./workspaceTable";
 import type { WorkspaceInvocation } from "../protocol/account";
+import {
+  deliveryApiPath,
+  deliveryDiscoveryPath,
+  deliveryMcpPath,
+  DeliveryService,
+} from "../delivery/hosted";
+import { deliveryFailure, deliveryRequest } from "../delivery/http";
+import { deliveryMcp } from "../delivery/mcp";
+import { deleteDeliveryUser, s3Delivery } from "../delivery/s3";
+import { accessTokenVerifier } from "../relay/accessTokens";
 
 const TableName = process.env.TABLE_NAME ?? "";
 const Bucket = process.env.BUCKET_NAME ?? "";
+const deliveryResource = process.env.DELIVERY_MCP_RESOURCE ?? "";
+const deliveryIssuer = process.env.DELIVERY_ISSUER ?? "";
 const siteOrigin = process.env.SITE_ORIGIN ?? "";
 const LINK_SECONDS = 300;
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({ requestChecksumCalculation: "WHEN_REQUIRED" });
+const delivery =
+  deliveryResource && deliveryIssuer
+    ? new DeliveryService(s3Delivery(s3, Bucket), new URL(deliveryResource).origin)
+    : null;
+
 const userKey = (user: string) => `USER#${user}`;
 const objectKey = (user: string, id: string) => `workspaces/${user}/${id}`;
 
@@ -80,44 +97,59 @@ const table: AccountTable = {
   },
 };
 
-const api = new AccountsApi(table, {
-  objectInfo: async (user, id) => {
-    try {
-      const result = await s3.send(
-        new HeadObjectCommand({ Bucket, Key: objectKey(user, id), ChecksumMode: "ENABLED" })
-      );
-      return { size: result.ContentLength ?? 0, checksum: result.ChecksumSHA256 ?? "" };
-    } catch (error) {
-      if (error instanceof Error && error.name === "NotFound") return null;
-      throw error;
-    }
-  },
-  signUpload: (user, id, size, checksum) =>
-    getSignedUrl(
-      s3,
-      new PutObjectCommand({
-        Bucket,
-        Key: objectKey(user, id),
-        ContentType: "application/octet-stream",
-        ContentLength: size,
-        ChecksumSHA256: checksum,
-      }),
-      {
-        expiresIn: LINK_SECONDS,
-        signableHeaders: new Set(["content-type", "content-length"]),
-        unhoistableHeaders: new Set(["x-amz-checksum-sha256"]),
+const verifyDelivery = delivery
+  ? accessTokenVerifier({ resource: deliveryResource, issuer: deliveryIssuer })
+  : null;
+const handleDeliveryMcp =
+  delivery && verifyDelivery
+    ? deliveryMcp(delivery, deliveryResource, deliveryIssuer, async (token) => {
+        const caller = await verifyDelivery(token);
+        return caller && !(await table.isDeleting(caller.user)) ? caller : null;
+      })
+    : null;
+
+const api = new AccountsApi(
+  table,
+  {
+    objectInfo: async (user, id) => {
+      try {
+        const result = await s3.send(
+          new HeadObjectCommand({ Bucket, Key: objectKey(user, id), ChecksumMode: "ENABLED" })
+        );
+        return { size: result.ContentLength ?? 0, checksum: result.ChecksumSHA256 ?? "" };
+      } catch (error) {
+        if (error instanceof Error && error.name === "NotFound") return null;
+        throw error;
       }
-    ),
-  signDownload: (user, id) =>
-    getSignedUrl(s3, new GetObjectCommand({ Bucket, Key: objectKey(user, id) }), {
-      expiresIn: LINK_SECONDS,
-    }),
-  deleteObject: async (user, id) => {
-    await s3.send(new DeleteObjectCommand({ Bucket, Key: objectKey(user, id) }));
+    },
+    signUpload: (user, id, size, checksum) =>
+      getSignedUrl(
+        s3,
+        new PutObjectCommand({
+          Bucket,
+          Key: objectKey(user, id),
+          ContentType: "application/octet-stream",
+          ContentLength: size,
+          ChecksumSHA256: checksum,
+        }),
+        {
+          expiresIn: LINK_SECONDS,
+          signableHeaders: new Set(["content-type", "content-length"]),
+          unhoistableHeaders: new Set(["x-amz-checksum-sha256"]),
+        }
+      ),
+    signDownload: (user, id) =>
+      getSignedUrl(s3, new GetObjectCommand({ Bucket, Key: objectKey(user, id) }), {
+        expiresIn: LINK_SECONDS,
+      }),
+    deleteObject: async (user, id) => {
+      await s3.send(new DeleteObjectCommand({ Bucket, Key: objectKey(user, id) }));
+    },
+    now: Date.now,
+    newRevision: () => crypto.randomUUID(),
   },
-  now: Date.now,
-  newRevision: () => crypto.randomUUID(),
-});
+  (user) => deleteDeliveryUser(s3, Bucket, user)
+);
 
 interface AlbEvent {
   path: string;
@@ -129,7 +161,7 @@ interface AlbEvent {
 type AlbInput = Pick<AlbEvent, "path" | "httpMethod"> &
   Partial<Omit<AlbEvent, "path" | "httpMethod">>;
 
-function response(statusCode: number, body: object) {
+function response(statusCode: number, body: unknown) {
   return {
     statusCode,
     isBase64Encoded: false,
@@ -145,15 +177,64 @@ function response(statusCode: number, body: object) {
 export async function handler(input: AlbInput | WorkspaceInvocation) {
   if ("arconisWorkspace" in input) return api.handleWorkspaceInvocation(input);
   const event: AlbEvent = { headers: {}, body: "", isBase64Encoded: false, ...input };
-  const user = tokenSubject(event.headers.authorization);
-  if (!user) return response(401, { error: "Sign in again." });
   const raw = event.body;
   const body = event.isBase64Encoded ? Buffer.from(raw, "base64").toString() : raw;
+  const publicReply = await publicDelivery(event, body);
+  if (publicReply) return publicReply;
+  if (!event.path.startsWith("/api/")) return response(404, { error: "Not found" });
+  const user = tokenSubject(event.headers.authorization);
+  if (!user) return response(401, { error: "Sign in again." });
   try {
+    if (delivery && matchesDelivery(event.path))
+      return await deliveryAccount(delivery, user, event, body);
     const { status, body: result } = await api.handle(user, event.httpMethod, event.path, body);
     return response(status, result);
   } catch (error) {
     console.error(error);
     return response(500, { error: "The account request failed." });
   }
+}
+function matchesDelivery(path: string) {
+  return path === deliveryApiPath || path.startsWith(deliveryApiPath + "/");
+}
+async function deliveryAccount(
+  service: DeliveryService,
+  user: string,
+  event: AlbEvent,
+  body: string
+) {
+  if (await table.isDeleting(user))
+    return response(409, { error: "This account is being deleted." });
+  try {
+    const result = await deliveryRequest(service, user, event.httpMethod, event.path, body);
+    return response(200, result);
+  } catch (error) {
+    const failure = deliveryFailure(error);
+    return response(failure.status, failure.body);
+  }
+}
+async function publicDelivery(event: AlbEvent, body: string) {
+  if (handleDeliveryMcp && [deliveryMcpPath, deliveryDiscoveryPath].includes(event.path)) {
+    const reply = await handleDeliveryMcp(
+      new Request(new URL(event.path, deliveryResource), {
+        method: event.httpMethod,
+        headers: event.headers,
+        ...(body ? { body } : {}),
+      })
+    );
+    return {
+      statusCode: reply.status,
+      isBase64Encoded: false,
+      headers: Object.fromEntries(reply.headers),
+      body: await reply.text(),
+    };
+  }
+  if (delivery && event.path === "/delivery/cli" && event.httpMethod === "GET") {
+    return response(200, {
+      issuer: deliveryIssuer,
+      clientId: process.env.DELIVERY_CLI_CLIENT,
+      audience: process.env.DELIVERY_ACCOUNTS_AUDIENCE,
+    });
+  }
+  return null;
 }

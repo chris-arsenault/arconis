@@ -4,9 +4,12 @@ import { createInterface } from "node:readline";
 import { CANVAS_OPERATIONS, toolResult } from "../agents/operations";
 import { FileActions } from "./actions";
 import { serveLocalMcp } from "./mcp";
+import { deliveryCli } from "../delivery/cli";
 
 const HELP = `Arconis CLI — local .arconis editing through ordinary shell commands.
 Requires Node 24+. No MCP setup, account, browser or server required.
+
+node arconis.mjs delivery --help  (Arconis Delivery projects)
 
 node arconis.mjs --file diagram.arconis --create write --statements 'node api "API"'
 node arconis.mjs --file diagram.arconis read
@@ -58,7 +61,14 @@ async function session(actions: FileActions) {
   }
 }
 
+function deliveryArguments(argv: string[]) {
+  if (argv[0] === "delivery") return argv.slice(1);
+  return argv[0] === "sync" ? argv : null;
+}
+
 async function main() {
+  const delivery = deliveryArguments(process.argv.slice(2));
+  if (delivery) return deliveryCli(delivery);
   const { values, positionals } = options();
   if (values.help || !positionals.length) {
     process.stdout.write(HELP);

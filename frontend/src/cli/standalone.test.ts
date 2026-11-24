@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -92,4 +92,69 @@ it("offers the same canvas operations through optional stdio MCP and releases it
     await client.close();
   }
   await expect(readFile(`${path}.lock`)).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+it("carries a linked work handoff, screenshot and guidance to another offline directory", async () => {
+  let project = join(root, "city");
+  const run = (...args: string[]) =>
+    exec(process.execPath, [bundle, "delivery", "--project", project, ...args], { cwd: root });
+  await run("init", "City");
+  await run(
+    "entry",
+    "add",
+    "boundary",
+    "Full district coverage",
+    "--attribution",
+    "user_requirement"
+  );
+  await writeFile(join(project, "layout.arconis"), 'arconis 1\nnode bazaar "Grand Bazaar"\n');
+  await run(
+    "file",
+    "add",
+    "layout.arconis",
+    "--input",
+    join(project, "layout.arconis"),
+    "--kind",
+    "diagram"
+  );
+  await run(
+    "dataset",
+    "define",
+    "districts.dataset.json",
+    "--key",
+    "Name",
+    "--field",
+    "Name=string"
+  );
+  await run("dataset", "set", "districts.dataset.json", "Name=Grand Bazaar");
+  await run(
+    "work",
+    "add",
+    "Districts",
+    "--from",
+    "layout.arconis#bazaar",
+    "--from",
+    'districts.dataset.json#["Grand Bazaar"]'
+  );
+  await run("work", "status", "Districts", "in_progress");
+  await run("focus", "Districts", "--context", "designer");
+  expect((await run("current", "--context", "designer")).stdout).toContain(
+    "Full district coverage"
+  );
+  const before = await readFile(join(project, "delivery.json"), "utf8");
+  await expect(
+    run("batch", 'work edit Districts --next "Invalid batch"\nwork read Missing')
+  ).rejects.toThrow();
+  expect(await readFile(join(project, "delivery.json"), "utf8")).toBe(before);
+  await writeFile(join(root, "comparison.png"), Buffer.from("fixture evidence"));
+  await run("result", "Districts", "Site review", "--attach", join(root, "comparison.png"));
+  await run("feedback", "Districts", "--accepted", "Roads", "--remaining", "Parks");
+  const relocated = join(root, "relocated");
+  await rename(project, relocated);
+  project = relocated;
+  expect((await run("link", "list", "layout.arconis#bazaar")).stdout).toContain("Districts");
+  const view = (await run("review", "Districts")).stdout;
+  expect(view).toContain('"accepted": "Roads"');
+  expect(view).toContain('"remaining": "Parks"');
+  expect(view).toContain("Full district coverage");
 });

@@ -57,7 +57,8 @@ export class AccountsApi {
   readonly workspaces: WorkspacesApi;
   constructor(
     private table: AccountTable,
-    private services: AccountServices
+    private services: AccountServices,
+    private deleteDelivery: (user: string) => Promise<void> = () => Promise.resolve()
   ) {
     this.library = new LibraryApi(table, services);
     this.workspaces = new WorkspacesApi(table, services);
@@ -125,6 +126,7 @@ export class AccountsApi {
     await this.library.deleteAll(user);
     const workspaceProblem = await this.workspaces.deleteAll(user);
     if (workspaceProblem) return conflict(workspaceProblem);
+    await this.deleteDelivery(user);
     await this.table.deleteProfile(user);
     return { status: 200, body: {} };
   }

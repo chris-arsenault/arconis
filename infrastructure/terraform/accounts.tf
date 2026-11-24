@@ -91,7 +91,16 @@ data "aws_iam_policy_document" "accounts" {
   # Signed links act with these permissions.
   statement {
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-    resources = ["${aws_s3_bucket.workspaces.arn}/workspaces/*"]
+    resources = ["${aws_s3_bucket.workspaces.arn}/workspaces/*", "${aws_s3_bucket.workspaces.arn}/delivery/*"]
+  }
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.workspaces.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["delivery/*"]
+    }
   }
 }
 
@@ -121,9 +130,13 @@ module "accounts_api" {
   reserved_concurrent_executions = 5
 
   environment = {
-    TABLE_NAME  = aws_dynamodb_table.accounts.name
-    BUCKET_NAME = aws_s3_bucket.workspaces.id
-    SITE_ORIGIN = local.site_origin
+    TABLE_NAME                 = aws_dynamodb_table.accounts.name
+    BUCKET_NAME                = aws_s3_bucket.workspaces.id
+    SITE_ORIGIN                = local.site_origin
+    DELIVERY_MCP_RESOURCE      = local.delivery_mcp_resource
+    DELIVERY_ISSUER            = local.auth0_issuer
+    DELIVERY_CLI_CLIENT        = auth0_client.delivery_cli.client_id
+    DELIVERY_ACCOUNTS_AUDIENCE = local.accounts_audience
   }
 
   depends_on = [aws_iam_role_policy.accounts, aws_iam_role_policy_attachment.accounts_vpc]

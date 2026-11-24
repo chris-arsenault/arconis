@@ -1,0 +1,228 @@
+.delivery-board {
+  min-height: 100dvh;
+  overflow: auto;
+  background: #f7f8fa;
+  color: #1d2532;
+  font:
+    14px/1.5 Inter,
+    system-ui,
+    sans-serif;
+}
+.delivery-board a {
+  color: #174f92;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.delivery-board a:focus-visible,
+.delivery-board button:focus-visible,
+.delivery-board input:focus-visible {
+  outline: 2px solid #3877b9;
+  outline-offset: 2px;
+}
+.delivery-header {
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #dbe0e7;
+  background: white;
+  padding: 13px 28px;
+}
+.delivery-header a:first-child {
+  color: #1d2532;
+  text-decoration: none;
+  font-size: 17px;
+}
+.delivery-layout {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(240px, 325px) minmax(0, 1fr);
+  gap: 32px;
+  padding: 28px;
+}
+.delivery-sidebar h1,
+.delivery-projects h1 {
+  margin: 0 0 16px;
+  font-size: 23px;
+  line-height: 1.25;
+}
+.delivery-search {
+  display: grid;
+  gap: 4px;
+}
+.delivery-search input {
+  border: 1px solid #bdc7d5;
+  border-radius: 5px;
+  width: 100%;
+  font: inherit;
+  padding: 6px 8px;
+}
+.delivery-closed {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 12px 0;
+}
+.delivery-tree,
+.delivery-tree ul,
+.delivery-files {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.delivery-tree ul {
+  margin-left: 12px;
+  border-left: 1px solid #dbe0e7;
+}
+.delivery-tree-row {
+  display: flex;
+  align-items: start;
+  gap: 4px;
+  margin: 3px 0;
+}
+.delivery-tree-row button,
+.delivery-tree-indent {
+  width: 22px;
+  min-width: 22px;
+  margin-top: 3px;
+}
+.delivery-tree-row button {
+  padding: 0;
+  font: inherit;
+  background: white;
+  border: 1px solid #dbe0e7;
+  border-radius: 4px;
+}
+.delivery-tree-row a {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  align-items: start;
+  justify-content: space-between;
+  padding: 5px 7px;
+  text-decoration: none;
+  color: #253345;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+.delivery-tree-row a:hover,
+.delivery-tree-row a[aria-current="page"] {
+  background: #e6edf8;
+}
+.delivery-status {
+  flex: none;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #354053;
+  background: #ebeff4;
+}
+.delivery-status--blocked {
+  color: #7d3a11;
+  background: #fff1df;
+}
+.delivery-status--active,
+.delivery-status--in_progress {
+  color: #174f92;
+  background: #e4efff;
+}
+.delivery-status--completed {
+  color: #195f43;
+  background: #e4f3e9;
+}
+.delivery-detail {
+  min-width: 0;
+  background: white;
+  border: 1px solid #dbe0e7;
+  border-radius: 8px;
+  padding: 22px 26px;
+  align-self: start;
+}
+.delivery-item-header {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: start;
+}
+.delivery-item-header h2 {
+  margin: 0;
+  font-size: 23px;
+}
+.delivery-detail h3 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+.delivery-detail section {
+  margin-top: 18px;
+}
+.delivery-detail p {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.delivery-detail small {
+  color: #526075;
+  margin-left: 4px;
+}
+.delivery-detail pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.delivery-board details {
+  border-top: 1px solid #dbe0e7;
+  padding: 10px 0;
+  margin: 10px 0;
+}
+.delivery-board summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.delivery-evidence {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  margin: 12px 0;
+}
+.delivery-table {
+  overflow: auto;
+}
+.delivery-table table {
+  border-collapse: collapse;
+}
+.delivery-table th,
+.delivery-table td {
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid #dbe0e7;
+}
+.delivery-projects,
+.delivery-message {
+  width: min(680px, 100%);
+  margin: 24px auto;
+  padding: 18px 24px;
+}
+.delivery-projects li,
+.delivery-files li {
+  margin: 6px 0;
+}
+@media (max-width: 740px) {
+  .delivery-layout {
+    display: block;
+    padding: 16px;
+  }
+  .delivery-detail {
+    margin-top: 16px;
+    padding: 16px;
+  }
+}
+.delivery-diagram-render {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 1200px;
+  height: 800px;
+  pointer-events: none;
+}
