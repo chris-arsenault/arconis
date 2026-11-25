@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { canonical, manifestSchema, type Project } from "./project";
-import { headSchema } from "./hosted";
+import { canonical, headSchema, manifestSchema, type Project } from "./project";
 
 type Fetcher = (input: string | URL, init?: RequestInit) => Promise<Response>;
 const basic = (input: string | URL, init?: RequestInit) => fetch(input, init);

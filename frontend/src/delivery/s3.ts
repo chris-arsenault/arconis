@@ -63,11 +63,26 @@ export function s3Delivery(client: S3Client, bucket: string): DeliveryStorage {
   return {
     list: (user) => listProjectHeads(client, bucket, text, user),
     readHead: (user, project) => loadHead(get, user, project),
-    readVersion: (user, project, version) =>
-      text(key(user, project, "versions/" + version + ".json")),
-    writeVersion: async (user, project, version, body) => {
-      await put(key(user, project, "versions/" + version + ".json"), body, { IfNoneMatch: "*" });
+    async readObject(user, project, name) {
+      const { Body } = await get(key(user, project, name));
+      if (!Body) throw new Error("Delivery object has no body.");
+      return Body.transformToByteArray();
     },
+    async writeObject(user, project, name, body) {
+      try {
+        await put(key(user, project, name), body, { IfNoneMatch: "*" });
+      } catch (error) {
+        if (!(error instanceof Error && error.name === "PreconditionFailed")) throw error;
+      }
+    },
+    async hasObject(user, project, name) {
+      const target = key(user, project, name);
+      const reply = await client.send(
+        new ListObjectsV2Command({ Bucket: bucket, Prefix: target, MaxKeys: 1 })
+      );
+      return reply.Contents?.[0]?.Key === target;
+    },
+    signObject: (user, project, name) => signed(key(user, project, name)),
     async publish(user, head, etag) {
       try {
         await put(
@@ -81,21 +96,8 @@ export function s3Delivery(client: S3Client, bucket: string): DeliveryStorage {
         throw error;
       }
     },
-    async stage(user, project, transfer, size, checksum) {
-      const command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: key(user, project, "staged/" + transfer),
-        ContentLength: size,
-        ChecksumSHA256: checksum,
-        IfNoneMatch: "*",
-      });
-      const url = await getSignedUrl(client, command, {
-        expiresIn: 300,
-        unhoistableHeaders: new Set(["x-amz-checksum-sha256"]),
-        signableHeaders: new Set(["if-none-match", "content-length"]),
-      });
-      return { url, headers: { "x-amz-checksum-sha256": checksum, "if-none-match": "*" } };
-    },
+    stage: (user, project, transfer, size, checksum) =>
+      signedUpload(client, bucket, key(user, project, "staged/" + transfer), size, checksum),
     async readStage(user, project, transfer) {
       try {
         const object = await get(key(user, project, "staged/" + transfer));
@@ -105,14 +107,34 @@ export function s3Delivery(client: S3Client, bucket: string): DeliveryStorage {
         throw error;
       }
     },
-    getVersion: (user, project, version) =>
-      signed(key(user, project, "versions/" + version + ".json")),
     async asset(user, project, version, bytes, type, name) {
       const target = key(user, project, "assets/" + version);
       await put(target, bytes, { ContentType: type });
       return signed(target, name);
     },
   };
+}
+
+async function signedUpload(
+  client: S3Client,
+  bucket: string,
+  target: string,
+  size: number,
+  checksum: string
+) {
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: target,
+    ContentLength: size,
+    ChecksumSHA256: checksum,
+    IfNoneMatch: "*",
+  });
+  const url = await getSignedUrl(client, command, {
+    expiresIn: 300,
+    unhoistableHeaders: new Set(["x-amz-checksum-sha256"]),
+    signableHeaders: new Set(["if-none-match", "content-length"]),
+  });
+  return { url, headers: { "x-amz-checksum-sha256": checksum, "if-none-match": "*" } };
 }
 async function listProjectHeads(
   client: S3Client,

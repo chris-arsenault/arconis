@@ -175,3 +175,28 @@ async function checkNumberedEntry(run: (...args: string[]) => Promise<{ stdout: 
   expect(review).toContain("Distinct neighborhoods");
   expect(review).toContain("Market ward");
 }
+
+it("searches registered Markdown and opens a matching section by its returned reference", async () => {
+  const project = join(root, "sources");
+  const run = (...args: string[]) =>
+    exec(process.execPath, [bundle, "delivery", "--project", project, ...args], { cwd: root });
+  await run("init", "Sources");
+  const source = join(project, "README.md");
+  await writeFile(
+    source,
+    "# Vellum and Vector\n\n## City maps {#city}\n\nDistrict coverage follows the stencil.\n"
+  );
+  await run("file", "add", "README.md", "--input", source, "--tag", "architecture");
+  const output = await run("file", "search", "district coverage", "--tag", "architecture");
+  const result = JSON.parse(output.stdout) as { path: string; section: string; excerpt: string }[];
+  expect(result).toEqual([
+    expect.objectContaining({
+      path: "README.md",
+      section: "city",
+      excerpt: "District coverage follows the stencil.",
+    }),
+  ]);
+  expect(
+    (await run("file", "read", result[0].path, "--section", result[0].section)).stdout
+  ).toContain(result[0].excerpt);
+});

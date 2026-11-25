@@ -25,6 +25,13 @@ export const manifestSchema = z.strictObject({
 });
 export type Project = z.infer<typeof manifestSchema>;
 export type Actor = { name: string; now: () => string; id: () => string };
+export const headSchema = z.strictObject({
+  revision: id,
+  title: z.string(),
+  project: id,
+  size: z.int().nonnegative(),
+});
+export type Head = z.infer<typeof headSchema>;
 
 export const manifestFile = "delivery.json";
 export const canonical = (value: unknown) => JSON.stringify(value, null, 2) + "\n";

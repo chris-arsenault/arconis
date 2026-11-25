@@ -16,7 +16,10 @@ export const operations: Record<string, Operation> = {
   help: {
     schema: z.object({}),
     read: true,
-    run: () => ({ instructions: deliveryInstructions, operations: Object.keys(operations) }),
+    run: () => ({
+      instructions: deliveryInstructions,
+      operations: [...Object.keys(operations), "file_search"],
+    }),
   },
 };
 

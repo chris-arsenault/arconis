@@ -36,6 +36,18 @@ a heading to keep section links valid across heading-title edits. Datasets can
 be defined and changed by typed fields and keys. `delivery --help` has commands
 for those operations.
 
+Register the existing `README.md` and design sources at their checkout paths.
+Add optional `--tag` values where they help find a document. Search current
+Markdown by title, tags, heading, and text. Results have a path, section, and
+short excerpt. Use the returned path and section in `file read`.
+
+```sh
+arconis delivery file add README.md
+arconis delivery file add docs/lore/magic.md --tag lore
+arconis delivery file search "district coverage"
+arconis delivery file search "hallowed routes" --tag lore
+```
+
 Link governing sources when you hand work off. A dataset row fragment identifies
 the key values in declared order. A Draw fragment names the object in the
 portable diagram file. A design fragment identifies a section. The same link
@@ -73,5 +85,14 @@ Connect the web agent to
 `https://relay.arconis.ahara.io/delivery/mcp` and sign in. Use `list_projects`
 to choose a project, or `create_project` to start without a local repository.
 Ask the agent to read the relevant work and guided review before editing.
+Use `file_search` with a short query to find Markdown sources. Pass the result's
+path as `target` and its `section` to `file_read`. Use `design_edit` to replace
+the section body. A result without a section opens the whole document.
 The agent can submit feedback through MCP, and the next terminal sync reads it.
 Delivery's saved-file workflow is independent of a live Draw room.
+
+Hosted section reads and edits load the selected document from S3. The project
+head selects a manifest of document versions. The first search of a changed
+Markdown collection builds a SQLite full-text index. Searches reuse that index
+when work status or attachments change. Sync still exchanges a portable project
+bundle with its document history.

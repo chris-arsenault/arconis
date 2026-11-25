@@ -6,9 +6,10 @@ import { argumentsOf, command, get, help, splitEdit, values, type Args } from ".
 import { datasetCommand } from "./datasetCli";
 import { exportRows, importRows } from "./tableTransfer";
 import { readDataset } from "./dataset";
+import { fileSearch, searchDocuments } from "./search";
 import { findDocument, linkArtifact } from "./fileActions";
 import { fileActor, initLocal, projectRoot, withLocal } from "./local";
-import { type Actor, type Project } from "./project";
+import { currentDocuments, type Actor, type Project } from "./project";
 import { findItem } from "./workActions";
 import { id } from "./work";
 import { syncCli } from "./syncCli";
@@ -93,6 +94,15 @@ async function attach(p: Project, actor: Actor, result: unknown, paths: string[]
 
 async function execute(p: Project, actor: Actor, a: Args, focus: string) {
   if (a.words[0] === "dataset") return runDataset(p, actor, a);
+  if (a.words[0] === "file" && a.words[1] === "search")
+    return searchDocuments(
+      currentDocuments(p),
+      fileSearch.parse({
+        query: a.words.slice(2).join(" "),
+        tag: get(a, "tag"),
+        limit: Number(get(a, "limit") ?? 20),
+      })
+    );
   if (a.words[0] === "file" && a.words[1] === "add")
     return runDelivery(p, actor, await importFile(a));
   const result = runDelivery(p, actor, command(a, focus));

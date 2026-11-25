@@ -29,14 +29,27 @@ function sectionNames(heading: string) {
   const anchor = / \{#([a-zA-Z0-9_-]+)\}$/.exec(heading);
   return anchor ? [heading.slice(0, anchor.index).trim(), anchor[1]] : [heading.trim()];
 }
+export function markdownHeadings(body: string) {
+  return Array.from(body.matchAll(/^(#{1,6}) (.*)$/gm), (match) => {
+    const names = sectionNames(match[2]);
+    return {
+      names,
+      title: names[0],
+      selector: names.at(-1)!,
+      level: match[1].length,
+      start: match.index,
+      end: match.index + match[0].length,
+    };
+  });
+}
 export function markdownSection(body: string, title: string, replacement?: string) {
-  const headings = Array.from(body.matchAll(/^(#{1,6}) (.*)$/gm));
-  const current = headings.find((m) => sectionNames(m[2]).includes(title));
+  const headings = markdownHeadings(body);
+  const current = headings.find((heading) => heading.names.includes(title));
   if (!current) throw new Error(`Unknown section: ${title}`);
-  const start = current.index + current[0].length;
+  const start = current.end;
   const end =
-    headings.find((m) => m.index > current.index && m[1].length <= current[1].length)?.index ??
-    body.length;
+    headings.find((heading) => heading.start > current.start && heading.level <= current.level)
+      ?.start ?? body.length;
   return replacement === undefined
     ? body.slice(start, end).trim()
     : body.slice(0, start) + "\n\n" + replacement.trim() + "\n\n" + body.slice(end);

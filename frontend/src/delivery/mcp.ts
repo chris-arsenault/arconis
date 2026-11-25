@@ -6,6 +6,7 @@ import { deliveryDiscoveryPath, deliveryScope, type DeliveryService } from "./ho
 import { operations } from "./actions";
 import { deliveryInstructions } from "./review";
 import { uploadSchema } from "./hosted";
+import { fileSearch } from "./search";
 
 function response(value: unknown) {
   const data = JSON.stringify(value);
@@ -70,6 +71,17 @@ function register(server: McpServer, service: DeliveryService, user: string) {
     async ({ project, ...input }) => response(await service.attach(user, project, input))
   );
   server.registerTool(
+    "file_search",
+    {
+      description:
+        "Find Markdown sections by words in their title, tags, heading, or text. Pass a result's path as target to file_read and include its section when present. Start with a short query such as 'district coverage'.",
+      inputSchema: fileSearch.extend({ project: z.string() }),
+      annotations: { readOnlyHint: true },
+    },
+    async ({ project, ...args }) =>
+      response(await service.call(user, project, { operation: "file_search", args }))
+  );
+  server.registerTool(
     "open_file",
     {
       description:
@@ -110,6 +122,10 @@ const operationDescriptions: Record<string, string> = {
     "Relate work, design sections, dataset row keys, diagram objects or results. Supply the purpose of the link.",
   link_list: "List relationships from either endpoint.",
   dataset_read: "Read the schema or filter and project rows by fields and key.",
+  file_list:
+    "List project files with their paths, titles, and tags. An optional tag matches exactly.",
+  file_read:
+    "Read a file by path. Pass a section from file_search to read just that Markdown section.",
   file_write: "Save a mutable design document, typed dataset, or portable Draw file in a project.",
 };
 

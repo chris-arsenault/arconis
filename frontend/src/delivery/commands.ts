@@ -17,6 +17,8 @@ arconis delivery feedback "District morphology" --accepted "Road layout" --remai
 arconis delivery file add docs/city.md --kind design --title "City design"
 arconis delivery file add docs/districts.dataset.json --kind dataset
 arconis delivery file add docs/layout.arconis --kind diagram
+arconis delivery file list --kind design --tag lore
+arconis delivery file search "district coverage" --tag lore
 arconis delivery file read docs/city.md --section "City outline"
 arconis delivery file edit docs/city.md "City outline" "Keep the settled shape."
 arconis delivery dataset define docs/inventory.dataset.json --key Name --field Name=string --field Draft=boolean
@@ -137,7 +139,7 @@ function files(a: Args): Command {
   if (action === "read") return simple("file_read", { target, section: get(a, "section") });
   if (action === "edit") return simple("design_edit", { target, section, body });
   if (action === "history" || action === "delete") return simple(`file_${action}`, { target });
-  throw new Error("Use file add, list, read, edit, delete or history.");
+  throw new Error("Use file add, list, search, read, edit, delete or history.");
 }
 export function command(a: Args, focus: string): Command {
   const [family] = a.words;

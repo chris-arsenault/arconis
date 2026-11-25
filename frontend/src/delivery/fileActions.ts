@@ -21,7 +21,8 @@ const row = z.record(z.string(), z.json());
 export function findDocument(p: Project, target: string) {
   const documents = currentDocuments(p);
   return (
-    documents.find((doc) => doc.document === target || doc.title === target) ??
+    documents.find((doc) => doc.document === target || doc.path === target) ??
+    documents.find((doc) => doc.title === target) ??
     lookup(documents, target, (doc) => doc.path)
   );
 }
@@ -100,14 +101,32 @@ function editDocument(
   if (doc.kind !== kind || doc.body === null) throw new Error(`Select a ${kind} document.`);
   return recordDocument(p, actor, { ...doc, body: body(doc.body) });
 }
+const fileFilter = z.object({ kind: z.enum(docKinds).optional(), tag: z.string().optional() });
+type FileFilter = z.infer<typeof fileFilter>;
+
+export function listFiles(
+  p: Project,
+  a: FileFilter,
+  storedSize?: (version: string) => number | undefined
+) {
+  return currentDocuments(p)
+    .filter((d) => (!a.kind || d.kind === a.kind) && (!a.tag || d.tags.includes(a.tag)))
+    .map(({ body, ...meta }) => ({ ...meta, size: storedSize?.(meta.id) ?? body?.length ?? 0 }));
+}
+
+export function linksFor(p: Project, target: string) {
+  return Array.from(projectWork(p.work).links.values()).filter((link) =>
+    [link.from, link.to].some(
+      (endpoint) => endpoint === target || endpoint.startsWith(target + "#")
+    )
+  );
+}
+
 export const fileActions = {
   file_list: {
-    schema: z.object({ kind: z.enum(docKinds).optional(), tag: z.string().optional() }),
+    schema: fileFilter,
     read: true,
-    run: (p: Project, _: Actor, a: { kind?: (typeof docKinds)[number]; tag?: string }) =>
-      currentDocuments(p)
-        .filter((d) => (!a.kind || d.kind === a.kind) && (!a.tag || d.tags.includes(a.tag)))
-        .map(({ body, ...meta }) => ({ ...meta, size: body?.length ?? 0 })),
+    run: (p: Project, _: Actor, a: FileFilter) => listFiles(p, a),
   },
   file_read: {
     schema: z.object({ target: z.string(), section: z.string().optional() }),
@@ -240,16 +259,8 @@ export const fileActions = {
   link_list: {
     schema: z.object({ target: z.string() }),
     read: true,
-    run: (p: Project, _: Actor, a: { target: string }) => {
-      const target = reference(p, a.target);
-      return Array.from(projectWork(p.work).links.values())
-        .filter((l) =>
-          [l.from, l.to].some(
-            (endpoint) => endpoint === target || endpoint.startsWith(target + "#")
-          )
-        )
-        .map((l) => describeLink(p, l));
-    },
+    run: (p: Project, _: Actor, a: { target: string }) =>
+      linksFor(p, reference(p, a.target)).map((link) => describeLink(p, link)),
   },
   link_remove: {
     schema: z.object({ from: z.string(), to: z.string(), purpose: z.string() }),
