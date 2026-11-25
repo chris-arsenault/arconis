@@ -61,32 +61,3 @@ resource "auth0_client_grant" "delivery_third_party" {
 
   depends_on = [auth0_resource_server_scopes.delivery]
 }
-
-resource "auth0_client" "delivery_cli" {
-  name            = "Arconis Delivery CLI"
-  app_type        = "native"
-  is_first_party  = true
-  oidc_conformant = true
-  grant_types     = ["urn:ietf:params:oauth:grant-type:device_code"]
-
-  jwt_configuration {
-    alg = "RS256"
-  }
-}
-
-resource "auth0_client_credentials" "delivery_cli" {
-  client_id             = auth0_client.delivery_cli.client_id
-  authentication_method = "none"
-}
-
-resource "auth0_connection_client" "delivery_cli" {
-  connection_id = data.auth0_connection.accounts.id
-  client_id     = auth0_client.delivery_cli.client_id
-}
-
-resource "auth0_client_grant" "delivery_cli" {
-  client_id    = auth0_client.delivery_cli.client_id
-  audience     = auth0_resource_server.accounts.identifier
-  scopes       = []
-  subject_type = "user"
-}

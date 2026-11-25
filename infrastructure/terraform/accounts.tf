@@ -135,7 +135,7 @@ module "accounts_api" {
     SITE_ORIGIN                = local.site_origin
     DELIVERY_MCP_RESOURCE      = local.delivery_mcp_resource
     DELIVERY_ISSUER            = local.auth0_issuer
-    DELIVERY_CLI_CLIENT        = auth0_client.delivery_cli.client_id
+    DELIVERY_CLI_CLIENT        = auth0_client.web.client_id
     DELIVERY_ACCOUNTS_AUDIENCE = local.accounts_audience
   }
 

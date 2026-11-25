@@ -44,15 +44,15 @@ removed {
   }
 }
 
-# --- People: the site signs in as a single-page application, with PKCE and rotating refresh tokens ---
+# The browser and CLI use the same public client. Auth0's Native type enables the device grant.
 
 resource "auth0_client" "web" {
   name                = "Arconis"
   description         = "The Arconis site."
-  app_type            = "spa"
+  app_type            = "native"
   is_first_party      = true
   oidc_conformant     = true
-  grant_types         = ["authorization_code", "refresh_token"]
+  grant_types         = ["authorization_code", "refresh_token", "urn:ietf:params:oauth:grant-type:device_code"]
   callbacks           = ["${local.site_origin}/"]
   allowed_logout_urls = ["${local.site_origin}/"]
   web_origins         = [local.site_origin]
@@ -73,7 +73,7 @@ resource "auth0_client_credentials" "web" {
   authentication_method = "none"
 }
 
-# The accounts API behind the ALB. Only the site is granted it.
+# The accounts API behind the ALB. The Arconis application is granted access for its users.
 resource "auth0_resource_server" "accounts" {
   identifier           = local.accounts_audience
   name                 = "Arconis accounts"
