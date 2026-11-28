@@ -901,7 +901,8 @@ dialog.password-gate {
   display: flex;
   margin: 0;
 }
-.export-dialog {
+.export-dialog,
+.wood-cut-list {
   width: min(440px, calc(100vw - 24px));
   max-width: none;
   max-height: calc(100dvh - 24px);
@@ -911,18 +912,22 @@ dialog.password-gate {
   border: 1px solid var(--line);
   border-radius: 10px;
 }
-.export-dialog::backdrop {
+.export-dialog::backdrop,
+.wood-cut-list::backdrop {
   background: #2f294e55;
 }
-.export-dialog h2 {
+.export-dialog h2,
+.wood-cut-list h2 {
   margin: 0 0 12px;
   font-size: 18px;
 }
-.export-dialog p {
+.export-dialog p,
+.wood-cut-list p {
   font-size: 13px;
   line-height: 1.5;
 }
-.export-dialog footer {
+.export-dialog footer,
+.wood-cut-list footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;

@@ -7,6 +7,7 @@ import type { Attribute } from "./syntax";
 import { attributesFor, checkAttributes, type RoutedAttribute } from "./attributeRouting";
 import { FIELD_DESCRIBERS } from "./fields";
 import { assignLayer } from "./layerWriting";
+import { defaultSize } from "../document/canvasDocument";
 
 /** What an item is and how it looks, from the attributes that say so. */
 
@@ -19,6 +20,12 @@ interface Describing {
 type Described = RoutedAttribute<"item", "describe" | "arrange">;
 export function givenSize(item: Item, sized: Set<string>) {
   return { width: sized.has(`${item.id} width`), height: sized.has(`${item.id} height`) };
+}
+export function applyDefaultSize(item: Item, scale: number, sized: Set<string>) {
+  const [width, height] = defaultSize(item.type, item.stencil);
+  const given = givenSize(item, sized);
+  if (!given.width) item.width = width * scale;
+  if (!given.height) item.height = height * scale;
 }
 type Describer<K extends Described["kind"]> = (
   item: Item,
@@ -65,6 +72,14 @@ const DESCRIBE: { [K in Described["kind"]]: Describer<K> } = {
     if (!isFrame(item))
       throw new LanguageError("Only a frame or group scales its contents on resize.", line);
     item.scaleContents = attribute.value;
+  },
+  panelScale: (item, attribute, { line }) => {
+    if (!isFrame(item)) throw new LanguageError("Only a frame or group has a panel scale.", line);
+    item.panelCalibration = attribute.value;
+  },
+  panelPadding: (item, attribute, { line }) => {
+    if (!isFrame(item)) throw new LanguageError("Only a frame or group has panel padding.", line);
+    item.panelPaddingScale = attribute.value;
   },
   markup: (item, attribute, { line }) => {
     if (item.type !== "drawing" && item.type !== "highlight")

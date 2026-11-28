@@ -93,6 +93,8 @@ export type Attribute =
   | { kind: "free" }
   | { kind: "markup"; value: boolean }
   | { kind: "scaleContents"; value: boolean }
+  | { kind: "panelScale"; value: Calibration | null; magnify: boolean }
+  | { kind: "panelPadding"; value: number }
   | { kind: "ink"; ink: InkKind }
   | { kind: "target"; ref: string }
   | { kind: "flag"; flag: Flag; value: boolean }

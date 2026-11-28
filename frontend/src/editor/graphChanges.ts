@@ -37,6 +37,15 @@ export function commitGraph(graph: Graph, document: CanvasDocument, edit?: Undoa
   const items = document.list();
   const changes = cells.map((cell) => ({ cell, values: cellValues(cell, document) }));
   const currentValues = new Map(changes.map(({ cell, values }) => [cell.id, values]));
+  // A structural graph edit also reports untouched cells with geometry from the old projection.
+  // A holder can move between scales or disappear before the native child records are written.
+  for (const item of before) {
+    const values = currentValues.get(item.id);
+    if (item.wood && values) {
+      if (values.width === item.width) delete values.width;
+      if (values.height === item.height) delete values.height;
+    }
+  }
   // Ungrouping removes the holder but reparents its surviving children in this same graph edit.
   const resulting = items.map((item) => ({ ...item, ...currentValues.get(item.id) }));
   const removed = removalClosure(resulting, [
@@ -58,7 +67,7 @@ function applyPanelResizes(document: CanvasDocument, before: Item[]) {
     authoredLook(item, document.namedStyle(item.style))
   );
   for (const { id, geometry, look } of changes) {
-    document.patch(id, geometry);
+    document.patch(id, geometry, "placement");
     document.patchLook(id, look);
   }
 }

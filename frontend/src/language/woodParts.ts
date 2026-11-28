@@ -66,6 +66,7 @@ function followCatalogName(previous: WoodPart, part: WoodPart) {
 
 /** Physical declarations share the writer's all-or-nothing draft with their placements. */
 export class WoodDraft {
+  static readonly defaultScale = { world: 12, distance: 1, unit: "in" };
   private readonly before: Parts;
   readonly parts: Map<string, WoodPart>;
   readonly aliases = new Map<string, string>();
@@ -135,12 +136,12 @@ export class WoodDraft {
       if (item.wood?.part === from) item.wood = { ...item.wood, part: to };
   }
   project(item: Item) {
-    if (!item.wood || isLink(item)) return;
-    const change = this.draft.calibrationChange;
-    const scale = worldPerInch(
-      change.kind === "set" ? change.value : this.draft.document.calibration()
-    );
-    Object.assign(item, physicalSize(this.parts, item.wood, scale));
+    Object.assign(item, this.size(item));
+  }
+  size(item: Item) {
+    if (!item.wood || isLink(item)) return {};
+    const scale = worldPerInch(this.draft.contentScale(item.inside).calibration);
+    return physicalSize(this.parts, item.wood, scale);
   }
   private resolveImports() {
     for (const source of this.imported) {
@@ -160,6 +161,9 @@ export class WoodDraft {
       const error = checkPart(id, part, this.parts);
       if (error) throw new LanguageError(error);
     }
+    this.projectViews(sized);
+  }
+  projectViews(sized: Set<string>) {
     for (const item of this.draft.items.values()) this.finishView(item, sized);
   }
   private finishView(item: Item, sized: Set<string>) {
@@ -196,7 +200,7 @@ export class WoodDraft {
       if (this.enabled) {
         doc.meta.set("woodworking", "on");
         if (!doc.calibration() && this.draft.calibrationChange.kind === "keep")
-          doc.setCalibration({ world: 12, distance: 1, unit: "in" });
+          doc.setCalibration(WoodDraft.defaultScale);
       } else doc.meta.delete("woodworking");
     }
   }

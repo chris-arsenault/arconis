@@ -44,6 +44,7 @@ import { EMPTY_FILTER, type Filter } from "./filter";
 import { brightSet } from "./highlighting";
 import type { SelectionTransform } from "../document/transform";
 import { CanvasGrid } from "./grid";
+import { DrawingScales } from "./drawingScales";
 import { editorStage, Presenter } from "./presenter";
 import { TransformSession } from "./transformSession";
 import { DrawingEditor } from "./drawingEditor";
@@ -96,6 +97,7 @@ export class EditorController {
   readonly band: RubberBandHandler;
 
   readonly grid: CanvasGrid;
+  readonly scales: DrawingScales;
   /** Where this person's view was before each jump. */
   readonly history: ViewHistory;
   /** This person's presentation of a deck, when one is running. */
@@ -111,7 +113,8 @@ export class EditorController {
     VertexHandlerConfig.rotationEnabled = true;
     this.layers = new LayerView(document, this.redraw);
     this.graph = new Graph(element);
-    this.grid = new CanvasGrid(this.graph, element, document, this.emit);
+    this.scales = new DrawingScales(this.graph, document);
+    this.grid = new CanvasGrid(this.graph, element, this.scales, this.emit);
     this.presenter = new Presenter(
       editorStage(this.graph, element, document, {
         clear: () => this.clearEditing(),
@@ -147,7 +150,10 @@ export class EditorController {
     configureLocking(this.graph, this.document);
     this.graph.getDataModel().addListener(InternalEvent.CHANGE, this.onGraphChange);
     this.selectionReferences.watch(this.graph, this.document);
-    this.graph.getSelectionModel().addListener(InternalEvent.CHANGE, this.emit);
+    this.graph.getSelectionModel().addListener(InternalEvent.CHANGE, () => {
+      this.grid.sync();
+      this.emit();
+    });
     this.graph.view.addListener(InternalEvent.SCALE_AND_TRANSLATE, this.onView);
     this.graph.view.addListener(InternalEvent.SCALE, this.onView);
     this.graph.view.addListener(InternalEvent.TRANSLATE, this.onView);
@@ -278,6 +284,7 @@ export class EditorController {
     this.emit();
   }
   setTool(tool: Tool) {
+    if (this.tool === "measure" && tool !== "measure") this.measurement.clear();
     this.drawing.setDestination(tool);
     Object.assign(this.ui, { relating: null, lastShape: ringShape(tool) ?? this.ui.lastShape });
     this.armedIcon = null;

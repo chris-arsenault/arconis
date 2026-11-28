@@ -9,6 +9,7 @@ import { isId } from "../document/ids";
 import { CLOCK_KINDS, readClock } from "../document/clock";
 import { DEFAULT_GAP } from "../document/layout";
 import { sourceReferenceProblem } from "../document/sourceReferences";
+import { isCalibration } from "../document/units";
 
 /** Parsing of the attributes that follow an item, a line or a style. */
 
@@ -164,7 +165,36 @@ function source(cursor: Cursor): Attribute {
   return { kind: "source", edit: { kind: cursor.word("off") ? "remove" : "add", reference } };
 }
 
+export function calibrationValue(cursor: Cursor) {
+  const world = cursor.number("the reference distance in canvas units");
+  cursor.keyword("represents");
+  const distance = cursor.number("the measured distance");
+  const unit = cursor.expectString("the unit");
+  const value = { world, distance, unit };
+  if (!isCalibration(value))
+    cursor.fail("Scale needs positive finite distances and a unit of at most 32 characters.");
+  return value;
+}
+
+function panelScale(cursor: Cursor, word: string): Attribute {
+  if (!cursor.kindIs("number") && !cursor.isWord("inherit")) return { kind: "word", word };
+  return {
+    kind: "panelScale",
+    value: cursor.word("inherit") ? null : calibrationValue(cursor),
+    magnify: word === "panel-scale",
+  };
+}
+
 const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
+  "panel-scale": (cursor) => panelScale(cursor, "panel-scale"),
+  "panel-padding-scale": (cursor) => {
+    if (!cursor.kindIs("number")) return { kind: "word", word: "panel-padding-scale" };
+    const value = cursor.number("a positive panel padding multiplier");
+    if (!Number.isFinite(value) || value <= 0)
+      cursor.fail("Panel padding scale must be positive and finite.");
+    return { kind: "panelPadding", value };
+  },
+  "calibrate-panel": (cursor) => panelScale(cursor, "calibrate-panel"),
   ...Object.fromEntries(FLAGS.map((name) => [name, flag(name)])),
   tags,
   marker: (cursor) => ({
@@ -265,6 +295,11 @@ export function isProjectionWord(word: string | undefined) {
 }
 /** Whether a word begins an attribute rather than being an item's id. */
 export function isAttributeWord(word: string, next: Token | null = null) {
+  if (next && ["panel-scale", "calibrate-panel", "panel-padding-scale"].includes(word))
+    return (
+      next.kind === "number" ||
+      (word !== "panel-padding-scale" && next.kind === "word" && next.text === "inherit")
+    );
   return ATTRIBUTE_WORDS.has(word) || isLookWord(word, next) || STENCIL_WORDS.has(word);
 }
 

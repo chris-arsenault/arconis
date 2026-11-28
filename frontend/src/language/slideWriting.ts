@@ -4,6 +4,23 @@ import type { Draft } from "./draft";
 import { LanguageError } from "./lexer";
 import type { Scope } from "./writing";
 import type { Attribute } from "./syntax";
+import { attributesFor } from "./attributeRouting";
+
+/** Explicit ownership wins over a block, and is available before wood projection and layout. */
+export function assignHolder(
+  draft: Draft,
+  item: Item,
+  scope: Scope,
+  attributes: Attribute[],
+  line: number
+) {
+  const holder = attributesFor(attributes, "item", "holder")[0];
+  const before = item.inside;
+  if (holder) item.inside = resolveHolder(draft, holder.ref, line);
+  else if (scope.nested) item.inside = scope.holder;
+  if (before !== item.inside) draft.moved.add(item.id);
+  return scope.nested && before !== item.inside;
+}
 
 /** The holder `in <id>` names; a slide is a viewport and holds nothing. */
 export function resolveHolder(draft: Draft, ref: string, line: number) {

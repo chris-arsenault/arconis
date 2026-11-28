@@ -11,6 +11,7 @@ import {
   arrangeTail,
   attributes,
   isAttributeWord,
+  calibrationValue,
   isProjectionWord,
   tidyOptions,
 } from "./attributes";
@@ -93,11 +94,7 @@ const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => St
   }),
   scale: (cursor, line) => {
     if (cursor.word("none")) return { kind: "scale", calibration: null, line };
-    const world = cursor.number("the reference distance in canvas units");
-    cursor.keyword("represents");
-    const distance = cursor.number("the measured distance");
-    const unit = cursor.expectString("the unit");
-    return { kind: "scale", calibration: { world, distance, unit }, line };
+    return { kind: "scale", calibration: calibrationValue(cursor), line };
   },
   style: (cursor, line) => ({
     kind: "style",

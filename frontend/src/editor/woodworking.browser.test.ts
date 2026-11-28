@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
-import { browser, exported, more, open, railPanel } from "./browserHarness";
+import { browser, exported, more, open, railPanel, workspaceTools } from "./browserHarness";
 
 it("shows three identical rails as one cut on a peer and regroups a changed rail", async () => {
   const room = createRoomId();
@@ -8,8 +8,13 @@ it("shows three identical rails as one cut on a peer and regroups a changed rail
   const page = await open(await browser.newContext({ viewport }), room);
   const peer = await open(await browser.newContext({ viewport }), room);
   await railPanel(page, "Shapes");
-  await railPanel(peer, "Shapes");
   await page.getByLabel("Woodworking mode", { exact: true }).check();
+  await workspaceTools(peer);
+  const trigger = peer.getByRole("button", { name: "Cut list", exact: true });
+  await trigger.click();
+  const list = peer.getByRole("dialog", { name: "Cut list" });
+  expect(await list.innerText()).toContain("Add a board or panel");
+  expect(await list.evaluate((node) => node.matches(":modal"))).toBe(true);
   const canvas = page.getByTestId("canvas");
   const length = page.getByRole("textbox", { name: "Value of Cut length", exact: true });
   for (const y of [150, 300, 450]) {
@@ -20,13 +25,14 @@ it("shows three identical rails as one cut on a peer and regroups a changed rail
   }
   await page.getByRole("button", { name: "Place another view" }).click();
   await canvas.click({ position: { x: 475, y: 150 } });
-  const list = peer.locator(".wood-library .wood-cut-list");
-  await list.locator(":scope > summary").click();
   const quantities = list.locator("li summary strong");
   await expect.poll(() => quantities.allTextContents()).toEqual(["3 × 12.5 in"]);
   await length.fill("7 in");
   await length.press("Enter");
   await expect.poll(() => quantities.allTextContents()).toEqual(["2 × 12.5 in", "1 × 7 in"]);
+  await peer.keyboard.press("Escape");
+  await list.waitFor({ state: "hidden" });
+  expect(await trigger.evaluate((button) => button === document.activeElement)).toBe(true);
 });
 
 it("places joinery, a bracket and its bolt stack using the shop palette", async () => {

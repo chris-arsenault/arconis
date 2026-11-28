@@ -45,6 +45,10 @@ export function EqualGaps({ editor }: Readonly<{ editor: EditorController }>) {
       </svg>
       {gaps.map((gap) => {
         const middle = screen((gap.x1 + gap.x2) / 2, (gap.y1 + gap.y2) / 2);
+        const units = editor.scales.between(
+          editor.scales.holderAt({ x: gap.x1, y: gap.y1 }),
+          editor.scales.holderAt({ x: gap.x2, y: gap.y2 })
+        );
         return (
           <span
             key={`${gap.x1},${gap.y1},${gap.x2},${gap.y2}`}
@@ -55,7 +59,7 @@ export function EqualGaps({ editor }: Readonly<{ editor: EditorController }>) {
               element.style.top = `${middle.y}px`;
             }}
           >
-            {formatDistance(gap.size * editor.grid.factor, editor.grid.unit, true)}
+            {formatDistance(gap.size * units.factor, units.unit, true)}
           </span>
         );
       })}

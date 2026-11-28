@@ -41,22 +41,27 @@ export class TransformSession {
       authoredLook(item, document.namedStyle(item.style))
     );
     const resized = transform.scaleX !== 1 || transform.scaleY !== 1;
-    const paint = resized
+    const panelChildren = resized
       ? panelResizeChanges(
           items,
           items.map((item) => ({ ...item, ...values.get(item.id)! })),
           (item) => authoredLook(item, document.namedStyle(item.style))
         )
       : [];
+    const presentation = new Set(panelChildren.map(({ id }) => id));
     document.doc.transact(() => {
       items.forEach((item) => {
         const { rotation, paint, ...geometry } = values.get(item.id)!;
-        document.patch(item.id, geometry);
+        document.patch(
+          item.id,
+          geometry,
+          resized && !presentation.has(item.id) ? "edit" : "placement"
+        );
         document.patchLook(item.id, paint);
         if (isBox(item) && !isFrame(item) && transform.angle)
           document.patchLook(item.id, { rotation });
       });
-      paint.forEach(({ id, look }) => document.patchLook(id, look));
+      panelChildren.forEach(({ id, look }) => document.patchLook(id, look));
     }, LOCAL);
   }
 

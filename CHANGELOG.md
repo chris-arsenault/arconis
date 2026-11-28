@@ -4,6 +4,9 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+- Frames and groups can use their own drawing scale. Enlarged details share physical pieces
+  and cut lengths with the overview, including when created or edited through MCP.
+
 - Rectangles support square or rounded corners in Appearance and the canvas language.
   Rectangular woodworking views use square corners by default.
 

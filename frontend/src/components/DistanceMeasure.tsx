@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { EditorController } from "../editor/controller";
 import { formatDistance, readLength } from "../document/units";
+import { writeCanvas } from "../editor/canvasWrite";
+import { scaleStatement } from "../language/printer";
 
 /**
  * The Measure tool's line, with its length at the middle of the line. Clicking the length of a
@@ -20,8 +22,8 @@ export function DistanceMeasure({ editor }: Readonly<{ editor: EditorController 
   const dx = Math.abs(end.x - start.x);
   const dy = Math.abs(end.y - start.y);
   const distance = Math.hypot(dx, dy);
-  const label = (value: number) =>
-    formatDistance(value * editor.grid.factor, editor.grid.unit, true);
+  const units = editor.scales.between(start.holder, end.holder);
+  const label = (value: number) => formatDistance(value * units.factor, units.unit, true);
   return (
     <div className="distance-overlay">
       <svg aria-hidden="true">
@@ -42,7 +44,9 @@ export function DistanceMeasure({ editor }: Readonly<{ editor: EditorController 
           editor={editor}
           distance={distance}
           text={label(distance)}
-          calibrates={measurement.complete && distance > 0}
+          calibrates={measurement.complete && distance > 0 && !units.mixed}
+          owner={units.owner}
+          unit={editor.document.contentScale(start.holder).calibration?.unit ?? "m"}
         />
         {/* A slanted line also reads as how far it runs across and down. */}
         {dx > 0 && dy > 0 && (
@@ -56,6 +60,8 @@ export function DistanceMeasure({ editor }: Readonly<{ editor: EditorController 
 }
 
 interface LengthProps {
+  owner: string;
+  unit: string;
   editor: EditorController;
   /** The line's length in canvas units, and as it reads in the display unit. */
   distance: number;
@@ -65,7 +71,14 @@ interface LengthProps {
 }
 
 /** The length as a number people can read, and click to type the real one. */
-function MeasuredLength({ editor, distance, text, calibrates }: Readonly<LengthProps>) {
+function MeasuredLength({
+  editor,
+  distance,
+  text,
+  calibrates,
+  owner,
+  unit,
+}: Readonly<LengthProps>) {
   const [typing, setTyping] = useState<string | null>(null);
   const [error, setError] = useState("");
   if (typing === null)
@@ -74,7 +87,7 @@ function MeasuredLength({ editor, distance, text, calibrates }: Readonly<LengthP
         className="distance-length"
         aria-label="Measured distance"
         data-hint="Type the real length"
-        data-hint-detail="Type what this line really measures, such as 3 m, to calibrate the whole canvas from it."
+        data-hint-detail="Type the known length to calibrate the drawing containing this measurement."
         disabled={!calibrates}
         onClick={() => setTyping(text)}
       >
@@ -82,14 +95,18 @@ function MeasuredLength({ editor, distance, text, calibrates }: Readonly<LengthP
       </button>
     );
   const apply = () => {
-    const length = readLength(typing, editor.document.calibration()?.unit ?? "m");
+    const length = readLength(typing, unit);
     if (!length) {
       setError("Type a length such as 3 m.");
       return;
     }
-    editor.document.undo.stopCapturing();
-    editor.document.setCalibration({ world: distance, ...length });
-    editor.document.undo.stopCapturing();
+    const calibration = { world: distance, ...length };
+    writeCanvas(
+      editor.document,
+      owner
+        ? `edit ${owner} ${scaleStatement(calibration, "calibrate-panel")}`
+        : scaleStatement(calibration)
+    );
     setTyping(null);
   };
   return (

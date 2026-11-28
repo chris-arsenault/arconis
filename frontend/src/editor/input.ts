@@ -266,11 +266,21 @@ export function bindCanvasInput(editor: EditorController) {
 }
 
 function bindGridGesture(editor: EditorController, signal: AbortSignal) {
-  editor.element.addEventListener("pointerdown", () => editor.grid.freeze(), {
-    signal,
-    capture: true,
-  });
-  window.addEventListener("pointerup", editor.grid.release, { signal });
+  editor.element.addEventListener(
+    "pointerdown",
+    (event) => editor.grid.freeze(editor.scales.holderAt(editor.worldPoint(event))),
+    {
+      signal,
+      capture: true,
+    }
+  );
+  window.addEventListener(
+    "pointerup",
+    () => {
+      if (editor.tool !== "measure" || editor.measurement.value?.complete) editor.grid.release();
+    },
+    { signal }
+  );
   window.addEventListener("pointercancel", editor.grid.release, { signal });
 }
 

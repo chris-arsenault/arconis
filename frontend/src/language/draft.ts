@@ -11,6 +11,8 @@ import type { LayerRecord } from "../document/layers";
 import { BLANK } from "../document/itemDefaults";
 import { requestedId, type ItemStatement } from "./syntax";
 import type { Calibration } from "../document/units";
+import { contentScale } from "../document/panelScale";
+import { WoodDraft } from "./woodParts";
 
 export interface DraftResult {
   created: string[];
@@ -23,6 +25,7 @@ export interface DraftResult {
  * `commit`, which writes only the differences, so a write that fails partway changes nothing.
  */
 export class Draft {
+  readonly wood: WoodDraft;
   readonly items = new Map<string, Item>();
   readonly styles = new Map<string, Look>();
   readonly changedStyles = new Map<string, Look>();
@@ -53,7 +56,11 @@ export class Draft {
   private readonly original = new Map<string, string>();
   private order: number;
 
-  constructor(readonly document: CanvasDocument) {
+  constructor(
+    readonly document: CanvasDocument,
+    importing: boolean
+  ) {
+    this.wood = new WoodDraft(this, importing);
     for (const item of document.list()) {
       this.items.set(item.id, structuredClone(item));
       this.original.set(item.id, JSON.stringify(item));
@@ -70,6 +77,15 @@ export class Draft {
 
   nextOrder() {
     return this.order++;
+  }
+
+  contentScale(holder: string) {
+    const shopDefault = this.wood.enabled ? WoodDraft.defaultScale : null;
+    const root =
+      this.calibrationChange.kind === "set"
+        ? this.calibrationChange.value
+        : (this.document.calibration() ?? shopDefault);
+    return contentScale(holder, root, (id) => this.items.get(id));
   }
 
   reserveOrder(value: number) {
@@ -153,6 +169,7 @@ export class Draft {
   }
 
   extentOf(item: Item): Extent {
+    if (item.wood) item = { ...item, ...this.wood.size(item) };
     const { x, y, width, height } = item;
     return { box: { x, y, width, height }, space: footprint(item, this.lookOf(item)) };
   }
@@ -171,7 +188,7 @@ export class Draft {
   /** The space taken by an item or arrangement, or null for a line. */
   spaceOf(id: string): Box | null {
     const item = this.items.get(id);
-    if (item) return isBox(item) ? footprint(item, this.lookOf(item)) : null;
+    if (item) return isBox(item) ? this.extentOf(item).space : null;
     return this.virtual.get(id) ?? null;
   }
 
@@ -240,7 +257,7 @@ export class Draft {
     for (const [id, item] of this.items) {
       const before = this.original.get(id);
       if (!before || before === JSON.stringify(item)) continue;
-      document.patch(id, differences(JSON.parse(before) as Item, item), false);
+      document.patch(id, differences(JSON.parse(before) as Item, item), "placement");
       changed.push(id);
     }
     this.comments.forEach((comment) => writeComment(document, comment));

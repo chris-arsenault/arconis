@@ -11,6 +11,7 @@ import { readSources } from "./sourceReferences";
 import { readArrangement } from "./arrangement";
 import { readClock } from "./clock";
 import { WoodStore } from "./woodStore";
+import { contentScale, panelCalibration } from "./panelScale";
 import { isWoodView, physicalSize, worldPerInch } from "./woodworking";
 import { isCalibration, readCalibration, type Calibration } from "./units";
 export { BLANK } from "./itemDefaults";
@@ -67,6 +68,14 @@ export class CanvasDocument {
     });
     this.items.observeDeep((events) => {
       for (const event of events) {
+        if (
+          this.wood.records.size &&
+          (!event.path.length ||
+            ["inside", "type", "panelCalibration"].some((key) => event.changes.keys.has(key)))
+        ) {
+          this.snapshots.clear();
+          break;
+        }
         const id = event.path[0];
         if (typeof id === "string") this.snapshots.delete(id);
         else event.changes.keys.forEach((_change, key) => this.snapshots.delete(key));
@@ -194,16 +203,21 @@ export class CanvasDocument {
     return {
       ...BLANK,
       ...stored,
-      wood: isWoodView(stored.wood) ? stored.wood : null,
-      ...(isWoodView(stored.wood) && !isLink(stored as Item)
-        ? physicalSize(this.wood.parts(), stored.wood, worldPerInch(this.calibration()))
-        : {}),
+      ...this.woodGeometry(stored),
+      panelCalibration: panelCalibration(stored),
       id,
       markup: stored.markup ?? stored.type === "highlight",
       arrange: readArrangement(stored.arrange),
       clock: readClock(stored.clock),
       sources: readSources(stored.sources),
     } as Item;
+  }
+
+  private woodGeometry(stored: Partial<Item>) {
+    if (!isWoodView(stored.wood)) return { wood: null };
+    if (isLink(stored as Item)) return { wood: stored.wood };
+    const scale = worldPerInch(this.contentScale(stored.inside ?? "").calibration);
+    return { wood: stored.wood, ...physicalSize(this.wood.parts(), stored.wood, scale) };
   }
 
   /** Visible items in stacking order. Callers must not mutate the shared result. */
@@ -233,7 +247,7 @@ export class CanvasDocument {
   }
 
   /** Applies named edits; omitted keys stay unchanged. Removing a stored key restores its default. */
-  patch(id: string, values: Partial<Item>, resizePhysical = true) {
+  patch(id: string, values: Partial<Item>, intent: "edit" | "placement" = "edit") {
     const record = this.items.get(id);
     if (!record) return;
     const current = this.get(id)!;
@@ -244,7 +258,14 @@ export class CanvasDocument {
     }
     this.doc.transact(() => {
       let changed =
-        resizePhysical && this.wood.resize(current, values, worldPerInch(this.calibration()));
+        !!current.wood &&
+        intent === "edit" &&
+        (values.inside === undefined || values.inside === current.inside) &&
+        this.wood.resize(
+          current,
+          values,
+          worldPerInch(this.contentScale(current.inside).calibration)
+        );
       Object.entries(values as Record<string, unknown>).forEach(([key, value]) => {
         if (key === "id" || key === "editedBy" || key === "editedAt") return;
         if (key === "name") this.editText(id, String(value));
@@ -342,6 +363,19 @@ export class CanvasDocument {
 
   calibration() {
     return readCalibration(this.meta.get("scale"));
+  }
+
+  contentScale(holder: string) {
+    return contentScale(holder, this.calibration(), (id) => {
+      const record = this.items.get(id);
+      const inside = record?.get("inside");
+      if (record)
+        return {
+          inside: typeof inside === "string" ? inside : "",
+          type: record.get("type") as ItemType,
+          panelCalibration: record.get("panelCalibration") as Calibration | null,
+        };
+    });
   }
 
   /**

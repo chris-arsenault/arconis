@@ -102,6 +102,18 @@ export class LanguageSession {
     });
   }
 
+  private panelScales(chosen: Item[]) {
+    const scopes = new Map<string, string[]>();
+    for (const item of chosen) {
+      const { owner } = this.document.contentScale(item.inside);
+      if (owner) scopes.set(owner, [...(scopes.get(owner) ?? []), item.id]);
+    }
+    return [...scopes].map(
+      ([id, views]) =>
+        `// ${views.join(", ")} use ${id}: ${scaleStatement(this.document.get(id)!.panelCalibration, "panel-scale")}`
+    );
+  }
+
   /** Items in full, with what they hold and the lines among them. With no request, everything. */
   read(input: ReadRequest = {}) {
     const request: ReadSelection = { items: [], inside: "", area: null, ...input };
@@ -117,6 +129,7 @@ export class LanguageSession {
       const comments = listComments(this.document).filter((comment) => ids.has(comment.on));
       const lines = [
         scaleStatement(this.document.calibration()),
+        ...this.panelScales(chosen),
         ...this.readParts(chosen, request.items),
         printItems(chosen, this.document.layerList(), this.document.list()),
         ...discussionStatements(comments),

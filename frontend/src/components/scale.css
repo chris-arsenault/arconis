@@ -1,4 +1,21 @@
 /* The scale readout among the view controls: a round distance over the line it spans. */
+.panel-scale-controls {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.panel-scale-controls > label,
+.panel-scale-controls > details {
+  grid-column: 1 / -1;
+}
+.panel-scale-controls input {
+  min-width: 0;
+  max-width: 100%;
+}
+.panel-scale-controls summary {
+  cursor: pointer;
+}
 .canvas-zoom > .scale-bar {
   display: flex;
   flex-direction: column;
@@ -18,6 +35,16 @@
   border-width: 0 1px 1px;
   height: 5px;
   min-width: 0;
+}
+.scale-caption {
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+.scale-scope {
+  max-width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .scale-line::after {
   content: "";

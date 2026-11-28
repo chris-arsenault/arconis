@@ -252,6 +252,17 @@ object's deletion brings its retained comments back with it.
 
 ## Scale, units and measurement
 
+To enlarge a detail, select its frame or group, open **Arrange**, and enter a **Drawing
+magnification**. Entering `4` draws each inch four times as large as an inch in the enclosing
+drawing. The panel remembers that scale when its parent changes. **Inherit drawing scale**
+returns it to its parent's scale. A board shown in two panels still counts as one piece in the
+cut list. Editing its physical width or length updates both views.
+
+The inspector measures width and height in the object's drawing. X and Y locate it on the
+sheet. The scale bar and grid follow the selection, and a drag uses the grid where it starts.
+Measure within a detail to read or calibrate its distances. Across different drawing scales
+the ruler reports canvas units.
+
 Use a scale when the size of objects should mean something: a room plan in metres, a component
 layout in millimetres, or a custom drawing in your own units. Leave the canvas uncalibrated
 for diagrams whose box sizes are just for readability.
@@ -291,8 +302,8 @@ snapping. Escape clears a measurement, then exits. Measurements are temporary an
 objects or document Undo steps.
 
 For a known distance in a drawing, measure it, click the length on the line and type what it
-really is, such as `3 m`; Enter calibrates the canvas from that line and Escape cancels. A bare
-number takes the canvas's current unit. Geometry fields and live resize feedback use the same
+really is, such as `3 m`. Enter calibrates the drawing that owns the scale for that line and
+Escape cancels. A bare number takes that drawing's calibration unit. Geometry fields and live resize feedback use the same
 conversion.
 Geometry fields accept compatible unit suffixes, such as `240 cm` while displaying metres.
 Text and other style values keep their existing meaning.

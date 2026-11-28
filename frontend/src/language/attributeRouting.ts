@@ -21,6 +21,8 @@ const ROUTING = {
   z: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
   markup: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
   scaleContents: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
+  panelScale: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
+  panelPadding: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
   tidy: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
   clock: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },
   ink: { item: "describe", link: "reject", style: "reject", arrangement: "ignore" },

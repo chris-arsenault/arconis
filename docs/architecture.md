@@ -314,8 +314,12 @@ keeps viewport dimensions available without forcing layout after a graph redraw.
   to its holder, which maxGraph does by default.
 - `document/units.ts` converts world distances through an optional shared calibration. The `scale`
   metadata value stores the world reference, represented distance and unit together. The canvas
-  language and complete files preserve it; calibration changes never transform item geometry.
-  `editor/grid.ts` applies local display units and automatic or fixed physical grid intervals.
+  language and complete files preserve it. Frames and groups can override it with an absolute
+  `panelCalibration`. The document and writer resolve a view through its holder chain using
+  `document/panelScale.ts`. The writer uses separate operations to magnify owned geometry and
+  to calibrate a measured span. Wood dimensions are projected from physical records in either case.
+  `editor/drawingScales.ts` resolves local selection, hits and display units.
+  `editor/grid.ts` applies automatic or fixed physical grid intervals.
   `editor/measurement.ts` holds temporary world-space endpoints, with screen-space snapping
   tolerances. The scale bar, geometry controls, distance tool and resize feedback share conversion.
   Geometry serialization preserves numeric precision independently of the current camera.

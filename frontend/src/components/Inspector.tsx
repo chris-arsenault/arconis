@@ -38,6 +38,7 @@ import { hasRectangleCorners, hasText } from "../document/capabilities";
 import { TextAlignment } from "./TextAlignment";
 import { SourceReferencesControls } from "./SourceReferencesControls";
 import { WoodInspector } from "./Woodworking";
+import { PanelScaleControls } from "./ScaleControls";
 
 /** Selection controls grouped by task; each section retains its own disclosure preference. */
 const PANEL_DEFAULTS = {
@@ -298,6 +299,7 @@ function LayoutControls({ editor, selected }: PanelProps) {
         onAlign={(mode) => alignSelection(editor, mode)}
         onDistribute={(axis) => distributeSelection(editor, axis)}
       />
+      {single && isFrame(item) && <PanelScaleControls editor={editor} item={item} />}
       {single && isFrame(item) && (
         <label
           className="annotation-visibility"
@@ -326,8 +328,8 @@ function PositionControls({ editor, selected }: Pick<PanelProps, "editor" | "sel
   return (
     <GeometryControls
       item={item}
-      factor={editor.grid.factor}
-      unit={editor.grid.unit}
+      sizeUnits={editor.scales.unitsFor(canvas.contentScale(item.inside).calibration)}
+      sheetUnits={editor.scales.unitsFor(canvas.calibration())}
       rotation={look.rotation}
       onGeometry={(key, value) => changeGeometry(editor, item, key, value)}
       onRotate={(rotation) => changeSelectionLook(canvas, [item], { rotation })}

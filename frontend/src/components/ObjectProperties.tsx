@@ -226,32 +226,36 @@ export function GeometryControls({
   rotation,
   onGeometry,
   onRotate,
-  factor,
-  unit,
+  sizeUnits,
+  sheetUnits,
 }: Readonly<{
   item: Item;
   rotation: number;
   onGeometry: (key: "x" | "y" | "width" | "height", value: number) => void;
   onRotate: (value: number) => void;
-  factor: number;
-  unit: string;
+  sizeUnits: { factor: number; unit: string };
+  sheetUnits: { factor: number; unit: string };
 }>) {
   // The letters name the fields, so the section needs no heading: X Y and angle, then W H.
   return (
     <section className="inspector-section geometry-section" aria-label="Position and size">
       <div className="geometry-grid">
-        {GEOMETRY.map(({ key, prefix }) => (
-          <NumberField
-            key={key}
-            area={key}
-            prefix={prefix}
-            label={`Object ${key}`}
-            value={item[key] * factor}
-            unit={unit === "u" ? "" : unit}
-            rules={key === "width" || key === "height" ? SIZE_NUMBER : GEOMETRY_NUMBER}
-            onChange={(value) => onGeometry(key, value / factor)}
-          />
-        ))}
+        {GEOMETRY.map(({ key, prefix }) => {
+          const position = key === "x" || key === "y";
+          const { factor, unit } = position ? sheetUnits : sizeUnits;
+          return (
+            <NumberField
+              key={key}
+              area={key}
+              prefix={prefix}
+              label={`Object ${key}`}
+              value={item[key] * factor}
+              unit={unit === "u" ? "" : unit}
+              rules={key === "width" || key === "height" ? SIZE_NUMBER : GEOMETRY_NUMBER}
+              onChange={(value) => onGeometry(key, value / factor)}
+            />
+          );
+        })}
         {canRotate(item) && (
           <NumberField
             area="rotation"

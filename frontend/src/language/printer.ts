@@ -77,7 +77,7 @@ function fieldWords(item: Item) {
     ...FLAGS.filter((flag) => item[flag]),
     ...layerWords(item),
   ];
-  if (item.scaleContents) parts.push("scale-contents");
+  parts.push(...panelWords(item));
   parts.push(...depictionWords(item));
   parts.push(...tidyWords(item.tidy), ...clockWords(item.clock));
   if (item.tags.length) parts.push("tags", item.tags.join(", "));
@@ -96,6 +96,13 @@ function fieldWords(item: Item) {
 function depictionWords(item: Item) {
   return item.wood ? ["depicts", item.wood.part, item.wood.projection] : [];
 }
+function panelWords(item: Item) {
+  const words = item.scaleContents ? ["scale-contents"] : [];
+  if (item.panelCalibration) words.push(scaleStatement(item.panelCalibration, "panel-scale"));
+  if (item.panelPaddingScale !== 1)
+    words.push("panel-padding-scale", number(item.panelPaddingScale));
+  return words;
+}
 function layerWords(item: Item) {
   return !item.inside && item.layer && item.layer !== BASE_LAYER ? ["in-layer", item.layer] : [];
 }
@@ -108,10 +115,9 @@ function editedWords(item: Item) {
 export function number(value: number) {
   return String(value).replace("e+", "e");
 }
-export function scaleStatement(calibration: Calibration | null) {
-  return calibration
-    ? `scale ${number(calibration.world)} represents ${number(calibration.distance)} ${quote(calibration.unit)}`
-    : "scale none";
+export function scaleStatement(calibration: Calibration | null, keyword = "scale") {
+  if (!calibration) return keyword === "scale" ? "scale none" : keyword + " inherit";
+  return `${keyword} ${number(calibration.world)} represents ${number(calibration.distance)} ${quote(calibration.unit)}`;
 }
 function pair(x: number, y: number) {
   return `${number(x)},${number(y)}`;

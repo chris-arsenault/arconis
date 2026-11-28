@@ -1,11 +1,11 @@
-import { defaultSize, type CanvasDocument } from "../document/canvasDocument";
+import type { CanvasDocument } from "../document/canvasDocument";
 import { BLANK } from "../document/itemDefaults";
 import { branchPlacement } from "../document/relations";
 import { layoutTree } from "../document/treeLayout";
 import { isBox, isFrame, isLink, type Item } from "../document/types";
-import { placeInDeck, resolveHolder, slideArea } from "./slideWriting";
+import { assignHolder, placeInDeck, slideArea } from "./slideWriting";
 import { checkLayers, writeLayer, type RoomStatement } from "./layerWriting";
-import { declareStyle, describeItem, givenSize, matchSizes } from "./describe";
+import { applyDefaultSize, declareStyle, describeItem, givenSize, matchSizes } from "./describe";
 import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
 import { Draft } from "./draft";
 import { LanguageError } from "./lexer";
@@ -55,9 +55,9 @@ import {
   checkedDrawingEndpoint,
   checkDrawings,
   reshapePanel,
+  rescalePanel,
 } from "./drawing";
 import { calibrateDraft, checkVersion } from "./metadata";
-import { WoodDraft } from "./woodParts";
 
 export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
@@ -69,11 +69,11 @@ type Handler<K extends Statement["kind"]> = (
 
 const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } = {
   woodworking: (w, s) => {
-    w.wood.enabled = s.enabled;
+    w.draft.wood.enabled = s.enabled;
   },
-  part: (w, s) => w.wood.declare(s),
-  sameAs: (w, s) => w.wood.merge(s.view, s.other, s.line),
-  removePart: (w, s) => w.wood.remove(s.id, s.line),
+  part: (w, s) => w.draft.wood.declare(s),
+  sameAs: (w, s) => w.draft.wood.merge(s.view, s.other, s.line),
+  removePart: (w, s) => w.draft.wood.remove(s.id, s.line),
   header: (_writer, statement) => checkVersion(statement.version, statement.line),
   title: (writer, statement) => (writer.draft.title = statement.title),
   scale: (writer, statement) => calibrateDraft(writer.draft, statement),
@@ -104,10 +104,10 @@ export function writeStatements(
 
 class Writer {
   readonly draft: Draft;
-  readonly wood: WoodDraft;
   readonly explicitSize = new Set<string>();
   readonly pictures: PictureData[] = [];
   private readonly links: PendingLink[] = [];
+  private readonly around: string[] = [];
   private readonly bands: PendingBand[] = [];
   private readonly junctions: PendingJunction[] = [];
   private start: { x: number; y: number } | null = null;
@@ -117,8 +117,7 @@ class Writer {
     document: CanvasDocument,
     private readonly options: WriteOptions
   ) {
-    this.draft = new Draft(document);
-    this.wood = new WoodDraft(this.draft, options.importing);
+    this.draft = new Draft(document, options.importing);
   }
 
   run(statements: Statement[]): WriteResult {
@@ -126,24 +125,31 @@ class Writer {
     statements.forEach((statement) => this.statement(statement, scope));
     const { draft } = this;
     // A file says exactly where everything is; anything else keeps arranged frames arranged.
-    if (!this.options.importing) reflowDraft(draft);
-    placeJunctions(draft, this.junctions);
-    const around = finishLinks(draft, this.links, Boolean(this.options.importing));
+    if (!this.options.importing) {
+      this.draft.wood.projectViews(this.explicitSize);
+      reflowDraft(draft);
+    }
+    this.settleLinks();
     resolveDrawingTargets(draft);
     finishBands(draft, this.bands);
-    this.wood.finish(this.explicitSize);
+    this.draft.wood.finish(this.explicitSize);
     // A file says exactly where everything is, even a child left outside its frame.
     if (!this.options.importing) growHolders(draft);
-    routeAroundItems(draft, around);
+    routeAroundItems(draft, this.around);
     checkDrawings(draft);
     checkLayers(draft);
     draft.stackImported(this.options.importing);
-    this.wood.commit();
+    this.draft.wood.commit();
     return { ...draft.commit(), pictures: this.pictures };
   }
 
   layer(statement: RoomStatement) {
     writeLayer(this.draft, statement, Boolean(this.options.importing));
+  }
+
+  private settleLinks() {
+    placeJunctions(this.draft, this.junctions.splice(0));
+    this.around.push(...finishLinks(this.draft, this.links.splice(0), this.options.importing));
   }
 
   statement(statement: Statement, scope: Scope) {
@@ -181,9 +187,10 @@ class Writer {
     const { draft } = this;
     const item = draft.declare(statement, scope.holder);
     this.describe(item, statement.attributes, statement.line);
+    assignHolder(draft, item, scope, statement.attributes, statement.line);
     if (item.type === "slide") placeInDeck(this.draft, item, statement.attributes);
-    this.defaultSize(item);
-    if (!statement.attributes.some((attr) => attr.kind === "size")) this.wood.project(item);
+    applyDefaultSize(item, draft.lookOf(item).scale ?? 1, this.explicitSize);
+    if (!statement.attributes.some((attr) => attr.kind === "size")) this.draft.wood.project(item);
     this.matchSizes(item, statement.attributes, statement.line);
     // A band over items is sized once they are all placed; one read from a file has its own box.
     const over = attributesFor(statement.attributes, "item", "band")[0];
@@ -192,21 +199,7 @@ class Writer {
     // A drawing's points are where it is; it takes no placement.
     else if (item.type !== "drawing" && item.type !== "highlight")
       this.place(item, statement.attributes, scope, statement, true, follow);
-    else this.pathHolder(item, statement.attributes, statement.line);
     return item.id;
-  }
-
-  private pathHolder(item: Item, attributes: Attribute[], line: number) {
-    const holder = attributesFor(attributes, "item", "holder")[0];
-    if (holder) item.inside = resolveHolder(this.draft, holder.ref, line);
-  }
-
-  private defaultSize(item: Item) {
-    const [width, height] = defaultSize(item.type, item.stencil);
-    const scale = this.draft.lookOf(item).scale ?? 1;
-    const given = givenSize(item, this.explicitSize);
-    if (!given.width) item.width = width * scale;
-    if (!given.height) item.height = height * scale;
   }
 
   private describe(item: Item, attributes: Attribute[], line: number) {
@@ -264,8 +257,6 @@ class Writer {
     follow?: Follow
   ) {
     const { draft } = this;
-    const inside = attributesFor(attributes, "item", "holder")[0];
-    if (inside) item.inside = resolveHolder(draft, inside.ref, line);
     const rules = this.rules(attributes, line, body.kind === "block");
     if (scope.kind === "arrangement") scope.members.push(item.id);
     else this.placeFirst(item, rules, scope, fresh, follow);
@@ -374,6 +365,7 @@ class Writer {
     const { draft } = this;
     const item = draft.item(statement.ref, statement.line);
     const before = { ...item };
+    const oldScale = draft.contentScale(item.id).calibration;
     if (statement.name.kind === "set") item.name = statement.name.value;
     if (statement.subtitle.kind === "set") item.subtitle = statement.subtitle.value;
     if (isLink(item)) {
@@ -381,12 +373,12 @@ class Writer {
       return;
     }
     this.describe(item, statement.attributes, statement.line);
+    const movesIn = assignHolder(draft, item, scope, statement.attributes, statement.line);
+    if (!statement.attributes.some((attribute) => attribute.kind === "size"))
+      this.draft.wood.project(item);
     this.matchSizes(item, statement.attributes, statement.line);
     reshapePanel(draft, before, item);
-    const movesIn = scope.nested && item.inside !== scope.holder;
-    if (movesIn) item.inside = scope.holder;
-    if (movesIn || attributesFor(statement.attributes, "item", "holder").length)
-      draft.moved.add(item.id);
+    rescalePanel(draft, item, statement.attributes, oldScale, () => this.settleLinks());
     this.placeEdited(item, statement, scope, movesIn);
   }
 

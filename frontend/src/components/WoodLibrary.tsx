@@ -22,7 +22,7 @@ import {
 } from "../document/woodworking";
 import { findWoodPresets } from "../document/woodCatalog";
 import { placeWood, writeWood } from "../editor/woodworking";
-import { WoodCutList, HardwareList } from "./WoodLists";
+import { HardwareList } from "./WoodLists";
 import { pointInCanvas } from "../editor/creationScale";
 import { StencilButton } from "./StencilButton";
 function ProfilePicker({
@@ -160,7 +160,7 @@ export function WoodLibrary({
     <>
       <label
         className="control-row"
-        data-hint-detail="Show the woodworking stencils and cut list for this drawing."
+        data-hint-detail="Show woodworking stencils for this drawing and enable Cut list in Tools."
       >
         <input
           type="checkbox"
@@ -192,7 +192,6 @@ export function WoodLibrary({
           />
           <WoodGrid editor={editor} stock={stock} sheet={sheet} gauge={gauge} search={search} />
           <UnplacedParts editor={editor} />
-          <WoodCutList editor={editor} />
           <HardwareList editor={editor} />
         </section>
       )}

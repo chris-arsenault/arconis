@@ -43,11 +43,12 @@ export function Measure({ editor }: Readonly<{ editor: EditorController }>) {
   const point = editor.worldPoint(editor.pointer);
   const hovered = stackAt(editor.document.list(), point).find((item) => item.id !== selected.id);
   if (!hovered) return null;
+  const units = editor.scales.between(selected.inside, hovered.inside);
   const { scale, translate } = editor.graph.view;
   return (
     <div className="measure" aria-hidden="true" data-testid="measure">
       {gapsBetween(selected, hovered, (distance) =>
-        formatDistance(distance * editor.grid.factor, editor.grid.unit, true)
+        formatDistance(distance * units.factor, units.unit, true)
       ).map((gap) => (
         <span
           key={`${gap.x},${gap.y}`}
@@ -80,8 +81,10 @@ export function ResizeFeedback({ editor }: Readonly<{ editor: EditorController }
     editor.graph.addMouseListener(listener);
     return () => editor.graph.removeMouseListener(listener);
   }, [editor]);
-  const label = (value: number) =>
-    formatDistance(value * editor.grid.factor, editor.grid.unit, true);
+  const units = editor.scales.unitsFor(
+    editor.document.contentScale(editor.selected()[0]?.inside ?? "").calibration
+  );
+  const label = (value: number) => formatDistance(value * units.factor, units.unit, true);
   return (
     <>
       <EqualGaps editor={editor} />

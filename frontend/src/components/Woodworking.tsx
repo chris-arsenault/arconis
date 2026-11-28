@@ -18,7 +18,6 @@ import { quote } from "../language/printer";
 import type { EditorController } from "../editor/controller";
 import { writeWood } from "../editor/woodworking";
 import { PropertyValue } from "./PropertyValue";
-import { WoodCutList } from "./WoodLists";
 import "./woodworking.css";
 
 const LABELS: Record<string, string> = {
@@ -379,7 +378,6 @@ export function WoodInspector({
       <PlacementFields key={item.id} editor={editor} item={item} {...props} />
       {issue && <p role="status">{issue}</p>}
       {error && <p role="alert">{error}</p>}
-      <WoodCutList editor={editor} />
     </section>
   );
 }

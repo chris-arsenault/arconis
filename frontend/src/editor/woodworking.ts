@@ -1,5 +1,5 @@
 import { newId } from "../document/ids";
-import { LOCAL, type Item } from "../document/types";
+import type { Item } from "../document/types";
 import {
   acceptsWoodRef,
   isStock,
@@ -9,9 +9,8 @@ import {
   type WoodFacts,
   type WoodKind,
 } from "../document/woodworking";
-import { parse } from "../language/parser";
+import { writeCanvas } from "./canvasWrite";
 import { quote, partStatement } from "../language/printer";
-import { writeStatements } from "../language/writer";
 import type { EditorController } from "./controller";
 import { containerAt } from "./panels";
 
@@ -24,10 +23,7 @@ export interface WoodStencil {
 }
 
 export function writeWood(editor: EditorController, statements: string) {
-  const doc = editor.document;
-  doc.undo.stopCapturing();
-  doc.doc.transact(() => writeStatements(doc, parse(statements), { author: doc.author }), LOCAL);
-  doc.undo.stopCapturing();
+  writeCanvas(editor.document, statements);
 }
 
 function stencilFacts(choice: WoodStencil, name: string) {

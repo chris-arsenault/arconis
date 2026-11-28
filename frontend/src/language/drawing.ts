@@ -2,6 +2,9 @@ import { canConnect } from "../document/capabilities";
 import { drawingIssue } from "../document/ink";
 import { isBox, isLink, type Item } from "../document/types";
 import { resizedPanelContents } from "../document/panelResize";
+import { magnification, magnifyContents } from "../document/panelScale";
+import type { Calibration } from "../document/units";
+import type { Attribute } from "./syntax";
 import type { Draft } from "./draft";
 import { LanguageError } from "./lexer";
 
@@ -48,5 +51,22 @@ export function reshapePanel(draft: Draft, before: Item | null, after: Item) {
     Object.assign(item, change.geometry);
     item.look = { ...item.look, ...change.look };
     draft.moved.add(item.id);
+  }
+}
+
+export function rescalePanel(
+  draft: Draft,
+  panel: Item,
+  attributes: Attribute[],
+  previous: Calibration | null,
+  settleLinks: () => void
+) {
+  const scale = attributes.filter((attribute) => attribute.kind === "panelScale").at(-1);
+  if (scale?.magnify) {
+    const ratio = magnification(previous, draft.contentScale(panel.id).calibration);
+    if (ratio === 1) return;
+    settleLinks();
+    const moved = magnifyContents(panel, draft.items, ratio, (item) => draft.lookOf(item));
+    for (const id of moved) draft.moved.add(id);
   }
 }

@@ -1,85 +1,21 @@
 import { expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { AgentGateway } from "../relay/mcpHttp";
+import { connectAgent } from "./browserMcp";
 import { createRoomId } from "../collaboration/room";
 import { readCopy } from "../document/pngCopy";
 import { BOOKSHELF } from "../language/woodworkingExample";
 import { BATCH_EXAMPLE } from "../language/reference";
 import {
   browser,
-  railPanel,
+  workspaceTools,
   dockPanel,
   errors,
   exported,
   exportPng,
-  fixture,
   open,
   row,
 } from "./browserHarness";
 import type { Page } from "playwright";
-
-async function connectAgent() {
-  const gateway = new AgentGateway(
-    fixture.relay,
-    { resource: "https://relay.example/mcp", issuer: "https://auth.example/" },
-    (token) =>
-      Promise.resolve(
-        token === "local-test" ? { user: "artist", clientId: "test", scopes: ["edit:rooms"] } : null
-      )
-  );
-  const server = createServer((request, response) => {
-    void gateway.handle(request, response).then((handled) => {
-      if (!handled) response.writeHead(404).end();
-    });
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  let client = new Client({ name: "Drawing journey", version: "1" });
-  const transport = () =>
-    new StreamableHTTPClientTransport(
-      new URL(`http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`),
-      { requestInit: { headers: { authorization: "Bearer local-test" } } }
-    );
-  await client.connect(transport());
-  let sessionId = "";
-  const call = async (name: string, args: Record<string, unknown> = {}) => {
-    const roomTool = [
-      "describe_canvas",
-      "read",
-      "write",
-      "undo",
-      "close_room",
-      "check_layout",
-    ].includes(name);
-    const result = await client.callTool({
-      name,
-      arguments: roomTool ? { session_id: sessionId, ...args } : args,
-    });
-    if (name === "open_room" && !result.isError)
-      sessionId = (result.structuredContent as { session_id: string }).session_id;
-    return JSON.stringify(result);
-  };
-  return {
-    get client() {
-      return client;
-    },
-    call,
-    reconnect: async () => {
-      await client.close();
-      client = new Client({ name: "Drawing journey resumed", version: "1" });
-      await client.connect(transport());
-    },
-    close: async () => {
-      if (sessionId) await call("close_room");
-      await client.close();
-      gateway.close();
-      await new Promise((resolve) => server.close(resolve));
-    },
-  };
-}
 
 it("authors editable drawings through actual MCP tools, renders gradient PNGs and preserves human edits on agent Undo", async () => {
   const room = createRoomId();
@@ -274,11 +210,12 @@ it("authors a bookshelf through MCP and exchanges fitted cuts and joint revision
           'part left_post board inset "1/2 in"\npart corner joint bearing "rail end on upright face"\npart fixing screw pilot "5/32 in" offset "42 3/4 in"',
       })
     ).toContain("Done");
-    await railPanel(page, "Shapes");
-    const list = page.locator(".wood-library .wood-cut-list");
-    await list.locator(":scope > summary").click();
+    await workspaceTools(page);
+    await page.getByRole("button", { name: "Cut list", exact: true }).click();
+    const list = page.getByRole("dialog", { name: "Cut list" });
     await list.locator("li summary").filter({ hasText: "1 × 42.5 in" }).click();
     await expect.poll(() => list.innerText()).toContain("50 in − 3.5 in − 0.5 in − 3.5 in");
+    await list.getByRole("button", { name: "Close" }).click();
     const physical = await call("read", { items: ["screw_detail"] });
     for (const fact of ["outside rail", "rail end on upright face", "5/32 in", "3/16 in"])
       expect(physical).toContain(fact);

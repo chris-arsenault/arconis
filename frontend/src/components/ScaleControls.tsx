@@ -1,17 +1,65 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { EditorController } from "../editor/controller";
 import {
   isCalibration,
+  compatibleUnit,
   LENGTH_UNITS,
   SCALE_PRESETS,
   scaleBar,
   type Calibration,
 } from "../document/units";
 import "./scale.css";
+import type { Item } from "../document/types";
+import { magnification } from "../document/panelScale";
+import { writeCanvas } from "../editor/canvasWrite";
+import { scaleStatement } from "../language/printer";
+import { NumericInput } from "./NumericInput";
+import { POSITIVE_NUMBER } from "./numericRules";
+
+export function PanelScaleControls({
+  editor,
+  item,
+}: Readonly<{ editor: EditorController; item: Item }>) {
+  const inherited = editor.document.contentScale(item.inside).calibration;
+  const parent = inherited ?? { world: 1, distance: 1, unit: "u" };
+  const current = item.panelCalibration ?? parent;
+  const relativeToParent = compatibleUnit(current, parent.unit) === parent.unit;
+  const base = relativeToParent ? parent : current;
+  const apply = (value: Calibration | null) =>
+    writeCanvas(editor.document, `edit ${item.id} ${scaleStatement(value, "panel-scale")}`);
+  return (
+    <div className="panel-scale-controls">
+      <label htmlFor="panel-magnification">
+        {relativeToParent ? "Drawing magnification (×)" : "Multiply current drawing scale by"}
+      </label>
+      <NumericInput
+        id="panel-magnification"
+        label="Panel drawing magnification"
+        value={magnification(base, current)}
+        onCommit={(factor) => apply({ ...base, world: base.world * factor })}
+        rules={POSITIVE_NUMBER}
+        unit=""
+        steppers
+        detail="Change how large the detail appears. Physical cut lengths stay the same."
+      />
+      {item.panelCalibration && (
+        <button type="button" onClick={() => apply(null)}>
+          Inherit drawing scale
+        </button>
+      )}
+      <details>
+        <summary>Set an absolute drawing scale</summary>
+        <CustomScale key={JSON.stringify(current)} editor={editor} panel={item} />
+      </details>
+    </div>
+  );
+}
 
 /** How long a round distance is at the current zoom: a readout among the view controls. */
 export function ScaleBar({ editor }: Readonly<{ editor: EditorController }>) {
-  const bar = scaleBar(editor.document.calibration(), editor.graph.view.scale, editor.grid.unit);
+  const { owner, calibration } = editor.grid.scope;
+  const bar = scaleBar(calibration, editor.graph.view.scale, editor.grid.unit);
+  const panel = owner && (editor.document.get(owner)?.name || owner);
   const line = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (line.current) line.current.style.width = `${bar.pixels}px`;
@@ -20,11 +68,18 @@ export function ScaleBar({ editor }: Readonly<{ editor: EditorController }>) {
     <span
       className="scale-bar"
       role="img"
-      aria-label={`Scale: this line is ${bar.label}`}
+      aria-label={`Scale: this line is ${bar.label}${panel ? " in " + panel : ""}`}
       data-help-id="scale-controls"
       data-help-topic="editing#scale-units-and-measurement"
     >
-      <span data-testid="scale-distance">{bar.label}</span>
+      <span className="scale-caption">
+        <span data-testid="scale-distance">{bar.label}</span>
+        {panel && (
+          <span className="scale-scope" title={panel}>
+            {panel}
+          </span>
+        )}
+      </span>
       <span ref={line} className="scale-line" />
     </span>
   );
@@ -63,8 +118,14 @@ function PresetScale({ editor }: Readonly<{ editor: EditorController }>) {
   );
 }
 
-function CustomScale({ editor }: Readonly<{ editor: EditorController }>) {
-  const calibration = editor.document.calibration();
+function CustomScale({
+  editor,
+  panel,
+}: Readonly<{ editor: EditorController; panel: Item | null }>) {
+  const unitsId = useId();
+  const calibration = panel
+    ? editor.document.contentScale(panel.id).calibration
+    : editor.document.calibration();
   const [distance, setDistance] = useState(
     String(calibration ? (calibration.distance * 100) / calibration.world : 1)
   );
@@ -77,7 +138,9 @@ function CustomScale({ editor }: Readonly<{ editor: EditorController }>) {
       return;
     }
     setError("");
-    calibrate(editor, value);
+    if (panel)
+      writeCanvas(editor.document, `edit ${panel.id} ${scaleStatement(value, "panel-scale")}`);
+    else calibrate(editor, value);
   };
   return (
     <form
@@ -99,19 +162,21 @@ function CustomScale({ editor }: Readonly<{ editor: EditorController }>) {
         <input
           aria-label="Calibration unit"
           data-hint-detail="Choose a physical unit or type your own unit label."
-          list="length-units"
+          list={unitsId}
           value={unit}
           maxLength={32}
           onChange={(event) => setUnit(event.target.value)}
         />
         <button
           type="submit"
-          data-hint-detail="Set the shared reference distance without changing object geometry."
+          data-hint-detail={
+            panel ? "Set the scale of this panel's contents." : "Set the shared reference distance."
+          }
         >
           Apply custom scale
         </button>
       </div>
-      <datalist id="length-units">
+      <datalist id={unitsId}>
         {Object.keys(LENGTH_UNITS).map((key) => (
           <option key={key} value={key} />
         ))}
@@ -122,7 +187,7 @@ function CustomScale({ editor }: Readonly<{ editor: EditorController }>) {
 }
 
 function DisplayUnits({ editor }: Readonly<{ editor: EditorController }>) {
-  const calibration = editor.document.calibration();
+  const calibration = editor.grid.scope.calibration;
   if (!calibration) return null;
   const units = Object.hasOwn(LENGTH_UNITS, calibration.unit)
     ? Object.keys(LENGTH_UNITS)
@@ -205,12 +270,12 @@ export function ScaleSettings({ editor }: Readonly<{ editor: EditorController }>
     <section className="scale-settings" aria-label="Scale and units">
       <h3>Scale and units</h3>
       <p>
-        The scale is shared with everyone in the room and changes no object. The display unit and
-        grid spacing are yours. To take the scale from the drawing, measure a known distance with
-        Measure and click its length.
+        The canvas scale defines sheet measurements. Set the drawing scale for a panel in Arrange.
+        Display units and grid spacing are local to your browser. To calibrate from a known
+        distance, use Measure and click its length.
       </p>
       <PresetScale editor={editor} />
-      <CustomScale key={JSON.stringify(calibration)} editor={editor} />
+      <CustomScale key={JSON.stringify(calibration)} editor={editor} panel={null} />
       <DisplayUnits editor={editor} />
       <GridInterval editor={editor} />
       {calibration && (

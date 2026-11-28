@@ -5,6 +5,7 @@
  */
 import type { TreeLayoutOptions } from "./treeLayout";
 import type { Clock } from "./clock";
+import type { Calibration } from "./units";
 import type { WoodView } from "./woodworking";
 
 export type ItemType =
@@ -229,6 +230,10 @@ export interface Item {
   clock: Clock | null;
   /** Scale held content, including its paint and text, when this panel is resized. */
   scaleContents: boolean;
+  /** Absolute drawing calibration for this panel's contents. Null inherits from its holder. */
+  panelCalibration: Calibration | null;
+  /** Multiplier for layout padding inside this panel, independent of its measurement units. */
+  panelPaddingScale: number;
   /** For slides: the deck this slide belongs to, and its number in that deck. */
   deck: string;
   slide: number;

@@ -1,5 +1,5 @@
 import type { Graph } from "@maxgraph/core";
-import type { CanvasDocument } from "../document/canvasDocument";
+import type { DrawingScales } from "./drawingScales";
 import { compatibleUnit, distanceFactor, formatDistance, niceDistance } from "../document/units";
 import { syncZoom } from "./zoom";
 
@@ -24,44 +24,35 @@ function saveSetting(visible: boolean) {
 /** The visible grid and snapping, which turn on and off together. Each person's setting is their own. */
 export class CanvasGrid {
   visible = readSetting();
-  preferredUnit = "";
   fixed: { distance: number; unit: string } | null = null;
   private frozen: number | null = null;
+  private gestureHolder: string | null = null;
 
   constructor(
     private graph: Graph,
     private element: HTMLElement,
-    private document: CanvasDocument,
+    private scales: DrawingScales,
     private changed: () => void
   ) {
-    try {
-      this.preferredUnit = localStorage.getItem("arconis:unit") ?? "";
-    } catch {
-      /* Session preference still works. */
-    }
     this.apply();
   }
 
   get unit() {
-    return compatibleUnit(this.document.calibration(), this.preferredUnit);
+    return this.scales.unitsFor(this.scope.calibration).unit;
   }
-  get factor() {
-    return distanceFactor(this.document.calibration(), this.unit);
+  get scope() {
+    return this.scales.scope(this.gestureHolder);
   }
   get interval() {
     return this.graph.getGridSize();
   }
   get label() {
-    return formatDistance(this.interval * this.factor, this.unit, true);
+    const { factor, unit } = this.scales.unitsFor(this.scope.calibration);
+    return formatDistance(this.interval * factor, unit, true);
   }
 
   setUnit(unit: string) {
-    this.preferredUnit = unit;
-    try {
-      localStorage.setItem("arconis:unit", unit);
-    } catch {
-      /* Session preference still works. */
-    }
+    this.scales.setUnit(unit);
     this.sync();
     this.changed();
   }
@@ -72,27 +63,32 @@ export class CanvasGrid {
     this.changed();
   }
 
-  freeze() {
+  freeze(holder: string) {
+    if (this.frozen !== null) return;
+    this.gestureHolder = holder;
+    this.sync();
     this.frozen = this.interval;
   }
   release = () => {
+    if (this.frozen === null) return;
     this.frozen = null;
+    this.gestureHolder = null;
     this.sync();
+    this.changed();
   };
 
   sync() {
     const { scale } = this.graph.view;
-    if (
-      this.fixed &&
-      compatibleUnit(this.document.calibration(), this.fixed.unit) !== this.fixed.unit
-    )
-      this.fixed = null;
-    const fixedFactor = distanceFactor(this.document.calibration(), this.fixed?.unit);
+    const { calibration } = this.scope;
+    const { factor } = this.scales.unitsFor(calibration);
+    const fixed =
+      this.fixed && compatibleUnit(calibration, this.fixed.unit) === this.fixed.unit
+        ? this.fixed
+        : null;
+    const fixedFactor = distanceFactor(calibration, fixed?.unit);
     const step =
       this.frozen ??
-      (this.fixed
-        ? this.fixed.distance / fixedFactor
-        : niceDistance((10 * this.factor) / scale) / this.factor);
+      (fixed ? fixed.distance / fixedFactor : niceDistance((10 * factor) / scale) / factor);
     const visible = step * Math.max(1, niceDistance(10 / (step * scale)));
     syncZoom(this.graph, this.element, step, visible);
   }

@@ -12,6 +12,7 @@ import type { CanvasDocument } from "../document/canvasDocument";
 import type { AccountStore } from "../account/accountStore";
 import type { SavedCopy } from "../account/workspaceFile";
 import { Settings } from "./Settings";
+import { WoodCutList } from "./WoodLists";
 import { Feedback } from "./Feedback";
 import { ReusableSections } from "./ReusableSections";
 import { FileMenu } from "./FileMenu";
@@ -190,6 +191,7 @@ function WorkspaceTools(props: Readonly<Props>) {
       </summary>
       <div className="header-tools-list">
         <h3>Canvas</h3>
+        {session.document.meta.get("woodworking") === "on" && <WoodCutList editor={editor} />}
         <Settings editor={editor} />
         <ChangePassword session={session} />
         {account?.status === "in" && (

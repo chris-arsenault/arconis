@@ -8,10 +8,11 @@ export interface MeasurePoint {
   y: number;
 }
 export interface Measurement {
-  start: MeasurePoint;
-  end: MeasurePoint;
+  start: ScopedPoint;
+  end: ScopedPoint;
   complete: boolean;
 }
+type ScopedPoint = MeasurePoint & { holder: string };
 
 /** Temporary world-space endpoints never enter Yjs or the undo history. */
 export class CanvasMeasurement {
@@ -22,11 +23,13 @@ export class CanvasMeasurement {
 
   clear() {
     this.value = null;
+    this.editor.grid.release();
     this.editor.emit();
   }
 
   private snapped(point: MeasurePoint, event: { altKey: boolean; shiftKey: boolean }) {
-    if (event.altKey) return point;
+    const holder = this.editor.scales.holderAt(point);
+    if (event.altKey) return { ...point, holder };
     const { graph } = this.editor;
     let next = graph.isGridEnabled() ? { x: graph.snap(point.x), y: graph.snap(point.y) } : point;
     next = nearestGeometry(graph, point) ?? next;
@@ -37,13 +40,17 @@ export class CanvasMeasurement {
           ? { x: next.x, y: start.y }
           : { x: start.x, y: next.y };
     }
-    return next;
+    return { ...next, holder };
   }
 
-  private place(point: MeasurePoint) {
-    if (!this.value || this.value.complete)
+  private place(point: ScopedPoint) {
+    if (!this.value || this.value.complete) {
+      this.editor.grid.freeze(point.holder);
       this.value = { start: point, end: point, complete: false };
-    else this.value = { ...this.value, end: point, complete: true };
+    } else {
+      this.value = { ...this.value, end: point, complete: true };
+      this.editor.grid.release();
+    }
     this.editor.emit();
   }
 
@@ -58,6 +65,8 @@ export class CanvasMeasurement {
         event.stopImmediatePropagation();
         editor.element.focus({ preventScroll: true });
         this.down = editor.worldPoint(event);
+        if (!this.value || this.value.complete)
+          editor.grid.freeze(editor.scales.holderAt(this.down));
         this.place(this.snapped(this.down, event));
       },
       options
@@ -68,9 +77,10 @@ export class CanvasMeasurement {
         if (editor.tool !== "measure") return;
         if (!this.down && !(event.target instanceof Node && editor.element.contains(event.target)))
           return;
-        this.cursor = this.snapped(editor.worldPoint(event), event);
+        const end = this.snapped(editor.worldPoint(event), event);
+        this.cursor = end;
         if (this.value && !this.value.complete) {
-          this.value = { ...this.value, end: this.cursor };
+          this.value = { ...this.value, end };
           editor.emit();
         }
       },
@@ -138,7 +148,10 @@ export class CanvasMeasurement {
     const delta = KEY_DELTAS[event.key];
     this.cursor = { x: current.x + delta.x * step, y: current.y + delta.y * step };
     if (this.value && !this.value.complete) {
-      this.value = { ...this.value, end: this.cursor };
+      this.value = {
+        ...this.value,
+        end: { ...this.cursor, holder: editor.scales.holderAt(this.cursor) },
+      };
       editor.emit();
     }
   }

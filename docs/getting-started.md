@@ -57,7 +57,7 @@ For a bookshelf rail, choose **Fit between faces**. Use the top as the outside s
 piece and choose its length. Select the two uprights as the bounding pieces. In each
 upright's **Shop details**, enter the dimension it occupies along the span and its
 inset (`0 in` for flush). A 48 in top and two uprights each occupying 3½ in give a
-41 in rail. **Cut list** groups matching stock and finished dimensions by quantity.
+41 in rail. Open **Tools → Cut list** in the top bar to see matching stock and finished dimensions grouped by quantity.
 Expand a cut to see its pieces and their length calculations. A second view of a
 piece counts once. Missing upright heights stay open. Moving a drawing view keeps
 these physical measurements intact.

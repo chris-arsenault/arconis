@@ -73,7 +73,7 @@ export interface Padding {
 
 /** Room inside a holder around what it holds. */
 export function paddingOf(item: Item, look: Look): Padding {
-  const scale = look.scale ?? 1;
+  const scale = (look.scale ?? 1) * item.panelPaddingScale;
   const pad = FRAME_PADDING * scale;
   if (item.type === "frame") {
     const title = look.title ?? "header";

@@ -27,6 +27,8 @@ export const BLANK: Omit<Item, "id" | "type"> = {
   tidy: DEFAULT_TIDY,
   clock: null,
   scaleContents: false,
+  panelCalibration: null,
+  panelPaddingScale: 1,
   deck: "",
   slide: 1,
   markup: false,
