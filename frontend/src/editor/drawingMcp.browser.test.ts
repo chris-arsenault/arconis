@@ -276,8 +276,8 @@ it("authors a bookshelf through MCP and exchanges fitted cuts and joint revision
     ).toContain("Done");
     await railPanel(page, "Shapes");
     const list = page.locator(".wood-library .wood-cut-list");
-    await list.locator("summary").click();
-    await expect.poll(() => list.innerText()).toContain("42.5 in × 3.5 in");
+    await list.locator(":scope > summary").click();
+    await list.locator("li summary").filter({ hasText: "1 × 42.5 in" }).click();
     await expect.poll(() => list.innerText()).toContain("50 in − 3.5 in − 0.5 in − 3.5 in");
     const physical = await call("read", { items: ["screw_detail"] });
     for (const fact of ["outside rail", "rail end on upright face", "5/32 in", "3/16 in"])

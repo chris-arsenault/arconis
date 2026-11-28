@@ -6,14 +6,27 @@ export function WoodCutList({ editor }: Readonly<{ editor: EditorController }>) 
   const rows = cutList(editor.document.wood.parts());
   return (
     <details className="wood-cut-list">
-      <summary>Cut list ({rows.length})</summary>
+      <summary>
+        Cut list ({rows.length} cut {rows.length === 1 ? "type" : "types"})
+      </summary>
       {rows.length ? (
         <ul>
           {rows.map((row) => (
-            <li key={row.id}>
-              <strong>{row.name}</strong> · {row.stock} · Qty {row.quantity}
-              <div>{row.dimensions}</div>
-              <small>Length · {row.basis}</small>
+            <li key={row.pieces[0].id}>
+              <details>
+                <summary data-hint-detail="Show the pieces for this cut and how each length was determined.">
+                  <strong>
+                    {row.pieces.length} × {row.length}
+                  </strong>{" "}
+                  · {row.stock}
+                  <small className="cut-section">Width × thickness · {row.section}</small>
+                </summary>
+                {row.pieces.map((piece) => (
+                  <div key={piece.id}>
+                    {piece.name} · {piece.basis}
+                  </div>
+                ))}
+              </details>
             </li>
           ))}
         </ul>

@@ -22,10 +22,10 @@ import { LanguageError } from "./lexer";
 import type { Statement } from "./syntax";
 
 export function shopReport(parts: Parts) {
-  const lines = cutList(parts).map(
-    (row) =>
-      `Cut ${row.id} · ${row.name} · qty ${row.quantity} · ${row.stock} · L × W × T: ${row.dimensions} · length: ${row.basis}`
-  );
+  const lines = cutList(parts).map((row) => {
+    const pieces = row.pieces.map((p) => `${p.id} (${p.name}): ${p.basis}`).join(", ");
+    return `Cut · qty ${row.pieces.length} · ${row.stock} · L × W × T: ${row.length} × ${row.section} · pieces: ${pieces}`;
+  });
   for (const row of hardwareList(parts))
     lines.push(
       ["Hardware", row.label, "qty " + row.quantity, row.details].filter(Boolean).join(" · ")

@@ -23,10 +23,13 @@ it("opens older drawings that use depicts as an item id or a style name", () => 
 });
 it("resolves a fitted cut, its basis, unknowns and fixed sections across views", () => {
   const { doc, agent } = assembly();
-  const rail = () => cutList(doc.wood.parts()).filter((row) => row.id === "rail");
-  expect(rail()).toMatchObject([
-    { quantity: 1, dimensions: "41 in × 3.5 in × 1.5 in", basis: "48 in − 3.5 in − 3.5 in" },
-  ]);
+  const rail = () =>
+    cutList(doc.wood.parts()).find((row) => row.pieces.some((p) => p.id === "rail"));
+  expect(rail()).toMatchObject({
+    length: "41 in",
+    section: "3.5 in × 1.5 in",
+    pieces: [{ id: "rail", basis: "48 in − 3.5 in − 3.5 in" }],
+  });
   expect(agent.read({ items: ["rail_end"] })).toContain("Specify length on left_post");
   expect(agent.write('part top panel length "50 in"')).toContain("Done");
   expect(doc.get("rail_view")?.width).toBe(43 * 12);
@@ -36,13 +39,13 @@ it("resolves a fitted cut, its basis, unknowns and fixed sections across views",
       'part top panel length "48 in"\npart left_post board occupies "thickness"\npart right_post board occupies "thickness"'
     )
   ).toContain("Done");
-  expect(rail()[0].dimensions).toContain("45 in");
+  expect(rail()?.length).toBe("45 in");
   expect(
     agent.write(
       'part left_post board occupies "width" inset "1/2 in"\npart right_post board occupies "width" inset "1/2 in"'
     )
   ).toContain("Done");
-  expect(rail()[0].dimensions).toContain("40 in");
+  expect(rail()?.length).toBe("40 in");
   expect(shopInches("1 1/2 in")).toBe(1.5);
   expect(shopInches("25.4 mm")).toBeCloseTo(1);
   expect(shopInches("1/0 in")).toBeNull();
@@ -61,6 +64,48 @@ it("resolves physical fastening roles across views and rejects diameter override
   expect(agent.read()).toContain("outside rail");
   expect(agent.write("edit rail_end size 500,900")).toContain("Nothing was changed");
   expect(doc.get("rail_end")?.height).toBe(18);
+});
+
+it("groups matching cuts across names, units and fit formulas", () => {
+  const doc = new CanvasDocument();
+  const agent = new LanguageSession(doc, "Builder");
+  expect(
+    agent.write(
+      [
+        'part shelf panel material "Plywood" length "46.6 in" width "15.5 in" thickness "3/4 in"',
+        'part cleat board stock "2x4" length "7 in" occupies "thickness" inset "0 in"',
+        'part stop board stock "2x4" occupies "thickness" inset "0 in"',
+        'part rail_a board name "Left rail" stock "2x4" span "shelf" span-axis "width" left "cleat" right "stop"',
+        'part rail_b board name "Right rail" stock "2x4" length "12 1/2 in"',
+        'part rail_c board name "Middle rail" stock "2x4" length "317.5 mm"',
+        "node front depicts rail_a face",
+        "node detail depicts rail_a end",
+        'part wide board stock "2x6" length "12.5 in"',
+        'part oak board stock "2x4" material "Oak" length "12.5 in"',
+        'part graded board stock "2x4" grade "Select" length "12.5 in"',
+        'part missing board stock "2x4"',
+      ].join("\n")
+    )
+  ).toContain("Done");
+  const rows = cutList(doc.wood.parts());
+  expect(rows).toHaveLength(8);
+  expect(rows.find((r) => r.pieces.length === 3)).toMatchObject({
+    stock: "2x4",
+    length: "12.5 in",
+    section: "3.5 in × 1.5 in",
+    pieces: [
+      { id: "rail_a", basis: "15.5 in − 1.5 in − 1.5 in" },
+      { id: "rail_b" },
+      { id: "rail_c" },
+    ],
+  });
+  expect(agent.read()).toContain("Cut · qty 3 · 2x4 · L × W × T: 12.5 in");
+  expect(agent.write('part rail_b board length "7 in"')).toContain("Done");
+  expect(
+    cutList(doc.wood.parts())
+      .filter((r) => r.pieces.length === 2)
+      .map((r) => r.length)
+  ).toEqual(["7 in", "12.5 in"]);
 });
 it("round-trips independent physical identities, methods and dependencies including partial imports", () => {
   const { doc, agent } = assembly();
@@ -82,7 +127,9 @@ it("round-trips independent physical identities, methods and dependencies includ
   expect(second).not.toBe("rail");
   const lookup = doc.wood.parts();
   expect(lookup.get(second)?.facts.span).not.toBe("top");
-  expect(cutList(lookup).find((row) => row.id === second)?.dimensions).toContain("41 in");
+  expect(cutList(lookup).find((row) => row.pieces.some((p) => p.id === second))?.length).toBe(
+    "41 in"
+  );
   agent.read();
   expect(agent.write("delete rail_view")).toContain("Done");
   expect(doc.get("rail_end")?.wood?.part).toBe("rail");

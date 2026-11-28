@@ -9,6 +9,9 @@ All notable user-visible changes are recorded here.
 
 ### Woodworking drawings
 
+- The cut list groups matching finished cuts by quantity in the browser and MCP.
+  Expand a cut in the browser to see its pieces and length calculations.
+
 - Added joinery presets, brackets, washers and nuts to the woodworking palette
   and MCP catalog. Mounting hardware can reference its bracket or fastener, and
   the hardware list counts each physical fitting across all its views.

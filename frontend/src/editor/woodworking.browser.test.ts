@@ -2,6 +2,33 @@ import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
 import { browser, exported, more, open, railPanel } from "./browserHarness";
 
+it("shows three identical rails as one cut on a peer and regroups a changed rail", async () => {
+  const room = createRoomId();
+  const viewport = { width: 1600, height: 1000 };
+  const page = await open(await browser.newContext({ viewport }), room);
+  const peer = await open(await browser.newContext({ viewport }), room);
+  await railPanel(page, "Shapes");
+  await railPanel(peer, "Shapes");
+  await page.getByLabel("Woodworking mode", { exact: true }).check();
+  const canvas = page.getByTestId("canvas");
+  const length = page.getByRole("textbox", { name: "Value of Cut length", exact: true });
+  for (const y of [150, 300, 450]) {
+    await page.getByRole("button", { name: "Lumber 2x4", exact: true }).click();
+    await canvas.click({ position: { x: 200, y } });
+    await length.fill("12.5 in");
+    await length.press("Enter");
+  }
+  await page.getByRole("button", { name: "Place another view" }).click();
+  await canvas.click({ position: { x: 475, y: 150 } });
+  const list = peer.locator(".wood-library .wood-cut-list");
+  await list.locator(":scope > summary").click();
+  const quantities = list.locator("li summary strong");
+  await expect.poll(() => quantities.allTextContents()).toEqual(["3 × 12.5 in"]);
+  await length.fill("7 in");
+  await length.press("Enter");
+  await expect.poll(() => quantities.allTextContents()).toEqual(["2 × 12.5 in", "1 × 7 in"]);
+});
+
 it("places joinery, a bracket and its bolt stack using the shop palette", async () => {
   const room = createRoomId();
   const page = await open(

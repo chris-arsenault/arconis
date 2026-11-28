@@ -36,6 +36,9 @@
   margin-bottom: 0.4rem;
   overflow-wrap: anywhere;
 }
+.cut-section {
+  display: block;
+}
 .wood-cut-list,
 .wood-inspector details {
   min-width: 0;

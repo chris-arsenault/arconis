@@ -287,20 +287,38 @@ export function resizeFacts(
   return changes;
 }
 
+interface CutGroup {
+  stock: string;
+  length: string;
+  section: string;
+  pieces: { id: string; name: string; basis: string }[];
+}
+
 export function cutList(parts: Parts) {
-  return [...parts]
-    .filter(([, part]) => isStock(part))
-    .map(([id, part]) => {
-      const dims = AXES.map((axis) => woodDimension(parts, id, axis));
-      return {
-        id,
-        name: part.facts.name || id,
-        stock: part.facts.stock || part.facts.material || part.kind,
-        quantity: 1,
-        dimensions: dims.map((d) => (d.inches === null ? d.basis : inchText(d.inches))).join(" × "),
-        basis: dims[0].basis,
-      };
-    });
+  const groups = new Map<string, CutGroup>();
+  for (const [id, part] of parts) {
+    if (!isStock(part)) continue;
+    const { stock, material, grade, grain, name } = part.facts;
+    const dimensions = AXES.map((axis) => woodDimension(parts, id, axis));
+    const [length, width, thickness] = dimensions.map((d) =>
+      d.inches === null ? d.basis : inchText(d.inches)
+    );
+    // An unresolved measurement cannot establish that two cuts match.
+    const key = dimensions.some((d) => d.inches === null)
+      ? id
+      : JSON.stringify([part.kind, stock, material, grade, grain, length, width, thickness]);
+    const piece = { id, name: name || id, basis: dimensions[0].basis };
+    const group = groups.get(key);
+    if (group) group.pieces.push(piece);
+    else
+      groups.set(key, {
+        stock: [stock, material, grade, grain].filter(Boolean).join(" · ") || part.kind,
+        length,
+        section: width + " × " + thickness,
+        pieces: [piece],
+      });
+  }
+  return [...groups.values()];
 }
 
 export function locationIssue(part: WoodPart, parts: Parts) {
