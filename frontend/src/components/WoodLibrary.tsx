@@ -110,7 +110,10 @@ export function WoodLibrary({
     [sheet, setSheet] = useState("3/4 in");
   return (
     <>
-      <label className="control-row">
+      <label
+        className="control-row"
+        data-hint-detail="Show the woodworking stencils and cut list for this drawing."
+      >
         <input
           type="checkbox"
           checked={enabled}
