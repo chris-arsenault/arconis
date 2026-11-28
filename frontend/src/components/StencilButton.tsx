@@ -38,7 +38,7 @@ export function StencilButton({
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", finish);
       ghost?.remove();
-      if (ghost) onDrop(upEvent);
+      if (ghost && button.isConnected) onDrop(upEvent);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", finish);

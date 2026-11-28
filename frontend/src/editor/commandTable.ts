@@ -4,15 +4,9 @@ import { hasText } from "../document/capabilities";
 import { deckOf, isSlide } from "../document/slides";
 import { type CommandDefinition as Command, type CommandContext } from "./registry";
 import { completeCommand } from "./commandDefinition";
-import type { Tool } from "./shapes";
+import { shapeModule, type Tool } from "./shapes";
 import { routeAround } from "./commands";
-import {
-  addBranch,
-  addReference,
-  alignSelection,
-  distributeSelection,
-  tidySelection,
-} from "./topics";
+import { addReference, alignSelection, distributeSelection, tidySelection } from "./topics";
 import { branchChildren } from "../document/relations";
 import { fitText } from "./textLayout";
 import { selectAll } from "./locking";
@@ -21,7 +15,7 @@ import { pasteFromClipboard } from "./clipboardInput";
 import { FIELD_COMMANDS } from "./fieldCommands";
 import { VIEW_COMMANDS } from "./viewCommands";
 import { SELECTION_COMMANDS, STYLE_COMMANDS } from "./selectionCommands";
-import { STRUCTURE_KEYS } from "./structureCommands";
+import { BRANCH_COMMANDS, STRUCTURE_KEYS } from "./structureCommands";
 import { LAYOUT_COMMANDS } from "./layoutCommands";
 import { PRESENCE_COMMANDS } from "./presenceCommands";
 import { POINTER_COMMANDS } from "./pointerCommands";
@@ -50,6 +44,7 @@ function tool(
 ): Command {
   return {
     id: `tool.${id}`,
+    module: shapeModule(id),
     label,
     help,
     group: "tools",
@@ -319,26 +314,7 @@ const ARRANGE: Command[] = [
 ];
 
 const STRUCTURE: Command[] = [
-  {
-    id: "structure.branch",
-    label: "Add branch",
-    help: "Grow a new topic out of the selection, joined by a branch, and start typing in it.",
-    group: "structure",
-    shortcuts: [{ key: "tab" }],
-    keywords: ["child", "topic"],
-    when: one,
-    run: ({ editor }) => addBranch(editor),
-  },
-  {
-    id: "structure.sibling",
-    label: "Add sibling",
-    help: "Add a topic beside the selection under the same parent, and start typing in it.",
-    group: "structure",
-    shortcuts: [{ key: "enter", alt: true }],
-    keywords: ["topic"],
-    when: one,
-    run: ({ editor }) => addBranch(editor, true),
-  },
+  ...BRANCH_COMMANDS,
   {
     id: "structure.connect",
     label: "Connect",
@@ -360,6 +336,7 @@ const STRUCTURE: Command[] = [
   },
   {
     id: "structure.tidy",
+    module: "mind-maps",
     label: "Tidy branches",
     help: "Lay out the selected topic's tree the way it remembers: its direction, spacing and order are set under Relationships.",
     group: "structure",

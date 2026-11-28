@@ -3,7 +3,13 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Compass, Keyboard, X } from "luci
 import type { EditorController } from "../editor/controller";
 import { showHelp } from "../editor/ui";
 import { COMMANDS } from "../editor/commandTable";
-import { GROUP_TITLES, commandContext, commandLabel, type Command } from "../editor/registry";
+import {
+  GROUP_TITLES,
+  commandContext,
+  commandEnabled,
+  commandLabel,
+  type Command,
+} from "../editor/registry";
 import { shortcutLabel } from "../editor/shortcuts";
 import {
   GUIDES,
@@ -313,7 +319,7 @@ function Article({
 function Commands({ editor }: Readonly<{ editor: EditorController }>) {
   const context = commandContext(editor);
   const groups = new Map<string, Command[]>();
-  for (const command of COMMANDS)
+  for (const command of COMMANDS.filter((entry) => commandEnabled(entry, context)))
     groups.set(command.group, [...(groups.get(command.group) ?? []), command]);
   return (
     <article className="help-article help-commands">

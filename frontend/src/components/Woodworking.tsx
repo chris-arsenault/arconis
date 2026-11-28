@@ -347,11 +347,12 @@ export function WoodInspector({
   selected,
 }: Readonly<{ editor: EditorController; selected: Item[] }>) {
   const [error, setError] = useState("");
-  const parts = editor.document.wood.parts();
   const item = selected[0],
-    view = item.wood,
-    part = view && parts.get(view.part);
-  if (!view || !part) return null;
+    view = item.wood;
+  if (!view) return null;
+  const parts = editor.document.wood.parts();
+  const part = parts.get(view.part);
+  if (!part) return null;
   const apply = (statements: string) => {
     try {
       writeWood(editor, statements);

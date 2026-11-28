@@ -65,6 +65,31 @@ export function splitAtCaret(editor: EditorController, id: string, element: HTML
   return sibling;
 }
 
+export const BRANCH_COMMANDS: Command[] = [
+  {
+    id: "structure.branch",
+    module: "mind-maps",
+    label: "Add branch",
+    help: "Grow a new topic out of the selection, joined by a branch, and start typing in it.",
+    group: "structure",
+    shortcuts: [{ key: "tab" }],
+    keywords: ["child", "topic"],
+    when: ({ selected }) => selected.length === 1,
+    run: ({ editor }) => addBranch(editor),
+  },
+  {
+    id: "structure.sibling",
+    module: "mind-maps",
+    label: "Add sibling",
+    help: "Add a topic beside the selection under the same parent, and start typing in it.",
+    group: "structure",
+    shortcuts: [{ key: "enter", alt: true }],
+    keywords: ["topic"],
+    when: ({ selected }) => selected.length === 1,
+    run: ({ editor }) => addBranch(editor, true),
+  },
+];
+
 export const STRUCTURE_KEYS: Command[] = [
   ...DIRECTIONS.map(({ direction, key, label }): Command => ({
     id: `select.${direction}`,
@@ -116,6 +141,7 @@ export const STRUCTURE_KEYS: Command[] = [
   })),
   {
     id: "structure.earlier",
+    module: "mind-maps",
     label: "Move earlier among siblings",
     help: "Swap this topic and its subtree with the sibling before it.",
     group: "structure",
@@ -126,6 +152,7 @@ export const STRUCTURE_KEYS: Command[] = [
   },
   {
     id: "structure.later",
+    module: "mind-maps",
     label: "Move later among siblings",
     help: "Swap this topic and its subtree with the sibling after it.",
     group: "structure",
@@ -136,6 +163,7 @@ export const STRUCTURE_KEYS: Command[] = [
   },
   {
     id: "structure.promote",
+    module: "mind-maps",
     label: "Promote to the parent's level",
     help: "Move this topic up to branch from its grandparent, keeping its place on the canvas.",
     group: "structure",
@@ -147,6 +175,7 @@ export const STRUCTURE_KEYS: Command[] = [
   },
   {
     id: "structure.insertParent",
+    module: "mind-maps",
     label: "Insert a parent topic",
     help: "Put a new topic between this one and its parent, and start typing in it.",
     group: "structure",
@@ -175,6 +204,7 @@ export const STRUCTURE_KEYS: Command[] = [
   },
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((levels): Command => ({
     id: `structure.levels.${levels}`,
+    module: "mind-maps",
     label: `Show ${levels} ${levels === 1 ? "level" : "levels"} of the tree`,
     help: "Fold the selected tree's topics below that depth and unfold the ones above it.",
     group: "structure",
@@ -185,6 +215,7 @@ export const STRUCTURE_KEYS: Command[] = [
   })),
   {
     id: "structure.slides",
+    module: "mind-maps",
     label: "Slides from branches",
     help: "Make a deck with a slide over the whole tree, then one over each main branch.",
     group: "structure",

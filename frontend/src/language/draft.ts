@@ -13,6 +13,7 @@ import { requestedId, type ItemStatement } from "./syntax";
 import type { Calibration } from "../document/units";
 import { contentScale } from "../document/panelScale";
 import { WoodDraft } from "./woodParts";
+import { setModuleEnabled, type ModuleId } from "../document/modules";
 
 export interface DraftResult {
   created: string[];
@@ -47,6 +48,7 @@ export class Draft {
   readonly layers = new Map<string, LayerRecord>();
   readonly layered: { id: string; line: number }[] = [];
   title: string | null = null;
+  readonly modules = new Map<ModuleId, boolean>();
   /** The room's default layer and opening object as this write sets them; null leaves them. */
   defaultLayer: string | null = null;
   opening: string | null = null;
@@ -80,7 +82,7 @@ export class Draft {
   }
 
   contentScale(holder: string) {
-    const shopDefault = this.wood.enabled ? WoodDraft.defaultScale : null;
+    const shopDefault = this.modules.get("woodworking") ? WoodDraft.defaultScale : null;
     const root =
       this.calibrationChange.kind === "set"
         ? this.calibrationChange.value
@@ -236,14 +238,22 @@ export class Draft {
     return chain;
   }
 
-  /** Writes every difference to the document. Call inside one transaction. */
-  commit(): DraftResult {
+  private commitSettings() {
     const { document } = this;
-    const changed: string[] = [];
     if (this.title !== null) document.rename(this.title);
     if (this.opening !== null) document.setOpening(this.opening);
     if (this.calibrationChange.kind === "set")
       document.setCalibration(this.calibrationChange.value);
+    else if (this.modules.get("woodworking") && !document.calibration())
+      document.setCalibration(WoodDraft.defaultScale);
+    this.modules.forEach((enabled, id) => setModuleEnabled(document, id, enabled));
+  }
+
+  /** Writes every difference to the document. Call inside one transaction. */
+  commit(): DraftResult {
+    const { document } = this;
+    const changed: string[] = [];
+    this.commitSettings();
     this.changedStyles.forEach((look, name) => document.setStyle(name, look));
     commitLayerRecords(this);
     if (this.defaultLayer !== null) document.setDefaultLayer(this.defaultLayer);

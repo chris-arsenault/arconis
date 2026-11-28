@@ -1,4 +1,5 @@
 import { WOOD_FIELDS } from "../document/woodworking";
+import { CANVAS_MODULES, MODULE_IDS } from "../document/modules";
 import { BOOKSHELF } from "./woodworkingExample";
 
 /** A complete write with caller-chosen ids and four views over the original content. */
@@ -69,6 +70,12 @@ The name and subtitle are both optional: node r2 / "Amazon Aurora" has only a su
 Example:
   node api "Orders API" / "Amazon API Gateway" icon aws:Amazon-API-Gateway
   node db "Orders" database below api gap 60
+
+## Canvas modules
+
+Use module <id> on|off to choose specialist authoring tools for everyone in this canvas. Each switch is independent. Turning a module off preserves its objects and physical records. Whole documents carry module choices. Selections carry their contents only. The original woodworking on|off spelling also works.
+
+${MODULE_IDS.map((id) => `- ${id} (default ${CANVAS_MODULES[id].defaultEnabled ? "on" : "off"}): ${CANVAS_MODULES[id].detail}`).join("\n")}
 
 ## Woodworking
 

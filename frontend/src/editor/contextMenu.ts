@@ -3,11 +3,11 @@ import { isSlide } from "../document/slides";
 import { MARKERS } from "../document/types";
 import { worldBounds } from "../document/relations";
 import type { CommandContext } from "./registry";
-import { findCommand, isAvailable, runCommand } from "./registry";
+import { commandEnabled, findCommand, isAvailable, runCommand } from "./registry";
 import { closeMenu, closeSubRing, openMenu, openSubRing } from "./ui";
 import type { EditorController } from "./controller";
 import { DRAWING_SHAPES } from "./drawingTools";
-import { RING_MODE_HELP, SUB_RING_HELP } from "./ringHelp";
+import { RING_MODE_HELP, SUB_RING_HELP, SUB_RING_LABELS } from "./ringHelp";
 import { chooseRingMode, currentMode, type RingMode } from "./ringModes";
 
 /**
@@ -271,14 +271,6 @@ export const SUB_RINGS: Record<string, Slot[]> = {
     "shape.text",
   ],
 };
-const SUB_RING_LABELS: Record<string, string> = {
-  [MODES]: "Mode",
-  "ring.stencils": "Stencils",
-  "ring.vector": "Vector",
-  "ring.erasers": "Erase",
-  "ring.colour": "Colour",
-  "ring.shape": "Shape",
-};
 
 interface EntryLabel {
   id: string;
@@ -306,7 +298,7 @@ const BACK_ENTRY: MenuEntry = {
   disabled: false,
 };
 
-function entryFor(id: string, context: CommandContext): MenuEntry {
+function entryFor(id: string, context: CommandContext): MenuEntry | null {
   if (id === MORE)
     return {
       id,
@@ -331,19 +323,23 @@ function entryFor(id: string, context: CommandContext): MenuEntry {
   }
   if (id in SUB_RINGS) {
     const label = SUB_RING_LABELS[id];
-    const closed = SUB_RINGS[id].every((sub) => sub === null || entryFor(sub, context).disabled);
+    const closed = SUB_RINGS[id].every(
+      (sub) => sub === null || (entryFor(sub, context)?.disabled ?? true)
+    );
     return { kind: "ring", id, label, help: SUB_RING_HELP[id], short: label, disabled: closed };
   }
   const command = findCommand(id);
+  if (!commandEnabled(command, context)) return null;
   const disabled = !isAvailable(command, context);
   const label = typeof command.label === "string" ? command.label : command.label(context);
   const short = RING_LABELS[id] ?? label;
   return { kind: "command", id, label, help: command.help, short, disabled };
 }
 
-function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry {
+function slotEntry(slot: MenuSlot, context: CommandContext): MenuEntry | null {
   if (typeof slot === "string") return entryFor(slot, context);
-  const submenu = slot.ids.map((id) => entryFor(id, context));
+  const submenu = slot.ids.map((id) => entryFor(id, context)).filter((entry) => entry !== null);
+  if (!submenu.length) return null;
   return {
     kind: "submenu",
     id: `menu.${slot.label}`,
@@ -361,7 +357,9 @@ export function menuGroups(context: CommandContext): MenuEntry[][] {
   const kind = menuContextOf(selected);
   const clocks = kind === "object" && selected.every((item) => item.clock);
   const groups = clocks ? [CLOCK, ...MENUS.object] : MENUS[kind];
-  return groups.map((group) => group.map((slot) => slotEntry(slot, context)));
+  return groups
+    .map((group) => group.map((slot) => slotEntry(slot, context)).filter((entry) => entry !== null))
+    .filter((group) => group.length);
 }
 
 /**

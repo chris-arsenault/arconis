@@ -5,6 +5,8 @@ import { displayPreferences, type IndicatorVisibility } from "../editor/displayP
 import { contextWheelPreference } from "../editor/pointerPreferences";
 import { HelpZoneToggle } from "./HelpZone";
 import { ScaleSettings } from "./ScaleControls";
+import { CANVAS_MODULES, MODULE_IDS, moduleEnabled } from "../document/modules";
+import { writeCanvas } from "../editor/canvasWrite";
 import "./settings.css";
 
 const VISIBILITY: { value: IndicatorVisibility; label: string; detail: string }[] = [
@@ -39,7 +41,7 @@ export function Settings({ editor }: Readonly<{ editor: EditorController }>) {
         aria-label="Settings"
         aria-haspopup="dialog"
         data-hint="Settings"
-        data-hint-detail="Choose mouse controls and what appears in your view, and set the canvas's scale, units and grid spacing."
+        data-hint-detail="Choose extension modules, mouse controls, display options, scale, units and grid spacing."
         onClick={() => setOpen(true)}
       >
         <SettingsIcon size={17} />
@@ -85,6 +87,7 @@ function SettingsDialog({
         </button>
       </header>
       <div className="settings-content">
+        <ModuleSettings editor={editor} />
         <PointerSettings />
         <DisplaySettings editor={editor} />
         <ScaleSettings editor={editor} />
@@ -101,6 +104,32 @@ function SettingsDialog({
         </button>
       </footer>
     </dialog>
+  );
+}
+
+function ModuleSettings({ editor }: Readonly<{ editor: EditorController }>) {
+  return (
+    <section aria-labelledby="module-settings-title" className="module-settings">
+      <h3 id="module-settings-title">Extension modules</h3>
+      <p>Choose tools for everyone on this canvas. Turning tools off keeps existing work.</p>
+      {MODULE_IDS.map((id) => (
+        <label key={id} data-hint-detail={CANVAS_MODULES[id].detail}>
+          <input
+            type="checkbox"
+            aria-label={CANVAS_MODULES[id].name}
+            aria-describedby={`module-detail-${id}`}
+            checked={moduleEnabled(editor.document, id)}
+            onChange={(event) =>
+              writeCanvas(editor.document, `module ${id} ${event.target.checked ? "on" : "off"}`)
+            }
+          />
+          <span>
+            {CANVAS_MODULES[id].name}
+            <small id={`module-detail-${id}`}>{CANVAS_MODULES[id].detail}</small>
+          </span>
+        </label>
+      ))}
+    </section>
   );
 }
 

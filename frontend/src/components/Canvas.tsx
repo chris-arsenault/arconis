@@ -5,6 +5,7 @@ import type { PreviewBox } from "../editor/preview";
 import { useCollaborativeText } from "./useCollaborativeText";
 import { notifyPictures, setPictureSource } from "../editor/pictureSource";
 import { addBranch } from "../editor/topics";
+import { moduleEnabled } from "../document/modules";
 import { splitAtCaret } from "../editor/structureCommands";
 import { bindPresence, itemInHash, peerStates, type PeerState } from "../editor/presence";
 import { bindLaser } from "../editor/laserInput";
@@ -102,17 +103,20 @@ function treeKey(
 ) {
   const sibling = event.key === "Enter" && event.altKey;
   if (event.key !== "Tab" && !sibling) return;
-  event.preventDefault();
   const item = editor.document.get(id);
   if (sibling && item && taskListOf(editor.document.list(), item)) {
+    event.preventDefault();
     // In a task list, the next item is the next task.
     const next = addTaskAfter(editor.document, id);
     if (next) {
       editor.select(next);
       editor.edit(next, true);
     }
-  } else if (sibling) splitAtCaret(editor, id, event.currentTarget);
-  else addBranch(editor, false);
+  } else if (moduleEnabled(editor.document, "mind-maps")) {
+    event.preventDefault();
+    if (sibling) splitAtCaret(editor, id, event.currentTarget);
+    else addBranch(editor, false);
+  }
 }
 
 export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>) {
@@ -139,7 +143,7 @@ export function InlineEditor({ editor }: Readonly<{ editor: EditorController }>)
           ref={ref}
           className="inline-editor"
           aria-label="Edit canvas text"
-          data-hint-detail="Your typing shows live for everyone; Tab adds a branch and Escape finishes."
+          data-hint-detail="Your typing shows live for everyone. Press Escape to finish."
           onBlur={(event) => {
             if (
               event.relatedTarget instanceof Element &&

@@ -5,6 +5,7 @@ import { dismissPasteAs, pasteForeign, pastePlainText } from "../editor/clipboar
 import { FORMAT_NAMES, foreignFormat } from "../interchange";
 import { isOutline, outlineOf, type PasteForm } from "../editor/pasteAs";
 import { isBox } from "../document/types";
+import { moduleEnabled } from "../document/modules";
 
 interface Choice {
   key: string;
@@ -69,9 +70,10 @@ function pasteChoices(editor: EditorController, pending: Pending) {
       run: plain("text"),
     },
   ];
-  const plainSuggestion = isOutline(pending.text) || topic !== null ? "tree" : "notes";
+  const trees = moduleEnabled(editor.document, "mind-maps");
+  const plainSuggestion = trees && (isOutline(pending.text) || topic !== null) ? "tree" : "notes";
   const suggested = foreign.length ? "foreign" : plainSuggestion;
-  return { lines, choices, suggested };
+  return { lines, choices: choices.filter((choice) => trees || choice.key !== "tree"), suggested };
 }
 
 function useEscape(dismiss: () => void) {

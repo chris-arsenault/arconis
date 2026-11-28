@@ -7,6 +7,7 @@ export function completeCommand(definition: CommandDefinition): Command {
     keywords: [],
     when: () => true,
     native: false,
+    module: null,
     ...definition,
     shortcuts: (definition.shortcuts ?? []).map(completeShortcut),
   };

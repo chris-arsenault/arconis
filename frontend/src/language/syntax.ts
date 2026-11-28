@@ -14,6 +14,7 @@ import type { TreeLayoutOptions } from "../document/treeLayout";
 import type { Clock } from "../document/clock";
 import type { Calibration } from "../document/units";
 import type { WoodKind, WoodView } from "../document/woodworking";
+import type { ModuleId } from "../document/modules";
 
 /**
  * Attribute words that may also be ids in documents written before the words existed. A quoted name
@@ -171,7 +172,7 @@ export interface CommentText {
 }
 
 export type Statement =
-  | ({ kind: "woodworking"; enabled: boolean } & Located)
+  | ({ kind: "module"; module: ModuleId; enabled: boolean } & Located)
   | ({ kind: "part"; id: string; woodKind: WoodKind; fields: [string, string | null][] } & Located)
   | ({ kind: "sameAs"; view: string; other: string } & Located)
   | ({ kind: "removePart"; id: string } & Located)

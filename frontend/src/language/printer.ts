@@ -22,6 +22,7 @@ import type { Calibration } from "../document/units";
 import { spatialOrder } from "./spatial";
 import { canonicalSources } from "../document/sourceReferences";
 import { assemblySelection, partClosure, type Parts, type WoodPart } from "../document/woodworking";
+import { MODULE_IDS, moduleEnabled } from "../document/modules";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -340,6 +341,16 @@ export interface PrintOptions {
   pictureRenames: Map<string, string>;
 }
 
+function canvasSettings(document: CanvasDocument) {
+  const lines = MODULE_IDS.map(
+    (id) => `module ${id} ${moduleEnabled(document, id) ? "on" : "off"}`
+  );
+  const calibration = document.calibration();
+  if (calibration || moduleEnabled(document, "woodworking"))
+    lines.unshift(scaleStatement(calibration));
+  return lines;
+}
+
 /** The canvas, or part of it, as a complete text: the saved file and what agents read. */
 export function printCanvas(document: CanvasDocument, input: Partial<PrintOptions> = {}) {
   const options: PrintOptions = {
@@ -360,9 +371,8 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   const used = new Set(chosen.map((item) => item.style).filter(Boolean));
   const whole = !options.ids.length;
   const lines = [`arconis ${LANGUAGE_VERSION}`, `title ${quote(document.title())}`];
-  const calibration = document.calibration();
-  if (whole && calibration) lines.push(scaleStatement(calibration));
-  lines.push(...physicalDeclarations(document, whole, chosen));
+  if (whole) lines.push(...canvasSettings(document));
+  lines.push(...partStatements(document.wood.parts(), whole ? undefined : chosen));
   lines.push(...styleStatements(document, whole ? undefined : used));
   const layersUsed = new Set(chosen.filter((item) => !item.inside).map((item) => item.layer));
   // The room's own settings, its default layer and opening view, travel only with the whole canvas.
@@ -375,12 +385,6 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   for (const picture of options.data)
     lines.push(`data ${picture.hash} ${picture.type} ${quote(picture.data)}`);
   return `${lines.join("\n")}\n`;
-}
-
-function physicalDeclarations(document: CanvasDocument, whole: boolean, chosen: Item[]) {
-  const lines = partStatements(document.wood.parts(), whole ? undefined : chosen);
-  if (whole && document.meta.get("woodworking") === "on") lines.unshift("woodworking on");
-  return lines;
 }
 
 /** The named items with everything they hold, and the links among them. */

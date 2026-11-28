@@ -19,7 +19,7 @@ Choose **File**, then **Export document**, review the options and choose **Expor
 It downloads the canvas in the Arconis canvas language,
 including pictures, shared metadata and every layer, including layers you have hidden. It is
 readable text, with `arconis 1` as its header. Full documents include the drawing's scale,
-units and woodworking mode. Selection copies keep the destination's settings. A copied
+units and extension module settings. Selection copies keep the destination's settings. A copied
 woodworking assembly carries its physical pieces, fits and fastening operations. You can keep the file as
 a backup or import it into a new room to continue editing.
 

@@ -2,6 +2,7 @@ import * as Y from "yjs";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments } from "../document/comments";
 import { decks } from "../document/slides";
+import { MODULE_IDS, moduleEnabled } from "../document/modules";
 import { layerSummary, slideSummary, outline } from "./outline";
 import { isBox, type Item } from "../document/types";
 import { LanguageError } from "./lexer";
@@ -75,6 +76,7 @@ export class LanguageSession {
       const lines = [
         `title ${quote(this.document.title())}`,
         scaleStatement(this.document.calibration()),
+        `// Enabled modules: ${MODULE_IDS.filter((id) => moduleEnabled(this.document, id)).join(", ") || "none"}`,
         `// People here: ${present.length ? present.join(", ") : "nobody"}`,
         kinds ? `// ${items.length} items: ${kinds}` : "// No items yet",
       ];
@@ -83,7 +85,7 @@ export class LanguageSession {
           `// Bounds: at ${round(bounds.x)},${round(bounds.y)} size ${round(bounds.width)},${round(bounds.height)}`
         );
       lines.push(...styleStatements(this.document), layerSummary(this.document, items));
-      if (this.document.meta.get("woodworking") === "on" || this.document.wood.records.size)
+      if (moduleEnabled(this.document, "woodworking") || this.document.wood.records.size)
         lines.push(
           `// Woodworking: ${this.document.wood.records.size} physical parts. Read a view or part:<id> for the assembly.`
         );

@@ -1,5 +1,7 @@
 import { STENCILS, typeLabel, type Item, type ItemType, type Stencil } from "../document/types";
 import type { ScreenSize } from "../document/screens";
+import { moduleEnabled, type ModuleId } from "../document/modules";
+import type { EditorController } from "./controller";
 import { creationSize, creationValues } from "./zoom";
 import { defaultFields } from "./styleClipboard";
 import { newClockFields } from "./clocks";
@@ -7,6 +9,28 @@ import { newClockFields } from "./clocks";
 /** What a click on the canvas makes: a node of a stencil, or an item of another type. */
 export type Shape = Stencil | "note" | "text" | "frame" | "slide" | "clock";
 export type Tool = Shape | "select" | "pan" | "draw" | "markup" | "connect" | "measure";
+
+const SHAPE_MODULES: Readonly<Partial<Record<string, ModuleId>>> = {
+  service: "architecture",
+  database: "architecture",
+  cloud: "architecture",
+  person: "architecture",
+  icon: "architecture",
+};
+
+export function shapeModule(shape: string) {
+  return SHAPE_MODULES[shape] ?? null;
+}
+
+/** A collaborator or Undo can withdraw a tool between arming it and clicking the canvas. */
+export function syncModuleTools(editor: EditorController) {
+  let owner = shapeModule(editor.tool);
+  if (editor.armedWood) owner = "woodworking";
+  if (editor.armedScreen) owner = "ux";
+  if (owner && !moduleEnabled(editor.document, owner)) editor.setTool("select");
+  const remembered = shapeModule(editor.ui.lastShape);
+  if (remembered && !moduleEnabled(editor.document, remembered)) editor.ui.lastShape = "rectangle";
+}
 
 /** The shapes the Add ring places; the last one chosen is what the Add mode returns to. */
 export const RING_SHAPES = [

@@ -21,7 +21,7 @@ import {
   WOOD_LABELS,
 } from "../document/woodworking";
 import { findWoodPresets } from "../document/woodCatalog";
-import { placeWood, writeWood } from "../editor/woodworking";
+import { placeWood } from "../editor/woodworking";
 import { HardwareList } from "./WoodLists";
 import { pointInCanvas } from "../editor/creationScale";
 import { StencilButton } from "./StencilButton";
@@ -152,50 +152,34 @@ export function WoodLibrary({
   editor,
   search,
 }: Readonly<{ editor: EditorController; search: string }>) {
-  const enabled = editor.document.meta.get("woodworking") === "on";
   const [stock, setStock] = useState("2x4"),
     [gauge, setGauge] = useState("#7"),
     [sheet, setSheet] = useState("3/4 in");
   return (
-    <>
-      <label
-        className="control-row"
-        data-hint-detail="Show woodworking stencils for this drawing and enable Cut list in Tools."
-      >
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => writeWood(editor, `woodworking ${e.target.checked ? "on" : "off"}`)}
-        />
-        Woodworking mode
-      </label>
-      {enabled && (
-        <section className="wood-library" aria-label="Woodworking stencils">
-          <h3>Woodworking</h3>
-          <ProfilePicker
-            label="Lumber size"
-            value={stock}
-            choices={Object.keys(LUMBER)}
-            change={setStock}
-          />
-          <ProfilePicker
-            label="Sheet thickness"
-            value={sheet}
-            choices={SHEET_THICKNESSES}
-            change={setSheet}
-          />
-          <ProfilePicker
-            label="Fastener gauge"
-            value={gauge}
-            choices={Object.keys(SCREWS)}
-            change={setGauge}
-          />
-          <WoodGrid editor={editor} stock={stock} sheet={sheet} gauge={gauge} search={search} />
-          <UnplacedParts editor={editor} />
-          <HardwareList editor={editor} />
-        </section>
-      )}
-    </>
+    <section className="wood-library" aria-label="Woodworking stencils">
+      <h3>Woodworking</h3>
+      <ProfilePicker
+        label="Lumber size"
+        value={stock}
+        choices={Object.keys(LUMBER)}
+        change={setStock}
+      />
+      <ProfilePicker
+        label="Sheet thickness"
+        value={sheet}
+        choices={SHEET_THICKNESSES}
+        change={setSheet}
+      />
+      <ProfilePicker
+        label="Fastener gauge"
+        value={gauge}
+        choices={Object.keys(SCREWS)}
+        change={setGauge}
+      />
+      <WoodGrid editor={editor} stock={stock} sheet={sheet} gauge={gauge} search={search} />
+      <UnplacedParts editor={editor} />
+      <HardwareList editor={editor} />
+    </section>
   );
 }
 

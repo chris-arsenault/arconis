@@ -37,7 +37,8 @@ import { alignSelection, distributeSelection } from "../editor/topics";
 import { hasRectangleCorners, hasText } from "../document/capabilities";
 import { TextAlignment } from "./TextAlignment";
 import { SourceReferencesControls } from "./SourceReferencesControls";
-import { WoodInspector } from "./Woodworking";
+import { modulePanels } from "./modulePanels";
+import { moduleEnabled } from "../document/modules";
 import { PanelScaleControls } from "./ScaleControls";
 
 /** Selection controls grouped by task; each section retains its own disclosure preference. */
@@ -70,9 +71,9 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       data-help-topic="editing#property-panel"
     >
       <InspectorHeader editor={editor} selected={selected} />
-      {item.wood && (
-        <WoodInspector key={`wood ${selectionKey}`} editor={editor} selected={selected} />
-      )}
+      {modulePanels(editor.document, "inspector").map(({ id, Panel }) => (
+        <Panel key={`${id} ${selectionKey}`} editor={editor} selected={selected} />
+      ))}
       {single && <PositionControls editor={editor} selected={selected} />}
       <PrimaryControls key={selectionKey} {...props} />
       {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}
@@ -141,6 +142,7 @@ function RelationsSection({ editor, selected, sections }: PanelProps) {
       onToggle={sections.toggle}
     >
       <Relationships
+        mindMaps={moduleEnabled(canvas, "mind-maps")}
         selected={selected}
         items={items}
         run={(id) => runCommand(editor, id)}

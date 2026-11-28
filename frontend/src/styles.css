@@ -1437,8 +1437,8 @@ details[open] > summary::before {
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
-.search-results {
-  padding: 4px;
+.stencil-groups:has(.stencil) > .stencil-empty {
+  display: none;
 }
 .stencil-ghost {
   position: fixed;

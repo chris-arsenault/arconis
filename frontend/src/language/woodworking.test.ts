@@ -4,6 +4,30 @@ import { cutList, shopInches } from "../document/woodworking";
 import { serializeDocument, importDocument } from "../files/canvasFile";
 import { LanguageSession } from "./session";
 import { BOOKSHELF } from "./woodworkingExample";
+import { moduleEnabled } from "../document/modules";
+
+it("round-trips independent module choices while selections keep the destination's tools", () => {
+  const { doc, agent } = assembly();
+  expect(moduleEnabled(doc, "woodworking")).toBe(true);
+  expect(agent.write("module woodworking off\nmodule ux off\nmodule mind-maps off")).toContain(
+    "Done"
+  );
+  const copy = new CanvasDocument();
+  const previous = new LanguageSession(copy, "Designer");
+  expect(previous.write("module woodworking on\nmodule architecture off")).toContain("Done");
+  importDocument(copy, serializeDocument(doc));
+  expect(moduleEnabled(copy, "woodworking")).toBe(false);
+  expect(moduleEnabled(copy, "ux")).toBe(false);
+  expect(moduleEnabled(copy, "mind-maps")).toBe(false);
+  expect(moduleEnabled(copy, "architecture")).toBe(true);
+  expect(copy.wood.parts()).toEqual(doc.wood.parts());
+  const selected = new CanvasDocument();
+  importDocument(selected, serializeDocument(doc, ["rail_view"]));
+  expect(moduleEnabled(selected, "ux")).toBe(true);
+  expect(selected.wood.parts().has("rail")).toBe(true);
+  expect(agent.write("module ux on\nmodule mind-maps invalid")).toContain("Nothing was changed");
+  expect(moduleEnabled(doc, "ux")).toBe(false);
+});
 
 function assembly() {
   const doc = new CanvasDocument(),

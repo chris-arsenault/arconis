@@ -110,6 +110,7 @@ export const EXPORT_COMMANDS: Command[] = [
   },
   {
     id: "export.markdown",
+    module: "mind-maps",
     label: "Copy tree as Markdown",
     help: "Copy this topic's whole tree to the clipboard as an indented Markdown list.",
     group: "edit",
@@ -123,6 +124,7 @@ export const EXPORT_COMMANDS: Command[] = [
   },
   {
     id: "export.csv",
+    module: "mind-maps",
     label: "Export tree as CSV",
     help: "Download this topic's whole tree as a CSV file with one column for each level.",
     group: "edit",

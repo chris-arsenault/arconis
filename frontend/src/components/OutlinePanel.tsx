@@ -13,6 +13,7 @@ import { jumpTo, addBranch, tidySelection } from "../editor/topics";
 import { promote, reorderSibling } from "../editor/treeEdits";
 import { typeLabel, type Item } from "../document/types";
 import { RailSection } from "./RailSection";
+import type { useRailSections } from "./useRailSections";
 
 /** The keys that edit the tree from a row, the same as on the canvas. */
 function rowKeys(editor: EditorController, item: Item, onRename: () => void) {
@@ -116,12 +117,10 @@ function Row({
  */
 export function OutlinePanel({
   editor,
-  open,
-  onToggle,
+  sections,
 }: Readonly<{
   editor: EditorController;
-  open: boolean;
-  onToggle: (id: string, open: boolean) => void;
+  sections: ReturnType<typeof useRailSections>;
 }>) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const items = editor.document.list();
@@ -140,8 +139,8 @@ export function OutlinePanel({
       count={0}
       title="Outline"
       detail="The selected tree, or every tree, as an indented list you can edit."
-      open={open}
-      onToggle={onToggle}
+      open={sections.open.outline}
+      onToggle={sections.toggle}
     >
       <ul className="outline-list rail-list">
         {rows.map((row) => (

@@ -2,6 +2,7 @@ import type { Item } from "../document/types";
 import type { EditorController } from "./controller";
 import { matchesShortcut, type Shortcut, type ShortcutDeclaration } from "./shortcuts";
 import { COMMANDS } from "./commandTable";
+import { moduleEnabled, type ModuleId } from "../document/modules";
 
 /**
  * One table of commands, read by hotkeys, the property panel's actions, the command palette and
@@ -30,6 +31,7 @@ export interface CommandContext {
 
 export interface Command {
   id: string;
+  module: ModuleId | null;
   /** A verb phrase, or a function of the context when it names a toggle's next state. */
   label: string | ((context: CommandContext) => string);
   /** One sentence for the help zone and the reference: what the command does, plainly. */
@@ -44,7 +46,7 @@ export interface Command {
   /** The browser's own event runs it on its shortcut, which is shown but not dispatched here. */
   native: boolean;
 }
-type Defaulted = "shortcuts" | "keywords" | "when" | "native";
+type Defaulted = "shortcuts" | "keywords" | "when" | "native" | "module";
 export type CommandDefinition = Omit<Command, Defaulted> &
   Partial<Pick<Command, Exclude<Defaulted, "shortcuts">>> &
   Partial<{ shortcuts: ShortcutDeclaration[] }>;
@@ -60,7 +62,11 @@ export function commandLabel(command: Command, context: CommandContext) {
 }
 
 export function isAvailable(command: Command, context: CommandContext) {
-  return command.when(context);
+  return commandEnabled(command, context) && command.when(context);
+}
+
+export function commandEnabled(command: Command, context: CommandContext) {
+  return !command.module || moduleEnabled(context.editor.document, command.module);
 }
 
 export function findCommand(id: string) {

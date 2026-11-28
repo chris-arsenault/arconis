@@ -1,5 +1,11 @@
 import type { EditorController } from "../editor/controller";
-import { isAvailable, findCommand, commandContext, runCommand } from "../editor/registry";
+import {
+  commandEnabled,
+  isAvailable,
+  findCommand,
+  commandContext,
+  runCommand,
+} from "../editor/registry";
 import { KINDS, kindOf } from "../editor/swap";
 import { typeLabel, type Item } from "../document/types";
 import { hasText } from "../document/capabilities";
@@ -50,9 +56,10 @@ function ObjectTypeSelect({
 }: Readonly<{ editor: EditorController; selected: Item[] }>) {
   const [item] = selected;
   const kinds = selected.map((target) => (target.clock ? null : kindOf(target)));
+  const context = commandContext(editor);
+  const choices = KINDS.filter((value) => commandEnabled(findCommand(`shape.${value}`), context));
   const changeable =
-    kinds.every((kind) => kind !== null) &&
-    isAvailable(findCommand("shape.rectangle"), commandContext(editor));
+    kinds.every((kind) => kind !== null) && isAvailable(findCommand("shape.rectangle"), context);
   const kind = kinds.every((value) => value === kinds[0]) ? kinds[0] : "";
   if (!changeable && selected.length > 1) return null;
   if (!changeable)
@@ -77,12 +84,12 @@ function ObjectTypeSelect({
             Mixed types
           </option>
         )}
-        {kind && !KINDS.includes(kind) && (
+        {kind && !choices.includes(kind) && (
           <option value={kind} disabled>
             {typeLabel(item)}
           </option>
         )}
-        {KINDS.map((value) => {
+        {choices.map((value) => {
           const command = findCommand(`shape.${value}`);
           const label =
             typeof command.label === "string" ? command.label.replace(/^Change to /, "") : value;

@@ -1,6 +1,7 @@
 import type { ItemType, Port } from "../document/types";
 import { TREE_DIRECTIONS } from "../document/treeLayout";
 import { isWoodKind } from "../document/woodworking";
+import { MODULE_IDS, type ModuleId } from "../document/modules";
 import { isId } from "../document/ids";
 import { tokenize, type ArrowText } from "./lexer";
 import { Cursor, describe } from "./cursor";
@@ -60,11 +61,12 @@ const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both: boolean }
 
 /** Statements that start with a word of their own rather than an item. */
 const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => Statement> = {
-  woodworking: (cursor, line) => {
-    if (cursor.word("on")) return { kind: "woodworking", enabled: true, line };
-    cursor.keyword("off");
-    return { kind: "woodworking", enabled: false, line };
+  module: (cursor, line) => {
+    // Older scripts can still edit an item named "module".
+    const id = MODULE_IDS.find((name) => cursor.word(name));
+    return id ? moduleSetting(cursor, line, id) : edit(cursor, "module", line);
   },
+  woodworking: (cursor, line) => moduleSetting(cursor, line, "woodworking"),
   part: (cursor, line) => {
     const id = cursor.ref("a physical part id");
     if (!isId(id)) cursor.fail("Choose an id with letters, numbers, underscores or hyphens.");
@@ -244,6 +246,12 @@ function statement(cursor: Cursor): Statement {
     return special(cursor, token.line, word);
   }
   return reference(cursor, token.line);
+}
+
+function moduleSetting(cursor: Cursor, line: number, module: ModuleId): Statement {
+  const enabled = cursor.word("on");
+  if (!enabled) cursor.keyword("off");
+  return { kind: "module", module, enabled, line };
 }
 
 /** A statement starting with an item's id: a line from it, or a change to it. */

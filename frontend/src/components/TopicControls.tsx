@@ -222,6 +222,7 @@ function Action({
  * another object by name, or with two selected, relate or connect them.
  */
 export function Relationships({
+  mindMaps,
   selected,
   items,
   run,
@@ -230,6 +231,7 @@ export function Relationships({
   children,
   appearance,
 }: Readonly<{
+  mindMaps: boolean;
   selected: Item[];
   items: Item[];
   /** Runs a command from the command table by id. */
@@ -269,7 +271,7 @@ export function Relationships({
           ))}
         </ul>
       )}
-      {branches > 0 && (
+      {mindMaps && branches > 0 && (
         <div className="relation-branches">
           <span>
             {branches} {branches === 1 ? "branch" : "branches"}
@@ -279,7 +281,9 @@ export function Relationships({
         </div>
       )}
       <div className="relation-actions">
-        <Action label="Add branch" icon={Plus} onClick={() => run("structure.branch")} />
+        {mindMaps && (
+          <Action label="Add branch" icon={Plus} onClick={() => run("structure.branch")} />
+        )}
         <Action label="Relate to…" icon={Bookmark} onClick={() => run("structure.relate")} />
       </div>
     </>

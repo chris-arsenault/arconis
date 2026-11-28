@@ -1,6 +1,71 @@
 import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
-import { browser, exported, more, open, railPanel, workspaceTools } from "./browserHarness";
+import {
+  browser,
+  exported,
+  more,
+  open,
+  openSettings,
+  railPanel,
+  workspaceTools,
+} from "./browserHarness";
+import type { Page } from "playwright";
+
+async function setModule(page: Page, name: string, enabled: boolean) {
+  await openSettings(page);
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await settings.getByRole("checkbox", { name, exact: true }).setChecked(enabled);
+  await settings.getByRole("button", { name: "Done", exact: true }).click();
+}
+
+it("switches specialist tools across peers while preserving the selection and physical parts", async () => {
+  const room = createRoomId();
+  const viewport = { width: 1600, height: 1000 };
+  const page = await open(await browser.newContext({ viewport }), room);
+  const peer = await open(await browser.newContext({ viewport }), room);
+  await railPanel(peer, "Shapes");
+  await setModule(page, "Woodworking", true);
+  const board = peer.getByRole("button", { name: "Lumber 2x4", exact: true });
+  const canvas = peer.getByTestId("canvas");
+  await board.click();
+  await canvas.click({ position: { x: 220, y: 150 } });
+  const inspector = peer.getByRole("region", { name: "Woodworking properties" });
+  await inspector.waitFor();
+  await board.click();
+  await setModule(page, "Woodworking", false);
+  await board.waitFor({ state: "detached" });
+  await inspector.waitFor({ state: "detached" });
+  expect(await canvas.getAttribute("data-tool")).toBe("select");
+  await setModule(page, "Mind maps", false);
+  const branch = peer.getByRole("button", { name: "Add branch", exact: true });
+  await branch.waitFor({ state: "detached" });
+  await canvas.press("Tab");
+  await setModule(page, "UX design", false);
+  const search = peer.getByRole("searchbox", { name: "Search stencils" });
+  await search.fill("phone");
+  expect(await peer.getByRole("button", { name: /^Screen:/ }).count()).toBe(0);
+  await setModule(page, "Architecture", false);
+  await search.fill("database");
+  await peer.getByText("No stencils match.", { exact: true }).waitFor();
+  await search.fill("rectangle");
+  await peer
+    .getByRole("button", { name: /^Rectangle/ })
+    .first()
+    .waitFor();
+  const saved = await exported(peer);
+  expect(saved.objects).toHaveLength(1);
+  expect(saved.text).toMatch(/^part \S+ board /m);
+  await setModule(page, "Woodworking", true);
+  await inspector.waitFor();
+  await setModule(page, "Mind maps", true);
+  await branch.waitFor();
+  await setModule(page, "UX design", true);
+  await search.fill("phone");
+  await peer
+    .getByRole("button", { name: /^Screen:/ })
+    .first()
+    .waitFor();
+});
 
 it("shows three identical rails as one cut on a peer and regroups a changed rail", async () => {
   const room = createRoomId();
@@ -8,7 +73,7 @@ it("shows three identical rails as one cut on a peer and regroups a changed rail
   const page = await open(await browser.newContext({ viewport }), room);
   const peer = await open(await browser.newContext({ viewport }), room);
   await railPanel(page, "Shapes");
-  await page.getByLabel("Woodworking mode", { exact: true }).check();
+  await setModule(page, "Woodworking", true);
   await workspaceTools(peer);
   const trigger = peer.getByRole("button", { name: "Cut list", exact: true });
   await trigger.click();
@@ -43,7 +108,7 @@ it("places joinery, a bracket and its bolt stack using the shop palette", async 
   );
   const peer = await open(await browser.newContext(), room);
   await railPanel(page, "Shapes");
-  await page.getByLabel("Woodworking mode", { exact: true }).check();
+  await setModule(page, "Woodworking", true);
   const canvas = page.getByTestId("canvas");
   const search = page.getByRole("searchbox", { name: "Search stencils" });
   const place = async (label: string, x: number, y: number) => {
@@ -93,7 +158,7 @@ it("places catalog lumber, edits the shared cut and places an end view with real
     room
   );
   await railPanel(page, "Shapes");
-  await page.getByLabel("Woodworking mode", { exact: true }).check();
+  await setModule(page, "Woodworking", true);
   const canvas = page.getByTestId("canvas");
   const stencil = page.getByRole("button", { name: "Lumber 2x4", exact: true });
   await stencil.click();
@@ -141,7 +206,7 @@ it("links existing views and places distinct screws with their own hole assignme
   );
   const peer = await open(await browser.newContext(), room);
   await railPanel(page, "Shapes");
-  await page.getByLabel("Woodworking mode", { exact: true }).check();
+  await setModule(page, "Woodworking", true);
   const canvas = page.getByTestId("canvas");
   const place = async (label: string, x: number, y: number) => {
     await page.getByRole("button", { name: label, exact: true }).click();

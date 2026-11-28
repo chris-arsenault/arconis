@@ -51,6 +51,21 @@
 .settings-content {
   padding: 16px;
 }
+.module-settings {
+  margin-bottom: 24px;
+}
+.module-settings label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  cursor: pointer;
+}
+.module-settings small {
+  display: block;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
 .settings-toggles {
   display: flex;
   flex-wrap: wrap;

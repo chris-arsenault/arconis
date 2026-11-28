@@ -47,7 +47,3 @@
 .wood-cut-list summary {
   cursor: pointer;
 }
-
-.stencil-groups:has(.wood-library .stencil) > .stencil-empty {
-  display: none;
-}

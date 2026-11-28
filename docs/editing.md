@@ -9,6 +9,13 @@ Help in the app. For a drawing with real distances, see [scale and measurement](
 
 ## Workspace controls
 
+Under **Tools → Settings → Extension modules**, choose the specialist tools everyone can use
+on this canvas. Enable **Woodworking** for stock, joinery, physical part properties, hardware
+and cut lists. **Architecture** supplies system shapes and icon libraries, **UX design** adds
+screen frames, and **Mind maps** adds branch shortcuts, tree layouts and the outline panel.
+These three start enabled. You can combine modules or turn them all off. Your drawing keeps its
+objects, connections and part records when a module is off. Re-enable it to use its tools again.
+
 The left rail has the tools **Select**, **Pan**, **Connect**, **Markup** and **Measure**, and two panels:
 **Shapes** for stencils and icon libraries, and **Draw** for ink in the active layer. Markup opens
 its own bar over the canvas and leaves the panel as it was. **Hide panel** leaves the tools and

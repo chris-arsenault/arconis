@@ -68,8 +68,8 @@ type Handler<K extends Statement["kind"]> = (
 ) => void;
 
 const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } = {
-  woodworking: (w, s) => {
-    w.draft.wood.enabled = s.enabled;
+  module: (w, s) => {
+    w.draft.modules.set(s.module, s.enabled);
   },
   part: (w, s) => w.draft.wood.declare(s),
   sameAs: (w, s) => w.draft.wood.merge(s.view, s.other, s.line),

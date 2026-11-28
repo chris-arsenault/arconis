@@ -46,7 +46,7 @@ The [canvas guide](editing.md) covers selection, containers, connectors and keyb
 
 ## Draw a woodworking assembly
 
-For a woodworking drawing, enable **Woodworking mode** in **Shapes**. Choose lumber
+Open **Tools → Settings → Extension modules** and enable **Woodworking**. In **Shapes**, choose lumber
 or a fastener gauge, then drag the stencil onto the canvas. Select the piece to edit
 its shop dimensions. A dry dressed 2×4 has a 1½ × 3½ in section. Select another
 nominal size to change the section, or enter a cut length such as `32 1/2 in`.

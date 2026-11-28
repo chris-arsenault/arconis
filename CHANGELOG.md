@@ -4,6 +4,10 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+- Choose **Woodworking**, **Architecture**, **Mind maps** and **UX design** independently under
+  **Tools → Settings → Extension modules**. Choices follow the canvas across peers and portable
+  documents. Turning off a module keeps its objects and physical parts.
+
 - Frames and groups can use their own drawing scale. Enlarged details share physical pieces
   and cut lengths with the overview, including when created or edited through MCP.
 

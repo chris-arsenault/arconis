@@ -85,27 +85,21 @@ export const TOOLS: ToolEntry[] = [
   toolEntry("measure", "Measure distance", Ruler),
 ];
 
-export const STENCIL_GROUPS: { title: string; stencils: Stencil[] }[] = [
-  {
-    title: "Basics",
-    stencils: [
-      stencil("note", "Note", StickyNote, "Sticky note"),
-      stencil("text", "Text", Type),
-      stencil("rectangle", "Rectangle", Square),
-      stencil("ellipse", "Ellipse", Circle),
-      stencil("decision", "Decision", Diamond),
-      stencil("separator", "Separator", Minus, "Separator line"),
-      stencil("frame", "Frame", PanelTop),
-      stencil("clock", "Clock", Timer),
-    ],
-  },
-  {
-    title: "Architecture",
-    stencils: [
-      stencil("service", "Service", Server),
-      stencil("database", "Database", Database),
-      stencil("cloud", "Cloud", Cloud),
-      stencil("person", "Person", UserRound),
-    ],
-  },
-];
+export const SHAPE_LIBRARIES = {
+  Basics: [
+    stencil("note", "Note", StickyNote, "Sticky note"),
+    stencil("text", "Text", Type),
+    stencil("rectangle", "Rectangle", Square),
+    stencil("ellipse", "Ellipse", Circle),
+    stencil("decision", "Decision", Diamond),
+    stencil("separator", "Separator", Minus, "Separator line"),
+    stencil("frame", "Frame", PanelTop),
+    stencil("clock", "Clock", Timer),
+  ],
+  Architecture: [
+    stencil("service", "Service", Server),
+    stencil("database", "Database", Database),
+    stencil("cloud", "Cloud", Cloud),
+    stencil("person", "Person", UserRound),
+  ],
+};

@@ -1,4 +1,5 @@
 import { COLORS, isBox, isFrame, isLink, type Item } from "../document/types";
+import { shapeModule } from "./shapes";
 import { changeSelectionLook } from "./commands";
 import type { CommandDefinition as Command, CommandContext } from "./registry";
 import {
@@ -205,6 +206,7 @@ export const POINTER_COMMANDS: Command[] = [
   },
   ...KINDS.map((kind): Command => ({
     id: `shape.${kind}`,
+    module: shapeModule(kind),
     label: `Change to ${KIND_LABELS[kind].toLowerCase()}`,
     help: "Turn the selection into this kind, keeping its text, size, contents and lines.",
     group: "edit",

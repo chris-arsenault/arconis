@@ -1,5 +1,14 @@
 import type { RingMode } from "./ringModes";
 
+export const SUB_RING_LABELS: Record<string, string> = {
+  "ring.mode": "Mode",
+  "ring.stencils": "Stencils",
+  "ring.vector": "Vector",
+  "ring.erasers": "Erase",
+  "ring.colour": "Colour",
+  "ring.shape": "Shape",
+};
+
 /** The help zone's sentence for each sub-ring, which opens choices rather than running. */
 export const SUB_RING_HELP: Record<string, string> = {
   "ring.mode": "Open a ring of editing modes: Select, Add, Draw, Markup and Connect.",

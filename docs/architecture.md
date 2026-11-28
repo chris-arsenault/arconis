@@ -32,7 +32,20 @@ Authored appearance remains a sparse override map because omission means inherit
 it produces a complete semantic appearance. Parser records distinguish preserving text from
 setting it, automatic from named identities, and references from inline declarations.
 
-Woodworking mode stores physical pieces and operations in the document's
+Built-in extension modules are independent authoring tools on the shared canvas. Register a
+module's stable ID, label, default and metadata key in `document/modules.ts`. Settings uses
+that catalog to write `module <id> on|off` through the canvas language. Each module has its own
+Yjs metadata key so edits to different switches merge. Woodworking retains its original key
+and language spelling for existing rooms and files. Full document exports record the choices.
+Selection exports omit them.
+
+Each module registers its stencil library, inspector, navigation panel or workspace tools in
+`components/modulePanels.ts`. UI hosts mount the contributions for their slot. Commands declare their owning module in
+the command table. The palette, menus and shortcuts share command availability. Direct input
+gestures consult the same module setting. Rendering, imports and physical calculations operate
+on the document even while a module's authoring controls are hidden.
+
+Woodworking stores physical pieces and operations in the document's
 `woodworking-parts` Y.Map. Each record has a kind and shared fields for its authored
 dimensions and relationships. The canvas language declares these records with `part`.
 A placement carries `depicts` with a physical ID and projection. Each placement

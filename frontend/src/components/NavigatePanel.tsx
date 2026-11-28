@@ -8,7 +8,7 @@ import { historyEntries } from "../editor/history";
 import { roomTags } from "../editor/tags";
 import { toggled } from "../editor/filter";
 import { showFilter } from "../editor/ui";
-import { OutlinePanel } from "./OutlinePanel";
+import { modulePanels } from "./modulePanels";
 import { HistoryPanel } from "./HistoryPanel";
 import { PanelHeading, RailSection } from "./RailSection";
 import { useRailSections } from "./useRailSections";
@@ -32,7 +32,9 @@ export function NavigatePanel({ editor }: Readonly<{ editor: EditorController }>
         Return to a marked object or find related ideas.
       </PanelHeading>
       <JumpPoints editor={editor} sections={sections} />
-      <OutlinePanel editor={editor} open={sections.open.outline} onToggle={sections.toggle} />
+      {modulePanels(editor.document, "navigation").map(({ id, Panel }) => (
+        <Panel key={id} editor={editor} sections={sections} />
+      ))}
       <TagsSection editor={editor} sections={sections} />
       {steps > 0 && (
         <RailSection

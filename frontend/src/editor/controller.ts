@@ -12,7 +12,7 @@ import { configureLocking } from "./locking";
 import type { RoomSession } from "../collaboration/room";
 import { CanvasDocument } from "../document/canvasDocument";
 import type { Item } from "../document/types";
-import { ringShape, type Shape, type Tool } from "./shapes";
+import { ringShape, syncModuleTools, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
@@ -195,6 +195,7 @@ export class EditorController {
     this.viewListeners.forEach((listener) => listener());
   };
   private onDocumentChange = () => {
+    syncModuleTools(this);
     if (this.committing) {
       this.committed = true;
       return;

@@ -22,7 +22,7 @@ type Effects = {
  * remain derived consequences of the write; reading a placement/line endpoint is not an edit to it.
  */
 const EFFECTS: Effects = {
-  woodworking: () => ({ kind: "metadata", reason: "Sets the canvas woodworking mode." }),
+  module: () => ({ kind: "metadata", reason: "Sets a shared canvas module." }),
   part: (s) => ({ kind: "items", targets: [`part:${s.id}`], children: [] }),
   removePart: (s) => ({ kind: "items", targets: [`part:${s.id}`], children: [] }),
   sameAs: (s) => ({ kind: "items", targets: [s.view, s.other], children: [] }),

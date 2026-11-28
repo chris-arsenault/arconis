@@ -71,7 +71,6 @@ export class WoodDraft {
   readonly parts: Map<string, WoodPart>;
   readonly aliases = new Map<string, string>();
   private readonly imported = new Set<string>();
-  enabled: boolean | null = null;
   constructor(
     private readonly draft: Draft,
     private readonly importing: boolean
@@ -196,13 +195,6 @@ export class WoodDraft {
   commit() {
     const doc = this.draft.document;
     doc.wood.commit(this.before, this.parts);
-    if (this.enabled !== null) {
-      if (this.enabled) {
-        doc.meta.set("woodworking", "on");
-        if (!doc.calibration() && this.draft.calibrationChange.kind === "keep")
-          doc.setCalibration(WoodDraft.defaultScale);
-      } else doc.meta.delete("woodworking");
-    }
   }
 }
 
