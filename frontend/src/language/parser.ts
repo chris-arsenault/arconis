@@ -313,7 +313,7 @@ function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
   const stencilAsId =
     STENCIL_WORDS.has(word) && (type !== "node" || cursor.peek().kind === "string");
   const drawingId = legacyItemId(cursor);
-  if (cursor.isWord() && (!isAttributeWord(word) || stencilAsId || drawingId))
+  if (cursor.isWord() && (!isAttributeWord(word, cursor.peek()) || stencilAsId || drawingId))
     statement.identity = { kind: "named", id: cursor.next().text };
   names(cursor, statement);
   statement.attributes = attributes(cursor, inLink || linkAhead(cursor));
@@ -331,7 +331,7 @@ function arrangement(cursor: Cursor): ArrangeStatement {
   const columns = how === "grid" ? cursor.number("the grid's column count") : undefined;
   const word = cursor.token.text;
   const identity =
-    cursor.isWord() && !isAttributeWord(word) && !EDGES.has(word as Edge)
+    cursor.isWord() && !isAttributeWord(word, cursor.peek()) && !EDGES.has(word as Edge)
       ? identityOf(cursor)
       : AUTOMATIC;
   const tail = arrangeTail(cursor, how, columns);

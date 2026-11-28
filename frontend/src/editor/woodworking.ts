@@ -1,6 +1,7 @@
 import { newId } from "../document/ids";
 import { LOCAL, type Item } from "../document/types";
 import {
+  acceptsWoodRef,
   isStock,
   PROFILE_FIELDS,
   type Parts,
@@ -32,7 +33,7 @@ export function writeWood(editor: EditorController, statements: string) {
 function stencilFacts(choice: WoodStencil, name: string) {
   const facts: WoodFacts = { name };
   const field = PROFILE_FIELDS[choice.kind];
-  if (field) facts[field] = choice.profile;
+  if (field && choice.profile) facts[field] = choice.profile;
   return facts;
 }
 function selectedJoint(selection: Item[], parts: Parts) {
@@ -44,6 +45,20 @@ function selectedJoint(selection: Item[], parts: Parts) {
   }
   return "";
 }
+function attachFitting(kind: WoodKind, selection: Item[], parts: Parts, facts: WoodFacts) {
+  let key: string;
+  if (kind === "nut" || kind === "washer") key = "fastener";
+  else if (kind === "screw" || kind === "bolt") key = "bracket";
+  else return false;
+  const targets = new Set<string>();
+  for (const { wood } of selection) {
+    const target = wood && parts.get(wood.part);
+    if (target && acceptsWoodRef(kind, key, target)) targets.add(wood.part);
+  }
+  if (targets.size !== 1) return false;
+  facts[key] = [...targets][0];
+  return true;
+}
 function attachOperation(
   parts: Parts,
   kind: WoodKind,
@@ -53,7 +68,8 @@ function attachOperation(
   facts: WoodFacts,
   statements: string[]
 ) {
-  const operation = ["joint", "screw", "bolt", "glue"].includes(kind);
+  if (attachFitting(kind, selection, parts, facts)) return false;
+  const operation = ["joint", "screw", "bolt", "bracket", "glue"].includes(kind);
   let line = false;
   if (operation) {
     const joint = selectedJoint(selection, parts);

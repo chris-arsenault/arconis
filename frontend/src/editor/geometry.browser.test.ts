@@ -24,6 +24,27 @@ async function shapePosition(page: Page) {
   ]);
 }
 
+it("renders a rectangle with the chosen corners on a second canvas", async () => {
+  const room = createRoomId();
+  const page = await open(
+    await browser.newContext({ viewport: { width: 1440, height: 1000 } }),
+    room
+  );
+  const peer = await open(await browser.newContext(), room);
+  await add(page, "Rectangle (R)", "Square block", 220, 170);
+  const shape = peer
+    .getByTestId("canvas")
+    .locator('svg rect[fill="#ffffff"][pointer-events="all"]');
+  const radius = () => shape.evaluate((rect) => Number(rect.getAttribute("rx")));
+  await expect.poll(radius).toBeGreaterThan(0);
+  const corners = page.getByRole("combobox", { name: "Corners" });
+  await corners.selectOption("square");
+  await expect.poll(radius).toBe(0);
+  expect((await exported(peer)).text).toContain("corners square");
+  await corners.selectOption("default");
+  await expect.poll(radius).toBeGreaterThan(0);
+});
+
 it("keeps world geometry when a peer groups while another moves offline", async () => {
   const first = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const second = await browser.newContext({ viewport: { width: 1440, height: 1000 } });

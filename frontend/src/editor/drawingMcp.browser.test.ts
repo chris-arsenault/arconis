@@ -332,3 +332,36 @@ function checkBookshelfEvidence(evidence: string) {
   ])
     expect(evidence).toContain(fact);
 }
+
+it("authors a bracket assembly through MCP and reads a washer detail from a browser peer", async () => {
+  const room = createRoomId();
+  const page = await open(await browser.newContext(), room);
+  const agent = await connectAgent();
+  try {
+    expect(await agent.call("list_stencils", { query: "washers" })).toContain("Fender washer");
+    await agent.call("open_room", { room });
+    expect(
+      await agent.call("write", {
+        statements: [
+          "woodworking on",
+          'part shelf panel thickness "3/4 in"',
+          'part upright board stock "2x4"',
+          'part corner joint type "Dado" through "shelf" into "upright"',
+          'part brace bracket joint "corner" type "Angle bracket"',
+          'part mount bolt bracket "brace" diameter "1/4 in"',
+          'part plate washer fastener "mount" type "Fender washer" side "under head"',
+          'node detail "Bolt stack" depicts plate edge at 160,160',
+        ].join("\n"),
+      })
+    ).toContain("Done");
+    await expect.poll(async () => (await exported(page)).text).toContain('fastener "mount"');
+    const read = JSON.parse(await agent.call("read", { items: ["detail"] })) as {
+      content: { text: string }[];
+    };
+    expect(read.content[0].text).toContain("Hardware · Fender washer · qty 1");
+    expect(read.content[0].text).toContain('into "upright"');
+  } finally {
+    await agent.close();
+    await page.context().close();
+  }
+});

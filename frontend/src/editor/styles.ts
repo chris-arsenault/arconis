@@ -2,6 +2,7 @@ import type { CellStyle } from "@maxgraph/core";
 import { isLink, type Item, type LinePath, type Look } from "../document/types";
 import { authoredLook, effectiveAppearance, type Appearance } from "../document/appearance";
 import { isLockedIcon } from "../document/geometry";
+import { hasRectangleCorners } from "../document/capabilities";
 import { iconImage, loadIconFor } from "../assets/icons/catalog";
 import { isPictureHash, isPictureType } from "../document/pictures";
 import { pictureImage } from "./pictureSource";
@@ -252,6 +253,7 @@ function applyLabel(item: Item, style: Style, look: Look) {
 
 function baseStyle(item: Item, look: Look): Style {
   const base = { ...BASE_STYLE, ...typeStyle(item) };
+  if (hasRectangleCorners(item)) base.rounded = look.corners === "rounded";
   if (item.type === "card" && item.icon) base.spacingLeft = 76;
   if (item.type === "frame" && look.title && look.title !== "header")
     Object.assign(base, TITLE_STYLES[look.title]);

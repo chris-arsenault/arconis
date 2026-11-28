@@ -34,7 +34,7 @@ import { ClockControls } from "./ClockControls";
 import { useRailSections } from "./useRailSections";
 import { TagEditor } from "./TagEditor";
 import { alignSelection, distributeSelection } from "../editor/topics";
-import { hasText } from "../document/capabilities";
+import { hasRectangleCorners, hasText } from "../document/capabilities";
 import { TextAlignment } from "./TextAlignment";
 import { SourceReferencesControls } from "./SourceReferencesControls";
 import { WoodInspector } from "./Woodworking";
@@ -210,6 +210,7 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
   const inkOnly = selected.every(isInk);
   // Text alignment sits with the look, where draw.io keeps it, for objects whose text sits in a box.
   const texts = selected.filter((target) => hasText(target) && !isLink(target));
+  const rectangles = selected.filter(hasRectangleCorners);
   return (
     <RailSection
       id="appearance"
@@ -229,6 +230,29 @@ function AppearanceSection({ editor, selected, sections }: PanelProps) {
         change={(look) => changeSelectionLook(canvas, selected, look)}
         onStyle={(style) => changeSelectionStyle(canvas, selected, style)}
       />
+      {rectangles.length > 0 && (
+        <label className="paint-row">
+          Corners
+          <select
+            aria-label="Corners"
+            value={common(rectangles.map((target) => drawn(target).corners)) ?? "mixed"}
+            data-hint-detail="Choose square or rounded corners for the selected rectangles."
+            onChange={(event) => {
+              const value = event.target.value;
+              changeSelectionLook(canvas, rectangles, {
+                corners: value === "square" || value === "rounded" ? value : undefined,
+              });
+            }}
+          >
+            <option value="mixed" hidden disabled>
+              Mixed
+            </option>
+            <option value="square">Square</option>
+            <option value="rounded">Rounded</option>
+            <option value="default">Use default</option>
+          </select>
+        </label>
+      )}
       {texts.length > 0 && (
         <div className="paint-row inspector-text-alignment">
           <span>Text</span>

@@ -6,7 +6,7 @@ import {
   PROJECTIONS,
   WOOD_FIELDS,
   WOOD_REFS,
-  cutList,
+  acceptsWoodRef,
   inchText,
   isStock,
   locationIssue,
@@ -18,6 +18,7 @@ import { quote } from "../language/printer";
 import type { EditorController } from "../editor/controller";
 import { writeWood } from "../editor/woodworking";
 import { PropertyValue } from "./PropertyValue";
+import { WoodCutList } from "./WoodLists";
 import "./woodworking.css";
 
 const LABELS: Record<string, string> = {
@@ -41,6 +42,15 @@ const LABELS: Record<string, string> = {
   "right-inset": "Right inset override",
   gauge: "Screw gauge",
   diameter: "Bolt diameter",
+  bracket: "Mounting bracket",
+  fastener: "Attached fastener",
+  side: "Washer position",
+  size: "Nominal fastener size",
+  thread: "Thread designation",
+  "outer-diameter": "Outside diameter",
+  bore: "Inside diameter",
+  depth: "Joint depth",
+  projection: "Bracket projection",
   joint: "Joint",
   through: "Through piece",
   into: "Receiving piece",
@@ -56,7 +66,7 @@ const LABELS: Record<string, string> = {
   "receiving-face": "Receiving face",
   bearing: "Bearing contact",
   type: "Type",
-  hardware: "Nuts and washers",
+  hardware: "Hardware notes",
   surface: "Glued surfaces",
   member: "Attached piece",
   direction: "Load direction",
@@ -67,9 +77,7 @@ const LABELS: Record<string, string> = {
 function choices(key: string, parts: Parts, id: string): [string, string][] | null {
   if (WOOD_REFS.includes(key))
     return [...parts]
-      .filter(
-        ([other, part]) => other !== id && (key === "joint" ? part.kind === "joint" : isStock(part))
-      )
+      .filter(([other, part]) => other !== id && acceptsWoodRef(parts.get(id)!.kind, key, part))
       .map(([other, p]) => [other, `${p.facts.name || other} (${other})`]);
   let values: readonly string[];
   if (key === "stock") values = Object.keys(LUMBER);
@@ -79,6 +87,20 @@ function choices(key: string, parts: Parts, id: string): [string, string][] | nu
   else return null;
   return values.map((v) => [v, v]);
 }
+
+const shopLabels: Partial<Record<WoodPart["kind"], Record<string, string>>> = {
+  screw: { length: "Fastener length" },
+  bolt: { length: "Fastener length" },
+  bracket: {
+    length: "Bracket length",
+    width: "Bracket width",
+    thickness: "Bracket thickness",
+    material: "Hardware material",
+  },
+  joint: { length: "Joint length", width: "Joint width" },
+  washer: { thickness: "Washer thickness", material: "Hardware material" },
+  nut: { material: "Hardware material" },
+};
 
 function inheritedRole(field: string, part: WoodPart, parts: Parts) {
   if (field !== "through" && field !== "into") return "Unspecified";
@@ -100,15 +122,19 @@ function ShopField({
   parts: Parts;
   onChange: (key: string, value: string) => void;
 }>) {
-  const hardwareLength = field === "length" && ["screw", "bolt"].includes(part.kind);
-  const label = hardwareLength ? "Fastener length" : (LABELS[field] ?? field),
+  const label = shopLabels[part.kind]?.[field] ?? LABELS[field] ?? field,
     value = part.facts[field] || "";
   const options = choices(field, parts, id);
   return (
     <div className="wood-field">
       <span>{label}</span>
       {options !== null ? (
-        <select aria-label={label} value={value} onChange={(e) => onChange(field, e.target.value)}>
+        <select
+          aria-label={label}
+          data-hint-detail={"Set " + label.toLowerCase() + " for this physical part."}
+          value={value}
+          onChange={(e) => onChange(field, e.target.value)}
+        >
           <option value="">{inheritedRole(field, part, parts)}</option>
           {options.map(([key, text]) => (
             <option key={key} value={key}>
@@ -124,27 +150,6 @@ function ShopField({
         />
       )}
     </div>
-  );
-}
-export function WoodCutList({ editor }: Readonly<{ editor: EditorController }>) {
-  const rows = cutList(editor.document.wood.parts());
-  return (
-    <details className="wood-cut-list">
-      <summary>Cut list ({rows.length})</summary>
-      {rows.length ? (
-        <ul>
-          {rows.map((row) => (
-            <li key={row.id}>
-              <strong>{row.name}</strong> · {row.stock} · Qty {row.quantity}
-              <div>{row.dimensions}</div>
-              <small>Length · {row.basis}</small>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>Add a board or panel to list its finished cuts.</p>
-      )}
-    </details>
   );
 }
 
@@ -191,6 +196,12 @@ function PartFields({ part, parts, id, apply }: Readonly<PartProps>) {
     "magnitude",
     "diameter",
     "type",
+    "bracket",
+    "fastener",
+    "size",
+    "side",
+    "depth",
+    "projection",
   ];
   const fields: string[] = ["name", ...WOOD_FIELDS[part.kind]];
   return (

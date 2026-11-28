@@ -99,6 +99,56 @@ it("merges physical identity explicitly, preserving references and undo", () => 
   expect(doc.wood.parts().get("other")?.facts.stock).toBe("2x6");
 });
 
+it("preserves a bracket's fastening assembly and counts physical washers across views", () => {
+  const { doc, agent } = assembly();
+  expect(
+    agent.write(
+      [
+        'part corner joint type "Dado" depth "1/4 in" width "3/4 in"',
+        'part brace bracket type "Shelf bracket" joint "corner" projection "8 in"',
+        'part mount bolt bracket "brace" diameter "1/4 in" hardware "galvanized"',
+        'part near washer type "Flat washer" size "1/4 in" fastener "mount" side "under head"',
+        'part far washer type "Flat washer" size "1/4 in" fastener "mount" side "under nut"',
+        'part retainer nut type "Hex nut" fastener "mount" thread "1/4-20"',
+        "node near_face depicts near face",
+        "node near_edge depicts near edge",
+      ].join("\n")
+    )
+  ).toContain("Done");
+  const read = agent.read({ items: ["near_edge"] });
+  for (const fact of [
+    'type "Dado"',
+    'projection "8 in"',
+    'hardware "galvanized"',
+    'thread "1/4-20"',
+    "Hardware · Flat washer · qty 2",
+  ])
+    expect(read).toContain(fact);
+  for (const invalid of [
+    'part retainer nut fastener "fixing"',
+    'part near washer fastener "brace"',
+    'part brace bracket joint "rail"',
+    'part corner joint depth "1/0 in"',
+  ])
+    expect(agent.write(invalid)).toContain("Nothing was changed");
+  expect(agent.write('part near washer fastener "fixing"')).toContain("Done");
+  expect(agent.write('part near washer fastener "mount"')).toContain("Done");
+  const file = serializeDocument(doc);
+  const copy = new CanvasDocument();
+  importDocument(copy, file);
+  expect(serializeDocument(copy)).toBe(file);
+  const partial = serializeDocument(doc, ["left_end", "rail_end"]);
+  for (const id of ["brace", "mount", "near", "far", "retainer"])
+    expect(partial).toContain("part " + id + " ");
+  const added = importDocument(doc, partial);
+  const clonedRail = doc.get(added.find((id) => doc.get(id)?.name === "Crossbeam end")!)!.wood!
+    .part;
+  const cloned = agent.read({ items: ["part:" + clonedRail] });
+  expect(cloned).toContain("Hardware · Flat washer · qty 2");
+  expect(cloned).not.toContain('fastener "mount"');
+  expect(cloned).not.toContain('bracket "brace"');
+});
+
 it("keeps physical locations on the same end across view rotation, trimming and deletion", () => {
   const { doc, agent } = assembly();
   expect(

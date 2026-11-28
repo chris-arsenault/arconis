@@ -2,6 +2,56 @@ import { expect, it } from "vitest";
 import { createRoomId } from "../collaboration/room";
 import { browser, exported, more, open, railPanel } from "./browserHarness";
 
+it("places joinery, a bracket and its bolt stack using the shop palette", async () => {
+  const room = createRoomId();
+  const page = await open(
+    await browser.newContext({ viewport: { width: 1600, height: 1000 } }),
+    room
+  );
+  const peer = await open(await browser.newContext(), room);
+  await railPanel(page, "Shapes");
+  await page.getByLabel("Woodworking mode", { exact: true }).check();
+  const canvas = page.getByTestId("canvas");
+  const search = page.getByRole("searchbox", { name: "Search stencils" });
+  const place = async (label: string, x: number, y: number) => {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await canvas.click({ position: { x, y } });
+  };
+  await place("Lumber 2x4", 140, 140);
+  await place("Lumber 2x4", 140, 320);
+  await canvas.press("Escape");
+  await canvas.click({ position: { x: 170, y: 156 } });
+  await canvas.click({ position: { x: 170, y: 338 }, modifiers: ["Shift"] });
+  await search.fill("dado");
+  await place("Dado", 275, 220);
+  await search.fill("brackets");
+  await place("Shelf bracket", 390, 220);
+  await search.fill("bolt");
+  await place("Bolt 1/4 in", 480, 340);
+  await search.fill("washers");
+  await place("Flat washer", 390, 460);
+  await place("Place another view", 550, 530);
+  const data = await exported(peer);
+  const part = (caption: string) => data.objects.find((item) => item.name === caption)!.wood!.part;
+  expect(data.text).toContain('joint "' + part("Dado") + '"');
+  expect(data.text).toContain('bracket "' + part("Shelf bracket") + '"');
+  expect(data.text).toContain('fastener "' + part("1/4 in") + '"');
+  expect(data.text.match(/^part \S+ washer /gm)).toHaveLength(1);
+  expect(data.objects.filter((item) => item.wood?.part === part("Flat washer"))).toHaveLength(2);
+  await search.fill("hex nut");
+  await place("Hex nut", 710, 220);
+  await page.getByRole("combobox", { name: "Attached fastener" }).selectOption(part("1/4 in"));
+  const list = page.locator(".wood-hardware-list");
+  await list.locator("summary").click();
+  expect(await list.innerText()).toContain("Hardware list (4)");
+  expect(await list.innerText()).toContain("1 × Flat washer");
+  await expect
+    .poll(async () =>
+      (await exported(peer)).text.split("\n").find((line) => /^part \S+ nut /.test(line))
+    )
+    .toContain('fastener "' + part("1/4 in") + '"');
+});
+
 it("places catalog lumber, edits the shared cut and places an end view with real controls", async () => {
   const room = createRoomId(),
     page = await open(await browser.newContext({ viewport: { width: 1600, height: 1000 } }), room);
@@ -15,6 +65,8 @@ it("places catalog lumber, edits the shared cut and places an end view with real
   const stencil = page.getByRole("button", { name: "Lumber 2x4", exact: true });
   await stencil.click();
   await canvas.click({ position: { x: 230, y: 190 } });
+  const board = peer.getByTestId("canvas").locator('svg rect[fill="#ead5ae"]');
+  await expect.poll(() => board.evaluate((rect) => Number(rect.getAttribute("rx")))).toBe(0);
   const length = page.getByRole("textbox", { name: "Value of Cut length", exact: true });
   await length.fill("36 in");
   await length.press("Enter");

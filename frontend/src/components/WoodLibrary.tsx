@@ -1,16 +1,28 @@
-import { Ruler, Layers, Drill, Nut, Droplet, Link2, ArrowDown, Anvil } from "lucide-react";
+import {
+  Ruler,
+  Layers,
+  Drill,
+  Bolt,
+  Nut,
+  CircleDot,
+  TriangleRight,
+  Droplet,
+  Link2,
+  ArrowDown,
+  Anvil,
+} from "lucide-react";
 import { useState } from "react";
 import type { EditorController } from "../editor/controller";
 import {
   LUMBER,
   SHEET_THICKNESSES,
   SCREWS,
-  isWoodKind,
   type WoodKind,
   WOOD_LABELS,
 } from "../document/woodworking";
+import { findWoodPresets } from "../document/woodCatalog";
 import { placeWood, writeWood } from "../editor/woodworking";
-import { WoodCutList } from "./Woodworking";
+import { WoodCutList, HardwareList } from "./WoodLists";
 import { pointInCanvas } from "../editor/creationScale";
 import { StencilButton } from "./StencilButton";
 function ProfilePicker({
@@ -39,7 +51,10 @@ const woodIcons = {
   board: Ruler,
   panel: Layers,
   screw: Drill,
-  bolt: Nut,
+  bolt: Bolt,
+  nut: Nut,
+  bracket: TriangleRight,
+  washer: CircleDot,
   glue: Droplet,
   joint: Link2,
   load: ArrowDown,
@@ -52,47 +67,80 @@ type WoodGridProps = Readonly<{
   gauge: string;
   search: string;
 }>;
+function WoodButton({
+  editor,
+  kind,
+  profile,
+  label,
+}: Readonly<{ editor: EditorController; kind: WoodKind; profile: string; label: string }>) {
+  const Icon = woodIcons[kind];
+  const choice = { kind, profile, existing: "", projection: "face" } as const;
+  const armed = editor.armedWood?.stencil;
+  return (
+    <StencilButton
+      label={label}
+      pressed={armed?.kind === kind && armed.profile === profile && !armed.existing}
+      onArm={() => editor.armWood(choice)}
+      onDrop={(event) => {
+        const at = pointInCanvas(editor, event);
+        if (at) placeWood(editor, choice, at, editor.selected());
+      }}
+    >
+      <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
+      <span>{label}</span>
+    </StencilButton>
+  );
+}
 function WoodGrid({ editor, stock, sheet, gauge, search }: WoodGridProps) {
+  const query = search.toLowerCase().trim().replace("×", "x");
+  const presets = findWoodPresets(query);
   const profiles = {
-    board: stock,
+    board: searchedProfile("board", query, stock),
     panel: sheet,
-    screw: gauge,
+    screw: searchedProfile("screw", query, gauge),
     bolt: "1/4 in",
     load: "",
     support: "",
     joint: "",
     glue: "",
   };
-
   return (
-    <div className="stencil-grid">
-      {Object.keys(WOOD_LABELS)
-        .filter(isWoodKind)
-        .map((kind) => {
-          const query = search.replace("×", "x");
-          const profile = searchedProfile(kind, query, profiles[kind]);
+    <>
+      <div className="stencil-grid">
+        {(Object.keys(profiles) as (keyof typeof profiles)[]).map((kind) => {
+          const profile = profiles[kind];
           const label = [WOOD_LABELS[kind], profile].filter(Boolean).join(" ");
           if (query && !("woodworking " + kind + " " + label.toLowerCase()).includes(query))
             return null;
-          const Icon = woodIcons[kind];
-          const choice = { kind, profile, existing: "", projection: "face" } as const;
           return (
-            <StencilButton
-              key={kind}
-              label={label}
-              pressed={editor.armedWood?.stencil.kind === kind}
-              onArm={() => editor.armWood(choice)}
-              onDrop={(event) => {
-                const at = pointInCanvas(editor, event);
-                if (at) placeWood(editor, choice, at, editor.selected());
-              }}
-            >
-              <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
-              <span>{label}</span>
-            </StencilButton>
+            <WoodButton key={kind} editor={editor} kind={kind} label={label} profile={profile} />
           );
         })}
-    </div>
+      </div>
+      {["Joinery", "Brackets, washers and nuts"].map((group) => {
+        const matches = presets.filter(({ kind }) => (kind === "joint") === (group === "Joinery"));
+        if (!matches.length) return null;
+        const grid = (
+          <div className="stencil-grid">
+            {matches.map(({ kind, type }) => (
+              <WoodButton key={type} editor={editor} kind={kind} label={type} profile={type} />
+            ))}
+          </div>
+        );
+        return query ? (
+          <section aria-label={group} key={group}>
+            {grid}
+          </section>
+        ) : (
+          <details key={group}>
+            <summary data-hint-detail={"Browse " + group.toLowerCase() + " stencils."}>
+              {group}
+            </summary>
+            {grid}
+          </details>
+        );
+      })}
+    </>
   );
 }
 function searchedProfile(kind: WoodKind, query: string, chosen: string) {
@@ -145,6 +193,7 @@ export function WoodLibrary({
           <WoodGrid editor={editor} stock={stock} sheet={sheet} gauge={gauge} search={search} />
           <UnplacedParts editor={editor} />
           <WoodCutList editor={editor} />
+          <HardwareList editor={editor} />
         </section>
       )}
     </>

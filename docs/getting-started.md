@@ -68,6 +68,18 @@ picker. Point loads and supports attach to the selected member or one chosen in
 their properties. ChatGPT can create and read the same assembly using the
 `woodworking` topic in `canvas_help`.
 
+Open **Joinery** for presets such as a dado, rabbet or mortise and tenon. Select
+the two boards in order, place the joint, then enter its width, depth or length
+in the inspector. These dimensions describe the machining. Enter the finished
+piece length yourself when it includes a tenon or extends into a groove.
+
+Open **Brackets, washers and nuts** to add fittings. For a shelf bracket, select
+the joint before placing the bracket, then select the bracket before placing a
+mounting bolt. With the bolt selected, place a flat washer and set its **Washer
+position** to `under nut`. Reselect the bolt to add a hex nut. **Hardware list**
+counts physical fittings across the drawing. Use **Place another view** to show
+a detail of the same fitting, or place another stencil for a second fitting.
+
 ## Mark it up
 
 Press **M**. A small bar opens over the canvas; choose **Marker** and drag over the diagram. The

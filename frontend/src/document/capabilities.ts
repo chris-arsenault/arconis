@@ -19,6 +19,11 @@ export const hasLine = (item: Item) =>
   item.type !== "text" &&
   !(item.type === "node" && item.stencil === "icon");
 export const canColorIcon = (item: Item) => item.icon.startsWith("lucide:");
+export const hasRectangleCorners = (item: Item) =>
+  item.type === "node" &&
+  !item.onLine &&
+  !item.icon &&
+  ["rectangle", "service"].includes(item.stencil);
 /** Captions and container titles cannot resize the object they describe. */
 export const textCanResize = (item: Item) =>
   !item.wood &&

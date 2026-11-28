@@ -524,6 +524,10 @@ On phones a submenu replaces the main menu; **Back**, Left arrow or Escape retur
 Disclosure sections fold from their headers and stay as they were left on this device. Controls
 that do not apply to the selection are left out.
 
+To draw a square, place a **Rectangle**, give it equal width and height, and choose
+**Appearance → Corners → Square**. You can change corners on an existing rectangle as well.
+Rectangular woodworking views start with square corners.
+
 **Properties** give an object named values, such as owner, environment or ticket. Hover an
 object to read them. Files and assistants carry them as `property owner "Ada"`.
 

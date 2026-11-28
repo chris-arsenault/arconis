@@ -89,6 +89,7 @@ export interface AppearanceValues {
   fill: string;
   line: string;
   lineWidth: number;
+  corners: "square" | "rounded";
   textColor: string;
   textSize: number;
   font: TextFont;

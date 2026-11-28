@@ -29,6 +29,7 @@ const FULL_LOOK: Required<Look> = {
   align: "right",
   rotation: 35,
   dashed: false,
+  corners: "square",
   opacity: 65,
   strokeOpacity: 40,
   closed: true,
@@ -44,7 +45,7 @@ const FULL_LOOK: Required<Look> = {
   scale: 1.25,
 };
 const ALL_LOOK_WORDS = `fill #123456 line none line-width 2.5 text-color #654321 text-size 18
-  stroke-opacity 40 closed gradient #abcdef gradient-angle 45
+  corners square stroke-opacity 40 closed gradient #abcdef gradient-angle 45
   font serif valign bottom text-highlight #ffeeaa line-height 1.6 paragraph-gap 0.8 padding 11
   text-fit height bold off italic underline strike off align right rotate 35 dashed off opacity 65
   icon-color #112233 badge lucide:star title side vertical path curved arrow open start-arrow none scale 1.25`.replaceAll(
@@ -80,6 +81,20 @@ it("keeps explicit false flags and clears value attributes back to sparse author
   expect(session.write("edit doc font default")).toContain("Done");
   expect(document.get("doc")?.look).toEqual({ bold: false });
   expect(printCanvas(document)).toContain('text doc "Text" strong z 0 bold off');
+});
+
+it("keeps corners usable as a legacy id and named style alongside corner overrides", () => {
+  const doc = new CanvasDocument();
+  const agent = new LanguageSession(doc, "Builder");
+  expect(
+    agent.write('style corners fill #123456\nnode corners "square"\nnode box "Box" corners')
+  ).toContain("Done");
+  expect(doc.get("corners")?.name).toBe("square");
+  expect(doc.get("box")?.style).toBe("corners");
+  expect(agent.write("edit box corners rounded")).toContain("Done");
+  expect(doc.get("box")?.look.corners).toBe("rounded");
+  expect(agent.write("edit box corners default")).toContain("Done");
+  expect(doc.get("box")?.look.corners).toBeUndefined();
 });
 
 it("routes ordered description and layout passes while preserving intentionally unused layout attributes", () => {

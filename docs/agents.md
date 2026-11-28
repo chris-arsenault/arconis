@@ -218,6 +218,13 @@ Changing `part fixing screw pilot "5/32 in"` updates only the pilot hole. For
 structural review, follow the recorded contacts and flag any missing bearing
 or support information.
 
+Search `list_stencils` for a method or fitting, such as `dado` or `fender
+washer`, and use the returned `kind` and `type` in a part declaration. A bracket
+can reference its joint, a mounting bolt can reference the bracket, and a nut
+or washer can reference the bolt. Reading any of these parts returns the
+connected assembly and hardware quantities. The woodworking help includes a
+complete bracket fastening example.
+
 Hosted MCP starts the relay through its existing control service when it is
 stopped. Initialization and tool discovery remain available while it starts;
 retry room calls when the result reports startup. Existing spending limits apply.

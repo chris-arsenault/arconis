@@ -94,6 +94,15 @@ Set through and into on a joint to name its physical participants. Attach each s
 
 For a butt fit, replace literal length with span, span-axis, left and right. The outside span is reduced by the dimension each support occupies and its inset from the corresponding outer end. Use occupies and inset on a support board, or left-axis/right-axis and left-inset/right-inset on the fitted piece to specify the relationship locally. Use "0 in" for flush. A missing input leaves that cut unresolved. read includes the finished L × W × T and arithmetic for each physical piece.
 
+Search list_stencils for "joinery", "bracket", "washer" or "nut". Each preset supplies a kind and editable type. Record joint width, depth and length from the design. Joint machining dimensions do not change the butt-fit calculation. Attach a bracket to a joint, its mounting screws or bolts to that bracket, and each washer or nut to its fastener. A nut takes a bolt. A washer takes a screw or bolt. Use side to record washer position. For example, given a joint named corner:
+
+  part brace bracket type "Shelf bracket" joint "corner"
+  part mounting bolt bracket "brace" diameter "1/4 in"
+  part bearing_washer washer type "Flat washer" fastener "mounting" side "under nut" size "1/4 in"
+  part retainer nut type "Hex nut" fastener "mounting" size "1/4 in" thread "1/4-20"
+
+The hardware list counts each physical fitting once. Give a second washer its own ID, even when the two washers share a bolt.
+
 For qualitative review, follow a load's member, direction and location to its joints and supports. Check authored bearing, joint faces, fastening and adhesive details across views. Distinguish stated contact from unspecified contact. An arrow, nearby shapes and another view of the same screw supply no additional bearing or fasteners. State missing evidence, including an unknown load direction or support condition. Load capacity calculations are outside this mode.
 
 This complete bookshelf can be created in one write to an empty canvas:
@@ -150,6 +159,8 @@ A new item at a line's far end with no placement goes to the right of the start,
 ## Look
 
 fill <color|none>, line <color|none>, line-width N, dashed, opacity N (0-100), text-color <color>, text-size N, font sans|serif|mono, bold, italic, underline, strike, align left|center|right, valign top|middle|bottom, text-highlight <color|none>, line-height N (positive multiplier), paragraph-gap N (non-negative em), padding N (non-negative canvas units), text-fit fixed|height (free text may grow vertically), vertical, rotate N, icon-color <color>, badge <icon key> (frames: an icon in the corner), title header|top|side (frames: a header bar, plain text at the top left, or vertical down the side). Text size must be positive. Flags take off to turn off (bold off); value properties take default to return to the type's default (fill default).
+
+Rectangles and service nodes accept corners square or corners rounded. For example, node block rectangle size 80,80 corners square draws a square. Rectangular woodworking views default to square corners. Use corners default to inherit the named style or drawing default.
 
 Named styles are declared once and used by name. A style's name must not be a stencil's name (rectangle, ellipse, decision, service, database, cloud, person, junction, separator):
   style region line #00a1c9 dashed title top badge lucide:Flag text-color #00a1c9

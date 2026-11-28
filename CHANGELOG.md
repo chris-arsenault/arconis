@@ -4,7 +4,14 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+- Rectangles support square or rounded corners in Appearance and the canvas language.
+  Rectangular woodworking views use square corners by default.
+
 ### Woodworking drawings
+
+- Added joinery presets, brackets, washers and nuts to the woodworking palette
+  and MCP catalog. Mounting hardware can reference its bracket or fastener, and
+  the hardware list counts each physical fitting across all its views.
 
 - Added a woodworking stencil category, catalog-sized lumber and hardware, and
   multiple 2D views of each physical piece. Joints, fastening operations, loads

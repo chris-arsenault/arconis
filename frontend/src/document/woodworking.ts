@@ -1,4 +1,6 @@
 import { LENGTH_UNITS, distanceFactor, type Calibration } from "./units";
+import { WOOD_FIELDS, type WoodKind } from "./woodCatalog";
+export { WOOD_FIELDS, isWoodKind, PROFILE_FIELDS, WOOD_LABELS, type WoodKind } from "./woodCatalog";
 
 /** Dry dressed US softwood dimensions, inches (DOC PS 20-25, Tables 2 and 3). */
 export const LUMBER: Readonly<Record<string, readonly [number, number]>> = {
@@ -42,58 +44,6 @@ export const SHEET_THICKNESSES = [
   "3/4 in",
   "1 in",
 ];
-const fit = [
-  "span",
-  "span-axis",
-  "left",
-  "left-axis",
-  "left-inset",
-  "right",
-  "right-axis",
-  "right-inset",
-];
-const stock = [
-  "length",
-  "material",
-  "grade",
-  "grain",
-  "measured-width",
-  "measured-thickness",
-  "occupies",
-  "inset",
-  ...fit,
-];
-const location = ["face", "end", "offset", "edge", "edge-offset"];
-const participants = ["through", "into", "receiving-face", ...location];
-export const WOOD_FIELDS = {
-  board: ["stock", ...stock],
-  panel: ["thickness", "width", ...stock],
-  joint: ["type", "bearing", ...participants],
-  screw: [
-    "joint",
-    "gauge",
-    "type",
-    "length",
-    "clearance",
-    "pilot",
-    "clearance-depth",
-    "pilot-depth",
-    ...participants,
-  ],
-  bolt: ["joint", "type", "diameter", "length", "hardware", "clearance", ...participants],
-  glue: ["joint", "type", "surface", ...participants],
-  load: ["member", "direction", "magnitude", ...location],
-  support: ["member", "type", "bearing", ...location],
-} satisfies Record<string, string[]>;
-
-export type WoodKind = keyof typeof WOOD_FIELDS;
-export const PROFILE_FIELDS: Partial<Record<WoodKind, string>> = {
-  board: "stock",
-  panel: "thickness",
-  screw: "gauge",
-  bolt: "diameter",
-};
-export const isWoodKind = (value: string): value is WoodKind => Object.hasOwn(WOOD_FIELDS, value);
 export type WoodFacts = Record<string, string>;
 export interface WoodPart {
   kind: WoodKind;
@@ -109,7 +59,8 @@ export interface WoodView {
 export const AXES = ["length", "width", "thickness"] as const;
 export type WoodAxis = (typeof AXES)[number];
 export const isAxis = (axis: string): axis is WoodAxis => AXES.some((value) => value === axis);
-export const WOOD_REFS = ["span", "left", "right", "member", "through", "into", "joint"];
+const attachmentRefs = ["member", "through", "into", "joint", "bracket", "fastener"];
+export const WOOD_REFS = ["span", "left", "right", ...attachmentRefs];
 export const isStock = (part: WoodPart) => part.kind === "board" || part.kind === "panel";
 export function isWoodView(value: unknown): value is WoodView {
   return (
@@ -153,6 +104,10 @@ const measures = new Set([
   "measured-width",
   "measured-thickness",
   "diameter",
+  "outer-diameter",
+  "bore",
+  "projection",
+  "depth",
   "clearance",
   "pilot",
   "clearance-depth",
@@ -182,10 +137,16 @@ function profileError(key: string, value: string) {
   if (key === "end" && !["A", "B"].includes(value)) return "reference end must be A or B.";
   return "";
 }
-function refError(key: string, value: string, parts: Parts) {
+export function acceptsWoodRef(kind: WoodKind, key: string, target: WoodPart) {
+  if (key === "joint" || key === "bracket") return target.kind === key;
+  if (key === "fastener")
+    return target.kind === "bolt" || (kind === "washer" && target.kind === "screw");
+  return isStock(target);
+}
+function refError(kind: WoodKind, key: string, value: string, parts: Parts) {
   if (!WOOD_REFS.includes(key)) return "";
   const target = parts.get(value);
-  if (target && (key === "joint" ? target.kind === "joint" : isStock(target))) return "";
+  if (target && acceptsWoodRef(kind, key, target)) return "";
   return key + " refers to an unknown or incompatible part " + value + ".";
 }
 export function validField(kind: WoodKind, key: string) {
@@ -206,7 +167,9 @@ export function checkPart(id: string, part: WoodPart, parts: Parts) {
     if (!validField(part.kind, key))
       return id + ": " + key + " is not editable on a " + part.kind + ".";
     const issue =
-      measureError(key, value) || profileError(key, value) || refError(key, value, parts);
+      measureError(key, value) ||
+      profileError(key, value) ||
+      refError(part.kind, key, value, parts);
     if (issue) return id + ": " + issue;
   }
   const issue = participantError(part.facts, parts);
@@ -361,17 +324,6 @@ export function partClosure(parts: Parts, seeds: Iterable<string>): Set<string> 
   return ids;
 }
 
-export const WOOD_LABELS: Record<WoodKind, string> = {
-  board: "Lumber",
-  panel: "Sheet goods",
-  screw: "Wood screw",
-  bolt: "Bolt",
-  glue: "Glue",
-  joint: "Joint",
-  load: "Point load",
-  support: "Support",
-};
-
 export function renamePartRefs(part: WoodPart, aliases: ReadonlyMap<string, string>) {
   const facts = { ...part.facts };
   for (const key of WOOD_REFS) if (aliases.has(facts[key])) facts[key] = aliases.get(facts[key])!;
@@ -387,9 +339,7 @@ export function assemblySelection(parts: Parts, seeds: Iterable<string>) {
     previous = selected.size;
     for (const [id, part] of parts) {
       if (selected.has(id) || isStock(part)) continue;
-      const refs = ["member", "through", "into", "joint"]
-        .map((key) => part.facts[key])
-        .filter(Boolean);
+      const refs = attachmentRefs.map((key) => part.facts[key]).filter(Boolean);
       if (refs.length && refs.every((ref) => selected.has(ref))) selected.add(id);
     }
   }

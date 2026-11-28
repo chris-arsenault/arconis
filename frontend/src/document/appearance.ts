@@ -11,6 +11,7 @@ const BASE: Appearance = {
   fill: "#ffffff",
   line: "#9ca5b8",
   lineWidth: 1,
+  corners: "rounded",
   textColor: "#283249",
   textSize: 14,
   font: "sans",
@@ -94,6 +95,7 @@ export function effectiveAppearance(item: Item, named: Look = {}): Appearance {
   if (item.type === "frame" && authored.title === "top")
     defaults = { ...defaults, fill: "none", align: "left", valign: "top", padding: 8 };
   const result = { ...BASE, ...defaults };
+  if (item.wood) result.corners = "square";
   for (const key of Object.keys(authored) as (keyof Look)[])
     if (authored[key] !== undefined) Object.assign(result, { [key]: authored[key] });
   return result;

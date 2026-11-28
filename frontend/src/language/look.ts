@@ -21,6 +21,7 @@ const LOOK = {
   line: { word: "line", kind: "color" },
   lineWidth: { word: "line-width", kind: "number", range: "finite" },
   dashed: { word: "dashed", kind: "flag" },
+  corners: { word: "corners", kind: "choice", choices: { square: true, rounded: true } },
   opacity: { word: "opacity", kind: "number", range: "finite" },
   strokeOpacity: { word: "stroke-opacity", kind: "number", range: "nonnegative" },
   closed: { word: "closed", kind: "flag" },

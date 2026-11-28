@@ -1,4 +1,5 @@
 import { newId } from "../document/ids";
+import { hardwareList } from "../document/woodHardware";
 import { isLink, type Item } from "../document/types";
 import {
   validField,
@@ -25,6 +26,10 @@ export function shopReport(parts: Parts) {
     (row) =>
       `Cut ${row.id} · ${row.name} · qty ${row.quantity} · ${row.stock} · L × W × T: ${row.dimensions} · length: ${row.basis}`
   );
+  for (const row of hardwareList(parts))
+    lines.push(
+      ["Hardware", row.label, "qty " + row.quantity, row.details].filter(Boolean).join(" · ")
+    );
   for (const [id, part] of parts) {
     const issue = locationIssue(part, parts);
     if (part.kind === "joint")

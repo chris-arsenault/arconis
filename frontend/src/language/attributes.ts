@@ -1,4 +1,5 @@
 import { describe, type Cursor } from "./cursor";
+import type { Token } from "./lexer";
 import type { Arrangement, Attribute, Edge } from "./syntax";
 import { lookAttribute, type LookDefinition } from "./look";
 import { INK_KINDS } from "../document/ink";
@@ -263,8 +264,15 @@ export function isProjectionWord(word: string | undefined) {
   return word === "face" || word === "edge" || word === "end";
 }
 /** Whether a word begins an attribute rather than being an item's id. */
-export function isAttributeWord(word: string) {
-  return ATTRIBUTE_WORDS.has(word) || lookAttribute(word) !== undefined || STENCIL_WORDS.has(word);
+export function isAttributeWord(word: string, next: Token | null = null) {
+  return ATTRIBUTE_WORDS.has(word) || isLookWord(word, next) || STENCIL_WORDS.has(word);
+}
+
+function isLookWord(word: string, next: Token | null) {
+  // Old files can use corners as an item ID or named style.
+  if (word === "corners" && next)
+    return next.kind === "word" && ["square", "rounded", "default"].includes(next.text);
+  return lookAttribute(word) !== undefined;
 }
 
 /** The rest of `row`, `column` or `grid N`: an optional edge members line up by. */
@@ -335,7 +343,7 @@ function attribute(cursor: Cursor, previous: Attribute[]): Attribute {
   if (token.kind !== "word") cursor.fail(`Unexpected ${describe(token)}.`);
   const word = token.text;
   if (word === "gap") return gap(cursor, previous);
-  if (lookAttribute(word)) return look(cursor);
+  if (isLookWord(word, cursor.peek())) return look(cursor);
   cursor.next();
   const parse = PARSERS[word];
   if (parse) return parse(cursor);

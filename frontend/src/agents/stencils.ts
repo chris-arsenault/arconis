@@ -7,6 +7,7 @@ import {
   type WoodKind,
 } from "../document/woodworking";
 import { ICON_VENDORS } from "../document/geometry";
+import { findWoodPresets } from "../document/woodCatalog";
 import { STENCILS } from "../document/types";
 import { loadAllVendors, loadIcons, searchIcons } from "../assets/icons/catalog";
 
@@ -18,8 +19,9 @@ function woodStencils(query = "woodworking") {
   const all = words.includes("woodworking");
   const matches = (terms: string) =>
     all || words.some((word) => terms.toLowerCase().includes(word));
+  const presets = findWoodPresets(query);
   const types = Object.entries(WOOD_LABELS)
-    .filter(([kind, label]) => matches(kind + " " + label))
+    .filter(([kind, label]) => matches(kind + " " + label) || presets.some((p) => p.kind === kind))
     .map(([kind, label]) => ({ kind, label, fields: WOOD_FIELDS[kind as WoodKind] }));
   const lumber = Object.entries(LUMBER)
     .filter(([stock]) => matches("board lumber " + stock))
@@ -34,7 +36,7 @@ function woodStencils(query = "woodworking") {
     .filter(([gauge]) => matches("wood screw " + gauge))
     .map(([gauge, diameter]) => ({ gauge, diameter, unit: "in", editable: "length" }));
   const sheetThicknesses = matches("panel sheet goods") ? SHEET_THICKNESSES : [];
-  return { types, lumber, screws, sheetThicknesses };
+  return { types, presets, lumber, screws, sheetThicknesses };
 }
 export async function stencils(query: string | undefined) {
   if (!query?.trim())
