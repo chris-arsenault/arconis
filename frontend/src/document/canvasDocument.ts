@@ -10,6 +10,8 @@ import { BLANK } from "./itemDefaults";
 import { readSources } from "./sourceReferences";
 import { readArrangement } from "./arrangement";
 import { readClock } from "./clock";
+import { WoodStore } from "./woodStore";
+import { isWoodView, physicalSize, worldPerInch } from "./woodworking";
 import { isCalibration, readCalibration, type Calibration } from "./units";
 export { BLANK } from "./itemDefaults";
 
@@ -41,6 +43,7 @@ export class CanvasDocument {
   private snapshots = new Map<string, Item>();
   private transacting = false;
   readonly doc = new Y.Doc();
+  readonly wood = new WoodStore(this.doc);
   readonly items = this.doc.getMap<Y.Map<unknown>>("items");
   readonly meta = this.doc.getMap<string>("meta");
   /** Named looks that items refer to by name. */
@@ -49,12 +52,19 @@ export class CanvasDocument {
   readonly layers = this.doc.getMap<LayerRecord>("layers");
   /** A conversation, not an edit, so comments stay out of undo. */
   readonly comments = this.doc.getMap<string>("comments");
-  readonly undo = new Y.UndoManager([this.items, this.meta, this.styles, this.layers], {
-    trackedOrigins: new Set([LOCAL]),
-    captureTimeout: 400,
-  });
+  readonly undo = new Y.UndoManager(
+    [this.items, this.meta, this.styles, this.layers, this.wood.records],
+    {
+      trackedOrigins: new Set([LOCAL]),
+      captureTimeout: 400,
+    }
+  );
 
   constructor() {
+    this.wood.records.observeDeep(() => this.snapshots.clear());
+    this.meta.observe((event) => {
+      if (event.keysChanged.has("scale")) this.snapshots.clear();
+    });
     this.items.observeDeep((events) => {
       for (const event of events) {
         const id = event.path[0];
@@ -184,6 +194,10 @@ export class CanvasDocument {
     return {
       ...BLANK,
       ...stored,
+      wood: isWoodView(stored.wood) ? stored.wood : null,
+      ...(isWoodView(stored.wood) && !isLink(stored as Item)
+        ? physicalSize(this.wood.parts(), stored.wood, worldPerInch(this.calibration()))
+        : {}),
       id,
       markup: stored.markup ?? stored.type === "highlight",
       arrange: readArrangement(stored.arrange),
@@ -219,7 +233,7 @@ export class CanvasDocument {
   }
 
   /** Applies named edits; omitted keys stay unchanged. Removing a stored key restores its default. */
-  patch(id: string, values: Partial<Item>) {
+  patch(id: string, values: Partial<Item>, resizePhysical = true) {
     const record = this.items.get(id);
     if (!record) return;
     const current = this.get(id)!;
@@ -229,7 +243,8 @@ export class CanvasDocument {
       values = { ...values, layer: layer && layer !== BASE_LAYER ? layer : "" };
     }
     this.doc.transact(() => {
-      let changed = false;
+      let changed =
+        resizePhysical && this.wood.resize(current, values, worldPerInch(this.calibration()));
       Object.entries(values as Record<string, unknown>).forEach(([key, value]) => {
         if (key === "id" || key === "editedBy" || key === "editedAt") return;
         if (key === "name") this.editText(id, String(value));

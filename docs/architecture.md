@@ -32,6 +32,14 @@ Authored appearance remains a sparse override map because omission means inherit
 it produces a complete semantic appearance. Parser records distinguish preserving text from
 setting it, automatic from named identities, and references from inline declarations.
 
+Woodworking mode stores physical pieces and operations in the document's
+`woodworking-parts` Y.Map. Each record has a kind and shared fields for its authored
+dimensions and relationships. The canvas language declares these records with `part`.
+A placement carries `depicts` with a physical ID and projection. Each placement
+owns its drawing position. The physical record supplies stock dimensions and fitted
+lengths across placements. Files carry the physical dependencies of a selection.
+The browser and agent reads derive cut lists from these records.
+
 `sources` holds repository-relative path/opaque-anchor pairs on any item. The
 shared field writer adds/removes them, canonical printing sorts them, and ordinary
 document persistence and portable copies retain them. They are separate from

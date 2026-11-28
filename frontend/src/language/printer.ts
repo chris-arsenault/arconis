@@ -21,6 +21,7 @@ import type { Clock } from "../document/clock";
 import type { Calibration } from "../document/units";
 import { spatialOrder } from "./spatial";
 import { canonicalSources } from "../document/sourceReferences";
+import { assemblySelection, partClosure, type Parts, type WoodPart } from "../document/woodworking";
 
 /**
  * Writes canvas items as statements of the canvas language. The printed form is canonical: an item
@@ -77,6 +78,7 @@ function fieldWords(item: Item) {
     ...layerWords(item),
   ];
   if (item.scaleContents) parts.push("scale-contents");
+  parts.push(...depictionWords(item));
   parts.push(...tidyWords(item.tidy), ...clockWords(item.clock));
   if (item.tags.length) parts.push("tags", item.tags.join(", "));
   if (item.marker !== "none") parts.push("marker", item.marker);
@@ -91,6 +93,9 @@ function fieldWords(item: Item) {
   return parts;
 }
 
+function depictionWords(item: Item) {
+  return item.wood ? ["depicts", item.wood.part, item.wood.projection] : [];
+}
 function layerWords(item: Item) {
   return !item.inside && item.layer && item.layer !== BASE_LAYER ? ["in-layer", item.layer] : [];
 }
@@ -231,7 +236,10 @@ export function itemStatement(item: Item, standalone = false) {
   if (item.arrange.how !== "free") parts.push(...arrangeWords(item.arrange));
   parts.push(...fieldWords(item), ...lookWords(item.look));
   if (item.type === "drawing") parts.push("points", ...item.points.map(([x, y]) => pair(x, y)));
-  else parts.push("at", pair(item.x, item.y), "size", pair(item.width, item.height));
+  else {
+    parts.push("at", pair(item.x, item.y));
+    parts.push("size", pair(item.width, item.height));
+  }
   if (standalone && item.inside) parts.push("in", item.inside);
   parts.push(...editedWords(item));
   return parts.join(" ");
@@ -348,6 +356,7 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   const lines = [`arconis ${LANGUAGE_VERSION}`, `title ${quote(document.title())}`];
   const calibration = document.calibration();
   if (whole && calibration) lines.push(scaleStatement(calibration));
+  lines.push(...physicalDeclarations(document, whole, chosen));
   lines.push(...styleStatements(document, whole ? undefined : used));
   const layersUsed = new Set(chosen.filter((item) => !item.inside).map((item) => item.layer));
   // The room's own settings, its default layer and opening view, travel only with the whole canvas.
@@ -362,7 +371,37 @@ export function printCanvas(document: CanvasDocument, input: Partial<PrintOption
   return `${lines.join("\n")}\n`;
 }
 
+function physicalDeclarations(document: CanvasDocument, whole: boolean, chosen: Item[]) {
+  const lines = partStatements(document.wood.parts(), whole ? undefined : chosen);
+  if (whole && document.meta.get("woodworking") === "on") lines.unshift("woodworking on");
+  return lines;
+}
+
 /** The named items with everything they hold, and the links among them. */
 export function chosenItems(all: Item[], ids: string[]) {
   return selectedItems(all, ids);
+}
+
+export function partStatement(id: string, part: WoodPart) {
+  const fields = Object.entries(part.facts).sort(([a], [b]) => a.localeCompare(b));
+  return ["part", id, part.kind, ...fields.flatMap(([key, value]) => [key, quote(value)])].join(
+    " "
+  );
+}
+export function partStatements(parts: Parts, views?: Item[]) {
+  const ids = views
+    ? partClosure(
+        parts,
+        assemblySelection(
+          parts,
+          views.flatMap((item) => (item.wood ? [item.wood.part] : []))
+        )
+      )
+    : new Set(parts.keys());
+  return [...ids]
+    .sort((a, b) => a.localeCompare(b))
+    .flatMap((id) => {
+      const part = parts.get(id);
+      return part ? [partStatement(id, part)] : [];
+    });
 }

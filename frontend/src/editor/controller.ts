@@ -11,8 +11,8 @@ import {
 import { configureLocking } from "./locking";
 import type { RoomSession } from "../collaboration/room";
 import { CanvasDocument } from "../document/canvasDocument";
-import type { Item, ItemType } from "../document/types";
-import { newItemFields, ringShape, shapeItem, type Shape, type Tool } from "./shapes";
+import type { Item } from "../document/types";
+import { ringShape, type Shape, type Tool } from "./shapes";
 import { projectDocument } from "./projection";
 import { commitGraph } from "./graphChanges";
 import { bindCanvasInput } from "./input";
@@ -21,19 +21,19 @@ import { configureRendering } from "./rendering";
 import { keepArranged } from "./arrangements";
 import { configureConnectionPoints } from "./connectionPoints";
 import { observeGraphViewport, worldPointOf, zoomAt, ZoomGesture } from "./zoom";
-import { placedFactor, windowCentre } from "./creationScale";
-import { keepsTool } from "./stickyTool";
+import { windowCentre } from "./creationScale";
+import { placeShape } from "./placeShape";
 import { configureCulling } from "./culling";
 import { SelectionReferences } from "./relate";
 import { LabelMarks } from "./marks";
 import { duplicateSelection, groupSelection, ungroupSelection } from "./composition";
 import { configureComposition, connectSelection, syncLineAnchors } from "./topics";
 import type { ScreenSize } from "../document/screens";
-import { newSlideValues } from "../document/slides";
 import { fitContents } from "./views";
 import { subscribeIcons } from "../assets/icons/catalog";
 import { subscribePictures } from "./pictureSource";
-import { configurePanels, containerAt } from "./panels";
+import { configurePanels } from "./panels";
+import { placeWood, type WoodStencil } from "./woodworking";
 import { LayerView } from "./layerView";
 import { newId } from "../document/ids";
 import { stackSelection } from "./stacking";
@@ -62,6 +62,7 @@ export class EditorController {
   selectOnEdit = false;
   armedIcon: { key: string; title: string } | null = null;
   armedScreen: ScreenSize | null = null;
+  armedWood: { stencil: WoodStencil; selection: Item[] } | null = null;
   referencesVisible = false;
   private readonly selectionReferences = new SelectionReferences(() => this.referencesVisible);
   connectionSource = "";
@@ -270,11 +271,18 @@ export class EditorController {
     this.setTool("frame");
     this.armedScreen = screen;
   }
+  armWood(stencil: WoodStencil) {
+    const selection = this.selected();
+    this.setTool("rectangle");
+    this.armedWood = { stencil, selection };
+    this.emit();
+  }
   setTool(tool: Tool) {
     this.drawing.setDestination(tool);
     Object.assign(this.ui, { relating: null, lastShape: ringShape(tool) ?? this.ui.lastShape });
     this.armedIcon = null;
     this.armedScreen = null;
+    this.armedWood = null;
     this.connectionSource = "";
     this.tool = tool;
     const pan = this.graph.getPlugin<PanningHandler>("PanningHandler");
@@ -294,33 +302,14 @@ export class EditorController {
     icon = this.armedIcon,
     screen = this.armedScreen
   ) {
-    const centre = windowCentre(this);
-    const size = placedFactor(this, at);
-    const offset = (this.document.items.size % 6) * 16 * size;
-    const { type } = shapeItem(shape);
-    const fields = newItemFields(shape, size, icon, screen, this.slideValues(type));
-    const position = at ?? {
-      x: centre.x + (offset - 80) * size,
-      y: centre.y + (offset - 45) * size,
-      anchor: "corner",
-    };
-    const left = position.x - (position.anchor === "center" ? fields.width / 2 : 0);
-    const top = position.y - (position.anchor === "center" ? fields.height / 2 : 0);
-    const id = this.document.create(type, left, top, {
-      ...fields,
-      inside: containerAt(this.document, position.x, position.y, fields),
-    });
-    this.select(id);
-    if (!at || !keepsTool(this)) this.setTool("select");
-    return id;
-  }
-
-  /** A new slide's deck, number, place at the back and, in an existing deck, that deck's size. */
-  private slideValues(type: ItemType): Partial<Item> {
-    if (type !== "slide") return {};
-    const values = newSlideValues(this.document.list(), this.selected(), this.lastDeck);
-    this.lastDeck = values.deck ?? "";
-    return values;
+    if (this.armedWood && shape === "rectangle")
+      return placeWood(
+        this,
+        this.armedWood.stencil,
+        at ?? windowCentre(this),
+        this.armedWood.selection
+      );
+    return placeShape(this, shape, at, icon, screen);
   }
 
   selected() {

@@ -37,6 +37,7 @@ import { alignSelection, distributeSelection } from "../editor/topics";
 import { hasText } from "../document/capabilities";
 import { TextAlignment } from "./TextAlignment";
 import { SourceReferencesControls } from "./SourceReferencesControls";
+import { WoodInspector } from "./Woodworking";
 
 /** Selection controls grouped by task; each section retains its own disclosure preference. */
 const PANEL_DEFAULTS = {
@@ -68,6 +69,9 @@ export function Inspector({ editor }: Readonly<{ editor: EditorController }>) {
       data-help-topic="editing#property-panel"
     >
       <InspectorHeader editor={editor} selected={selected} />
+      {item.wood && (
+        <WoodInspector key={`wood ${selectionKey}`} editor={editor} selected={selected} />
+      )}
       {single && <PositionControls editor={editor} selected={selected} />}
       <PrimaryControls key={selectionKey} {...props} />
       {selected.some(isInk) && <InkMoves editor={editor} ink={selected.filter(isInk)} />}

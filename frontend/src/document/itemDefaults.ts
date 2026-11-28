@@ -3,6 +3,7 @@ import type { Item } from "./types";
 
 /** Complete ordinary item state. Authored appearance remains an override map. */
 export const BLANK: Omit<Item, "id" | "type"> = {
+  wood: null,
   name: "",
   subtitle: "",
   inside: "",

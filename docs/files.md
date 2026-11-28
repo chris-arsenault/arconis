@@ -18,8 +18,9 @@ and imports them; account saving creates a saved workspace. These paths serve di
 Choose **File**, then **Export document**, review the options and choose **Export document**.
 It downloads the canvas in the Arconis canvas language,
 including pictures, shared metadata and every layer, including layers you have hidden. It is
-readable text, with `arconis 1` as its header. Full documents include the drawing's scale and
-units; selection copies leave the destination's calibration alone. You can keep the file as
+readable text, with `arconis 1` as its header. Full documents include the drawing's scale,
+units and woodworking mode. Selection copies keep the destination's settings. A copied
+woodworking assembly carries its physical pieces, fits and fastening operations. You can keep the file as
 a backup or import it into a new room to continue editing.
 
 Exports include a short comment telling coding agents where to obtain the
@@ -132,8 +133,9 @@ fits the result. For a separate workspace, create another room before importing.
 Free item ids are retained; conflicting ids are replaced and internal references follow them.
 A file can also supply its canvas title, named styles, discussions and scale calibration.
 The title can rename the destination canvas, and a named style with the same name replaces that
-definition. Importing a full calibrated document can change how distances are interpreted
-throughout the destination without resizing existing objects. Use a new room to keep two
+definition. Importing a full calibrated document changes the interpretation of canvas
+distances. Lumber and hardware project their physical dimensions at the resulting scale.
+Use a new room to keep two
 drawings with different scales separate.
 
 In contrast, **My layouts** always inserts fresh object identities, materializes its appearance

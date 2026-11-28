@@ -191,7 +191,7 @@ use a configured connector by asking for an outcome without composing these tool
 | `describe_canvas` | Discover ids, the outline, styles, discussions and decks.                                 |
 | `read`            | Read actual items, a holder's contents or an area before editing.                         |
 | `canvas_help`     | Discover language topics; retrieve a complete topic or `all`. Available before joining.   |
-| `list_stencils`   | Discover shapes, icon sets and matching icon keys.                                        |
+| `list_stencils`   | Discover shapes, icons, lumber sections and hardware gauges.                              |
 | `write`           | Apply canvas-language statements atomically.                                              |
 | `check_layout`    | Report overlaps, objects outside their holder and text that may not fit, with no drawing. |
 | `undo`            | Revert the assistant session's own most recent write or import.                           |
@@ -209,6 +209,14 @@ Each open creates an independent session with its own read and undo history, bou
 user and OAuth client. Reuse its handle after reconnecting or reinitializing MCP. Individual HTTP
 requests do not require `initialize` or `Mcp-Session-Id`; that header does not select a room.
 `canvas_help` and `list_stencils` need no session.
+
+For woodworking, request the `woodworking` help topic. Its bookshelf example can
+be sent to `write` in an empty room. Read a view ID or `part:rail` to inspect
+the physical piece, its other views, connected joints, loads, supports and cut
+list. The example identifies the through member and receiving member separately.
+Changing `part fixing screw pilot "5/32 in"` updates only the pilot hole. For
+structural review, follow the recorded contacts and flag any missing bearing
+or support information.
 
 Hosted MCP starts the relay through its existing control service when it is
 stopped. Initialization and tool discovery remain available while it starts;

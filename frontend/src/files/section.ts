@@ -4,7 +4,7 @@ import { renameItem } from "../document/relations";
 import { newId } from "../document/ids";
 import { listComments } from "../document/comments";
 import { parse } from "../language/parser";
-import { printItems, discussionStatements, quote } from "../language/printer";
+import { partStatements, printItems, discussionStatements, quote } from "../language/printer";
 import { writeStatements } from "../language/writer";
 
 /** A library insertion carries items and their own appearance, without changing room metadata. */
@@ -40,9 +40,13 @@ export function sectionForInsertion(source: string, destination: CanvasDocument)
     const pictures = result.pictures.map(
       (picture) => `data ${picture.hash} ${picture.format} ${quote(picture.data)}`
     );
-    return ["arconis 1", printItems(items), ...discussionStatements(threads), ...pictures].join(
-      "\n"
-    );
+    return [
+      "arconis 1",
+      ...partStatements(copy.wood.parts()),
+      printItems(items),
+      ...discussionStatements(threads),
+      ...pictures,
+    ].join("\n");
   } finally {
     copy.destroy();
   }

@@ -2,8 +2,8 @@ import * as Y from "yjs";
 import type { CanvasDocument } from "../document/canvasDocument";
 import { listComments } from "../document/comments";
 import { decks } from "../document/slides";
-import { layerRoots } from "../document/layerCommands";
-import { isBox, isLink, type Item } from "../document/types";
+import { layerSummary, slideSummary, outline } from "./outline";
+import { isBox, type Item } from "../document/types";
 import { LanguageError } from "./lexer";
 import { footprint, intersects, union, type Box } from "../document/layout";
 import { describeLayout, layoutReport, overlappingPairs } from "../document/layoutReport";
@@ -11,6 +11,7 @@ import { effectiveAppearance } from "../document/appearance";
 import { parse } from "./parser";
 import {
   chosenItems,
+  partStatement,
   discussionStatements,
   itemStatement,
   printCanvas,
@@ -22,6 +23,7 @@ import {
 import type { Statement } from "./syntax";
 import { directTargets } from "./effects";
 import { writeStatements } from "./writer";
+import { shopReport, connectedParts } from "./woodParts";
 
 /** More than this in one read asks the reader to narrow it. */
 export const READ_LIMIT = 400;
@@ -56,7 +58,7 @@ export class LanguageSession {
   ) {
     this.baseline = this.snapshot();
     const { items, meta, styles, comments, layers } = document;
-    this.undo = new Y.UndoManager([items, meta, styles, comments, layers], {
+    this.undo = new Y.UndoManager([items, meta, styles, comments, layers, document.wood.records], {
       trackedOrigins: new Set([this.origin]),
       captureTimeout: 0,
     });
@@ -81,6 +83,10 @@ export class LanguageSession {
           `// Bounds: at ${round(bounds.x)},${round(bounds.y)} size ${round(bounds.width)},${round(bounds.height)}`
         );
       lines.push(...styleStatements(this.document), layerSummary(this.document, items));
+      if (this.document.meta.get("woodworking") === "on" || this.document.wood.records.size)
+        lines.push(
+          `// Woodworking: ${this.document.wood.records.size} physical parts. Read a view or part:<id> for the assembly.`
+        );
       lines.push("// Outline:", ...outline(items));
       for (const { deck, slides } of decks(items))
         lines.push(`// Deck ${quote(deck)}: ${slides.map(slideSummary).join(", ")}`);
@@ -111,6 +117,7 @@ export class LanguageSession {
       const comments = listComments(this.document).filter((comment) => ids.has(comment.on));
       const lines = [
         scaleStatement(this.document.calibration()),
+        ...this.readParts(chosen, request.items),
         printItems(chosen, this.document.layerList(), this.document.list()),
         ...discussionStatements(comments),
       ];
@@ -139,23 +146,50 @@ export class LanguageSession {
   /** The whole canvas as a file, when it is small enough to read at once. */
   private readAll() {
     const items = this.document.list();
-    if (items.length > READ_LIMIT)
+    if (items.length > READ_LIMIT || this.document.wood.records.size > READ_LIMIT)
       throw new LanguageError(
-        `The canvas has ${items.length} items; read at most ${READ_LIMIT} at once by naming items, a holder or an area. describe_canvas gives an outline.`
+        `The canvas has ${items.length} items and ${this.document.wood.records.size} physical parts; read at most ${READ_LIMIT} at once by naming items, a holder or an area. describe_canvas gives an outline.`
       );
     items.forEach((item) => this.seen.set(item.id, itemStatement(item, true)));
     const notes = this.overlapNotes(
       items,
       items.map((item) => item.id)
     );
-    return [printCanvas(this.document).trimEnd(), ...notes].join("\n");
+    const parts = this.document.wood.parts();
+    for (const [id, part] of parts) this.seen.set(`part:${id}`, partStatement(id, part));
+    return [printCanvas(this.document).trimEnd(), ...shopReport(parts), ...notes].join("\n");
+  }
+
+  private readParts(items: Item[], requested: string[]) {
+    const parts = this.document.wood.parts();
+    const seeds = items.flatMap((item) => (item.wood ? [item.wood.part] : []));
+    const selected = connectedParts(parts, [
+      ...seeds,
+      ...requested.filter((id) => id.startsWith("part:")).map((id) => id.slice(5)),
+    ]);
+    if (selected.size > READ_LIMIT)
+      throw new LanguageError(
+        "Physical assembly exceeds the bounded read. Use export_document for the complete drawing."
+      );
+    const lines = [...selected].map(([id, part]) => {
+      const text = partStatement(id, part);
+      this.seen.set(`part:${id}`, text);
+      return text;
+    });
+    const views = this.document
+      .list()
+      .filter((item) => item.wood && selected.has(item.wood.part))
+      .map(
+        (item) => "// View " + item.id + " depicts " + item.wood!.part + " " + item.wood!.projection
+      );
+    return [...lines, ...views, ...shopReport(selected)];
   }
 
   /** Applies statements as one change: all of them, or none if any is refused or fails. */
   write(text: string) {
-    return this.call(() => {
+    return this.call((now) => {
       const statements = parse(text);
-      this.refuseStale(statements);
+      this.refuseStale(statements, now.items);
       let result!: ReturnType<typeof writeStatements>;
       this.document.doc.transact(() => {
         result = writeStatements(this.document, statements, { author: this.author });
@@ -173,8 +207,25 @@ export class LanguageSession {
       items.forEach((item) => this.seen.set(item.id, itemStatement(item, true)));
       result.removed.forEach((id) => this.seen.delete(id));
       const summary = `// Done: ${result.created.length} created, ${result.changed.length} changed, ${result.removed.length} removed.`;
+      const parts = this.document.wood.parts();
+      const partLines: string[] = [];
+      for (const [id, part] of parts) {
+        const key = `part:${id}`,
+          text = partStatement(id, part);
+        if (now.items.get(key) !== text) {
+          this.seen.set(key, text);
+          partLines.push(text);
+        }
+      }
+      for (const key of now.items.keys()) {
+        if (key.startsWith("part:") && !parts.has(key.slice(5))) {
+          this.seen.delete(key);
+          partLines.push("// removed " + key);
+        }
+      }
       return [
         summary,
+        ...partLines,
         ...items.map((item) => itemStatement(item, true)),
         ...this.overlapNotes(all, touched),
       ].join("\n");
@@ -218,6 +269,8 @@ export class LanguageSession {
 
   private snapshot(): Snapshot {
     const items = new Map(this.document.list().map((item) => [item.id, itemStatement(item, true)]));
+    for (const [id, part] of this.document.wood.parts())
+      items.set(`part:${id}`, partStatement(id, part));
     const comments = listComments(this.document);
     const discussions = new Map(
       comments
@@ -238,14 +291,14 @@ export class LanguageSession {
    * Every call reports others' changes since the last one. They count as seen once reported, but
    * not during the call, so an edit to an item someone just changed is still refused.
    */
-  private call(work: () => string): string {
+  private call(work: (now: Snapshot) => string): string {
     const now = this.snapshot();
     const feed = changesBetween(this.baseline, now);
     const others = feed.lines.length
       ? ["// Others changed since your last call:", ...feed.lines]
       : [];
     try {
-      return [work(), ...others].join("\n");
+      return [work(now), ...others].join("\n");
     } catch (error) {
       if (!(error instanceof LanguageError)) throw error;
       const current = error instanceof StaleError ? error.current : [];
@@ -260,13 +313,14 @@ export class LanguageSession {
     }
   }
 
-  private refuseStale(statements: Statement[]) {
+  private refuseStale(statements: Statement[], now: Map<string, string>) {
     const stale: string[] = [];
-    for (const id of new Set(directTargets(statements))) {
-      const item = this.document.get(id);
+    const targets = directTargets(statements, (id) => this.document.get(id)?.wood?.part);
+    for (const id of targets) {
+      const text = now.get(id);
       const seen = this.seen.get(id);
-      if (item && seen !== undefined && seen !== itemStatement(item, true))
-        stale.push(itemStatement(item, true));
+      if (seen !== undefined && text !== seen && (text !== undefined || id.startsWith("part:")))
+        stale.push(text ?? `// removed ${id}`);
     }
     if (stale.length) throw new StaleError(stale);
   }
@@ -290,13 +344,25 @@ export class LanguageSession {
   private select(request: ReadSelection): Item[] {
     const all = this.document.list();
     if (request.items?.length) {
-      const missing = request.items.filter((id) => !all.some((item) => item.id === id));
+      const missing = request.items.filter(
+        (id) =>
+          !all.some((item) => item.id === id) &&
+          !(id.startsWith("part:") && this.document.wood.records.has(id.slice(5)))
+      );
       const quoted = missing.map((id) => quote(id)).join(", ");
       if (missing.length)
         throw new LanguageError(
           `No item has the id ${quoted}. Use describe_canvas to discover current item ids, then read again.`
         );
-      return chosenItems(all, request.items);
+      const requestedParts = new Set(
+        request.items.filter((id) => id.startsWith("part:")).map((id) => id.slice(5))
+      );
+      return chosenItems(all, [
+        ...request.items,
+        ...all
+          .filter((item) => item.wood && requestedParts.has(item.wood.part))
+          .map((item) => item.id),
+      ]);
     }
     if (request.inside) {
       if (!all.some((item) => item.id === request.inside))
@@ -341,48 +407,6 @@ function changesBetween(before: Snapshot, after: Snapshot) {
     if (before.discussions.get(id) !== statement) lines.push(statement);
   });
   return { lines, ids };
-}
-
-const OUTLINE_ARROWS: Partial<Record<Item["type"], string>> = { branch: "=>", reference: "..>" };
-
-/** The content layers bottom to top, each with how many top-level items it has. */
-function layerSummary(document: CanvasDocument, items: Item[]) {
-  const layers = document
-    .layerList()
-    .map((layer) => `${layer.id} ${quote(layer.name)} (${layerRoots(items, layer.id).length})`);
-  return `// Layers, bottom to top, beneath markup: ${layers.join(", ")}`;
-}
-
-/** A slide in a deck listing: its number, id and name. */
-function slideSummary(slide: Item) {
-  const parts = [String(slide.slide), slide.id];
-  if (slide.name) parts.push(quote(slide.name));
-  return parts.join(" ");
-}
-
-function outline(items: Item[]) {
-  const present = new Set(items.map((item) => item.id));
-  const lines: string[] = [];
-  const children = new Map<string, Item[]>();
-  for (const item of items.filter((candidate) => !isLink(candidate))) {
-    const holder = present.has(item.inside) ? item.inside : "";
-    children.set(holder, [...(children.get(holder) ?? []), item]);
-  }
-  const visit = (item: Item, depth: number) => {
-    const held = children.get(item.id) ?? [];
-    const name = item.name ? ` ${quote(item.name)}` : "";
-    lines.push(`${"  ".repeat(depth)}${item.type} ${item.id}${name}${held.length ? " {" : ""}`);
-    held.forEach((child) => visit(child, depth + 1));
-    if (held.length) lines.push(`${"  ".repeat(depth)}}`);
-  };
-  (children.get("") ?? []).forEach((item) => visit(item, 0));
-  for (const item of items.filter(isLink)) {
-    const label = item.name ? ` ${quote(item.name)}` : "";
-    lines.push(
-      `${item.from} ${OUTLINE_ARROWS[item.type] ?? "->"} ${item.to}${label} as ${item.id}`
-    );
-  }
-  return lines;
 }
 
 function round(value: number) {

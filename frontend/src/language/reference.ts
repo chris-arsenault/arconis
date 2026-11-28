@@ -1,3 +1,6 @@
+import { WOOD_FIELDS } from "../document/woodworking";
+import { BOOKSHELF } from "./woodworkingExample";
+
 /** A complete write with caller-chosen ids and four views over the original content. */
 export const BATCH_EXAMPLE = `style component fill #eef0ff line #6554c0
 frame network "Chat network" at 80,100 row gap 60 {
@@ -66,6 +69,38 @@ The name and subtitle are both optional: node r2 / "Amazon Aurora" has only a su
 Example:
   node api "Orders API" / "Amazon API Gateway" icon aws:Amazon-API-Gateway
   node db "Orders" database below api gap 60
+
+## Woodworking
+
+Enable the shop palette with woodworking on. Declare physical parts once and place as many 2D views as needed. Every frame or layout belongs to the same assembly.
+
+  part <physical-id> <kind> [field "value" ...]
+  node <view-id> "label" depicts <physical-id> face|edge|end at x,y
+  from_view -> to_view "callout" as callout_id depicts <operation-id> face
+  same-as <view-to-link> <view-to-keep>
+  edit <view-id> depicts <physical-id> edge
+  remove-part <physical-id>
+
+Repeat a part declaration to edit individual fields. A field followed by none clears it. same-as retains the second physical ID, repoints existing views and relationships, and reports conflicting specifications for you to resolve. Deleting a view leaves the physical part available. To remove a physical part, clear references and delete or reassign its depictions in the same write.
+
+Use list_stencils with query "woodworking", a gauge or a stock size to discover dimensions. Board sections are dry dressed lumber. A board's section follows its nominal stock profile. A screw's gauge fixes its basic major diameter. Set the length separately. Panels have width, length and sheet thickness. Enter measurements with units, for example "3/16 in", "2 1/2 ft" or "18 mm". Omit unknown measurements. The drawing uses its calibration or a default of 12 canvas units to an inch.
+
+Each kind accepts name and these fields:
+${Object.entries(WOOD_FIELDS)
+  .map(([kind, fields]) => "  " + kind + ": " + fields.join(", "))
+  .join("\n")}
+
+Set through and into on a joint to name its physical participants. Attach each screw, bolt or glue operation to the joint by ID. Clearance belongs to the through piece. The pilot belongs to the receiving piece. Hole sizes and depths are explicit specifications. Set face, end ("A" or "B"), offset, edge and edge-offset to locate an operation on the wood independently of the view's rotation. A second depiction of a screw still counts as one fastener.
+
+For a butt fit, replace literal length with span, span-axis, left and right. The outside span is reduced by the dimension each support occupies and its inset from the corresponding outer end. Use occupies and inset on a support board, or left-axis/right-axis and left-inset/right-inset on the fitted piece to specify the relationship locally. Use "0 in" for flush. A missing input leaves that cut unresolved. read includes the finished L × W × T and arithmetic for each physical piece.
+
+For qualitative review, follow a load's member, direction and location to its joints and supports. Check authored bearing, joint faces, fastening and adhesive details across views. Distinguish stated contact from unspecified contact. An arrow, nearby shapes and another view of the same screw supply no additional bearing or fasteners. State missing evidence, including an unknown load direction or support condition. Load capacity calculations are outside this mode.
+
+This complete bookshelf can be created in one write to an empty canvas:
+
+${BOOKSHELF}
+
+Read rail_end or part:rail to see the 41 in rail and the unknown upright lengths. To widen the top use part top panel length "50 in". The rail becomes 43 in. To change only the receiving hole use part fixing screw pilot "5/32 in".
 
 ## Placement
 

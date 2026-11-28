@@ -3,6 +3,7 @@ import { offsetPoints } from "../document/geometry";
 import { renameItem } from "../document/relations";
 import { newId } from "../document/ids";
 import { LOCAL, isBox } from "../document/types";
+import { assemblySelection, renamePartRefs } from "../document/woodworking";
 import type { EditorController } from "./controller";
 
 export function groupSelection(editor: EditorController) {
@@ -53,22 +54,35 @@ export function duplicateSelection(editor: EditorController) {
     )
   );
   const base = document.nextOrder();
+  const parts = document.wood.parts();
+  const physical = new Map<string, string>();
+  const seeds = ids.flatMap((id) => {
+    const part = document.get(id)?.wood?.part;
+    return part && parts.has(part) ? [part] : [];
+  });
+  const used = new Set(parts.keys());
+  for (const source of assemblySelection(parts, seeds)) {
+    const fresh = newId((key) => used.has(key));
+    used.add(fresh);
+    physical.set(source, fresh);
+  }
   document.undo.stopCapturing();
-  document.doc.transact(
-    () =>
-      ids.forEach((id, index) => {
-        const item = document.get(id)!;
-        const offset = 28;
-        document.insert({
-          ...renameItem(item, mapping),
-          order: base + index,
-          x: isBox(item) ? item.x + offset : item.x,
-          y: isBox(item) ? item.y + offset : item.y,
-          points: offsetPoints(item.points, offset, offset),
-        });
-      }),
-    LOCAL
-  );
+  document.doc.transact(() => {
+    for (const [source, target] of physical)
+      document.wood.put(target, renamePartRefs(parts.get(source)!, physical));
+    ids.forEach((id, index) => {
+      const item = document.get(id)!;
+      const offset = 28;
+      document.insert({
+        ...renameItem(item, mapping),
+        wood: item.wood ? { ...item.wood, part: physical.get(item.wood.part)! } : null,
+        order: base + index,
+        x: isBox(item) ? item.x + offset : item.x,
+        y: isBox(item) ? item.y + offset : item.y,
+        points: offsetPoints(item.points, offset, offset),
+      });
+    });
+  }, LOCAL);
   document.undo.stopCapturing();
   graph.setSelectionCells(
     ids.map((id) => graph.getDataModel().getCell(mapping.get(id)!)).filter((cell) => cell !== null)

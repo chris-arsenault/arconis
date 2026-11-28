@@ -6,7 +6,6 @@ import { isBox, isFrame, isLink, type Item } from "../document/types";
 import { placeInDeck, resolveHolder, slideArea } from "./slideWriting";
 import { checkLayers, writeLayer, type RoomStatement } from "./layerWriting";
 import { declareStyle, describeItem, givenSize, matchSizes } from "./describe";
-import { routeLineAround } from "../document/routeLine";
 import { isShared, placeJunctions, shareTrunks, type PendingJunction } from "./junctions";
 import { Draft } from "./draft";
 import { LanguageError } from "./lexer";
@@ -33,6 +32,7 @@ import {
   describeLink,
   finishBands,
   finishLinks,
+  routeAroundItems,
   pendingLinkItems,
   type PendingBand,
   type PendingLink,
@@ -50,8 +50,14 @@ import type {
 import { requestedId } from "./syntax";
 import { isConversation, type Conversation } from "./effects";
 import { attributesFor } from "./attributeRouting";
-import { checkedDrawingEndpoint, checkDrawings, reshapePanel } from "./drawing";
+import {
+  resolveDrawingTargets,
+  checkedDrawingEndpoint,
+  checkDrawings,
+  reshapePanel,
+} from "./drawing";
 import { calibrateDraft, checkVersion } from "./metadata";
+import { WoodDraft } from "./woodParts";
 
 export type { PictureData, WriteOptions, WriteResult } from "./writing";
 
@@ -62,10 +68,16 @@ type Handler<K extends Statement["kind"]> = (
 ) => void;
 
 const HANDLERS: { [K in Exclude<Statement, Conversation>["kind"]]: Handler<K> } = {
+  woodworking: (w, s) => {
+    w.wood.enabled = s.enabled;
+  },
+  part: (w, s) => w.wood.declare(s),
+  sameAs: (w, s) => w.wood.merge(s.view, s.other, s.line),
+  removePart: (w, s) => w.wood.remove(s.id, s.line),
   header: (_writer, statement) => checkVersion(statement.version, statement.line),
   title: (writer, statement) => (writer.draft.title = statement.title),
   scale: (writer, statement) => calibrateDraft(writer.draft, statement),
-  style: (writer, statement) => writer.style(statement.name, statement.attributes, statement.line),
+  style: (writer, s) => declareStyle(writer.draft, s.name, s.attributes, s.line),
   item: (writer, statement, scope) => writer.newItem(statement, scope),
   edit: (writer, statement, scope) => writer.edit(statement, scope),
   arrange: (writer, statement, scope) => writer.arrangement(statement, scope),
@@ -92,6 +104,7 @@ export function writeStatements(
 
 class Writer {
   readonly draft: Draft;
+  readonly wood: WoodDraft;
   readonly explicitSize = new Set<string>();
   readonly pictures: PictureData[] = [];
   private readonly links: PendingLink[] = [];
@@ -105,6 +118,7 @@ class Writer {
     private readonly options: WriteOptions
   ) {
     this.draft = new Draft(document);
+    this.wood = new WoodDraft(this.draft, options.importing);
   }
 
   run(statements: Statement[]): WriteResult {
@@ -115,28 +129,16 @@ class Writer {
     if (!this.options.importing) reflowDraft(draft);
     placeJunctions(draft, this.junctions);
     const around = finishLinks(draft, this.links, Boolean(this.options.importing));
-    for (const { id, ref, line } of draft.anchors)
-      draft.items.get(id)!.onLine = draft.resolve(ref, line);
-    for (const { id, ref, line } of draft.highlights) {
-      const target = draft.item(ref, line);
-      if (!isBox(target) || target.type === "highlight")
-        throw new LanguageError("Highlight a workspace object with a box.", line);
-      const highlight = draft.items.get(id)!;
-      highlight.target = target.id;
-      if (highlight.markup !== false) highlight.inside = "";
-    }
+    resolveDrawingTargets(draft);
     finishBands(draft, this.bands);
+    this.wood.finish(this.explicitSize);
     // A file says exactly where everything is, even a child left outside its frame.
     if (!this.options.importing) growHolders(draft);
-    // Routing around items comes last, once every item it avoids is where it will be.
-    const all = [...draft.items.values()];
-    for (const id of around) {
-      const line = draft.items.get(id)!;
-      Object.assign(line, routeLineAround(all, line, (item) => draft.lookOf(item)) ?? {});
-    }
+    routeAroundItems(draft, around);
     checkDrawings(draft);
     checkLayers(draft);
     draft.stackImported(this.options.importing);
+    this.wood.commit();
     return { ...draft.commit(), pictures: this.pictures };
   }
 
@@ -155,10 +157,6 @@ class Writer {
       const handler = HANDLERS[statement.kind] as Handler<typeof statement.kind>;
       handler(this, statement, scope);
     }
-  }
-
-  style(name: string, attributes: Attribute[], line: number) {
-    declareStyle(this.draft, name, attributes, line);
   }
 
   /** An existing item named by an item statement, which then changes it instead. */
@@ -185,6 +183,7 @@ class Writer {
     this.describe(item, statement.attributes, statement.line);
     if (item.type === "slide") placeInDeck(this.draft, item, statement.attributes);
     this.defaultSize(item);
+    if (!statement.attributes.some((attr) => attr.kind === "size")) this.wood.project(item);
     this.matchSizes(item, statement.attributes, statement.line);
     // A band over items is sized once they are all placed; one read from a file has its own box.
     const over = attributesFor(statement.attributes, "item", "band")[0];

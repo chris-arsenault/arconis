@@ -1,0 +1,170 @@
+import { Ruler, Layers, Drill, Nut, Droplet, Link2, ArrowDown, Anvil } from "lucide-react";
+import { useState } from "react";
+import type { EditorController } from "../editor/controller";
+import {
+  LUMBER,
+  SHEET_THICKNESSES,
+  SCREWS,
+  isWoodKind,
+  type WoodKind,
+  WOOD_LABELS,
+} from "../document/woodworking";
+import { placeWood, writeWood } from "../editor/woodworking";
+import { WoodCutList } from "./Woodworking";
+import { pointInCanvas } from "../editor/creationScale";
+import { StencilButton } from "./StencilButton";
+function ProfilePicker({
+  label,
+  value,
+  choices,
+  change,
+}: Readonly<{
+  label: string;
+  value: string;
+  choices: readonly string[];
+  change: (v: string) => void;
+}>) {
+  return (
+    <label className="wood-field">
+      {label}
+      <select value={value} onChange={(e) => change(e.target.value)}>
+        {choices.map((key) => (
+          <option key={key}>{key}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+const woodIcons = {
+  board: Ruler,
+  panel: Layers,
+  screw: Drill,
+  bolt: Nut,
+  glue: Droplet,
+  joint: Link2,
+  load: ArrowDown,
+  support: Anvil,
+};
+type WoodGridProps = Readonly<{
+  editor: EditorController;
+  stock: string;
+  sheet: string;
+  gauge: string;
+  search: string;
+}>;
+function WoodGrid({ editor, stock, sheet, gauge, search }: WoodGridProps) {
+  const profiles = {
+    board: stock,
+    panel: sheet,
+    screw: gauge,
+    bolt: "1/4 in",
+    load: "",
+    support: "",
+    joint: "",
+    glue: "",
+  };
+
+  return (
+    <div className="stencil-grid">
+      {Object.keys(WOOD_LABELS)
+        .filter(isWoodKind)
+        .map((kind) => {
+          const query = search.replace("×", "x");
+          const profile = searchedProfile(kind, query, profiles[kind]);
+          const label = [WOOD_LABELS[kind], profile].filter(Boolean).join(" ");
+          if (query && !("woodworking " + kind + " " + label.toLowerCase()).includes(query))
+            return null;
+          const Icon = woodIcons[kind];
+          const choice = { kind, profile, existing: "", projection: "face" } as const;
+          return (
+            <StencilButton
+              key={kind}
+              label={label}
+              pressed={editor.armedWood?.stencil.kind === kind}
+              onArm={() => editor.armWood(choice)}
+              onDrop={(event) => {
+                const at = pointInCanvas(editor, event);
+                if (at) placeWood(editor, choice, at, editor.selected());
+              }}
+            >
+              <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
+              <span>{label}</span>
+            </StencilButton>
+          );
+        })}
+    </div>
+  );
+}
+function searchedProfile(kind: WoodKind, query: string, chosen: string) {
+  if (kind === "board" && Object.hasOwn(LUMBER, query)) return query;
+  if (kind === "screw" && Object.hasOwn(SCREWS, query)) return query;
+  return chosen;
+}
+export function WoodLibrary({
+  editor,
+  search,
+}: Readonly<{ editor: EditorController; search: string }>) {
+  const enabled = editor.document.meta.get("woodworking") === "on";
+  const [stock, setStock] = useState("2x4"),
+    [gauge, setGauge] = useState("#7"),
+    [sheet, setSheet] = useState("3/4 in");
+  return (
+    <>
+      <label className="control-row">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => writeWood(editor, `woodworking ${e.target.checked ? "on" : "off"}`)}
+        />
+        Woodworking mode
+      </label>
+      {enabled && (
+        <section className="wood-library" aria-label="Woodworking stencils">
+          <h3>Woodworking</h3>
+          <ProfilePicker
+            label="Lumber size"
+            value={stock}
+            choices={Object.keys(LUMBER)}
+            change={setStock}
+          />
+          <ProfilePicker
+            label="Sheet thickness"
+            value={sheet}
+            choices={SHEET_THICKNESSES}
+            change={setSheet}
+          />
+          <ProfilePicker
+            label="Fastener gauge"
+            value={gauge}
+            choices={Object.keys(SCREWS)}
+            change={setGauge}
+          />
+          <WoodGrid editor={editor} stock={stock} sheet={sheet} gauge={gauge} search={search} />
+          <UnplacedParts editor={editor} />
+          <WoodCutList editor={editor} />
+        </section>
+      )}
+    </>
+  );
+}
+
+function UnplacedParts({ editor }: Readonly<{ editor: EditorController }>) {
+  const placed = new Set(editor.document.list().map((item) => item.wood?.part));
+  const unplaced = [...editor.document.wood.parts()].filter(([id]) => !placed.has(id));
+  if (!unplaced.length) return null;
+  return (
+    <details>
+      <summary>Parts without a view ({unplaced.length})</summary>
+      {unplaced.map(([id, part]) => (
+        <button
+          key={id}
+          onClick={() =>
+            editor.armWood({ kind: part.kind, existing: id, profile: "", projection: "face" })
+          }
+        >
+          Place {part.facts.name || id}
+        </button>
+      ))}
+    </details>
+  );
+}

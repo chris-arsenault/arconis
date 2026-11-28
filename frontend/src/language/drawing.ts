@@ -1,6 +1,6 @@
 import { canConnect } from "../document/capabilities";
 import { drawingIssue } from "../document/ink";
-import { isLink, type Item } from "../document/types";
+import { isBox, isLink, type Item } from "../document/types";
 import { resizedPanelContents } from "../document/panelResize";
 import type { Draft } from "./draft";
 import { LanguageError } from "./lexer";
@@ -22,6 +22,19 @@ export function checkDrawings(draft: Draft) {
       if (endpoint && !canConnect(endpoint))
         throw new LanguageError(`Remove connector ${item.id} before making ${id} markup.`, 1);
     }
+  }
+}
+
+export function resolveDrawingTargets(draft: Draft) {
+  for (const { id, ref, line } of draft.anchors)
+    draft.items.get(id)!.onLine = draft.resolve(ref, line);
+  for (const { id, ref, line } of draft.highlights) {
+    const target = draft.item(ref, line);
+    if (!isBox(target) || target.type === "highlight")
+      throw new LanguageError("Highlight a workspace object with a box.", line);
+    const highlight = draft.items.get(id)!;
+    highlight.target = target.id;
+    if (highlight.markup !== false) highlight.inside = "";
   }
 }
 

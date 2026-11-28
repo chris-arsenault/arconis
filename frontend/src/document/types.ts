@@ -5,6 +5,7 @@
  */
 import type { TreeLayoutOptions } from "./treeLayout";
 import type { Clock } from "./clock";
+import type { WoodView } from "./woodworking";
 
 export type ItemType =
   | "node"
@@ -186,6 +187,8 @@ export interface SourceReference {
 
 // Arconis: docs/diagrams/repository-links.arconis#item=canvas_model — canonical canvas state, including source references.
 export interface Item {
+  /** A drawing placement of a physical woodworking part or operation. */
+  wood: WoodView | null;
   /** Unique in the canvas. People see and type it, so it is short. */
   id: string;
   type: ItemType;

@@ -7,9 +7,11 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { AgentGateway } from "../relay/mcpHttp";
 import { createRoomId } from "../collaboration/room";
 import { readCopy } from "../document/pngCopy";
+import { BOOKSHELF } from "../language/woodworkingExample";
 import { BATCH_EXAMPLE } from "../language/reference";
 import {
   browser,
+  railPanel,
   dockPanel,
   errors,
   exported,
@@ -239,4 +241,94 @@ function gradientPixels(page: Page, png: Buffer) {
     }
     return { red, blue };
   }, png.toString("base64"));
+}
+
+it("authors a bookshelf through MCP and exchanges fitted cuts and joint revisions with the browser", async () => {
+  const room = createRoomId();
+  const page = await open(
+    await browser.newContext({ viewport: { width: 1600, height: 1000 } }),
+    room
+  );
+  const peer = await open(await browser.newContext(), room);
+  const agent = await connectAgent();
+  try {
+    const call = agent.call;
+    expect(await call("canvas_help", { topic: "woodworking" })).toContain("same-as");
+    expect(await call("list_stencils", { query: "#7" })).toContain("0.151");
+    await call("open_room", { room });
+    expect(await call("describe_canvas")).toContain("No items yet");
+    expect(await call("write", { statements: BOOKSHELF })).toContain("Done");
+    checkBookshelfEvidence(await call("read", { items: ["rail_end"] }));
+    await expect
+      .poll(async () => (await exported(peer)).objects.find((v) => v.id === "rail_view")?.width)
+      .toBe(492);
+    // Select the top's narrow edge in the front elevation.
+    await page.getByTestId("canvas").click({ position: { x: 240, y: 124 } });
+    const length = page.getByRole("textbox", { name: "Value of Cut length", exact: true });
+    await length.fill("50 in");
+    await length.press("Enter");
+    await expect.poll(() => call("read", { items: ["part:rail"] })).toContain("43 in × 3.5 in");
+    expect(
+      await call("write", {
+        statements:
+          'part left_post board inset "1/2 in"\npart corner joint bearing "rail end on upright face"\npart fixing screw pilot "5/32 in" offset "42 3/4 in"',
+      })
+    ).toContain("Done");
+    await railPanel(page, "Shapes");
+    const list = page.locator(".wood-library .wood-cut-list");
+    await list.locator("summary").click();
+    await expect.poll(() => list.innerText()).toContain("42.5 in × 3.5 in");
+    await expect.poll(() => list.innerText()).toContain("50 in − 3.5 in − 0.5 in − 3.5 in");
+    const physical = await call("read", { items: ["screw_detail"] });
+    for (const fact of ["outside rail", "rail end on upright face", "5/32 in", "3/16 in"])
+      expect(physical).toContain(fact);
+    expect(
+      await call("write", { statements: 'part fixing screw length "3 in" diameter "1 in"' })
+    ).toContain("Nothing was changed");
+    const file = await exported(peer);
+    const screw = file.text.split("\n").find((s) => s.startsWith("part fixing screw"))!;
+    expect(screw).toContain('gauge "#12"');
+    expect(screw).toContain('pilot "5/32 in"');
+    expect(screw).not.toContain('length "3 in"');
+    expect(file.objects.filter((v) => v.wood?.part === "fixing")).toHaveLength(2);
+    expect(
+      await call("write", {
+        statements: [
+          'part detail_board board stock "2x4"',
+          'node detail_member "Assembly detail" depicts detail_board end at 1100,200',
+          "same-as detail_member rail_end",
+          'part right_joint joint through "rail" into "right_post"',
+          'part shelf_load load offset "42 3/4 in"',
+        ].join("\n"),
+      })
+    ).toContain("Done");
+    const detail = await call("read", { items: ["detail_member"] });
+    expect(detail).toContain("right_joint: bearing contact unspecified");
+    expect(detail).toContain("corner: bearing contact rail end on upright face");
+    expect(detail).toContain("detail_member depicts rail end");
+    await page.getByTestId("canvas").click({ position: { x: 280, y: 240 } });
+    await expect
+      .poll(() => page.locator(".wood-inspector").innerText())
+      .toContain("42 3/4 in from end A is outside rail");
+    expect(errors).toEqual([]);
+  } finally {
+    await agent.close();
+    await page.context().close();
+    await peer.context().close();
+  }
+});
+
+function checkBookshelfEvidence(evidence: string) {
+  for (const fact of [
+    "41 in × 3.5 in",
+    "Specify length on left_post",
+    "3/16 in",
+    "1/8 in",
+    "shelf_load load",
+    "floor support",
+    "corner: bearing contact unspecified",
+    "screw_detail depicts fixing",
+    "screw_callout depicts fixing",
+  ])
+    expect(evidence).toContain(fact);
 }

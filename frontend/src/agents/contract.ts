@@ -95,7 +95,7 @@ export const CANVAS_DEFINITIONS = [
   ),
   define(
     "list_stencils",
-    "List shapes and icon sets, or search icon names with query words.",
+    "List shapes, icon sets and woodworking profiles. Search icon names, physical kinds, nominal lumber sizes and screw gauges with query words.",
     { query: z.string().optional() },
     false,
     false

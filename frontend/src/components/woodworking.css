@@ -1,0 +1,50 @@
+.wood-inspector,
+.wood-library {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.wood-field {
+  display: grid;
+  grid-template-columns: minmax(5rem, 0.9fr) minmax(0, 1.1fr);
+  gap: 0.4rem;
+  align-items: center;
+}
+.wood-field input,
+.wood-field select {
+  width: 100%;
+  min-width: 0;
+}
+.wood-fields {
+  display: grid;
+  gap: 0.25rem;
+}
+.wood-inspector h3,
+.wood-inspector p {
+  margin: 0.15rem 0;
+  overflow-wrap: anywhere;
+}
+.wood-inspector h3 small,
+.wood-cut-list small {
+  font-weight: normal;
+}
+.wood-cut-list ul {
+  padding-inline-start: 1rem;
+  margin-block: 0.5rem;
+}
+.wood-cut-list li {
+  margin-bottom: 0.4rem;
+  overflow-wrap: anywhere;
+}
+.wood-cut-list,
+.wood-inspector details {
+  min-width: 0;
+}
+.wood-inspector summary,
+.wood-cut-list summary {
+  cursor: pointer;
+}
+
+.stencil-groups:has(.wood-library .stencil) > .stencil-empty {
+  display: none;
+}

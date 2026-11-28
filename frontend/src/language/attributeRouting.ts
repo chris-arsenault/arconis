@@ -53,6 +53,7 @@ const ROUTING = {
   link: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
   edited: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
   property: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
+  depicts: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
   layer: { item: "describe", link: "link", style: "reject", arrangement: "ignore" },
 } as const satisfies Record<Attribute["kind"], Routing>;
 

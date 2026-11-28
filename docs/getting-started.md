@@ -44,6 +44,30 @@ The right dock's tabs open **Layers**, **Slides** to create and present decks, a
 for jump points, topic outlines, tags and history.
 The [canvas guide](editing.md) covers selection, containers, connectors and keyboard navigation.
 
+## Draw a woodworking assembly
+
+For a woodworking drawing, enable **Woodworking mode** in **Shapes**. Choose lumber
+or a fastener gauge, then drag the stencil onto the canvas. Select the piece to edit
+its shop dimensions. A dry dressed 2×4 has a 1½ × 3½ in section. Select another
+nominal size to change the section, or enter a cut length such as `32 1/2 in`.
+**Place another view** places the same physical piece elsewhere on the drawing.
+Choose a face, edge or end projection in its properties. **Duplicate** makes another piece.
+
+For a bookshelf rail, choose **Fit between faces**. Use the top as the outside span
+piece and choose its length. Select the two uprights as the bounding pieces. In each
+upright's **Shop details**, enter the dimension it occupies along the span and its
+inset (`0 in` for flush). A 48 in top and two uprights each occupying 3½ in give a
+41 in rail. **Cut list** shows each physical piece, its finished dimensions and the
+length calculation. Missing upright heights stay open. Moving a drawing view keeps
+these physical measurements intact.
+
+Select the through piece followed by the receiving piece, choose a wood screw and
+click the canvas. Select its callout to enter the clearance hole, pilot hole and
+their depths. For an existing joint, its physical ID also appears in the **Joint**
+picker. Point loads and supports attach to the selected member or one chosen in
+their properties. ChatGPT can create and read the same assembly using the
+`woodworking` topic in `canvas_help`.
+
 ## Mark it up
 
 Press **M**. A small bar opens over the canvas; choose **Marker** and drag over the diagram. The

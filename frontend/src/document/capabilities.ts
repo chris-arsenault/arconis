@@ -21,8 +21,9 @@ export const hasLine = (item: Item) =>
 export const canColorIcon = (item: Item) => item.icon.startsWith("lucide:");
 /** Captions and container titles cannot resize the object they describe. */
 export const textCanResize = (item: Item) =>
-  ["text", "note", "card"].includes(item.type) ||
-  (item.type === "node" && !["icon", "junction", "separator"].includes(item.stencil));
+  !item.wood &&
+  (["text", "note", "card"].includes(item.type) ||
+    (item.type === "node" && !["icon", "junction", "separator"].includes(item.stencil)));
 export const canRotate = (item: Item) =>
   !isFrame(item) && item.type !== "slide" && !isLockedIcon(item);
 /** Numeric dimension controls preserve these objects' aspect ratio. */

@@ -4,6 +4,15 @@ All notable user-visible changes are recorded here.
 
 ## Unreleased
 
+### Woodworking drawings
+
+- Added a woodworking stencil category, catalog-sized lumber and hardware, and
+  multiple 2D views of each physical piece. Joints, fastening operations, loads
+  and supports can reference the same pieces across views.
+- Added face-fitted rail lengths and a cut list with quantities, finished
+  dimensions, derivations and missing inputs. Browser, portable file and MCP
+  authoring use the shared canvas language.
+
 ### Saved workspaces for hosted assistants
 
 - Assistants can save ordinary diagrams to the connected Arconis account and reopen

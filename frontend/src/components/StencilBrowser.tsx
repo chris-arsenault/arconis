@@ -1,13 +1,4 @@
-import {
-  memo,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { memo, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { EditorController } from "../editor/controller";
 import { ICON_VENDORS, type IconVendor } from "../document/geometry";
 import {
@@ -28,8 +19,10 @@ import { SCREEN_SIZES, type ScreenSize } from "../document/screens";
 import { INFRASTRUCTURE_ICONS, STENCIL_GROUPS, type Stencil } from "./stencils";
 import { RailSection } from "./RailSection";
 import { useRailSections } from "./useRailSections";
+import { pointInCanvas } from "../editor/creationScale";
+import { StencilButton } from "./StencilButton";
+import { WoodLibrary } from "./WoodLibrary";
 
-const DRAG_THRESHOLD = 4;
 const MAX_RESULTS = 60;
 const LIBRARIES = {
   Basics: true,
@@ -41,76 +34,6 @@ const LIBRARIES = {
   azure: false,
   gcp: false,
 };
-
-function pointInCanvas(editor: EditorController, event: PointerEvent) {
-  const bounds = editor.element.getBoundingClientRect();
-  const inside =
-    event.clientX >= bounds.left &&
-    event.clientX <= bounds.right &&
-    event.clientY >= bounds.top &&
-    event.clientY <= bounds.bottom;
-  return inside ? editor.graph.getPointForEvent(event) : null;
-}
-
-function createGhost(button: HTMLElement) {
-  const ghost = button.cloneNode(true) as HTMLElement;
-  ghost.classList.add("stencil-ghost");
-  document.body.append(ghost);
-  return ghost;
-}
-
-function StencilButton({
-  label,
-  pressed,
-  onArm,
-  onDrop,
-  children,
-}: Readonly<{
-  label: string;
-  pressed: boolean;
-  onArm: () => void;
-  onDrop: (event: PointerEvent) => void;
-  children: ReactNode;
-}>) {
-  const dragged = useRef(false);
-  const startDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return;
-    const { clientX: startX, clientY: startY } = event;
-    const button = event.currentTarget;
-    dragged.current = false;
-    let ghost: HTMLElement | null = null;
-    const move = (moveEvent: PointerEvent) => {
-      const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
-      if (!ghost && distance < DRAG_THRESHOLD) return;
-      dragged.current = true;
-      ghost ??= createGhost(button);
-      ghost.style.transform = `translate(${moveEvent.clientX}px, ${moveEvent.clientY}px)`;
-    };
-    const finish = (upEvent: PointerEvent) => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", finish);
-      ghost?.remove();
-      if (ghost) onDrop(upEvent);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", finish);
-  };
-  return (
-    <button
-      className="tool stencil"
-      data-hint={label}
-      data-hint-detail="Drag this onto the canvas, or choose it and then click where it goes."
-      aria-label={label}
-      aria-pressed={pressed}
-      onPointerDown={startDrag}
-      onClick={() => {
-        if (!dragged.current) onArm();
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 function ShapeStencil({
   editor,
@@ -279,6 +202,7 @@ function SearchResults({
 }
 
 export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }>) {
+  useSyncExternalStore(editor.subscribe, editor.snapshot);
   const [query, setQuery] = useState("");
   const sections = useRailSections(LIBRARIES, "arconis.libraries");
   const version = useSyncExternalStore(subscribeIcons, iconsVersion);
@@ -303,6 +227,7 @@ export function StencilBrowser({ editor }: Readonly<{ editor: EditorController }
         onChange={(event) => setQuery(event.target.value)}
       />
       <div className="stencil-groups">
+        <WoodLibrary editor={editor} search={search} />
         {search ? (
           <SearchResults editor={editor} query={search} version={version} />
         ) : (

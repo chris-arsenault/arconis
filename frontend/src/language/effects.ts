@@ -22,6 +22,10 @@ type Effects = {
  * remain derived consequences of the write; reading a placement/line endpoint is not an edit to it.
  */
 const EFFECTS: Effects = {
+  woodworking: () => ({ kind: "metadata", reason: "Sets the canvas woodworking mode." }),
+  part: (s) => ({ kind: "items", targets: [`part:${s.id}`], children: [] }),
+  removePart: (s) => ({ kind: "items", targets: [`part:${s.id}`], children: [] }),
+  sameAs: (s) => ({ kind: "items", targets: [s.view, s.other], children: [] }),
   item: (statement) => ({
     kind: "items",
     targets: statement.identity.kind === "named" ? [requestedId(statement.identity)] : [],
@@ -96,9 +100,20 @@ export function isConversation(statement: Statement): statement is Conversation 
   return effect(statement).kind === "conversation";
 }
 
-export function directTargets(statements: Statement[]): string[] {
+export function directTargets(
+  statements: Statement[],
+  partOf?: (id: string) => string | undefined
+): string[] {
   return statements.flatMap((statement) => {
     const found = effect(statement);
-    return found.kind === "items" ? [...found.targets, ...directTargets(found.children)] : [];
+    if (found.kind !== "items") return [];
+    const physical =
+      statement.kind === "sameAs"
+        ? found.targets.flatMap((id) => {
+            const part = partOf?.(id);
+            return part ? ["part:" + part] : [];
+          })
+        : [];
+    return [...found.targets, ...physical, ...directTargets(found.children, partOf)];
   });
 }

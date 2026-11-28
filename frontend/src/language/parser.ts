@@ -1,5 +1,7 @@
 import type { ItemType, Port } from "../document/types";
 import { TREE_DIRECTIONS } from "../document/treeLayout";
+import { isWoodKind } from "../document/woodworking";
+import { isId } from "../document/ids";
 import { tokenize, type ArrowText } from "./lexer";
 import { Cursor, describe } from "./cursor";
 import {
@@ -9,6 +11,7 @@ import {
   arrangeTail,
   attributes,
   isAttributeWord,
+  isProjectionWord,
   tidyOptions,
 } from "./attributes";
 import {
@@ -56,6 +59,28 @@ const LINKS: Record<ArrowText, { type: LinkType; arrow: boolean; both: boolean }
 
 /** Statements that start with a word of their own rather than an item. */
 const SPECIAL: Record<string, (cursor: Cursor, line: number, word: string) => Statement> = {
+  woodworking: (cursor, line) => {
+    if (cursor.word("on")) return { kind: "woodworking", enabled: true, line };
+    cursor.keyword("off");
+    return { kind: "woodworking", enabled: false, line };
+  },
+  part: (cursor, line) => {
+    const id = cursor.ref("a physical part id");
+    if (!isId(id)) cursor.fail("Choose an id with letters, numbers, underscores or hyphens.");
+    const woodKind = cursor.expectWord("the woodworking stencil");
+    if (!isWoodKind(woodKind)) return cursor.fail("Unknown woodworking stencil.");
+    const fields: [string, string | null][] = [];
+    while (!cursor.atStatementEnd()) {
+      const key = cursor.expectWord("a woodworking field");
+      fields.push([
+        key,
+        cursor.word("none") ? null : cursor.expectString("the woodworking field value"),
+      ]);
+    }
+    return { kind: "part", id, woodKind, fields, line };
+  },
+  "same-as": (cursor, line) => ({ kind: "sameAs", view: cursor.ref(), other: cursor.ref(), line }),
+  "remove-part": (cursor, line) => ({ kind: "removePart", id: cursor.ref(), line }),
   arconis: (cursor, line) => ({
     kind: "header",
     version: cursor.number("the language version"),
@@ -287,12 +312,17 @@ function itemStatement(cursor: Cursor, inLink: boolean): ItemStatement {
   const word = cursor.token.text;
   const stencilAsId =
     STENCIL_WORDS.has(word) && (type !== "node" || cursor.peek().kind === "string");
-  const drawingId = DRAWING_WORDS.has(word) && cursor.peek().kind === "string";
+  const drawingId = legacyItemId(cursor);
   if (cursor.isWord() && (!isAttributeWord(word) || stencilAsId || drawingId))
     statement.identity = { kind: "named", id: cursor.next().text };
   names(cursor, statement);
   statement.attributes = attributes(cursor, inLink || linkAhead(cursor));
   return statement;
+}
+
+function legacyItemId(cursor: Cursor) {
+  if (cursor.isWord("depicts")) return !isProjectionWord(cursor.peek(2)?.text);
+  return DRAWING_WORDS.has(cursor.token.text) && cursor.peek()?.kind === "string";
 }
 
 function arrangement(cursor: Cursor): ArrangeStatement {

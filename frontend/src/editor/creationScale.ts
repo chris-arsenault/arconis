@@ -103,3 +103,13 @@ export function placedFactor(editor: EditorController, point: Point | null = nul
   const near = closestScale(seen(editor), point ?? windowCentre(editor));
   return inheritedFactor(creationOffset(editor.graph.view.scale), near);
 }
+
+export function pointInCanvas(editor: EditorController, event: PointerEvent) {
+  const bounds = editor.element.getBoundingClientRect();
+  const inside =
+    event.clientX >= bounds.left &&
+    event.clientX <= bounds.right &&
+    event.clientY >= bounds.top &&
+    event.clientY <= bounds.bottom;
+  return inside ? editor.graph.getPointForEvent(event) : null;
+}

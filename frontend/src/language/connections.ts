@@ -1,3 +1,4 @@
+import { routeLineAround } from "../document/routeLine";
 import { parseComment, type CanvasComment } from "../document/comments";
 import { isId, newId } from "../document/ids";
 import { isLink, type Item } from "../document/types";
@@ -283,4 +284,13 @@ export function converse(draft: Draft, statement: Conversation, speaker: Speaker
     speaker: Speaker
   ) => void;
   handler(draft, statement, speaker);
+}
+
+export function routeAroundItems(draft: Draft, around: Iterable<string>) {
+  // Routing around items comes last, once every item it avoids is where it will be.
+  const all = [...draft.items.values()];
+  for (const id of around) {
+    const line = draft.items.get(id)!;
+    Object.assign(line, routeLineAround(all, line, (item) => draft.lookOf(item)) ?? {});
+  }
 }

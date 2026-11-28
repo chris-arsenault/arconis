@@ -240,7 +240,7 @@ export class Draft {
     for (const [id, item] of this.items) {
       const before = this.original.get(id);
       if (!before || before === JSON.stringify(item)) continue;
-      document.patch(id, differences(JSON.parse(before) as Item, item));
+      document.patch(id, differences(JSON.parse(before) as Item, item), false);
       changed.push(id);
     }
     this.comments.forEach((comment) => writeComment(document, comment));

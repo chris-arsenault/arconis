@@ -9,13 +9,16 @@ import { canonicalSources } from "../document/sourceReferences";
  */
 
 type FieldKind =
-  "source" | "z" | "flag" | "tags" | "marker" | "task" | "link" | "edited" | "property";
+  "source" | "z" | "flag" | "tags" | "marker" | "task" | "link" | "edited" | "property" | "depicts";
 type FieldAttribute<K extends FieldKind> = Extract<Attribute, { kind: K }>;
 
 // Arconis: docs/diagrams/repository-links.arconis#item=agent_fields — shared field writes used by CLI and MCP.
 export const FIELD_DESCRIBERS: {
   [K in FieldKind]: (item: Item, attribute: FieldAttribute<K>) => void;
 } = {
+  depicts: (item, { view }) => {
+    item.wood = view;
+  },
   source: (item, { edit }) => {
     if (edit.kind === "clear") item.sources = [];
     else {

@@ -177,6 +177,15 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
   link,
   edited,
   property,
+  depicts: (cursor) => {
+    // Older canvases can have a named style called depicts.
+    if (!isProjectionWord(cursor.peek()?.text)) return { kind: "word", word: "depicts" };
+    const part = cursor.ref("a physical part id");
+    const projection = cursor.expectWord("face, edge or end");
+    if (projection !== "face" && projection !== "edge" && projection !== "end")
+      return cursor.fail("Choose face, edge or end for the projection.");
+    return { kind: "depicts", view: { part, projection } };
+  },
   source,
   z: (cursor) => {
     const value = cursor.number("a stacking position after z");
@@ -250,6 +259,9 @@ const PARSERS: Record<string, (cursor: Cursor) => Attribute> = {
 };
 const ATTRIBUTE_WORDS = new Set([...Object.keys(PARSERS), "gap", ...ARRANGEMENTS]);
 
+export function isProjectionWord(word: string | undefined) {
+  return word === "face" || word === "edge" || word === "end";
+}
 /** Whether a word begins an attribute rather than being an item's id. */
 export function isAttributeWord(word: string) {
   return ATTRIBUTE_WORDS.has(word) || lookAttribute(word) !== undefined || STENCIL_WORDS.has(word);
